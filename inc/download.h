@@ -21,8 +21,6 @@
 extern struct list_head list_download;
 extern struct list_head list_schedule_download;
 
-extern pthread_mutex_t mutex_download;
-
 extern int count_download_queue;
 
 int cwmp_free_download_request(struct download *download);

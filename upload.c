@@ -28,8 +28,6 @@
 
 LIST_HEAD(list_upload);
 
-pthread_mutex_t mutex_upload = PTHREAD_MUTEX_INITIALIZER;
-
 int lookup_vcf_name(char *instance, char **value)
 {
 	char vcf_name_parameter[256];
@@ -245,7 +243,6 @@ int cwmp_free_upload_request(struct upload *upload)
 
 int cwmp_scheduledUpload_remove_all()
 {
-	pthread_mutex_lock(&mutex_upload);
 	while (list_upload.next != &(list_upload)) {
 		struct upload *upload;
 		upload = list_entry(list_upload.next, struct upload, list);
@@ -255,7 +252,6 @@ int cwmp_scheduledUpload_remove_all()
 			count_download_queue--;
 		cwmp_free_upload_request(upload);
 	}
-	pthread_mutex_unlock(&mutex_upload);
 
 	return CWMP_OK;
 }
@@ -278,11 +274,9 @@ void cwmp_start_upload(struct uloop_timeout *timeout)
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
 	cwmp_root_cause_transfer_complete(ptransfer_complete);
-	pthread_mutex_lock(&mutex_upload);
 	list_del(&(pupload->list));
 	if (pupload->scheduled_time != 0)
 		count_download_queue--;
 	cwmp_free_upload_request(pupload);
-	pthread_mutex_unlock(&mutex_upload);
 	trigger_cwmp_session_timer();
 }

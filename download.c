@@ -26,8 +26,6 @@
 LIST_HEAD(list_download);
 LIST_HEAD(list_schedule_download);
 
-pthread_mutex_t mutex_download = PTHREAD_MUTEX_INITIALIZER;
-
 int count_download_queue = 0;
 
 /*
@@ -567,7 +565,6 @@ int cwmp_free_apply_schedule_download_request(struct apply_schedule_download *ap
 
 int cwmp_scheduledDownload_remove_all()
 {
-	pthread_mutex_lock(&mutex_download);
 	while (list_download.next != &(list_download)) {
 		struct download *download;
 		download = list_entry(list_download.next, struct download, list);
@@ -577,7 +574,6 @@ int cwmp_scheduledDownload_remove_all()
 			count_download_queue--;
 		cwmp_free_download_request(download);
 	}
-	pthread_mutex_unlock(&mutex_download);
 
 	return CWMP_OK;
 }
@@ -645,12 +641,10 @@ void cwmp_start_download(struct uloop_timeout *timeout)
 		bkp_session_delete_transfer_complete(ptransfer_complete);
 		bkp_session_save();
 	}
-	pthread_mutex_lock(&mutex_download);
 	list_del(&(pdownload->list));
 	if (pdownload->scheduled_time != 0)
 		count_download_queue--;
 	cwmp_free_download_request(pdownload);
-	pthread_mutex_unlock(&mutex_download);
 	trigger_cwmp_session_timer();
 }
 

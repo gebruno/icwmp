@@ -25,7 +25,6 @@
 #include "cwmp_event.h"
 
 static mxml_node_t *bkp_tree = NULL;
-pthread_mutex_t mutex_backup_session = PTHREAD_MUTEX_INITIALIZER;
 
 enum backup_attributes_types
 {
@@ -176,12 +175,10 @@ void bkp_session_save()
 	FILE *fp;
 	if (!bkp_tree)
 		return;
-	pthread_mutex_lock(&mutex_backup_session);
 	fp = fopen(CWMP_BKP_FILE, "w");
 	mxmlSaveFile(bkp_tree, fp, MXML_NO_CALLBACK);
 	fclose(fp);
 	sync();
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 mxml_node_t *bkp_session_insert(mxml_node_t *tree, char *name, char *value)
@@ -236,7 +233,6 @@ mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id, char
 	char event_idx[32];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(parent_name, sizeof(parent_name), "%s_event", status);
 	snprintf(event_id, sizeof(event_id), "%d", id);
 	snprintf(event_idx, sizeof(event_idx), "%d", index);
@@ -249,7 +245,6 @@ mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id, char
 		bkp_session_insert(b, "id", event_id);
 		bkp_session_insert(b, "command_key", command_key);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 	return b;
 }
 
@@ -260,7 +255,6 @@ void bkp_session_delete_event(int id, char *status)
 	char event_id[32];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(parent_name, sizeof(parent_name), "%s_event", status);
 	snprintf(event_id, sizeof(event_id), "%d", id);
 	keys[0].name = "id";
@@ -268,34 +262,28 @@ void bkp_session_delete_event(int id, char *status)
 	b = bkp_session_node_found(bkp_tree, parent_name, keys, 1);
 	if (b)
 		mxmlDelete(b);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_insert_parameter(mxml_node_t *b, char *name)
 {
-	pthread_mutex_lock(&mutex_backup_session);
 	bkp_session_insert(b, "parameter", name);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_simple_insert(char *parent, char *child, char *value)
 {
 	mxml_node_t *b = bkp_tree;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	b = mxmlFindElement(b, b, parent, NULL, NULL, MXML_DESCEND);
 	if (b)
 		mxmlDelete(b);
 	b = bkp_session_insert(bkp_tree, parent, NULL);
 	bkp_session_insert(b, child, value);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_simple_insert_in_parent(char *parent, char *child, char *value)
 {
 	mxml_node_t *n, *b = bkp_tree;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	n = mxmlFindElement(b, b, parent, NULL, NULL, MXML_DESCEND);
 	if (!n)
 		n = bkp_session_insert(bkp_tree, parent, NULL);
@@ -303,14 +291,12 @@ void bkp_session_simple_insert_in_parent(char *parent, char *child, char *value)
 	if (b)
 		mxmlDelete(b);
 	bkp_session_insert(n, child, value);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_move_inform_to_inform_send()
 {
 	mxml_node_t *b = bkp_tree;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	while (b) {
 		if (b->type == MXML_ELEMENT && !strcmp(b->value.element.name, "queue_event") && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "cwmp")) {
 			FREE(b->value.element.name);
@@ -318,14 +304,12 @@ void bkp_session_move_inform_to_inform_send()
 		}
 		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_move_inform_to_inform_queue()
 {
 	mxml_node_t *b = bkp_tree;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	while (b) {
 		if (b->type == MXML_ELEMENT && !strcmp(b->value.element.name, "send_event") && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "cwmp")) {
 			FREE(b->value.element.name);
@@ -333,7 +317,6 @@ void bkp_session_move_inform_to_inform_queue()
 		}
 		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_insert_schedule_inform(time_t time, char *command_key)
@@ -341,7 +324,6 @@ void bkp_session_insert_schedule_inform(time_t time, char *command_key)
 	char schedule_time[128];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)time);
 	struct search_keywords sched_inf_insert_keys[2] = { { "command_key", command_key }, { "time", schedule_time } };
 	b = bkp_session_node_found(bkp_tree, "schedule_inform", sched_inf_insert_keys, 2);
@@ -350,7 +332,6 @@ void bkp_session_insert_schedule_inform(time_t time, char *command_key)
 		bkp_session_insert(b, "command_key", command_key);
 		bkp_session_insert(b, "time", schedule_time);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_delete_schedule_inform(time_t time, char *command_key)
@@ -358,13 +339,11 @@ void bkp_session_delete_schedule_inform(time_t time, char *command_key)
 	char schedule_time[128];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)time);
 	struct search_keywords sched_inf_del_keys[2] = { { "command_key", command_key }, { "time", schedule_time } };
 	b = bkp_session_node_found(bkp_tree, "schedule_inform", sched_inf_del_keys, 2);
 	if (b)
 		mxmlDelete(b);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_insert_download(struct download *pdownload)
@@ -373,7 +352,6 @@ void bkp_session_insert_download(struct download *pdownload)
 	char file_size[128];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pdownload->scheduled_time);
 	snprintf(file_size, sizeof(file_size), "%d", pdownload->file_size);
 	struct search_keywords download_insert_keys[7] = { { "url", pdownload->url }, { "command_key", pdownload->command_key }, { "file_type", pdownload->file_type }, { "username", pdownload->username }, { "password", pdownload->password }, { "file_size", file_size }, { "time", schedule_time } };
@@ -389,7 +367,6 @@ void bkp_session_insert_download(struct download *pdownload)
 		bkp_session_insert(b, "file_size", file_size);
 		bkp_session_insert(b, "time", schedule_time);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_insert_schedule_download(struct download *pschedule_download)
@@ -400,7 +377,6 @@ void bkp_session_insert_schedule_download(struct download *pschedule_download)
 	char maxretrie[2][128];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(file_size, sizeof(file_size), "%d", pschedule_download->file_size);
 	for (i = 0; i < 2; i++) {
 		snprintf(delay[2 * i], sizeof(delay[i]), "%lld", (long long int)pschedule_download->timewindowstruct[i].windowstart);
@@ -444,7 +420,6 @@ void bkp_session_insert_schedule_download(struct download *pschedule_download)
 		bkp_session_insert(b, "usermessage2", pschedule_download->timewindowstruct[1].usermessage);
 		bkp_session_insert(b, "maxretrie2", maxretrie[1]);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_insert_change_du_state(struct change_du_state *pchange_du_state)
@@ -453,7 +428,6 @@ void bkp_session_insert_change_du_state(struct change_du_state *pchange_du_state
 	char schedule_time[128];
 	mxml_node_t *b, *n;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pchange_du_state->timeout);
 	b = bkp_session_insert(bkp_tree, "change_du_state", NULL);
 	bkp_session_insert(b, "command_key", pchange_du_state->command_key);
@@ -481,7 +455,6 @@ void bkp_session_insert_change_du_state(struct change_du_state *pchange_du_state
 			bkp_session_insert(n, "executionenvref", p->executionenvref);
 		}
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_delete_change_du_state(struct change_du_state *pchange_du_state)
@@ -489,13 +462,11 @@ void bkp_session_delete_change_du_state(struct change_du_state *pchange_du_state
 	char schedule_time[128];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pchange_du_state->timeout);
 	struct search_keywords cds_del_keys[2] = { { "command_key", pchange_du_state->command_key }, { "time", schedule_time } };
 	b = bkp_session_node_found(bkp_tree, "change_du_state", cds_del_keys, 2);
 	if (b)
 		mxmlDelete(b);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_insert_upload(struct upload *pupload)
@@ -503,7 +474,6 @@ void bkp_session_insert_upload(struct upload *pupload)
 	char schedule_time[128];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pupload->scheduled_time);
 	struct search_keywords upload_insert_keys[6] = { { "url", pupload->url }, { "command_key", pupload->command_key }, { "username", pupload->username }, { "password", pupload->password }, { "time", schedule_time }, { "file_type", pupload->file_type } };
 
@@ -517,7 +487,6 @@ void bkp_session_insert_upload(struct upload *pupload)
 		bkp_session_insert(b, "password", pupload->password);
 		bkp_session_insert(b, "time", schedule_time);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 void bkp_session_delete_download(struct download *pdownload)
 {
@@ -525,7 +494,6 @@ void bkp_session_delete_download(struct download *pdownload)
 	char file_size[128];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pdownload->scheduled_time);
 	snprintf(file_size, sizeof(file_size), "%d", pdownload->file_size);
 	struct search_keywords download_del_keys[7] = { { "url", pdownload->url }, { "command_key", pdownload->command_key }, { "file_type", pdownload->file_type }, { "username", pdownload->username }, { "password", pdownload->password }, { "file_size", file_size }, { "time", schedule_time } };
@@ -533,7 +501,6 @@ void bkp_session_delete_download(struct download *pdownload)
 	b = bkp_session_node_found(bkp_tree, "download", download_del_keys, 7);
 	if (b)
 		mxmlDelete(b);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_delete_schedule_download(struct download *pschedule_download_delete)
@@ -544,7 +511,6 @@ void bkp_session_delete_schedule_download(struct download *pschedule_download_de
 	int i;
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(file_size, sizeof(file_size), "%d", pschedule_download_delete->file_size);
 	for (i = 0; i < 2; i++) {
 		snprintf(delay[2 * i], sizeof(delay[i]), "%lld", (long long int)pschedule_download_delete->timewindowstruct[i].windowstart);
@@ -572,20 +538,17 @@ void bkp_session_delete_schedule_download(struct download *pschedule_download_de
 
 	if (b)
 		mxmlDelete(b);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 void bkp_session_delete_upload(struct upload *pupload)
 {
 	char schedule_time[128];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pupload->scheduled_time);
 	struct search_keywords upload_del_keys[6] = { { "url", pupload->url }, { "command_key", pupload->command_key }, { "file_type", pupload->file_type }, { "username", pupload->username }, { "password", pupload->password }, { "time", schedule_time } };
 	b = bkp_session_node_found(bkp_tree, "upload", upload_del_keys, 6);
 	if (b)
 		mxmlDelete(b);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_insert_du_state_change_complete(struct du_state_change_complete *pdu_state_change_complete)
@@ -594,7 +557,6 @@ void bkp_session_insert_du_state_change_complete(struct du_state_change_complete
 	struct opresult *p = NULL;
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pdu_state_change_complete->timeout);
 	b = bkp_session_insert(bkp_tree, "du_state_change_complete", NULL);
 	bkp_session_insert(b, "command_key", pdu_state_change_complete->command_key);
@@ -614,7 +576,6 @@ void bkp_session_insert_du_state_change_complete(struct du_state_change_complete
 		bkp_session_insert(n, "complete_time", p->complete_time);
 		bkp_session_insert(n, "fault", fault_code);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_delete_du_state_change_complete(struct du_state_change_complete *pdu_state_change_complete)
@@ -622,14 +583,12 @@ void bkp_session_delete_du_state_change_complete(struct du_state_change_complete
 	mxml_node_t *b;
 	char schedule_time[128];
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pdu_state_change_complete->timeout);
 	struct search_keywords cds_complete_keys[2] = { { "command_key", pdu_state_change_complete->command_key }, { "time", schedule_time } };
 
 	b = bkp_session_node_found(bkp_tree, "du_state_change_complete", cds_complete_keys, 2);
 	if (b)
 		mxmlDelete(b);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 void bkp_session_insert_transfer_complete(struct transfer_complete *ptransfer_complete)
 {
@@ -638,7 +597,6 @@ void bkp_session_insert_transfer_complete(struct transfer_complete *ptransfer_co
 	char type[16];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(fault_code, sizeof(fault_code), "%d", ptransfer_complete->fault_code);
 	keys[0].name = "command_key";
 	keys[0].value = ptransfer_complete->command_key;
@@ -661,7 +619,6 @@ void bkp_session_insert_transfer_complete(struct transfer_complete *ptransfer_co
 		bkp_session_insert(b, "fault_code", fault_code);
 		bkp_session_insert(b, "type", type);
 	}
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 void bkp_session_delete_transfer_complete(struct transfer_complete *ptransfer_complete)
@@ -670,7 +627,6 @@ void bkp_session_delete_transfer_complete(struct transfer_complete *ptransfer_co
 	char type[16];
 	mxml_node_t *b;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	snprintf(fault_code, sizeof(fault_code), "%d", ptransfer_complete->fault_code);
 	snprintf(type, sizeof(type), "%d", ptransfer_complete->type);
 	struct search_keywords trans_comp_del_keys[5] = { { "command_key", ptransfer_complete->command_key }, { "start_time", ptransfer_complete->start_time }, { "complete_time", ptransfer_complete->complete_time }, { "fault_code", fault_code }, { "type", type } };
@@ -678,7 +634,6 @@ void bkp_session_delete_transfer_complete(struct transfer_complete *ptransfer_co
 	b = bkp_session_node_found(bkp_tree, "transfer_complete", trans_comp_del_keys, 5);
 	if (b)
 		mxmlDelete(b);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 int save_acs_bkp_config()
@@ -967,11 +922,9 @@ void bkp_session_create_file()
 {
 	FILE *pFile;
 
-	pthread_mutex_lock(&mutex_backup_session);
 	pFile = fopen(CWMP_BKP_FILE, "w");
 	if (pFile == NULL) {
 		CWMP_LOG(ERROR, "Unable to create %s file", CWMP_BKP_FILE);
-		pthread_mutex_unlock(&mutex_backup_session);
 		return;
 	}
 	fprintf(pFile, "%s", CWMP_BACKUP_SESSION);
@@ -979,7 +932,6 @@ void bkp_session_create_file()
 		MXML_DELETE(bkp_tree);
 	bkp_tree = mxmlLoadString(NULL, CWMP_BACKUP_SESSION, MXML_OPAQUE_CALLBACK);
 	fclose(pFile);
-	pthread_mutex_unlock(&mutex_backup_session);
 }
 
 int bkp_session_check_file()

@@ -36,8 +36,6 @@ struct search_keywords {
 	char *value;
 };
 
-extern pthread_mutex_t mutex_backup_session;
-
 int cwmp_init_backup_session(char **ret, enum backup_loading load);
 void bkp_session_save();
 int cwmp_load_saved_session(char **acsurl, enum backup_loading load);

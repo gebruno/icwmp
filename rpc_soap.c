@@ -1588,14 +1588,12 @@ int cancel_transfer(char *key)
 		list_for_each_safe (ilist, q, &(list_download)) {
 			struct download *pdownload = list_entry(ilist, struct download, list);
 			if (strcmp(pdownload->command_key, key) == 0) {
-				pthread_mutex_lock(&mutex_download);
 				bkp_session_delete_download(pdownload);
 				bkp_session_save();
 				list_del(&(pdownload->list));
 				if (pdownload->scheduled_time != 0)
 					count_download_queue--;
 				cwmp_free_download_request(pdownload);
-				pthread_mutex_unlock(&mutex_download);
 			}
 		}
 	}
@@ -1603,14 +1601,12 @@ int cancel_transfer(char *key)
 		list_for_each_safe (ilist, q, &(list_upload)) {
 			struct upload *pupload = list_entry(ilist, struct upload, list);
 			if (strcmp(pupload->command_key, key) == 0) {
-				pthread_mutex_lock(&mutex_upload);
 				bkp_session_delete_upload(pupload);
 				bkp_session_save(); //is it needed
 				list_del(&(pupload->list));
 				if (pupload->scheduled_time != 0)
 					count_download_queue--;
 				cwmp_free_upload_request(pupload);
-				pthread_mutex_unlock(&mutex_upload);
 			}
 		}
 	}
@@ -2048,7 +2044,6 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 	}
 
 	if (error == FAULT_CPE_NO_FAULT) {
-		pthread_mutex_lock(&mutex_download);
 		if (download_delay != 0)
 			scheduled_time = time(NULL) + download_delay + PROCESSING_DELAY;
 
@@ -2072,7 +2067,6 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 			CWMP_LOG(INFO, "Download will start at the end of session");
 		}
 		cwmp_set_end_session(END_SESSION_DOWNLOAD);
-		pthread_mutex_unlock(&mutex_download);
 
 	}
 
@@ -2398,7 +2392,6 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 	}
 
 	if (error == FAULT_CPE_NO_FAULT) {
-		pthread_mutex_lock(&mutex_upload);
 		if (upload_delay != 0)
 			scheduled_time = time(NULL) + upload_delay + PROCESSING_DELAY;
 
@@ -2422,7 +2415,6 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 			CWMP_LOG(INFO, "Download will start at the end of session");
 		}
 		cwmp_set_end_session(END_SESSION_UPLOAD);
-		pthread_mutex_unlock(&mutex_upload);
 
 	}
 	return 0;

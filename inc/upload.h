@@ -12,7 +12,6 @@
 #define CWMP_UPLOAD_H
 
 extern struct list_head list_upload;
-extern pthread_mutex_t mutex_upload;
 
 int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptransfer_complete);
 void *thread_cwmp_rpc_cpe_upload(void *v);

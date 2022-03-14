@@ -22,10 +22,8 @@ echo "Running the api test cases"
 ubus-api-validator -t 30 -f ./test/api/json/tr069.validation.json > ./api-test-result.log
 check_ret $?
 
-sleep 7
 echo "Stop all services"
 supervisorctl stop all
-sleep 7
 # Artefact
 gcovr -r . 2> /dev/null --xml -o ./api-test-coverage.xml
 #GitLab-CI output

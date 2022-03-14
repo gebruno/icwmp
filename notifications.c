@@ -24,7 +24,6 @@
 LIST_HEAD(list_value_change);
 LIST_HEAD(list_lw_value_change);
 LIST_HEAD(list_param_obj_notify);
-pthread_mutex_t mutex_value_change = PTHREAD_MUTEX_INITIALIZER;
 struct uloop_timeout check_notify_timer = { .cb = periodic_check_notifiy };
 
 char *notifications[7] = {"disabled" , "passive", "active", "passive_lw", "passive_passive_lw", "active_lw", "passive_active_lw"};
@@ -548,9 +547,7 @@ void cwmp_prepare_value_change()
 	event_container = cwmp_add_event_container(EVENT_IDX_4VALUE_CHANGE, "");
 	if (!event_container)
 		return;
-	pthread_mutex_lock(&(mutex_value_change));
 	list_splice_init(&(list_value_change), &(event_container->head_dm_parameter));
-	pthread_mutex_unlock(&(mutex_value_change));
 	cwmp_save_event_container(event_container);
 }
 
@@ -590,16 +587,12 @@ void trigger_periodic_notify_check()
 
 void add_list_value_change(char *param_name, char *param_data, char *param_type)
 {
-	pthread_mutex_lock(&(mutex_value_change));
 	add_dm_parameter_to_list(&list_value_change, param_name, param_data, param_type, 0, false);
-	pthread_mutex_unlock(&(mutex_value_change));
 }
 
 void clean_list_value_change()
 {
-	pthread_mutex_lock(&(mutex_value_change));
 	cwmp_free_all_dm_parameter_list(&list_value_change);
-	pthread_mutex_unlock(&(mutex_value_change));
 }
 
 void send_active_value_change(void)
