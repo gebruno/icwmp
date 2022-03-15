@@ -130,7 +130,7 @@ int xml_handle_message(struct session *session)
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
 	rpc_cpe = NULL;
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
-		if (i != RPC_CPE_FAULT && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->amd_version) {
+		if (i != RPC_CPE_FAULT && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
 			rpc_cpe = cwmp_add_session_rpc_cpe(session, i);
 			if (rpc_cpe == NULL)
