@@ -52,18 +52,18 @@ done
 echo "Stop all services"
 supervisorctl stop icwmpd
 
-#cp test/files/etc/config/users /etc/config/
-#cp test/files/etc/config/wireless /etc/config/
+cp test/files/etc/config/users /etc/config/
+cp test/files/etc/config/wireless /etc/config/
 
-#echo "Verify Custom notifications"
-#./test/script/verify_custom_notifications.sh
-#if [ "$?" -eq 0 ]; then
-#	echo "ok - verify_custom_notifications" >> ./funl-test-result.log
-#else
-#	echo "not ok - verify_custom_notifications" >> ./funl-test-result.log
-#fi
-#
-#test_num=$(( test_num + 1 ))
+echo "Verify Custom notifications"
+./test/script/verify_custom_notifications.sh
+if [ "$?" -eq 0 ]; then
+	echo "ok - verify_custom_notifications" >> ./funl-test-result.log
+else
+	echo "not ok - verify_custom_notifications" >> ./funl-test-result.log
+fi
+
+test_num=$(( test_num + 1 ))
 echo "1..${test_num}" >> ./funl-test-result.log
 
 # Artefact
