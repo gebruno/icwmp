@@ -18,6 +18,7 @@ supervisorctl restart all
 exec_cmd ubus wait_for usp.raw tr069
 supervisorctl status all
 
+sleep 5
 echo "Running the api test cases"
 ubus-api-validator -t 30 -f ./test/api/json/tr069.validation.json > ./api-test-result.log
 check_ret $?
