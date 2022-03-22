@@ -250,7 +250,7 @@ int cwmp_root_cause_get_rpc_method()
 
 bool event_exist_in_list(int event)
 {
-	struct event_container *event_container = NULL;
+	struct event_container *event_container;
 	list_for_each_entry (event_container, &cwmp_main->session->events, list) {
 		if (event_container->code == event)
 			return true;

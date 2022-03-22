@@ -424,7 +424,7 @@ void bkp_session_insert_schedule_download(struct download *pschedule_download)
 
 void bkp_session_insert_change_du_state(struct change_du_state *pchange_du_state)
 {
-	struct operations *p = NULL;
+	struct operations *p;
 	char schedule_time[128];
 	mxml_node_t *b, *n;
 
@@ -554,7 +554,7 @@ void bkp_session_delete_upload(struct upload *pupload)
 void bkp_session_insert_du_state_change_complete(struct du_state_change_complete *pdu_state_change_complete)
 {
 	char schedule_time[128], resolved[8], fault_code[8];
-	struct opresult *p = NULL;
+	struct opresult *p;
 	mxml_node_t *b;
 
 	snprintf(schedule_time, sizeof(schedule_time), "%lld", (long long int)pdu_state_change_complete->timeout);
@@ -670,7 +670,7 @@ void load_queue_event(mxml_node_t *tree)
 {
 	char *command_key = NULL;
 	mxml_node_t *b = tree, *c;
-	int idx, id = -1;
+	int idx = 0, id = -1;
 	struct event_container *event_container_save = NULL;
 
 	struct backup_attributes bkp_attrs = { .index = &idx, .id = &id, .command_key = &command_key };
@@ -711,7 +711,7 @@ void load_schedule_inform(mxml_node_t *tree)
 	char *command_key = NULL;
 	time_t scheduled_time = 0;
 	struct schedule_inform *schedule_inform = NULL;
-	struct list_head *ilist = NULL;
+	struct list_head *ilist;
 
 	struct backup_attributes bkp_attrs = { .command_key = &command_key, .time = &scheduled_time };
 	load_specific_backup_attributes(tree, &bkp_attrs);

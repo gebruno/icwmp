@@ -121,6 +121,11 @@ static int cwmp_schedule_rpc()
 				goto retry;
 
 			CWMP_LOG(INFO, "Get the %sResponse message from the ACS", rpc_acs_methods[rpc_acs->type].name);
+			/*
+			 * This condition is not always false.
+			 * while the value of cwmp_stop can be changed to true in the exit of icwmp.
+			 */
+			// cppcheck-suppress knownConditionTrueFalse
 			if (rpc_acs_methods[rpc_acs->type].parse_response || cwmp_stop)
 				if (rpc_acs_methods[rpc_acs->type].parse_response(rpc_acs))
 					goto retry;

@@ -644,7 +644,8 @@ int reload_networking_config()
 	}
 
 	if ((error = get_connection_interface()))
-		return -1;
+		return error;
+
 	return CWMP_OK;
 }
 

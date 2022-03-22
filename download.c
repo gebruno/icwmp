@@ -711,9 +711,8 @@ void cwmp_start_schedule_download(struct uloop_timeout *timeout)
 		ptransfer_complete->start_time = strdup(mix_get_time_of(now));
 		ptransfer_complete->complete_time = strdup(mix_get_time());
 		ptransfer_complete->type = TYPE_DOWNLOAD;
-		if (error != FAULT_CPE_NO_FAULT) {
-			ptransfer_complete->fault_code = error;
-		}
+		ptransfer_complete->fault_code = error;
+
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		bkp_session_save();
 		cwmp_root_cause_transfer_complete(ptransfer_complete);

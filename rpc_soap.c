@@ -220,7 +220,7 @@ static int xml_prepare_parameters_inform(struct cwmp_dm_parameter *dm_parameter,
 		(*size)--;
 
 		goto create_value;
-	} else if (dm_parameter->value == NULL)
+	} else
 		return 0;
 	node = mxmlNewElement(parameter_list, "ParameterValueStruct");
 	if (!node)
@@ -250,6 +250,7 @@ create_value:
 	return 0;
 }
 
+// cppcheck-suppress constParameter
 int cwmp_rpc_acs_prepare_message_inform(struct rpc *this)
 {
 	struct cwmp_dm_parameter *dm_parameter;
@@ -367,7 +368,6 @@ int cwmp_rpc_acs_prepare_message_inform(struct rpc *this)
 			CWMP_LOG(ERROR, "# Empty CR URL[%s] value", forced_inform_parameters[i]);
 			goto error;
 		}
-
 		if (xml_prepare_parameters_inform(&cwmp_dm_param, parameter_list, &size))
 			goto error;
 	}
@@ -777,7 +777,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 				fault_code = cwmp_get_fault_code_by_string(err);
 				goto fault;
 			}
-			struct cwmp_dm_parameter *param_value = NULL;
+			struct cwmp_dm_parameter *param_value;
 			list_for_each_entry (param_value, &parameters_list, list) {
 				n = mxmlNewElement(parameter_list, "ParameterValueStruct");
 				if (!n)
@@ -889,7 +889,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 			goto fault;
 		}
 	}
-	struct cwmp_dm_parameter *param_value = NULL;
+	struct cwmp_dm_parameter *param_value;
 	list_for_each_entry (param_value, &parameters_list, list) {
 		n = mxmlNewElement(parameter_list, "ParameterInfoStruct");
 		if (!n)
@@ -980,7 +980,7 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct rpc *rpc)
 				fault_code = cwmp_get_fault_code_by_string(err);
 				goto fault;
 			}
-			struct cwmp_dm_parameter *param_value = NULL;
+			struct cwmp_dm_parameter *param_value;
 			list_for_each_entry (param_value, &parameters_list, list) {
 				n = mxmlNewElement(parameter_list, "ParameterAttributeStruct");
 				if (!n)
@@ -1076,6 +1076,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	}
 
 	LIST_HEAD(list_fault_param);
+	// cppcheck-suppress autoVariables
 	rpc->list_set_value_fault = &list_fault_param;
 	LIST_HEAD(list_set_param_value);
 	while (b) {
@@ -1087,11 +1088,11 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 			}
 		}
 
-		if (b && b->type == MXML_ELEMENT && !strcmp(b->value.element.name, "Name") && !b->child) {
+		if (b->type == MXML_ELEMENT && !strcmp(b->value.element.name, "Name") && !b->child) {
 			parameter_name = icwmp_strdup("");
 		}
 
-		if (b && b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "Value")) {
+		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "Value")) {
 			parameter_value = icwmp_strdup((char *)mxmlGetOpaque(b));
 			n = b->parent;
 			while ((b = mxmlWalkNext(b, n, MXML_DESCEND))) {
@@ -1101,7 +1102,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 			}
 			b = n->last_child;
 		}
-		if (b && b->type == MXML_ELEMENT && !strcmp(b->value.element.name, "Value") && !b->child) {
+		if (b->type == MXML_ELEMENT && !strcmp(b->value.element.name, "Value") && !b->child) {
 			parameter_value = icwmp_strdup("");
 		}
 		if (parameter_name && parameter_value) {
@@ -1116,7 +1117,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		goto fault;
 	}
 	b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
-	if (b && b->type == MXML_OPAQUE && b->value.opaque)
+	if (b->type == MXML_OPAQUE && b->value.opaque)
 		parameter_key = b->value.opaque;
 
 	if (!icwmp_validate_string_length(parameter_key, 32)) {
@@ -1852,7 +1853,7 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 				}
 			}
 		}
-		if (b && b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "CommandKey")) {
+		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "CommandKey")) {
 			change_du_state->command_key = strdup(b->value.opaque);
 		}
 		b = mxmlWalkNext(b, n, MXML_DESCEND);
@@ -2330,16 +2331,16 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 				}
 			}
 		}
-		if (b && b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "URL")) {
+		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "URL")) {
 			upload->url = strdup(b->value.opaque);
 		}
-		if (b && b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "Username")) {
+		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "Username")) {
 			upload->username = strdup(b->value.opaque);
 		}
-		if (b && b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "Password")) {
+		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "Password")) {
 			upload->password = strdup(b->value.opaque);
 		}
-		if (b && b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "DelaySeconds")) {
+		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "DelaySeconds")) {
 			str_upload_delay = strdup(b->value.opaque);
 			upload_delay = atol(b->value.opaque);
 		}
