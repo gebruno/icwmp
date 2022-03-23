@@ -223,13 +223,6 @@
                     <td class="td_row_even"><div class="td_row_even">Overwrite DeviceId parameter</div></td>
                   </tr>
                   <tr>
-                    <td class="td_row_even"><div class="td_row_even">interface</div></td>
-                    <td class="td_row_even"><div class="td_row_even">string</div></td>
-                    <td class="td_row_even"><div class="td_row_even">no</div></td>
-                    <td class="td_row_even"><div class="td_row_even"></div></td>
-                    <td class="td_row_even"><div class="td_row_even">Configure the Layer3 device interface name to use for connecting to ACS.</div></td>
-                  </tr>
-                  <tr>
                     <td class="td_row_odd"><div class="td_row_odd">default_wan_interface</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">string</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>

@@ -181,13 +181,6 @@
           "description": "Overwrite DeviceId parameter"
         },
         {
-          "name": "interface",
-          "type": "string",
-          "required": "no",
-          "default": "",
-          "description": "Configure the Layer3 device interface name to use for connecting to ACS."
-        },
-        {
           "name": "default_wan_interface",
           "type": "string",
           "required": "no",

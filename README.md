@@ -1,12 +1,12 @@
 # CWMP Agent
 
-icwmp is a client implementation of [TR-069/CWMP](https://cwmp-data-models.broadband-forum.org/) protocol.
+`icwmpd` is a client implementation of [TR-069/CWMP](https://cwmp-data-models.broadband-forum.org/) protocol.
 
 It is written in C programming language and depends on a number of libraries of OpenWrt for building and running.
 
 ## Good to Know
 
-The icwmp client is :
+The `icwmpd` client is :
 * Tested with several ACS such as **Axiros**, **AVSytem**, **GenieACS**, **OpenACS**, etc...
 * Supports all required **TR069 RPCs**.
 * Supports all DataModel of TR family such as **TR-181**, **TR-104**, **TR-143**, **TR-157**, etc...
@@ -15,7 +15,7 @@ The icwmp client is :
 
 ## Configuration File
 
-The `icwmp` UCI configuration is located in **'/etc/config/cwmp'**, and contains 3 sections: **'acs'**, **'cpe'** and **'lwn'**.
+The `icwmpd` UCI configuration is located in **'/etc/config/cwmp'**, and contains 3 sections: **'acs'**, **'cpe'** and **'lwn'**.
 
 ```bash
 config acs 'acs'
@@ -26,7 +26,6 @@ config acs 'acs'
 	option retry_interval_multiplier '2000'
 
 config cpe 'cpe'
-	option interface 'eth0.1'
 	option default_wan_interface 'wan'
 	option userid 'iopsys'
 	option exec_download '0'
@@ -37,7 +36,7 @@ config lwn 'lwn'
 	option port ''
 ```
 
-> Note: icwmp depends on usp.raw for all datamodel parameters, some `DeviceId` related parameters can be overwritten by writing them directly on `/etc/config/cwmp` file.
+> Note: `icwmpd` depends on usp.raw for all datamodel parameters, some `DeviceId` related parameters can be overwritten by writing them directly on `/etc/config/cwmp` file.
 
 ```bash
 uci set cwmp.cpe.manufacturer="ABC"
@@ -97,10 +96,13 @@ The following tables provides a summary of all methods, and indicates the condit
 
 ## Concepts and Workflow
 
-As indicated in the TR069 standard, the `icwmpd` starts automatically when the system is started. Then it reads the initial configuration from UCI and if configured connects to the ACS. ACS configuration in `icwmp` can be done manually by the admin using UCI or by operator using DHCP Option 43, and later it could start other sessions due to event causes.
+In OpenWRT integration, `icwmpd` depends on `procd` based init script `/etc/init.d/icwmpd` to start it in boot-up. Once started, it reads the initial configuration from UCI and if configured connects to the ACS.
 
-Session workflow could be checked with sniffer packets tool such as Wireshark or `tcpdump`.
-In addition `icwmpd` has a log file '/var/log/icwmpd.log', that describes the workflow. E.g. below you can find an abstract of a log file content:
+Provisioning of the ACS URL can be done in `icwmpd` with a firmware default uci value, or it can be done dynamically using DHCP Option 43 on the configured default_wan_interface.
+
+ACS Session workflow could be checked with sniffer packets tool such as Wireshark or `tcpdump`.
+In addition to that, `icwmpd` give provision to configure a log file in uci.
+A snapshot of log description is listed below for demonstration(Content of the log can vary based on configuration):
 
 ```bash
 24-12-2019, 10:21:18 [INFO]    STARTING ICWMP with PID :7762
@@ -118,16 +120,17 @@ In addition `icwmpd` has a log file '/var/log/icwmpd.log', that describes the wo
 24-12-2019, 10:21:19 [INFO]    Waiting the next session
 ```
 
-You could set the UCI config `cwmp.cpe.log_severity` option to `'DEBUG'` in order to show in details the cwmp log.
+Further, it provides different log level that can be configured in uci config `cwmp.cpe.log_severity` to get more verbose log to no logs.
 
-## icwmp uBus
+## uBus
 
-`icwmpd` must be launched on startup after `ubusd`. It exposes some CWMP client RPC along with some debug utilities over UBUS. The `icwmpd` registers `tr069` namespaces with UBUS, that has below functionalities:
+`icwmpd` provides some RPCs support over ubus and some debug utilities those can be accessed using `tr069` ubus object. So, it must be launched on startup after `ubusd`.
 
 > Note: For more info on the `tr069` ubus schema see [link](./docs/api/tr069.md) or [raw schema](./schemas/ubus/tr069.json)
 
 ### tr069 ubus examples
-The output shown in below examples are just for demonstration purpose, the actual output shall vary as per the cwmp configuration and state. The schema for UBUS is available at [link](./docs/api/tr069.md) or [raw schema](./schemas/ubus/tr069.json)
+Please note, the output shown in below examples are just for demonstration purpose, the actual output shall vary as per the cwmp configuration and state.
+The schema for UBUS is available at [link](./docs/api/tr069.md) or [raw schema](./schemas/ubus/tr069.json)
 
 ```bash
 root@iopsys:~# ubus -v list tr069
@@ -214,7 +217,7 @@ root@iopsys:~#
 ```
 ## icwmpd command line
 
-icwmpd command line options are described with `--help` option as below:
+`icwmpd` command line options are described with `--help` option as below:
 
 ```bash
 root@iopsys:~# icwmpd --help
@@ -242,7 +245,6 @@ Valid commands:
         add [object]                            => add object
         del [object]                            => delete object
         get_notif [path-expr]                   => get parameter notifications
-        set_notif [path-expr] [notification]    => set parameter notifications
 ```
 > Note: icwmpd CLI is a debug utility and hence it is advised to use for debug and development purpose only.
 > icwmpd CLI utility is independent of icwmpd daemon.
@@ -261,13 +263,13 @@ In the case of fault the result is displayed as following:
 ```bash
 root@iopsys:~# icwmpd -c get Device.DeviceInfo.UpTme
 Fault 9005: Invalid parameter name
-root@iopsys:~# icwmpd -c set 
+root@iopsys:~# icwmpd -c set
 Fault 9003: Invalid arguments
 root@iopsys:~# icwmpd -c set Device.WiFi.SSID.1.SSID
 Fault 9003: Invalid arguments
 ```
 ## SPV Response and restart services
-In case icwmp receives from the ACS SetParameterValues Request, it will use the uspd setm_values ubus method for all requested parameters.
+In case `icwmpd` receives from the ACS SetParameterValues Request, it will use the uspd setm_values ubus method for all requested parameters.
 
 Basing on setm_values response the icwmp will do the following:
 
@@ -276,7 +278,7 @@ Basing on setm_values response the icwmp will do the following:
 
 > - All restart services are done in the CWMP end session in order to prevent any session interruption.
 > - icwmp always returns 1 as status value in case of success SPV because all restart services are done in the end session.
- 
+
 ## icwmpd forced inform parameters
 As per the cwmp inform requirements, cwmp client has list of parameters defined internally. The list contains below parameters:
 
@@ -312,8 +314,8 @@ root@iopsys:~# uci commit cwmp
 root@iopsys:~# /etc/init.d/icwmpd restart
 ```
 
-> - It is required to restart icwmp service after the changes to use the new forced inform parameters    
-> - This JSON file shouldn't contain duplicate parameters or parameters of the standard inform parameters specified in the datamodel    
+> - It is required to restart icwmp service after the changes to use the new forced inform parameters
+> - This JSON file shouldn't contain duplicate parameters or parameters of the standard inform parameters specified in the datamodel
 > - Forced inform parameters defined in JSON should be leaf elements
 
 ## Boot inform parameters
@@ -339,23 +341,41 @@ root@iopsys:~# uci set cwmp.cpe.boot_inform_json=/etc/icwmpd/inform.json
 root@iopsys:~# uci commit cwmp
 root@iopsys:~# /etc/init.d/icwmpd restart
 ```
-> - It is required to restart icwmp service after the changes to use the new boot inform parameters    
-> - This JSON file shouldn't contain duplicate parameters or parameters of the standard inform parameters specified in the datamodel    
+> - It is required to restart icwmp service after the changes to use the new boot inform parameters
+> - This JSON file shouldn't contain duplicate parameters or parameters of the standard inform parameters specified in the datamodel
 > - Boot inform parameters defined in JSON should be leaf elements
 > - Boot inform parameters appears only in BOOT or BOOTSTRAP inform message.
 
-## icwmpd notifications
-As per the cwmp notifications requirements, there is a list parameters specified in the standard that has forced notification type. Those parameters are defined internally in icwmp client. The list contains below parameters:
+## Notification management
+`icwmpd` support below notification types, which can be configured from an ACS on the datamodel parameters
+ - 0 = Notification off
+ - 1 = Passive notification
+ - 2 = Active notification
+ - 3 = Passive lightweight notification
+ - 4 = Passive notification with passive lightweight notification
+ - 5 = Active lightweight notification
+ - 6 = Passive notification with active lightweight notification
+
+Along with this it does provide some debug utilities to get the notification from the device root shell as well
+```bash
+root@iopsys:~# icwmpd -c get_notif Device.Users.User.1.Username
+Device.Users.User.1.Username => passive
+```
+
+To fulfill the requirement of forced active notification parameters, `icwmpd` internally maintains a list of forced active parameters specified in TR181. The list contains below parameters:
 
 | Parameter name                        | Notification  |
 | ------------------------------------- |---------------|
-| Device.DeviceInfo.SoftwareVersion     |	2			|
-| Device.DeviceInfo.ProvisioningCode    |	2			|
+| Device.DeviceInfo.SoftwareVersion     |	2	|
+| Device.DeviceInfo.ProvisioningCode    |	2	|
 
-According to the standard, if the ACS set new notification of one of those parameters so icwmp will return the CWMP fault 9009.
+So, Creation of any other type of notification on the above parameters results in a cwmp fault 9009.
 
-In addition to thos parameters, icwmp gives the possibility to set default notifications of some parameters that the customer choose using a json file, in order to permit icwmp to start with those parameters with default notification type.
-The json file must respect following form:
+
+Along with this `icwmpd` support configuration of notification parameters using a JSON file. Users can include this json file in there firmware to override the existing notification parameters, or add new notifications from the firmware itself.
+
+
+Below is the schema/format of the JSON file:
 
 ```bash
 root@iopsys:~# cat /etc/icwmpd/inform.json
@@ -373,17 +393,20 @@ root@iopsys:~# cat /etc/icwmpd/inform.json
 }
 ```
 
-The location of this file should be specified in the uci config option: cwmp.cpe.custom_notify_json
+> Note: In the Above example, parameter has to be defined with a valid datamodel parameter name and notify_type needs to be the notification type (number as present in the above table). Both the parameters are required.
+
+
+After defining the JSON file with all the required parameters, this information required to update cwmp uci as below:
 ```bash
 root@iopsys:~# uci set cwmp.cpe.custom_notify_json=/etc/icwmpd/inform.json
 root@iopsys:~# uci commit cwmp
 root@iopsys:~# /etc/init.d/icwmpd restart
 ```
 
-Contrary to forced parameters notifications, the ACS has privileges to set new notification type of those custom parameters.
-
->- The actual update doesn't support wildcard parameters. So parameter like Device.WiFi.SSID.*. will be skipped
->- The actual update doesn't support multiple json notify files
+>- ACS can manage the attributes of parameter added by custom_notification as it does for the other parameters
+>- After firmware upgrade, for the 1st bootup, the custom_notify_json has higher priority, latter on ACS configured attributes get priority.
+>- Addition of custom notification parameters is one time activity after upgrade, once done It can only be managed through ACS.
+>- Parameters with wildcard not supported currently. So parameter like Device.WiFi.SSID.*. will be skipped
 
 ## Dependencies
 
