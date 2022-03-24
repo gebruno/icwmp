@@ -776,7 +776,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 		}
 		if (parameter_name) {
 			char *err = cwmp_get_parameter_values(parameter_name, &parameters_list);
-			if (err) {
+			if (err && !is_obj_excluded(parameter_name)) {
 				fault_code = cwmp_get_fault_code_by_string(err);
 				goto fault;
 			}
@@ -887,7 +887,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 
 	if (parameter_name && NextLevel) {
 		char *err = cwmp_get_parameter_names(parameter_name, strcmp(NextLevel, "true") == 0 || strcmp(NextLevel, "1") == 0 ? true : false, &parameters_list);
-		if (err) {
+		if (err && !is_obj_excluded(parameter_name)) {
 			fault_code = cwmp_get_fault_code_by_string(err);
 			goto fault;
 		}
@@ -979,7 +979,7 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct session *session, struct
 		}
 		if (parameter_name) {
 			char *err = cwmp_get_parameter_attributes(parameter_name, &parameters_list);
-			if (err) {
+			if (err && !is_obj_excluded(parameter_name)) {
 				fault_code = cwmp_get_fault_code_by_string(err);
 				goto fault;
 			}

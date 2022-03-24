@@ -43,6 +43,11 @@ struct cwmp_mem {
 	char mem[0];
 };
 
+char *Obj_Excluded[] = {
+		"Device.DeviceInfo.ProcessStatus.Process.",
+		"Device.Hosts.Host."
+};
+
 struct option cwmp_long_options[] = {
 	{ "boot-event", no_argument, NULL, 'b' },    { "get-rpc-methods", no_argument, NULL, 'g' },
 	{ "command-input", no_argument, NULL, 'c' }, { "help", no_argument, NULL, 'h' },
@@ -717,4 +722,15 @@ int get_connection_interface()
 		return -1;
 	}
 	return CWMP_OK;
+}
+
+bool is_obj_excluded(char *object_name)
+{
+	unsigned int i = 0;
+
+	for (i = 0; i < ARRAY_SIZE(Obj_Excluded); i++) {
+		if (strncmp(Obj_Excluded[i], object_name, strlen(Obj_Excluded[i])) == 0)
+			return true;
+	}
+	return false;
 }

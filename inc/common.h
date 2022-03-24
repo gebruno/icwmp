@@ -488,6 +488,8 @@ void clean_custom_inform_parameters();
 char *string_to_hex(const unsigned char *str, size_t size);
 int copy_file(char *source_file, char *target_file);
 int get_connection_interface();
+bool is_obj_excluded(char *object_name);
+
 #ifndef FREE
 #define FREE(x)                                                                                                        \
 	do {                                                                                                           \
