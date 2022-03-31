@@ -327,6 +327,8 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 		cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 		if (pdownload->file_type[0] == '3') {
 			CWMP_LOG(INFO, "Download and apply new vendor config file is done successfully");
+			cwmp_root_cause_transfer_complete(cwmp, ptransfer_complete);
+			bkp_session_delete_transfer_complete(ptransfer_complete);
 		}
 		return FAULT_CPE_NO_FAULT;
 	}
