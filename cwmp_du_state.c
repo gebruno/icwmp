@@ -296,9 +296,9 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 	int error = FAULT_CPE_NO_FAULT;
 	struct du_state_change_complete *pdu_state_change_complete;
 	long int time_of_grace = 216000;
-	char *package_version;
-	char *package_name;
-	char *package_env;
+	char *package_version = NULL;
+	char *package_name = NULL;
+	char *package_env = NULL;
 	struct operations *p, *q;
 	struct opresult *res;
 	char *du_ref = NULL;
