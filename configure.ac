@@ -19,11 +19,15 @@ AS_IF([test "x$enable_acs" = "xno"], [AC_DEFINE(ACS_MULTI)])
 AC_ARG_ENABLE(debug, [AS_HELP_STRING([--enable-debug], [enable debugging messages])], AC_DEFINE(WITH_CWMP_DEBUG),)
 AC_ARG_ENABLE(devel, [AS_HELP_STRING([--enable-devel], [enable development messages])], AC_DEFINE(WITH_DEV_DEBUG),)
 
-AC_ARG_ENABLE(libopenssl, [AS_HELP_STRING([--enable-libopenssl], [enable libopenssl feature])], AC_DEFINE(LOPENSSL),)
+AC_ARG_ENABLE(libopenssl, [AS_HELP_STRING([--enable-libopenssl], [enable libopenssl feature])], AC_DEFINE(LOPENSSL))
 AM_CONDITIONAL([LOPENSSL],[test "x$enable_libopenssl" = "xyes"])
 
 AC_ARG_ENABLE(libwolfssl, [AS_HELP_STRING([--enable-libwolfssl], [enable libwolfssl feature])], AC_DEFINE(LWOLFSSL))
 AM_CONDITIONAL([LWOLFSSL],[test "x$enable_libwolfssl" = "xyes"])
+
+AC_ARG_ENABLE(libmbedtls, [AS_HELP_STRING([--enable-libmbedtls], [enable libmbedtls feature])], AC_DEFINE(LMBEDTLS))
+AM_CONDITIONAL([LMBEDTLS],[test "x$enable_libmbedtls" = "xyes"])
+
 # checks for programs
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -85,20 +89,25 @@ AC_SUBST([LIBUBUS_LIBS])
 LBLOBMSG_LIBS='-lblobmsg_json'
 AC_SUBST([LBLOBMSG_LIBS])
 
-LCRYPTO_LIBS='-lcrypto'
-AC_SUBST([LCRYPTO_LIBS])
-
 AM_COND_IF([LWOLFSSL], [
 	LSSL_LIBS='-lwolfssl'
+	LCRYPTO_LIBS='-lcrypto'
 	AC_SUBST([LSSL_LIBS])
+	AC_SUBST([LCRYPTO_LIBS])
 ])
 
 AM_COND_IF([LOPENSSL], [
 	LSSL_LIBS='-lssl'
+	LCRYPTO_LIBS='-lcrypto'
 	AC_SUBST([LSSL_LIBS])
-], [
-	LSSL_LIBS='-lwolfssl'
+	AC_SUBST([LCRYPTO_LIBS])
+])
+
+AM_COND_IF([LMBEDTLS], [
+	LSSL_LIBS='-lmbedtls'
+	LCRYPTO_LIBS='-lmbedcrypto'
 	AC_SUBST([LSSL_LIBS])
+	AC_SUBST([LCRYPTO_LIBS])
 ])
 
  PKG_CHECK_MODULES(LIBCURL, [libcurl])
