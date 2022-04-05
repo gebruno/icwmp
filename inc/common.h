@@ -400,12 +400,12 @@ typedef struct operations {
 typedef struct upload {
 	struct list_head list;
 	time_t scheduled_time;
-	char *command_key;
 	char *file_type;
+	char *command_key;
 	char *url;
 	char *username;
 	char *password;
-	char *f_instance;
+	int f_instance;
 } upload;
 
 typedef struct transfer_complete {

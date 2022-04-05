@@ -10,6 +10,7 @@
 
 #include <curl/curl.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 #include "upload.h"
 #include "download.h"
@@ -27,38 +28,38 @@ LIST_HEAD(list_upload);
 pthread_cond_t threshold_upload;
 pthread_mutex_t mutex_upload = PTHREAD_MUTEX_INITIALIZER;
 
-int lookup_vcf_name(char *instance, char **value)
+int lookup_vcf_name(int instance, char **value)
 {
 	char vcf_name_parameter[256];
 	char *err = NULL;
 	LIST_HEAD(vcf_parameters);
-	snprintf(vcf_name_parameter, sizeof(vcf_name_parameter), "Device.DeviceInfo.VendorConfigFile.%s.Name", instance);
+	snprintf(vcf_name_parameter, sizeof(vcf_name_parameter), "Device.DeviceInfo.VendorConfigFile.%d.Name", instance);
 	if (cwmp_get_parameter_values(vcf_name_parameter, &vcf_parameters) != NULL) {
 		CWMP_LOG(ERROR, "Not able to get the value of the parameter %s : %s", vcf_name_parameter, err);
 		return -1;
 	}
 	struct cwmp_dm_parameter *param_value;
 	list_for_each_entry (param_value, &vcf_parameters, list) {
-		*value = strdup(param_value->value);
+		*value = param_value->value ? strdup(param_value->value) : NULL;
 		break;
 	}
 	cwmp_free_all_dm_parameter_list(&vcf_parameters);
 	return 0;
 }
 
-int lookup_vlf_name(char *instance, char **value)
+int lookup_vlf_name(int instance, char **value)
 {
 	char vlf_name_parameter[256];
 	char *err = NULL;
 	LIST_HEAD(vlf_parameters);
-	snprintf(vlf_name_parameter, sizeof(vlf_name_parameter), "Device.DeviceInfo.VendorLogFile.%s.Name", instance);
+	snprintf(vlf_name_parameter, sizeof(vlf_name_parameter), "Device.DeviceInfo.VendorLogFile.%d.Name", instance);
 	if (cwmp_get_parameter_values(vlf_name_parameter, &vlf_parameters) != NULL) {
 		CWMP_LOG(ERROR, "Not able to get the value of the parameter %s : %s", vlf_name_parameter, err);
 		return -1;
 	}
 	struct cwmp_dm_parameter *param_value;
 	list_for_each_entry (param_value, &vlf_parameters, list) {
-		*value = strdup(param_value->value);
+		*value = param_value->value ? strdup(param_value->value) : NULL;
 		break;
 	}
 	cwmp_free_all_dm_parameter_list(&vlf_parameters);
@@ -68,29 +69,42 @@ int lookup_vlf_name(char *instance, char **value)
 int upload_file(const char *file_path, const char *url, const char *username, const char *password)
 {
 	int res_code = 0;
+	CURL *curl;
+	CURLcode res;
+	FILE *fd_upload;
+	struct stat file_info;
 
-	CURL *curl = curl_easy_init();
+	stat(file_path, &file_info);
+	fd_upload = fopen(file_path, "rb");
+	if (fd_upload == NULL) {
+		CWMP_LOG(ERROR, "Failed to open url[%s] for upload", file_path);
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
+	curl_global_init(CURL_GLOBAL_ALL);
+	curl = curl_easy_init();
+
 	if (curl) {
 		char userpass[256];
 
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)CURLAUTH_ANY);
 		snprintf(userpass, sizeof(userpass), "%s:%s", username, password);
 		curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
-
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT);
+		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-
-		FILE *fp = fopen(file_path, "rb");
-		if (fp) {
-			curl_easy_setopt(curl, CURLOPT_READDATA, fp);
-			curl_easy_perform(curl);
-			fclose(fp);
+		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)CURLAUTH_ANY);
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_READDATA, fd_upload);
+		curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_info.st_size);
+		res = curl_easy_perform(curl);
+		if(res != CURLE_OK) {
+			CWMP_LOG(ERROR, "## curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 		}
 
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &res_code);
 		curl_easy_cleanup(curl);
 	}
+	fclose(fd_upload);
+	curl_global_cleanup();
 
 	return res_code;
 }
@@ -106,42 +120,44 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	bkp_session_delete_upload(pupload);
 	bkp_session_save();
 
-	if (pupload->file_type[0] == '1' || pupload->file_type[0] == '3') {
-		if (pupload->f_instance && isdigit(pupload->f_instance[0])) {
-			name = NULL;
-			lookup_vcf_name(pupload->f_instance, &name);
-			if (name && strlen(name) > 0) {
-				// cppcheck-suppress uninitvar
-				snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
-				cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);
-				FREE(name);
-			} else {
-				error = FAULT_CPE_UPLOAD_FAILURE;
-				goto end_upload;
-			}
+	if (pupload->file_type[0] == '1') {
+		snprintf(file_path, sizeof(file_path), "/tmp/all_configs");
+		cwmp_uci_init();
+		cwmp_uci_export(file_path, UCI_STANDARD_CONFIG);
+		cwmp_uci_exit();
+	} else if (pupload->file_type[0] == '2') {
+		snprintf(file_path, sizeof(file_path), "/tmp/syslog");
+		copy("/var/log/syslog", file_path);
+	} else if (pupload->file_type[0] == '3') {
+		lookup_vcf_name(pupload->f_instance, &name);
+		if (name && strlen(name) > 0) {
+			// cppcheck-suppress uninitvar
+			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
+			cwmp_uci_init();
+			cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);
+			cwmp_uci_exit();
+			FREE(name);
 		} else {
-			snprintf(file_path, sizeof(file_path), "/tmp/all_configs");
-			cwmp_uci_export(file_path, UCI_STANDARD_CONFIG);
+			error = FAULT_CPE_UPLOAD_FAILURE;
+			goto end_upload;
 		}
-	} else {
-		if (pupload->f_instance && isdigit(pupload->f_instance[0])) {
-			lookup_vlf_name(pupload->f_instance, &name);
-			if (name && strlen(name) > 0) {
-				snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
-				copy(name, file_path);
-				FREE(name);
-			} else
-				error = FAULT_CPE_UPLOAD_FAILURE;
-
+	} else { //file_type is 4
+		lookup_vlf_name(pupload->f_instance, &name);
+		if (name && strlen(name) > 0) {
+			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
+			copy(name, file_path);
+			FREE(name);
 		} else
 			error = FAULT_CPE_UPLOAD_FAILURE;
 	}
+
 	if (error != FAULT_CPE_NO_FAULT || strlen(file_path) == 0) {
 		error = FAULT_CPE_UPLOAD_FAILURE;
 		goto end_upload;
 	}
 
-	if (upload_file(file_path, pupload->url, pupload->username, pupload->password) == 200)
+	int ret = upload_file(file_path, pupload->url, pupload->username, pupload->password);
+	if (ret == 200 || ret == 204)
 		error = FAULT_CPE_NO_FAULT;
 	else
 		error = FAULT_CPE_UPLOAD_FAILURE;
@@ -157,6 +173,7 @@ end_upload:
 	p->command_key = pupload->command_key ? strdup(pupload->command_key) : strdup("");
 	p->start_time = strdup(upload_startTime);
 	p->complete_time = strdup(mix_get_time());
+	p->type = TYPE_UPLOAD;
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;
 	}
@@ -266,9 +283,6 @@ int cwmp_free_upload_request(struct upload *upload)
 
 		if (upload->password != NULL)
 			FREE(upload->password);
-
-		if (upload->f_instance != NULL)
-			FREE(upload->f_instance);
 
 		FREE(upload);
 	}

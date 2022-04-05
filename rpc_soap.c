@@ -2289,7 +2289,7 @@ error:
 int cwmp_handle_rpc_cpe_upload(struct session *session, struct rpc *rpc)
 {
 	mxml_node_t *n, *b = session->body_in;
-	char *tmp, *file_type = NULL;
+	//char *file_type = NULL;
 	int error = FAULT_CPE_NO_FAULT;
 	struct upload *upload = NULL, *iupload;
 	struct list_head *ilist;
@@ -2314,25 +2314,35 @@ int cwmp_handle_rpc_cpe_upload(struct session *session, struct rpc *rpc)
 		error = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
-	upload->f_instance = strdup("");
+	upload->f_instance = 0;
 	while (b != NULL) {
 		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "CommandKey")) {
 			upload->command_key = strdup(b->value.opaque);
 		}
 		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "FileType")) {
-			if (upload->file_type == NULL) {
-				upload->file_type = strdup(b->value.opaque);
-				file_type = icwmp_strdup(b->value.opaque);
-			} else {
-				tmp = file_type;
-				if (cwmp_asprintf(&file_type, "%s %s", tmp, b->value.opaque) == -1) {
-					error = FAULT_CPE_INTERNAL_ERROR;
-					goto fault;
-				}
-				if (isdigit(b->value.opaque[0])) {
-					upload->f_instance = strdup(b->value.opaque);
-				}
+			char log_config[16]={0};
+			int ftype, instance = 0;
+			sscanf(b->value.opaque, "%1d Vendor %15s File %8d", &ftype, log_config, &instance);
+			if (strcmp(log_config, "Configuration") != 0 && strcmp(log_config, "Log") != 0) {
+				error = FAULT_CPE_INVALID_ARGUMENTS;
+				goto fault;
+			} else if (strcmp(log_config, "Configuration") == 0 && ftype != 1 && ftype != 3) {
+				error = FAULT_CPE_INVALID_ARGUMENTS;
+				goto fault;
+			} else if (strcmp(log_config, "Log") == 0 && ftype != 2 && ftype != 4) {
+				error = FAULT_CPE_INVALID_ARGUMENTS;
+				goto fault;
 			}
+			if ((ftype == 3 || ftype == 4) && (instance == 0)) {
+				error = FAULT_CPE_INVALID_ARGUMENTS;
+				goto fault;
+			}
+			if (ftype !=1 && ftype != 2 && ftype != 3 && ftype != 4) {
+				error = FAULT_CPE_INVALID_ARGUMENTS;
+				goto fault;
+			}
+			upload->file_type = strdup(b->value.opaque);
+			upload->f_instance = instance;
 		}
 		if (b->type == MXML_OPAQUE && b->value.opaque && b->parent->type == MXML_ELEMENT && !strcmp(b->parent->value.element.name, "URL")) {
 			upload->url = strdup(b->value.opaque);
@@ -2372,10 +2382,7 @@ int cwmp_handle_rpc_cpe_upload(struct session *session, struct rpc *rpc)
 	}
 	FREE(str_upload_delay);
 
-	if (strncmp(file_type, "1 Vendor Configuration File", sizeof "1 Vendor Configuration File" - 1) != 0 && strncmp(file_type, VENDOR_CONFIG_FILE_TYPE, sizeof VENDOR_CONFIG_FILE_TYPE - 1) != 0 && strncmp(file_type, "2 Vendor Log File", sizeof "2 Vendor Log File" - 1) != 0 &&
-	    strncmp(file_type, "4 Vendor Log File", sizeof "4 Vendor Log File" - 1) != 0) {
-		error = FAULT_CPE_REQUEST_DENIED;
-	} else if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
+	if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
 	} else if (upload->url == NULL || (strcmp(upload->url, "") == 0)) {
 		error = FAULT_CPE_REQUEST_DENIED;
@@ -2385,7 +2392,6 @@ int cwmp_handle_rpc_cpe_upload(struct session *session, struct rpc *rpc)
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
 	}
 
-	FREE(file_type);
 	if (error != FAULT_CPE_NO_FAULT) {
 		goto fault;
 	}
