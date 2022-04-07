@@ -46,7 +46,8 @@ extern struct list_head list_param_obj_notify;
 
 
 #define DM_ENABLED_NOTIFY "/var/run/icwmpd/dm_enabled_notify"
-#define NOTIFY_FILE "/etc/icwmpd/icwmpd_notify"
+#define NOTIFY_MARKER "/etc/icwmpd/icwmpd_notify_import_marker"
+#define RUN_NOTIFY_MARKER "/var/run/icwmpd/icwmpd_notify_import_marker"
 void ubus_check_value_change_callback(struct ubus_request *req, int type, struct blob_attr *msg);
 void cwmp_update_enabled_notify_file(void);
 int check_value_change(void);

@@ -400,16 +400,18 @@ void load_custom_notify_json(struct cwmp *cwmp)
 	if (cwmp->conf.custom_notify_json == NULL || !file_exists(cwmp->conf.custom_notify_json))
 		return;
 
-	if (file_exists(NOTIFY_FILE))
+	// Check for custom notification success import marker
+	if (file_exists(NOTIFY_MARKER) == true)
 		return;
 
 	memset(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
+	// Create success marker in temp area, so that it can be in sync with backup script
 	if (blobmsg_add_json_from_file(&bbuf, cwmp->conf.custom_notify_json) == false) {
 		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp->conf.custom_notify_json);
 		blob_buf_free(&bbuf);
-		creat(NOTIFY_FILE , S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 		return;
 	}
 
@@ -419,7 +421,7 @@ void load_custom_notify_json(struct cwmp *cwmp)
 	if (tb_notif[0] == NULL) {
 		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a notify parameters list", cwmp->conf.custom_notify_json);
 		blob_buf_free(&bbuf);
-		creat(NOTIFY_FILE, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 		return;
 	}
 	custom_notify_list = tb_notif[0];
@@ -448,7 +450,7 @@ void load_custom_notify_json(struct cwmp *cwmp)
 		}
 	}
 	blob_buf_free(&bbuf);
-	creat(NOTIFY_FILE, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	cwmp->custom_notify_active = true;
 }
 
