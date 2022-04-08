@@ -19,7 +19,7 @@
 #include "cwmp_uci.h"
 #include "log.h"
 #include "event.h"
-#include "ubus.h"
+#include "ubus_utils.h"
 #include "config.h"
 #include "digestauth.h"
 
@@ -236,7 +236,12 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 
 			// Trigger firewall to reload firewall.cwmp
-			cwmp_ubus_call("uci", "commit", CWMP_UBUS_ARGS{ { "config", { .str_val = "firewall" }, UBUS_String } }, 1, NULL, NULL);
+			struct blob_buf b = { 0 };
+			memset(&b, 0, sizeof(struct blob_buf));
+			blob_buf_init(&b, 0);
+			bb_add_string(&b, "config", "firewall");
+			icwmp_ubus_invoke("uci", "commit", b.head, NULL, NULL);
+			blob_buf_free(&b);
 		}
 	}
 

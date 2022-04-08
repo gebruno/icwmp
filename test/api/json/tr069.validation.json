@@ -175,28 +175,6 @@
         {
             "method": "command",
             "args": {
-		    "command": "reload_end_session"
-            },
-            "rc": 0
-        },
-        {
-            "method": "status",
-            "rc": 0
-        },
-        {
-            "method": "command",
-            "args": {
-		    "command": "action_end_session"
-            },
-            "rc": 0
-        },
-        {
-            "method": "status",
-            "rc": 0
-        },
-        {
-            "method": "command",
-            "args": {
 		    "command": "garbage"
             },
             "rc": 0

@@ -19,7 +19,7 @@
 #include "common.h"
 #include "cwmp_cli.h"
 #include "cwmp_uci.h"
-#include "ubus.h"
+#include "ubus_utils.h"
 #include "log.h"
 
 
@@ -29,8 +29,6 @@
 
 char *commandKey = NULL;
 bool thread_end = false;
-bool signal_exit = false;
-bool ubus_exit = false;
 long int flashsize = 256000000;
 struct cwmp cwmp_main = { 0 };
 static int nbre_services = 0;
@@ -302,7 +300,13 @@ void cwmp_reboot(char *command_key)
 	cwmp_uci_set_varstate_value("cwmp", "cpe", "ParameterKey", command_key);
 	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 
-	cwmp_ubus_call("rpc-sys", "reboot", CWMP_UBUS_ARGS{ {} }, 0, NULL, NULL);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	icwmp_ubus_invoke("rpc-sys", "reboot", b.head, NULL, NULL);
+
+	blob_buf_free(&b);
 }
 
 /*
@@ -310,7 +314,13 @@ void cwmp_reboot(char *command_key)
  */
 void cwmp_factory_reset() //use the ubus rpc-sys factory
 {
-	cwmp_ubus_call("rpc-sys", "factory", CWMP_UBUS_ARGS{ {} }, 0, NULL, NULL);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	icwmp_ubus_invoke("rpc-sys", "factory", b.head, NULL, NULL);
+
+	blob_buf_free(&b);
 }
 
 long int get_file_size(char *file_name)
@@ -579,9 +589,14 @@ void icwmp_restart_services()
 		if (list_services[i] == NULL)
 			continue;
 
-		cwmp_ubus_call("uci", "commit",
-			       CWMP_UBUS_ARGS{ { "config", { .str_val = list_services[i] }, UBUS_String } }, 1, NULL,
-			       NULL);
+		struct blob_buf b = { 0 };
+		memset(&b, 0, sizeof(struct blob_buf));
+		blob_buf_init(&b, 0);
+		bb_add_string(&b, "config", list_services[i]);
+
+		icwmp_ubus_invoke("uci", "commit",b.head, NULL, NULL);
+
+		blob_buf_free(&b);
 
 		if (strcmp(list_services[i], "firewall") == 0) {
 			g_firewall_restart = true;
@@ -712,7 +727,14 @@ void ubus_network_interface_callback(struct ubus_request *req __attribute__((unu
 
 int get_connection_interface()
 {
-	int e = cwmp_ubus_call("network.interface", "status", CWMP_UBUS_ARGS{ { "interface", { .str_val = cwmp_main.conf.default_wan_iface }, UBUS_String } }, 1, ubus_network_interface_callback, NULL);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "interface", cwmp_main.conf.default_wan_iface);
+
+	int e = icwmp_ubus_invoke("network.interface", "status", b.head, ubus_network_interface_callback, NULL);
+	blob_buf_free(&b);
+
 	if (e != 0) {
 		CWMP_LOG(INFO, "Get network interface from network.interface ubus method failed. Ubus err code: %d", e);
 		return -1;

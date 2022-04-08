@@ -52,8 +52,6 @@
 #define STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : -1)
 extern char *commandKey;
 extern bool thread_end;
-extern bool signal_exit;
-extern bool ubus_exit;
 
 typedef struct env {
 	unsigned short boot;

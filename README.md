@@ -205,16 +205,6 @@ root@iopsys:~# ubus call tr069 command '{"command":"reload"}'
 }
 root@iopsys:~#
 ```
-- To exit the icwmpd daemon, use the `command` ubus method with `exit` argument:
-
-```bash
-root@iopsys:~# ubus call tr069 command '{"command":"exit"}'
-{
-	"status": 1,
-	"info": "icwmpd daemon stopped"
-}
-root@iopsys:~#
-```
 ## icwmpd command line
 
 `icwmpd` command line options are described with `--help` option as below:

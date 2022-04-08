@@ -4,11 +4,7 @@
       "type": "string",
       "description": "CWMP supported commands",
       "enum": [
-        "reload_end_session",
-        "reload",
-        "reboot_end_session",
-        "action_end_session",
-        "exit"
+        "reload"
       ]
     },
     "event_t": {

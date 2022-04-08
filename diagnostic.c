@@ -13,7 +13,7 @@
 
 #include "common.h"
 #include "diagnostic.h"
-#include "ubus.h"
+#include "ubus_utils.h"
 #include "log.h"
 #include "event.h"
 
@@ -146,14 +146,23 @@ void empty_ubus_callback(struct ubus_request *req __attribute__((unused)), int t
 static int cwmp_diagnostics_operate(char *diagnostics_object, char *action_name, struct diagnostic_input diagnostics_array[], int number_inputs)
 {
 	int e, i;
+	struct blob_buf b = { 0 };
 
-	LIST_HEAD(diagnostics_param_value_list);
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "path", diagnostics_object);
+	bb_add_string(&b, "action", action_name);
+	void *tbl = blobmsg_open_table(&b, "input");
 	for (i = 0; i < number_inputs; i++) {
 		if (diagnostics_array[i].value == NULL || diagnostics_array[i].value[0] == '\0')
 			continue;
-		add_dm_parameter_to_list(&diagnostics_param_value_list, diagnostics_array[i].input_name, diagnostics_array[i].value, NULL, 0, false);
+		bb_add_string(&b, diagnostics_array[i].input_name, diagnostics_array[i].value);
 	}
-	e = cwmp_ubus_call(USP_OBJECT_NAME, "operate", CWMP_UBUS_ARGS{ { "path", {.str_val = diagnostics_object }, UBUS_String }, { "action", {.str_val = action_name }, UBUS_String }, { "input", {.param_value_list = &diagnostics_param_value_list }, UBUS_Obj_Obj } }, 3, empty_ubus_callback, NULL);
+	blobmsg_close_table(&b, tbl);
+
+	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "operate", b.head, empty_ubus_callback, NULL);
+	blob_buf_free(&b);
+
 	if (e)
 		return -1;
 	return 0;

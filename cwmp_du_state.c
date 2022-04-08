@@ -13,7 +13,7 @@
 #include <regex.h>
 
 #include "cwmp_du_state.h"
-#include "ubus.h"
+#include "ubus_utils.h"
 #include "log.h"
 #include "datamodel_interface.h"
 #include "cwmp_time.h"
@@ -37,12 +37,30 @@ void ubus_du_state_callback(struct ubus_request *req, int type __attribute__((un
 	}
 }
 
+static void prepare_blob_msg(struct blob_buf *b, char *url, char *uuid, char *user, char *pass, char *env_name, int env_id)
+{
+	if (b == NULL)
+		return;
+
+	bb_add_string(b, "ee_name", env_name);
+	blobmsg_add_u32(b, "eeid", env_id);
+	bb_add_string(b, "url", url);
+	bb_add_string(b, "uuid", uuid);
+	bb_add_string(b, "username", user);
+	bb_add_string(b, "password", pass);
+}
+
 int cwmp_du_install(char *url, char *uuid, char *user, char *pass, char *env_name, int env_id, char **fault_code)
 {
 	int e;
-	e = cwmp_ubus_call("swmodules", "du_install",
-			   CWMP_UBUS_ARGS{ { "ee_name", {.str_val = env_name }, UBUS_String }, { "eeid", {.int_val = env_id }, UBUS_Integer }, { "url", {.str_val = url }, UBUS_String }, { "uuid", {.str_val = uuid ? uuid : "" }, UBUS_String }, { "username", {.str_val = user ? user : "" }, UBUS_String }, { "password", {.str_val = pass ? pass : ""}, UBUS_String } }, 6,
-			   ubus_du_state_callback, fault_code);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	prepare_blob_msg(&b, url, uuid, user, pass, env_name, env_id);
+	e = icwmp_ubus_invoke("swmodules", "du_install", b.head, ubus_du_state_callback, fault_code);
+	blob_buf_free(&b);
+
 	if (e < 0) {
 		CWMP_LOG(INFO, "Change du state install failed: Ubus err code: %d", e);
 		return FAULT_CPE_INTERNAL_ERROR;
@@ -53,8 +71,14 @@ int cwmp_du_install(char *url, char *uuid, char *user, char *pass, char *env_nam
 int cwmp_du_update(char *url, char *uuid, char *user, char *pass, char *env_name, int env_id, char **fault_code)
 {
 	int e;
-	e = cwmp_ubus_call("swmodules", "du_update", CWMP_UBUS_ARGS{ { "ee_name", {.str_val = env_name }, UBUS_String }, { "eeid", {.int_val = env_id }, UBUS_Integer }, { "url", {.str_val = url }, UBUS_String }, { "uuid", {.str_val = uuid ? uuid : "" }, UBUS_String }, { "username", {.str_val = user ? user : "" }, UBUS_String }, { "password", {.str_val = pass ? pass : "" }, UBUS_String } }, 6, ubus_du_state_callback,
-			   fault_code);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	prepare_blob_msg(&b, url, uuid, user, pass, env_name, env_id);
+	e = icwmp_ubus_invoke("swmodules", "du_update", b.head, ubus_du_state_callback, fault_code);
+	blob_buf_free(&b);
+
 	if (e < 0) {
 		CWMP_LOG(INFO, "Change du state update failed: Ubus err code: %d", e);
 		return FAULT_CPE_INTERNAL_ERROR;
@@ -65,7 +89,17 @@ int cwmp_du_update(char *url, char *uuid, char *user, char *pass, char *env_name
 int cwmp_du_uninstall(char *package_name, char *env_name, int env_id, char **fault_code)
 {
 	int e;
-	e = cwmp_ubus_call("swmodules", "du_uninstall", CWMP_UBUS_ARGS{ { "ee_name", {.str_val = env_name }, UBUS_String }, { "eeid", {.int_val = env_id }, UBUS_Integer }, { "du_name", {.str_val = package_name }, UBUS_String } }, 3, ubus_du_state_callback, fault_code);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	bb_add_string(&b, "ee_name", env_name);
+	blobmsg_add_u32(&b, "eeid", env_id);
+	bb_add_string(&b, "du_name", package_name);
+
+	e = icwmp_ubus_invoke("swmodules", "du_uninstall", b.head, ubus_du_state_callback, fault_code);
+	blob_buf_free(&b);
+
 	if (e < 0) {
 		CWMP_LOG(INFO, "Change du state uninstall failed: Ubus err code: %d", e);
 		return FAULT_CPE_INTERNAL_ERROR;
