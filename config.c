@@ -564,8 +564,9 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->forced_inform_json_file = NULL;
 		}
-		if (conf->forced_inform_json_file)
+		if (conf->forced_inform_json_file) {
 			CWMP_LOG(DEBUG, "CWMP CONFIG - cpe forced inform json file: %s", conf->forced_inform_json_file);
+		}
 	}
 	if (uci_get_value(UCI_CPE_BOOT_INFORM_JSON, &value) == CWMP_OK) {
 		FREE(conf->boot_inform_json_file);
@@ -575,8 +576,9 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->boot_inform_json_file = NULL;
 		}
-		if (conf->boot_inform_json_file)
+		if (conf->boot_inform_json_file) {
 			CWMP_LOG(DEBUG, "CWMP CONFIG - cpe boot inform json file: %s", conf->forced_inform_json_file);
+		}
 	}
 	if (uci_get_value(UCI_CPE_JSON_CUSTOM_NOTIFY_FILE, &value) == CWMP_OK) {
 		FREE(conf->custom_notify_json);
@@ -586,8 +588,9 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->custom_notify_json = NULL;
 		}
-		if (conf->custom_notify_json)
+		if (conf->custom_notify_json) {
 			CWMP_LOG(DEBUG, "CWMP CONFIG - cpe json custom notify file: %s", conf->custom_notify_json);
+		}
 	}
 	return CWMP_OK;
 }

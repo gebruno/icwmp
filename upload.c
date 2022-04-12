@@ -31,11 +31,10 @@ pthread_mutex_t mutex_upload = PTHREAD_MUTEX_INITIALIZER;
 int lookup_vcf_name(int instance, char **value)
 {
 	char vcf_name_parameter[256];
-	char *err = NULL;
 	LIST_HEAD(vcf_parameters);
 	snprintf(vcf_name_parameter, sizeof(vcf_name_parameter), "Device.DeviceInfo.VendorConfigFile.%d.Name", instance);
 	if (cwmp_get_parameter_values(vcf_name_parameter, &vcf_parameters) != NULL) {
-		CWMP_LOG(ERROR, "Not able to get the value of the parameter %s : %s", vcf_name_parameter, err);
+		CWMP_LOG(ERROR, "Not able to get the value of the parameter %s", vcf_name_parameter);
 		return -1;
 	}
 	struct cwmp_dm_parameter *param_value;
@@ -50,11 +49,10 @@ int lookup_vcf_name(int instance, char **value)
 int lookup_vlf_name(int instance, char **value)
 {
 	char vlf_name_parameter[256];
-	char *err = NULL;
 	LIST_HEAD(vlf_parameters);
 	snprintf(vlf_name_parameter, sizeof(vlf_name_parameter), "Device.DeviceInfo.VendorLogFile.%d.Name", instance);
 	if (cwmp_get_parameter_values(vlf_name_parameter, &vlf_parameters) != NULL) {
-		CWMP_LOG(ERROR, "Not able to get the value of the parameter %s : %s", vlf_name_parameter, err);
+		CWMP_LOG(ERROR, "Not able to get the value of the parameter %s", vlf_name_parameter);
 		return -1;
 	}
 	struct cwmp_dm_parameter *param_value;
