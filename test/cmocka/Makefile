@@ -1,8 +1,9 @@
 include ../../Makefile.am
 
-LIB_LDFLAGS:= -lmicroxml -luci -lblobmsg_json -lubox\
+LIB_LDFLAGS:= -luci -lblobmsg_json -lubox\
 	      -ljson-c -lubus -lpthread -lcurl\
-	      -lcrypto
+	      -lcrypto -lmxml
+	      
 LIB_CFLAGS:= -fPIC -I../../inc -DWC_NO_HARDEN -g -O0
 UNIT_TESTS:= icwmp_unit_testd
 

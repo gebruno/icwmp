@@ -420,7 +420,7 @@ To successfully build icwmp, the following libraries are needed:
 | libjson-c   | https://s3.amazonaws.com/json-c_releases    | MIT            |
 | libwolfssl  | https://github.com/wolfSSL/wolfssl          | GPL-2.0        |
 | libcurl     | https://dl.uxnr.de/mirror/curl              | MIT            |
-| libmicroxml | https://dev.freecwmp.org/microxml           | LGPL 2.0       |
+| mxml        | https://github.com/michaelrsweet/mxml       | GPL-2.0       |
 
 Runtime dependencies:
 

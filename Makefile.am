@@ -38,7 +38,6 @@ icwmpd_CFLAGS =			\
 	$(LIBUCI_CFLAGS)	\
 	$(LIBUBOX_CFLAGS)	\
 	$(LIBUBUS_CFLAGS)	\
-	$(MICROXML_CFLAGS)	\
 	$(LIBCURL_CFLAGS) 	\
 	-Wall -Wextra -Werror   \
 	-Wformat
@@ -48,15 +47,14 @@ icwmpd_LDFLAGS =		\
 	$(LIBUCI_LDFLAGS)	\
 	$(LIBUBOX_LDFLAGS)	\
 	$(LIBUBUS_LDFLAGS)	\
-	$(MICROXML_LDFLAGS)	\
-	$(LIBCURL_LDFLAGS)
+	$(LIBCURL_LDFLAGS)	\
+	-lmxml
 
 icwmpd_LDADD =			\
 	$(AM_LIBS)			\
 	$(LIBUCI_LIBS)		\
 	$(LIBUBOX_LIBS)		\
 	$(LIBUBUS_LIBS)		\
-	$(MICROXML_LIBS)	\
 	$(LIBCURL_LIBS)		\
 	$(LIBPTHREAD_LIBS)	\
 	$(LCRYPTO_LIBS)		\
@@ -64,7 +62,7 @@ icwmpd_LDADD =			\
 	$(LIBJSON_LIBS)		\
 	$(LBLOBMSG_LIBS)	\
 	$(LIBZ_LIBS)		\
-	$(LIBM_LIBS)
+	$(LIBM_LIBS)		
 
 icwmpd_CFLAGS+=-DCWMP_VERSION=\"$(CWMP_VERSION)\"
 icwmpd_LDFLAGS+=-DCWMP_VERSION=\"$(CWMP_VERSION)\"

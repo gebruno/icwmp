@@ -12,7 +12,7 @@
 #ifndef SESSION_H_
 #define SESSION_H_
 
-#include <microxml.h>
+#include <xml_utils.h>
 #include "common.h"
 
 typedef struct session {

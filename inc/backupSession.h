@@ -13,7 +13,7 @@
 #ifndef _BACKUPSESSION_H__
 #define _BACKUPSESSION_H__
 
-#include <microxml.h>
+#include <xml_utils.h>
 #include "common.h"
 
 #define RPC_NO_STATUS -1

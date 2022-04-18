@@ -8,7 +8,7 @@ pwd
 # install required packages
 exec_cmd apt update
 exec_cmd apt install -y mongodb jq
-
+exec_cmd apt-get install -y libmxml-dev
 # install genieacs
 exec_cmd npm install -g genieacs@1.2.5
 ln -sf /root/.nvm/versions/node/v14.16.1/bin/genieacs-cwmp /usr/sbin/genieacs-cwmp

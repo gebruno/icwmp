@@ -1,7 +1,7 @@
 #ifndef __XML__H_
 #define __XML__H_
 
-#include <microxml.h>
+#include <xml_utils.h>
 #include "session.h"
 #include "common.h"
 
@@ -25,6 +25,7 @@ const char *whitespace_cb(mxml_node_t *node, int where);
 int xml_set_cwmp_id(struct session *session);
 int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
 mxml_node_t *mxmlFindElementOpaque(mxml_node_t *node, mxml_node_t *top, const char *text, int descend);
+char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value);
 char *xml_get_cwmp_version(int version);
 void xml_exit(void);
 

@@ -13,6 +13,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <dirent.h>
+#include <mxml.h>
 
 #include "common.h"
 #include "backupSession.h"
@@ -46,8 +47,8 @@ static void cwmp_backup_session_unit_test(void **state)
 	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
 	fclose(pFile);
 	assert_non_null(backup_tree);
-	assert_string_equal(backup_tree->value.element.name, "cwmp");
-	assert_null(backup_tree->child);
+	assert_string_equal(mxmlGetElement(backup_tree), "cwmp");
+	assert_null(mxmlGetFirstChild(backup_tree));
 	MXML_DELETE(backup_tree);
 
 	/*
@@ -66,13 +67,13 @@ static void cwmp_backup_session_unit_test(void **state)
 	assert_non_null(queue_tree1);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "index", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), EVENT_IDX_4VALUE_CHANGE);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_4VALUE_CHANGE);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "id", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), 0);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "4 VALUE CHANGE");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "4 VALUE CHANGE");
 	MXML_DELETE(bkp_event1);
 	bkp_session_save();
 	MXML_DELETE(backup_tree);
@@ -92,24 +93,24 @@ static void cwmp_backup_session_unit_test(void **state)
 	assert_non_null(queue_tree1);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "index", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), EVENT_IDX_1BOOT);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_1BOOT);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "id", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), 0);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "1 BOOT");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1 BOOT");
 
 	assert_non_null(queue_tree2);
 	n = mxmlFindElement(queue_tree2, queue_tree2, "index", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), EVENT_IDX_4VALUE_CHANGE);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_4VALUE_CHANGE);
 	n = mxmlFindElement(queue_tree2, queue_tree2, "id", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), 1);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 1);
 	n = mxmlFindElement(queue_tree2, queue_tree2, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "4 VALUE CHANGE");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "4 VALUE CHANGE");
 
 	MXML_DELETE(bkp_event1);
 	MXML_DELETE(bkp_event2);
@@ -133,24 +134,24 @@ static void cwmp_backup_session_unit_test(void **state)
 	assert_non_null(queue_tree1);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "index", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), EVENT_IDX_1BOOT);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_1BOOT);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "id", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), 0);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
 	n = mxmlFindElement(queue_tree1, queue_tree1, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "1 BOOT");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1 BOOT");
 
 	assert_non_null(queue_tree2);
 	n = mxmlFindElement(queue_tree2, queue_tree2, "index", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), EVENT_IDX_4VALUE_CHANGE);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_4VALUE_CHANGE);
 	n = mxmlFindElement(queue_tree2, queue_tree2, "id", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), 0);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
 	n = mxmlFindElement(queue_tree2, queue_tree2, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "4 VALUE CHANGE");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "4 VALUE CHANGE");
 
 	MXML_DELETE(bkp_event1);
 	MXML_DELETE(bkp_event2);
@@ -180,22 +181,22 @@ static void cwmp_backup_session_unit_test(void **state)
 	assert_non_null(download_tree);
 	n = mxmlFindElement(download_tree, download_tree, "url", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "http://192.168.1.160:8080/openacs/acs");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "http://192.168.1.160:8080/openacs/acs");
 	n = mxmlFindElement(download_tree, download_tree, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "download_key");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "download_key");
 	n = mxmlFindElement(download_tree, download_tree, "file_type", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "1 Firmware Upgrade Image");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1 Firmware Upgrade Image");
 	n = mxmlFindElement(download_tree, download_tree, "username", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "iopsys");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "iopsys");
 	n = mxmlFindElement(download_tree, download_tree, "password", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "iopsys");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "iopsys");
 	n = mxmlFindElement(download_tree, download_tree, "file_size", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "0");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "0");
 	n = mxmlFindElement(download_tree, download_tree, "time", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	MXML_DELETE(backup_tree);
@@ -209,8 +210,8 @@ static void cwmp_backup_session_unit_test(void **state)
 	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
 	fclose(pFile);
 	assert_non_null(backup_tree);
-	assert_string_equal(backup_tree->value.element.name, "cwmp");
-	assert_null(backup_tree->child);
+	assert_string_equal(mxmlGetElement(backup_tree), "cwmp");
+	assert_null(mxmlGetFirstChild(backup_tree));
 	MXML_DELETE(backup_tree);
 
 	/*
@@ -235,17 +236,17 @@ static void cwmp_backup_session_unit_test(void **state)
 	assert_non_null(transfer_complete_tree);
 	n = mxmlFindElement(transfer_complete_tree, transfer_complete_tree, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "transfer_complete_key");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "transfer_complete_key");
 	n = mxmlFindElement(transfer_complete_tree, transfer_complete_tree, "start_time", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	n = mxmlFindElement(transfer_complete_tree, transfer_complete_tree, "complete_time", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	n = mxmlFindElement(transfer_complete_tree, transfer_complete_tree, "old_software_version", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "iopsys_img_old");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "iopsys_img_old");
 	n = mxmlFindElement(transfer_complete_tree, transfer_complete_tree, "fault_code", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_int_equal(atoi(n->child->value.opaque), FAULT_CPE_NO_FAULT);
+	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), FAULT_CPE_NO_FAULT);
 	MXML_DELETE(backup_tree);
 
 	/*
@@ -257,8 +258,8 @@ static void cwmp_backup_session_unit_test(void **state)
 	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
 	fclose(pFile);
 	assert_non_null(backup_tree);
-	assert_string_equal(backup_tree->value.element.name, "cwmp");
-	assert_null(backup_tree->child);
+	assert_string_equal(mxmlGetElement(backup_tree), "cwmp");
+	assert_null(mxmlGetFirstChild(backup_tree));
 	MXML_DELETE(backup_tree);
 
 	bkp_tree_clean();

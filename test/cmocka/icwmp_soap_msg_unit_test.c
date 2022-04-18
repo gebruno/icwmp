@@ -14,6 +14,7 @@
 #include <cmocka.h>
 #include <dirent.h>
 #include <string.h>
+#include <mxml.h>
 
 #include "rpc_soap.h"
 #include "event.h"
@@ -194,7 +195,7 @@ static void soap_inform_message_test(void **state)
 	assert_non_null(n);
 	n = mxmlFindElement(n, n, "EventCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "1 BOOT");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1 BOOT");
 	n = mxmlFindElement(cwmp_inform, cwmp_inform, "ParameterList", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
@@ -270,7 +271,7 @@ static void soap_get_param_value_message_test(void **state)
 
 	name = mxmlFindElement(n, n, "Name", NULL, NULL, MXML_DESCEND);
 	assert_non_null(name);
-	assert_string_equal(name->child->value.opaque, "Device.ManagementServer.PeriodicInformEnable");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(name)), "Device.ManagementServer.PeriodicInformEnable");
 	value = mxmlFindElement(n, n, "Value", NULL, NULL, MXML_DESCEND);
 	assert_non_null(value);
 
@@ -310,7 +311,7 @@ static void soap_get_param_value_message_test(void **state)
 	assert_non_null(detail);
 	detail_code = mxmlFindElement(detail, detail, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(detail_code);
-	assert_string_equal(detail_code->child->value.opaque, "9005");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(detail_code)), "9005");
 	detail_string = mxmlFindElement(detail, detail, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(detail_string);
 
@@ -366,10 +367,10 @@ static void soap_add_object_message_test(void **state)
 	assert_non_null(add_resp);
 	n = mxmlFindElement(add_resp, add_resp, "InstanceNumber", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	instance = (n->child && n->child->value.opaque) ? atoi(n->child->value.opaque) : 1;
+	instance = (mxmlGetFirstChild(n) && mxmlGetOpaque(mxmlGetFirstChild(n))) ? atoi(mxmlGetOpaque(mxmlGetFirstChild(n))) : 1;
 	n = mxmlFindElement(add_resp, add_resp, "Status", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "1");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1");
 	MXML_DELETE(session->tree_in);
 	MXML_DELETE(session->tree_out);
 
@@ -400,7 +401,7 @@ static void soap_add_object_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9005");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	MXML_DELETE(session->tree_in);
@@ -432,7 +433,7 @@ static void soap_add_object_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9005");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	MXML_DELETE(session->tree_in);
@@ -464,7 +465,7 @@ static void soap_add_object_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9003");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9003");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	MXML_DELETE(session->tree_in);
@@ -522,7 +523,7 @@ static void soap_delete_object_message_test(void **state)
 	assert_non_null(add_resp);
 	n = mxmlFindElement(add_resp, add_resp, "Status", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "1");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1");
 	MXML_DELETE(session->tree_in);
 	MXML_DELETE(session->tree_out);
 
@@ -553,7 +554,7 @@ static void soap_delete_object_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9005");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	MXML_DELETE(session->tree_in);
@@ -585,7 +586,7 @@ static void soap_delete_object_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9005");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	MXML_DELETE(session->tree_in);
@@ -617,7 +618,7 @@ static void soap_delete_object_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9003");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9003");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	MXML_DELETE(session->tree_in);
@@ -677,7 +678,7 @@ static void soap_get_parameter_attributes_message_test(void **state)
 	assert_non_null(n);
 	n = mxmlFindElement(param_attr, param_attr, "Name", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "Device.DeviceInfo.UpTime");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "Device.DeviceInfo.UpTime");
 	n = mxmlFindElement(param_attr, param_attr, "Notification", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	n = mxmlFindElement(param_attr, param_attr, "AccessList", NULL, NULL, MXML_DESCEND);
@@ -719,7 +720,7 @@ static void soap_get_parameter_attributes_message_test(void **state)
 	assert_non_null(detail);
 	detail_code = mxmlFindElement(detail, detail, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(detail_code);
-	assert_string_equal(detail_code->child->value.opaque, "9005");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(detail_code)), "9005");
 	detail_string = mxmlFindElement(detail, detail, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(detail_string);
 	MXML_DELETE(session->tree_in);
@@ -776,7 +777,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	assert_non_null(n);
 	n = mxmlFindElement(n, n, "cwmp:SetParameterAttributesResponse", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_null(n->child);
+	assert_null(mxmlGetFirstChild(n));
 	MXML_DELETE(session->tree_in);
 	MXML_DELETE(session->tree_out);
 
@@ -806,7 +807,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9005");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
@@ -838,7 +839,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9003");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9003");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
@@ -871,7 +872,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9003");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9003");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
@@ -904,7 +905,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	assert_non_null(cwmp_fault);
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultCode", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(n->child->value.opaque, "9003");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9003");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
