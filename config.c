@@ -220,18 +220,6 @@ int get_global_config(struct config *conf)
 		return error;
 	}
 
-	if ((error = uci_get_value(UCI_HTTPS_SSL_CAPATH, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			FREE(conf->https_ssl_capath);
-			conf->https_ssl_capath = strdup(value);
-			FREE(value);
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - https ssl cpath: %s", conf->https_ssl_capath ? conf->https_ssl_capath : "");
-	} else {
-		return error;
-	}
-
 	if ((error = uci_get_value(HTTP_DISABLE_100CONTINUE, &value)) == CWMP_OK) {
 		if (value != NULL) {
 			if ((strcasecmp(value, "true") == 0) || (strcmp(value, "1") == 0))

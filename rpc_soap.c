@@ -2500,7 +2500,7 @@ int cwmp_handle_rpc_cpe_upload(struct session *session, struct rpc *rpc)
 		error = FAULT_CPE_REQUEST_DENIED;
 	} else if (strstr(upload->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if (strncmp(upload->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && strncmp(upload->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
+	} else if (strncmp(upload->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0  && strncmp(upload->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && strncmp(upload->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
 	}
 

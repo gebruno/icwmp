@@ -86,6 +86,8 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 
 		snprintf(userpass, sizeof(userpass), "%s:%s", username, password);
 		curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
+		if (strncmp(url, "https://", 8) == 0)
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);

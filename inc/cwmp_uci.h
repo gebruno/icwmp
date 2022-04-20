@@ -25,7 +25,6 @@
 #define UCI_ACS_USERID_PATH "cwmp.acs.userid"
 #define UCI_ACS_PASSWD_PATH "cwmp.acs.passwd"
 #define UCI_ACS_SSL_CAPATH "cwmp.acs.ssl_capath"
-#define UCI_HTTPS_SSL_CAPATH "cwmp.acs.https_ssl_capath"
 #define UCI_ACS_INSECURE_ENABLE "cwmp.acs.insecure_enable"
 #define UCI_ACS_IPV6_ENABLE "cwmp.acs.ipv6_enable"
 #define UCI_ACS_COMPRESSION "cwmp.acs.compression"

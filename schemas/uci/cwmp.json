@@ -76,13 +76,6 @@
           "description": "The retry interval multiplier for session retry session as described in the standard."
         },
         {
-          "name": "https_ssl_capath",
-          "type": "string",
-          "required": "no",
-          "default": "",
-          "description": "The path of ssl certificates. ssl certificates used for Upload and Download methods."
-        },
-        {
           "name": "ipv6_enable",
           "type": "boolean",
           "required": "no",

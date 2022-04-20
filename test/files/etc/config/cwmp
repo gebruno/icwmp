@@ -11,7 +11,6 @@ config acs 'acs'
 	option retry_min_wait_interval '5'
 	#­ possible configs interval :[1000:65535]
 	option retry_interval_multiplier '2000'
-	option https_ssl_capath ''
 	option ipv6_enable '0'
 	option ip_version '4'
 

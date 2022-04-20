@@ -101,13 +101,6 @@
                     <td class="td_row_odd"><div class="td_row_odd">The retry interval multiplier for session retry session as described in the standard.</div></td>
                   </tr>
                   <tr>
-                    <td class="td_row_even"><div class="td_row_even">https_ssl_capath</div></td>
-                    <td class="td_row_even"><div class="td_row_even">string</div></td>
-                    <td class="td_row_even"><div class="td_row_even">no</div></td>
-                    <td class="td_row_even"><div class="td_row_even"></div></td>
-                    <td class="td_row_even"><div class="td_row_even">The path of ssl certificates. ssl certificates used for Upload and Download methods.</div></td>
-                  </tr>
-                  <tr>
                     <td class="td_row_odd"><div class="td_row_odd">ipv6_enable</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">boolean</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>
