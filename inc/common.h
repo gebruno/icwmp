@@ -242,6 +242,12 @@ enum rpc_acs_methods_idx {
 	__RPC_ACS_MAX
 };
 
+enum acs_support_idx {
+	NOT_KNOWN,
+	RPC_ACS_SUPPORT,
+	RPC_ACS_NOT_SUPPORT
+};
+
 enum load_type { TYPE_DOWNLOAD = 0, TYPE_SCHEDULE_DOWNLOAD, TYPE_UPLOAD };
 
 enum dustate_type { DU_INSTALL = 1, DU_UPDATE, DU_UNINSTALL };
@@ -329,6 +335,7 @@ struct rpc_acs_method {
 	int (*prepare_message)(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
 	int (*parse_response)(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
 	int (*extra_clean)(struct session *session, struct rpc *rpc);
+	int acs_support;
 };
 
 typedef struct FAULT_CPE {

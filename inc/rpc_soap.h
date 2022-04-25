@@ -23,7 +23,7 @@ extern char *boot_inform_parameters[MAX_NBRE_CUSTOM_INFORM];
 extern int nbre_custom_inform;
 extern int nbre_boot_inform;
 extern const struct rpc_cpe_method rpc_cpe_methods[__RPC_CPE_MAX];
-extern const struct rpc_acs_method rpc_acs_methods[__RPC_ACS_MAX];
+extern struct rpc_acs_method rpc_acs_methods[__RPC_ACS_MAX];
 
 int cwmp_handle_rpc_cpe_get_rpc_methods(struct session *session, struct rpc *rpc);
 int cwmp_handle_rpc_cpe_set_parameter_values(struct session *session, struct rpc *rpc);
@@ -47,6 +47,7 @@ int cwmp_handle_rpc_cpe_fault(struct session *session, struct rpc *rpc);
 
 int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
 int cwmp_rpc_acs_parse_response_inform(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
+int cwmp_rpc_acs_parse_response_get_rpc_methods(struct cwmp *cwmp, struct session *session, struct rpc *this);
 int cwmp_rpc_acs_prepare_get_rpc_methods(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
 int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
 int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct session *session, struct rpc *rpc);

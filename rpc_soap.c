@@ -53,11 +53,10 @@ const struct rpc_cpe_method rpc_cpe_methods[] = { [RPC_CPE_GET_RPC_METHODS] = { 
 						  [RPC_CPE_X_FACTORY_RESET_SOFT] = { "X_FactoryResetSoft", cwmp_handle_rpc_cpe_x_factory_reset_soft, AMD_1 },
 						  [RPC_CPE_FAULT] = { "Fault", cwmp_handle_rpc_cpe_fault, AMD_1 } };
 
-const struct rpc_acs_method rpc_acs_methods[] = { [RPC_ACS_INFORM] = { "Inform", cwmp_rpc_acs_prepare_message_inform, cwmp_rpc_acs_parse_response_inform, cwmp_rpc_acs_destroy_data_inform },
-						  [RPC_ACS_GET_RPC_METHODS] = { "GetRPCMethods", cwmp_rpc_acs_prepare_get_rpc_methods, NULL, NULL },
-						  [RPC_ACS_TRANSFER_COMPLETE] = { "TransferComplete", cwmp_rpc_acs_prepare_transfer_complete, NULL, cwmp_rpc_acs_destroy_data_transfer_complete },
-						  [RPC_ACS_DU_STATE_CHANGE_COMPLETE] = { "DUStateChangeComplete", cwmp_rpc_acs_prepare_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_du_state_change_complete }
-
+struct rpc_acs_method rpc_acs_methods[] = { [RPC_ACS_INFORM] = { "Inform", cwmp_rpc_acs_prepare_message_inform, cwmp_rpc_acs_parse_response_inform, cwmp_rpc_acs_destroy_data_inform, NOT_KNOWN },
+						  [RPC_ACS_GET_RPC_METHODS] = { "GetRPCMethods", cwmp_rpc_acs_prepare_get_rpc_methods, cwmp_rpc_acs_parse_response_get_rpc_methods, NULL, NOT_KNOWN },
+						  [RPC_ACS_TRANSFER_COMPLETE] = { "TransferComplete", cwmp_rpc_acs_prepare_transfer_complete, NULL, cwmp_rpc_acs_destroy_data_transfer_complete, NOT_KNOWN },
+						  [RPC_ACS_DU_STATE_CHANGE_COMPLETE] = { "DUStateChangeComplete", cwmp_rpc_acs_prepare_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_du_state_change_complete, NOT_KNOWN }
 };
 
 char *custom_forced_inform_parameters[MAX_NBRE_CUSTOM_INFORM] = { 0 };
@@ -473,6 +472,52 @@ error:
 	return -1;
 }
 
+int set_rpc_acs_to_supported(char *rpc_name)
+{
+	int i;
+
+	for (i=1; i < __RPC_ACS_MAX; i++) {
+		if (strcmp(rpc_acs_methods[i].name, rpc_name) == 0) {
+			rpc_acs_methods[i].acs_support = RPC_ACS_SUPPORT;
+			return i;
+		}
+	}
+	return -1;
+}
+
+void set_not_known_acs_support()
+{
+	int i;
+	for (i=1; i < __RPC_ACS_MAX; i++) {
+		if (rpc_acs_methods[i].acs_support == NOT_KNOWN)
+			rpc_acs_methods[i].acs_support = RPC_ACS_NOT_SUPPORT;
+	}
+}
+
+int cwmp_rpc_acs_parse_response_get_rpc_methods(struct cwmp *cwmp __attribute__((unused)), struct session *session, struct rpc *this __attribute__((unused)))
+{
+	mxml_node_t *tree, *b;
+	tree = session->tree_in;
+	b = mxmlFindElement(tree, tree, "cwmp:GetRPCMethodsResponse", NULL, NULL, MXML_DESCEND);
+	if (!b)
+		goto error;
+
+	while (b) {
+			const char *node_opaque = mxmlGetOpaque(b);
+			mxml_node_t *parent_node = mxmlGetParent(b);
+			mxml_type_t node_type = mxmlGetType(b);
+
+			if (node_type == MXML_OPAQUE && mxmlGetType(parent_node) == MXML_ELEMENT && node_opaque && strcmp((char *) mxmlGetElement(parent_node), "string") == 0)
+				set_rpc_acs_to_supported((char*)node_opaque);
+
+			b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
+	}
+	set_not_known_acs_support();
+	return 0;
+error:
+	return -1;
+}
+
 int cwmp_rpc_acs_destroy_data_inform(struct session *session __attribute__((unused)), struct rpc *rpc __attribute__((unused)))
 {
 	//event_remove_all_event_container(session,RPC_SEND);
@@ -504,25 +549,6 @@ int cwmp_rpc_acs_prepare_get_rpc_methods(struct cwmp *cwmp, struct session *sess
 	session->tree_out = tree;
 
 	return 0;
-}
-
-int cwmp_rpc_acs_parse_response_get_rpc_methods(struct session *session)
-{
-	mxml_node_t *tree, *b;
-
-	tree = session->tree_in;
-	if (!tree)
-		goto error;
-	b = mxmlFindElement(tree, tree, "MethodList", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-	b = mxmlWalkNext(b, tree, MXML_DESCEND_FIRST);
-	if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
-		goto error;
-	return 0;
-
-error:
-	return -1;
 }
 
 /*

@@ -35,6 +35,7 @@ check_cwmp_status
 
 [ -f funl-test-result.log ] && rm -f funl-test-result.log
 
+sleep 10
 echo "## Running script verification of functionalities ##"
 echo > ./funl-test-result.log
 echo > ./funl-test-debug.log

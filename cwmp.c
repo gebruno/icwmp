@@ -156,6 +156,10 @@ static int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 	while (1) {
 		list_for_each (ilist, &(session->head_rpc_acs)) {
 			rpc_acs = list_entry(ilist, struct rpc, list);
+			if (rpc_acs_methods[rpc_acs->type].acs_support == RPC_ACS_NOT_SUPPORT) {
+				CWMP_LOG(WARNING, "The RPC method %s is not included in the RPCs list supported by the ACS", rpc_acs_methods[rpc_acs->type].name);
+				continue;
+			}
 			if (!rpc_acs->type || thread_end)
 				goto retry;
 
@@ -173,7 +177,7 @@ static int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 			CWMP_LOG(INFO, "Get the %sResponse message from the ACS", rpc_acs_methods[rpc_acs->type].name);
 			/*
 			 * This condition is not always false.
-			 * while the value of idx can be changed to true in the exit of icwmp.
+			 * while the value of thread_end can be changed to true in the exit of icwmp.
 			 */
 			// cppcheck-suppress knownConditionTrueFalse
 			if (rpc_acs_methods[rpc_acs->type].parse_response || thread_end)
