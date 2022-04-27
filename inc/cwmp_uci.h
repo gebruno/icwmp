@@ -58,6 +58,9 @@
 #define LW_NOTIFICATION_HOSTNAME "cwmp.lwn.hostname"
 #define LW_NOTIFICATION_PORT "cwmp.lwn.port"
 #define UCI_DHCP_ACS_URL "cwmp.acs.dhcp_url"
+#define UCI_ACS_HEARTBEAT_ENABLE "cwmp.acs.heartbeat_enable"
+#define UCI_ACS_HEARTBEAT_INTERVAL "cwmp.acs.heartbeat_interval"
+#define UCI_ACS_HEARTBEAT_TIME "cwmp.acs.heartbeat_time"
 
 #define UCI_CPE_FIREWALL_RESTART_STATE "cwmp.cpe.firewall_restart"
 

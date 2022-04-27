@@ -281,13 +281,15 @@ static void icwmp_inform_event(struct ubus_context *ctx, struct ubus_request_dat
 	pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 	cwmp_add_event_container(&cwmp_main, event_code, "");
 	pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
-	pthread_cond_signal(&(cwmp_main.threshold_session_send));
-	if (cwmp_main.session_status.last_status == SESSION_RUNNING) {
-		blobmsg_add_u32(&bb, "status", -1);
-		blobmsg_add_string(&bb, "info", "Session already running, event will be sent at the end of the session");
-	} else {
-		blobmsg_add_u32(&bb, "status", 1);
-		blobmsg_add_string(&bb, "info", "Session started");
+	if (event_code != EVENT_IDX_14HEARTBEAT) {
+		pthread_cond_signal(&(cwmp_main.threshold_session_send));
+		if (cwmp_main.session_status.last_status == SESSION_RUNNING) {
+			blobmsg_add_u32(&bb, "status", -1);
+			blobmsg_add_string(&bb, "info", "Session already running, event will be sent at the end of the session");
+		} else {
+			blobmsg_add_u32(&bb, "status", 1);
+			blobmsg_add_string(&bb, "info", "Session started");
+		}
 	}
 
 	ubus_send_reply(ctx, req, bb.head);

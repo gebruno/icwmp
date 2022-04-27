@@ -63,6 +63,7 @@ enum event_idx_enum
 	EVENT_IDX_M_Schedule_Download,
 	EVENT_IDX_M_Upload,
 	EVENT_IDX_M_ChangeDUState,
+	EVENT_IDX_14HEARTBEAT,
 	__EVENT_IDX_MAX
 };
 

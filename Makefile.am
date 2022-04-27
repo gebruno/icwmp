@@ -28,6 +28,7 @@ icwmpd_SOURCES =			\
 	./rpc_soap.c			\
 	./diagnostic.c			\
 	./reboot.c 			\
+	./heartbeat.c		\
 	./cwmp.c			\
 	./ssl_utils.c
 

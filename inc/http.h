@@ -14,7 +14,7 @@
 
 extern char *fc_cookies;
 
-#define HTTP_TIMEOUT 30
+#define HTTP_TIMEOUT 60
 
 struct http_client {
 	struct curl_slist *header_list;

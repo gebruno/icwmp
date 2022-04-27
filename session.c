@@ -16,6 +16,7 @@
 #include "event.h"
 #include "rpc_soap.h"
 #include "backupSession.h"
+#include "heartbeat.h"
 
 unsigned int end_session_flag = 0;
 
@@ -53,6 +54,8 @@ struct rpc *cwmp_add_session_rpc_acs(struct session *session, int type)
 int cwmp_apply_acs_changes(void)
 {
 	int error;
+
+	old_heartbeat_enable = cwmp_main.conf.heart_beat_enable;
 
 	if ((error = cwmp_config_reload(&cwmp_main)))
 		return error;

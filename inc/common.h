@@ -91,13 +91,16 @@ typedef struct config {
 	int periodic_notify_interval;
 	int compression;
 	int delay_reboot;
+	int heartbeat_interval;
 	time_t schedule_reboot;
 	time_t time;
+	time_t heart_time;
 	unsigned int periodic_entropy;
 	bool periodic_enable;
 	bool periodic_notify_enable;
 	bool insecure_enable;
 	bool ipv6_enable;
+	bool heart_beat_enable;
 	int retry_min_wait_interval;
 	int retry_interval_multiplier;
 	bool lw_notification_enable;
@@ -529,5 +532,8 @@ int get_connection_interface();
 char *get_time(time_t t_time);
 bool is_obj_excluded(const char *object_name);
 time_t convert_datetime_to_timestamp(char *value);
+int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat);
+int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session);
+int run_session_end_func(void);
 
 #endif

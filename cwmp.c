@@ -37,6 +37,7 @@
 #include "sched_inform.h"
 #include "datamodel_interface.h"
 #include "cwmp_du_state.h"
+#include "heartbeat.h"
 #include "netlink.h"
 
 static pthread_t periodic_event_thread;
@@ -49,17 +50,22 @@ static pthread_t upload_thread;
 static pthread_t ubus_thread;
 static pthread_t http_cr_server_thread;
 static pthread_t periodic_check_notify;
+static pthread_t heart_beat_session_thread;
 bool g_firewall_restart = false;
 static struct ubus_context *ctx = NULL;
 
-static int cwmp_get_retry_interval(struct cwmp *cwmp)
+int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat)
 {
 	unsigned int retry_count = 0;
 	double min = 0;
 	double max = 0;
 	int m = cwmp->conf.retry_min_wait_interval;
 	int k = cwmp->conf.retry_interval_multiplier;
-	int exp = cwmp->retry_count_session;
+	int exp;
+	if (heart_beat)
+		exp = heart_beat_retry_count_session;
+	else
+		exp = cwmp->retry_count_session;
 	if (exp == 0)
 		return MAX_INT32;
 	if (exp > 10)
@@ -145,7 +151,7 @@ void check_firewall_restart_state()
 	}
 }
 
-static int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
+int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 {
 	struct list_head *ilist;
 	struct rpc *rpc_acs, *rpc_cpe;
@@ -263,6 +269,7 @@ int run_session_end_func(void)
 		CWMP_LOG(INFO, "Config reload: end session request");
 		cwmp_uci_reinit();
 		cwmp_apply_acs_changes();
+		check_trigger_heartbeat_session();
 	}
 
 	if (end_session_flag & END_SESSION_INIT_NOTIFY) {
@@ -350,7 +357,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		pthread_mutex_lock(&(cwmp->mutex_session_send));
 		ilist = (&(cwmp->head_session_queue))->next;
 		while ((ilist == &(cwmp->head_session_queue)) || retry) {
-			t = cwmp_get_retry_interval(cwmp);
+			t = cwmp_get_retry_interval(cwmp, 0);
 			time_to_wait.tv_sec = time(NULL) + t;
 			CWMP_LOG(INFO, "Waiting the next session");
 
@@ -369,6 +376,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 			ilist = (&(cwmp->head_session_queue))->next;
 			retry = false;
 		}
+		pthread_mutex_lock(&mutex_heartbeat_session);
 		cwmp_uci_init();
 		if (cwmp->session_status.last_status == SESSION_FAILURE)
 			reload_networking_config();
@@ -419,12 +427,13 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 			reload_networking_config();
 			run_session_end_func();
 			error = cwmp_move_session_to_session_queue(cwmp, session);
-			CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp->retry_count_session, cwmp_get_retry_interval(cwmp));
+			CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp->retry_count_session, cwmp_get_retry_interval(cwmp, 0));
 			retry = true;
 			cwmp->session_status.last_end_time = time(NULL);
 			cwmp->session_status.last_status = SESSION_FAILURE;
-			cwmp->session_status.next_retry = time(NULL) + cwmp_get_retry_interval(cwmp);
+			cwmp->session_status.next_retry = time(NULL) + cwmp_get_retry_interval(cwmp, 0);
 			cwmp->session_status.failure_session++;
+			pthread_mutex_unlock(&mutex_heartbeat_session);
 			pthread_mutex_unlock(&(cwmp->mutex_session_send));
 			continue;
 		}
@@ -437,6 +446,8 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		cwmp->session_status.last_status = SESSION_SUCCESS;
 		cwmp->session_status.next_retry = 0;
 		cwmp->session_status.success_session++;
+		pthread_cond_signal(&threasheld_retry_session);
+		pthread_mutex_unlock(&mutex_heartbeat_session);
 		pthread_mutex_unlock(&(cwmp->mutex_session_send));
 	}
 }
@@ -747,6 +758,8 @@ static int cwmp_init(int argc, char **argv, struct cwmp *cwmp)
 	pthread_mutex_init(&cwmp->mutex_periodic, NULL);
 	pthread_mutex_init(&cwmp->mutex_session_queue, NULL);
 	pthread_mutex_init(&cwmp->mutex_session_send, NULL);
+	pthread_mutex_init(&mutex_heartbeat_session, NULL);
+	pthread_mutex_init(&mutex_heartbeat, NULL);
 	memcpy(&(cwmp->env), &env, sizeof(struct env));
 	INIT_LIST_HEAD(&(cwmp->head_session_queue));
 
@@ -889,6 +902,11 @@ int main(int argc, char **argv)
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the periodic check notify thread!");
 	}
+	error = pthread_create(&heart_beat_session_thread, NULL, &thread_heartbeat_session, (void *)cwmp);
+	if (error < 0) {
+		CWMP_LOG(ERROR, "Error when creating heartbeat session thread!");
+	}
+
 	error = pthread_create(&scheduleInform_thread, NULL, &thread_cwmp_rpc_cpe_scheduleInform, (void *)cwmp);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the scheduled inform thread!");
@@ -932,6 +950,7 @@ int main(int argc, char **argv)
 	pthread_join(change_du_state_thread, NULL);
 	pthread_join(http_cr_server_thread, NULL);
 	pthread_join(ubus_thread, NULL);
+	pthread_join(heart_beat_session_thread, NULL);
 
 	/* Free all memory allocation */
 	cwmp_free(cwmp);

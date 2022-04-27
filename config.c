@@ -17,6 +17,7 @@
 #include "reboot.h"
 #include "ssl_utils.h"
 #include "datamodel_interface.h"
+#include "heartbeat.h"
 
 pthread_mutex_t mutex_config_load = PTHREAD_MUTEX_INITIALIZER;
 
@@ -570,6 +571,50 @@ int get_global_config(struct config *conf)
 		if (conf->custom_notify_json) {
 			CWMP_LOG(DEBUG, "CWMP CONFIG - cpe json custom notify file: %s", conf->custom_notify_json);
 		}
+	}
+
+	if ((error = uci_get_value(UCI_ACS_HEARTBEAT_ENABLE, &value)) == CWMP_OK) {
+		if (value != NULL) {
+			if ((strcasecmp(value, "true") == 0) || (strcmp(value, "1") == 0)) {
+				conf->heart_beat_enable = true;
+			} else {
+				conf->heart_beat_enable = false;
+			}
+			FREE(value);
+		} else {
+			conf->heart_beat_enable = false;
+		}
+
+		CWMP_LOG(DEBUG, "CWMP CONFIG - heart beat enable: %d ", conf->heart_beat_enable);
+	} else {
+		return error;
+	}
+
+	if ((error = uci_get_value(UCI_ACS_HEARTBEAT_INTERVAL, &value)) == CWMP_OK) {
+		int a = 30;
+
+		if (value != NULL) {
+			a = atoi(value);
+			FREE(value);
+		}
+		conf->heartbeat_interval = a;
+
+		CWMP_LOG(DEBUG, "CWMP CONFIG - heart beat interval: %d ", conf->heartbeat_interval);
+	} else {
+		return error;
+	}
+
+	if ((error = uci_get_value(UCI_ACS_HEARTBEAT_TIME, &value)) == CWMP_OK) {
+		if (value != NULL) {
+			conf->heart_time = convert_datetime_to_timestamp(value);
+			FREE(value);
+		} else {
+			conf->heart_time = 0;
+		}
+
+		CWMP_LOG(DEBUG, "CWMP CONFIG - heart beat time: %d ", conf->heart_time);
+	} else {
+		return error;
 	}
 	return CWMP_OK;
 }
