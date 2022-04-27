@@ -15,18 +15,20 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <libubox/blobmsg_json.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <linux/rtnetlink.h>
 
 #include "ubus.h"
 #include "session.h"
 #include "log.h"
 #include "sched_inform.h"
-#include "http.h"
+#include "cwmp_http.h"
 #include "download.h"
 #include "upload.h"
 #include "cwmp_du_state.h"
-#include "netlink.h"
+#include "cwmp_uci.h"
 #include "event.h"
-#include "cwmp_time.h"
 
 static struct ubus_context *ctx = NULL;
 
@@ -52,7 +54,7 @@ static int cwmp_handle_command(struct ubus_context *ctx, struct ubus_object *obj
 	struct blob_attr *tb[__COMMAND_MAX];
 	struct blob_buf blob_command;
 
-	blobmsg_parse(command_policy, ARRAYSIZEOF(command_policy), tb, blob_data(msg), blob_len(msg));
+	blobmsg_parse(command_policy, ARRAY_SIZE(command_policy), tb, blob_data(msg), blob_len(msg));
 
 	if (!tb[COMMAND_NAME])
 		return UBUS_STATUS_INVALID_ARGUMENT;
@@ -101,7 +103,7 @@ static int cwmp_handle_command(struct ubus_context *ctx, struct ubus_object *obj
 		thread_end = true;
 		
 		if (cwmp_main.session_status.last_status == SESSION_RUNNING)
-			http_set_timeout();
+			cwmp_http_set_timeout();
 
 		pthread_cond_signal(&(cwmp_main.threshold_session_send));
 		pthread_cond_signal(&(cwmp_main.threshold_periodic));
@@ -138,17 +140,21 @@ static int cwmp_handle_command(struct ubus_context *ctx, struct ubus_object *obj
 static inline time_t get_session_status_next_time()
 {
 	time_t ntime = 0;
+
 	if (list_schedule_inform.next != &(list_schedule_inform)) {
 		struct schedule_inform *schedule_inform;
 		schedule_inform = list_entry(list_schedule_inform.next, struct schedule_inform, list);
 		ntime = schedule_inform->scheduled_time;
 	}
+
 	if (!ntime || (cwmp_main.session_status.next_retry && ntime > cwmp_main.session_status.next_retry)) {
 		ntime = cwmp_main.session_status.next_retry;
 	}
+
 	if (!ntime || (cwmp_main.session_status.next_periodic && ntime > cwmp_main.session_status.next_periodic)) {
 		ntime = cwmp_main.session_status.next_periodic;
 	}
+
 	return ntime;
 }
 
@@ -163,20 +169,20 @@ static int cwmp_handle_status(struct ubus_context *ctx, struct ubus_object *obj 
 
 	c = blobmsg_open_table(&blob_status, "cwmp");
 	blobmsg_add_string(&blob_status, "status", "up");
-	blobmsg_add_string(&blob_status, "start_time", mix_get_time_of(cwmp_main.start_time));
+	blobmsg_add_string(&blob_status, "start_time", get_time(cwmp_main.start_time));
 	blobmsg_add_string(&blob_status, "acs_url", cwmp_main.conf.acsurl);
 	blobmsg_close_table(&blob_status, c);
 
 	c = blobmsg_open_table(&blob_status, "last_session");
 	blobmsg_add_string(&blob_status, "status", cwmp_main.session_status.last_start_time ? arr_session_status[cwmp_main.session_status.last_status] : "N/A");
-	blobmsg_add_string(&blob_status, "start_time", cwmp_main.session_status.last_start_time ? mix_get_time_of(cwmp_main.session_status.last_start_time) : "N/A");
-	blobmsg_add_string(&blob_status, "end_time", cwmp_main.session_status.last_end_time ? mix_get_time_of(cwmp_main.session_status.last_end_time) : "N/A");
+	blobmsg_add_string(&blob_status, "start_time", cwmp_main.session_status.last_start_time ? get_time(cwmp_main.session_status.last_start_time) : "N/A");
+	blobmsg_add_string(&blob_status, "end_time", cwmp_main.session_status.last_end_time ? get_time(cwmp_main.session_status.last_end_time) : "N/A");
 	blobmsg_close_table(&blob_status, c);
 
 	c = blobmsg_open_table(&blob_status, "next_session");
 	blobmsg_add_string(&blob_status, "status", arr_session_status[SESSION_WAITING]);
 	ntime = get_session_status_next_time();
-	blobmsg_add_string(&blob_status, "start_time", ntime ? mix_get_time_of(ntime) : "N/A");
+	blobmsg_add_string(&blob_status, "start_time", ntime ? get_time(ntime) : "N/A");
 	blobmsg_add_string(&blob_status, "end_time", "N/A");
 	blobmsg_close_table(&blob_status, c);
 
@@ -214,7 +220,7 @@ static int cwmp_handle_inform(struct ubus_context *ctx, struct ubus_object *obj 
 	memset(&blob_inform, 0, sizeof(struct blob_buf));
 	blob_buf_init(&blob_inform, 0);
 
-	blobmsg_parse(inform_policy, ARRAYSIZEOF(inform_policy), tb, blob_data(msg), blob_len(msg));
+	blobmsg_parse(inform_policy, ARRAY_SIZE(inform_policy), tb, blob_data(msg), blob_len(msg));
 
 	if (tb[INFORM_GET_RPC_METHODS]) {
 		grm = blobmsg_data(tb[INFORM_GET_RPC_METHODS]);
@@ -274,22 +280,199 @@ static struct ubus_object main_object = {
 	.name = "tr069",
 	.type = &main_object_type,
 	.methods = freecwmp_methods,
-	.n_methods = ARRAYSIZEOF(freecwmp_methods),
+	.n_methods = ARRAY_SIZE(freecwmp_methods),
 };
+
+static int check_interfaces(char *itf1, char *itf2)
+{
+	char itf1_buf[64] = {0};
+	char itf2_buf[64] = {0};
+	char *dot = NULL;
+
+	if (itf1[0] == '\0' || itf2[0] == '\0')
+		return -1;
+
+	CWMP_STRNCPY(itf1_buf, itf1, sizeof(itf1_buf));
+	CWMP_STRNCPY(itf2_buf, itf2, sizeof(itf2_buf));
+
+	dot = strchr(itf1_buf, '.');
+	if (dot)
+		*dot = 0;
+
+	dot = strchr(itf2_buf, '.');
+	if (dot)
+		*dot = 0;
+
+	return strcmp(itf1_buf, itf2_buf);
+}
+
+static void cwmp_netlink_interface(struct nlmsghdr *nlh)
+{
+	struct ifaddrmsg *ifa = (struct ifaddrmsg *)NLMSG_DATA(nlh);
+	struct rtattr *rth = IFA_RTA(ifa);
+	int rtl = IFA_PAYLOAD(nlh);
+	char if_name[IFNAMSIZ], if_addr[INET_ADDRSTRLEN];
+
+	memset(&if_name, 0, sizeof(if_name));
+	memset(&if_addr, 0, sizeof(if_addr));
+
+	if (ifa->ifa_family == AF_INET) { //CASE IPv4
+		while (rtl && RTA_OK(rth, rtl)) {
+			if (rth->rta_type != IFA_LOCAL) {
+				rth = RTA_NEXT(rth, rtl);
+				continue;
+			}
+
+			uint32_t addr = htonl(*(uint32_t *)RTA_DATA(rth));
+			if (htonl(13) == 13) {
+				// running on big endian system
+			} else {
+				// running on little endian system
+				addr = __builtin_bswap32(addr);
+			}
+
+			if_indextoname(ifa->ifa_index, if_name);
+			if (check_interfaces(cwmp_main.conf.interface, if_name)) {
+				rth = RTA_NEXT(rth, rtl);
+				continue;
+			}
+
+			inet_ntop(AF_INET, &(addr), if_addr, INET_ADDRSTRLEN);
+
+			FREE(cwmp_main.conf.ip);
+			cwmp_main.conf.ip = strdup(if_addr);
+			cwmp_uci_set_varstate_value("cwmp", "cpe", "ip", cwmp_main.conf.ip);
+			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+			connection_request_ip_value_change(&cwmp_main, IPv4);
+			break;
+		}
+	} else { //CASE IPv6
+		while (rtl && RTA_OK(rth, rtl)) {
+			char pradd_v6[128];
+			if (rth->rta_type != IFA_ADDRESS || ifa->ifa_scope == RT_SCOPE_LINK) {
+				rth = RTA_NEXT(rth, rtl);
+				continue;
+			}
+
+			if_indextoname(ifa->ifa_index, if_name);
+			if (check_interfaces(cwmp_main.conf.interface, if_name)) {
+				rth = RTA_NEXT(rth, rtl);
+				continue;
+			}
+
+			inet_ntop(AF_INET6, RTA_DATA(rth), pradd_v6, sizeof(pradd_v6));
+
+			FREE(cwmp_main.conf.ipv6);
+			cwmp_main.conf.ipv6 = strdup(pradd_v6);
+			cwmp_uci_set_varstate_value("cwmp", "cpe", "ipv6", cwmp_main.conf.ip);
+			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+			connection_request_ip_value_change(&cwmp_main, IPv6);
+			break;
+		}
+	}
+}
+
+static void netlink_new_msg(struct uloop_fd *ufd, unsigned events __attribute__((unused)))
+{
+	struct nlmsghdr *nlh;
+	char buffer[BUFSIZ];
+	size_t msg_size;
+
+	memset(&buffer, 0, sizeof(buffer));
+
+	nlh = (struct nlmsghdr *)buffer;
+	if ((int)(msg_size = recv(ufd->fd, nlh, BUFSIZ, 0)) == -1) {
+		CWMP_LOG(ERROR, "error receiving netlink message");
+		return;
+	}
+
+	while ((size_t)msg_size > sizeof(*nlh)) {
+		int len = nlh->nlmsg_len;
+		int req_len = len - sizeof(*nlh);
+
+		if (req_len < 0 || (size_t)len > msg_size) {
+			CWMP_LOG(ERROR, "error reading netlink message");
+			return;
+		}
+
+		if (!NLMSG_OK(nlh, msg_size)) {
+			CWMP_LOG(ERROR, "netlink message is not NLMSG_OK");
+			return;
+		}
+
+		if (nlh->nlmsg_type == RTM_NEWADDR)
+			cwmp_netlink_interface(nlh);
+
+		msg_size -= NLMSG_ALIGN(len);
+		nlh = (struct nlmsghdr *)((char *)nlh + NLMSG_ALIGN(len));
+	}
+}
+
+static struct uloop_fd netlink_event[2] = {{.cb = netlink_new_msg }, {.cb = netlink_new_msg }};
+
+static int netlink_init(bool is_ipv6)
+{
+	struct {
+		struct nlmsghdr hdr;
+		struct ifaddrmsg msg;
+	} req;
+	struct sockaddr_nl addr;
+	int sock[2];
+
+	memset(&addr, 0, sizeof(addr));
+	memset(&req, 0, sizeof(req));
+
+	if ((sock[0] = socket(PF_NETLINK, SOCK_RAW, NETLINK_ROUTE)) == -1) {
+		CWMP_LOG(ERROR, "couldn't open NETLINK_ROUTE socket");
+		return -1;
+	}
+
+	addr.nl_family = AF_NETLINK;
+	addr.nl_groups = is_ipv6 ? RTMGRP_IPV6_IFADDR : RTMGRP_IPV4_IFADDR;
+
+	if ((bind(sock[0], (struct sockaddr *)&addr, sizeof(addr))) == -1) {
+		CWMP_LOG(ERROR, "couldn't bind netlink socket");
+		return -1;
+	}
+
+	netlink_event[is_ipv6 ? 1 : 0].fd = sock[0];
+	uloop_fd_add(&netlink_event[is_ipv6 ? 1 : 0], ULOOP_READ | ULOOP_EDGE_TRIGGER);
+
+	if ((sock[1] = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE)) == -1) {
+		CWMP_LOG(ERROR, "couldn't open NETLINK_ROUTE socket");
+		return -1;
+	}
+
+	req.hdr.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifaddrmsg));
+	req.hdr.nlmsg_flags = NLM_F_REQUEST | NLM_F_ROOT;
+	req.hdr.nlmsg_type = RTM_GETADDR;
+	req.msg.ifa_family = is_ipv6 ? AF_INET6 : AF_INET;
+
+	if ((send(sock[1], &req, req.hdr.nlmsg_len, 0)) == -1) {
+		CWMP_LOG(ERROR, "couldn't send netlink socket");
+		return -1;
+	}
+
+	struct uloop_fd dummy_event = {.fd = sock[1] };
+	netlink_new_msg(&dummy_event, 0);
+
+	return 0;
+}
 
 int cwmp_ubus_init(struct cwmp *cwmp)
 {
 	uloop_init();
 
-	if (netlink_init()) {
+	if (netlink_init(false)) {
 		CWMP_LOG(ERROR, "netlink initialization failed");
 	}
 
 	if (cwmp->conf.ipv6_enable) {
-		if (netlink_init_v6()) {
+		if (netlink_init(true)) {
 			CWMP_LOG(ERROR, "netlink initialization failed");
 		}
 	}
+
 	ctx = ubus_connect(cwmp->conf.ubus_socket);
 	if (!ctx)
 		return -1;

@@ -19,7 +19,6 @@
 #include "backupSession.h"
 #include "xml.h"
 #include "config.h"
-#include "cwmp_time.h"
 #include "event.h"
 
 static struct cwmp cwmp_main_test = { 0 };
@@ -220,8 +219,8 @@ static void cwmp_backup_session_unit_test(void **state)
 	struct transfer_complete *p;
 	p = icwmp_calloc(1, sizeof(struct transfer_complete));
 	p->command_key = icwmp_strdup("transfer_complete_key");
-	p->start_time = icwmp_strdup(mix_get_time());
-	p->complete_time = icwmp_strdup(mix_get_time());
+	p->start_time = icwmp_strdup(get_time(time(NULL)));
+	p->complete_time = icwmp_strdup(get_time(time(NULL)));
 	p->old_software_version = icwmp_strdup("iopsys_img_old");
 	p->type = TYPE_DOWNLOAD;
 	p->fault_code = FAULT_CPE_NO_FAULT;

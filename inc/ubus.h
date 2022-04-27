@@ -9,15 +9,12 @@
  *
  *	Copyright (C) 2012 Luka Perkov <freecwmp@lukaperkov.net>
  */
+
 #ifndef _FREECWMP_UBUS_H__
 #define _FREECWMP_UBUS_H__
-#include <libubus.h>
-/*
-#include <json-c/json.h>
-#include <libubox/blobmsg_json.h>
 
-#include "common.h"
-*/
+#include <libubus.h>
+
 #include "common.h"
 
 #define ARRAY_MAX 8

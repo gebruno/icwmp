@@ -13,8 +13,7 @@
 #include "xml.h"
 #include "log.h"
 #include "notifications.h"
-#include "messages.h"
-#include "http.h"
+#include "cwmp_http.h"
 #include "cwmp_zlib.h"
 
 static const char *soap_env_url = "http://schemas.xmlsoap.org/soap/envelope/";
@@ -22,7 +21,29 @@ static const char *soap_enc_url = "http://schemas.xmlsoap.org/soap/encoding/";
 static const char *xsd_url = "http://www.w3.org/2001/XMLSchema";
 static const char *xsi_url = "http://www.w3.org/2001/XMLSchema-instance";
 
-const char *cwmp_urls[] = { "urn:dslforum-org:cwmp-1-0", "urn:dslforum-org:cwmp-1-1", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", NULL };
+const char *cwmp_urls[] = { "urn:dslforum-org:cwmp-1-0",
+							"urn:dslforum-org:cwmp-1-1",
+							"urn:dslforum-org:cwmp-1-2",
+							"urn:dslforum-org:cwmp-1-2",
+							"urn:dslforum-org:cwmp-1-2",
+							NULL };
+
+#define CWMP_LWNOTIFICATION_MESSAGE \
+"<?xml version=\"1.0\" encoding=\"UTF-8\"?>"								\
+"<Notification "											\
+	"xmlns=\"urn:broadband-forum-org:cwmp:lwnotif-1-0\" " 						\
+	"xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" "						\
+	"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" "					\
+	"xsi:schemaLocation=\"urn:broadband-forum-org:cwmp:lwnotif-1-0 "				\
+	"http://www.broadband-forum.org/cwmp/cwmp-UDPLightweightNotification-1-0.xsd\">" 		\
+	"<TS/>" 											\
+	"<UN/>"												\
+	"<CN/>"												\
+	"<OUI/>"											\
+	"<ProductClass/>"										\
+	"<SerialNumber/>"										\
+"</Notification>"
+
 mxml_node_t * /* O - Element node or NULL */
 mxmlFindElementOpaque(mxml_node_t *node, /* I - Current node */
 		      mxml_node_t *top, /* I - Top node */
@@ -153,7 +174,7 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 	}
 	while (1) {
 		f = 0;
-		if (http_send_message(cwmp, msg_out, msg_out_len, &msg_in)) {
+		if (cwmp_http_send_message(cwmp, msg_out, msg_out_len, &msg_in)) {
 			goto error;
 		}
 		if (msg_in) {

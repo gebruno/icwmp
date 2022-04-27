@@ -16,7 +16,6 @@
 #include "ubus.h"
 #include "log.h"
 #include "datamodel_interface.h"
-#include "cwmp_time.h"
 #include "backupSession.h"
 #include "event.h"
 
@@ -202,7 +201,7 @@ static int cwmp_launch_du_install(char *url, char *uuid, char *user, char *pass,
 	int error = FAULT_CPE_NO_FAULT;
 	char *fault_code;
 
-	(*pchange_du_state_complete)->start_time = strdup(mix_get_time());
+	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 	cwmp_du_install(url, uuid, user, pass, env_name, env_id, &fault_code);
 
 	if (fault_code != NULL) {
@@ -225,7 +224,7 @@ static int cwmp_launch_du_update(char *uuid, char *url, char *user, char *pass, 
 	int error = FAULT_CPE_NO_FAULT;
 	char *fault_code;
 
-	(*pchange_du_state_complete)->start_time = strdup(mix_get_time());
+	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 
 	cwmp_du_update(url, uuid, user, pass, env_name, env_id, &fault_code);
 	if (fault_code != NULL) {
@@ -248,7 +247,7 @@ static int cwmp_launch_du_uninstall(char *package_name, char *env_name, int env_
 	int error = FAULT_CPE_NO_FAULT;
 	char *fault_code;
 
-	(*pchange_du_state_complete)->start_time = strdup(mix_get_time());
+	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 
 	cwmp_du_uninstall(package_name, env_name, env_id, &fault_code);
 
@@ -326,7 +325,7 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 						res->uuid = strdup(p->uuid);
 						res->version = strdup(p->version);
 						res->current_state = strdup("Failed");
-						res->start_time = strdup(mix_get_time());
+						res->start_time = strdup(get_time(time(NULL)));
 						res->complete_time = strdup(res->start_time);
 						res->fault = error;
 					}
@@ -378,7 +377,7 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 								res->resolved = 0;
 							}
 
-							res->complete_time = strdup(mix_get_time());
+							res->complete_time = strdup(get_time(time(NULL)));
 							res->fault = error;
 							break;
 
@@ -411,7 +410,7 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 							get_du_version(du_ref, &package_version);
 							res->version = strdup(package_version ? package_version : "");
 							res->du_ref = strdup(du_ref ? du_ref : "");
-							res->complete_time = strdup(mix_get_time());
+							res->complete_time = strdup(get_time(time(NULL)));
 							res->fault = error;
 							FREE(du_ref);
 							break;
@@ -441,7 +440,7 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 							res->du_ref = strdup(du_ref ? du_ref : "");
 							res->uuid = strdup(p->uuid);
 							res->version = strdup(package_version);
-							res->complete_time = strdup(mix_get_time());
+							res->complete_time = strdup(get_time(time(NULL)));
 							res->fault = error;
 							FREE(du_ref);
 							FREE(package_name);

@@ -21,7 +21,6 @@
 #include "backupSession.h"
 #include "xml.h"
 #include "config.h"
-#include "cwmp_time.h"
 #include "event.h"
 #include "cwmp_uci.h"
 #include "cwmp_cli.h"

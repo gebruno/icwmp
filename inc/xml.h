@@ -16,6 +16,19 @@
 		}                                                                                                                                                                                                                                                                                          \
 	} while (0)
 
+#define CWMP_RESPONSE_MESSAGE \
+"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"		\
+"<soap_env:Envelope "							\
+	"xmlns:soap_env=\"http://schemas.xmlsoap.org/soap/envelope/\" "	\
+	"xmlns:soap_enc=\"http://schemas.xmlsoap.org/soap/encoding/\" "	\
+	"xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "		\
+	"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">"	\
+	"<soap_env:Header>"						\
+		"<cwmp:ID soap_env:mustUnderstand=\"1\"/>"		\
+	"</soap_env:Header>"						\
+	"<soap_env:Body/>"						\
+"</soap_env:Envelope>"
+
 extern const char *cwmp_urls[];
 int xml_prepare_msg_out(struct session *session);
 int xml_prepare_lwnotification_message(char **msg_out);

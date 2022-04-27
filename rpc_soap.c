@@ -18,9 +18,7 @@
 #include "cwmp_du_state.h"
 #include "log.h"
 #include "event.h"
-#include "cwmp_time.h"
 #include "datamodel_interface.h"
-#include "messages.h"
 #include "event.h"
 #include "xml.h"
 #include "backupSession.h"
@@ -32,6 +30,33 @@
 #define PROCESSING_DELAY (1) // In download/upload the message enqueued before sending the response, which cause the download/upload
 			     // to start just before the time. This delay is to compensate the time lapsed during the message enqueue and response
 #define DM_CONN_REQ_URL "Device.ManagementServer.ConnectionRequestURL"
+
+#define CWMP_INFORM_MESSAGE \
+"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>"							\
+"<soap_env:Envelope "												\
+	"xmlns:soap_env=\"http://schemas.xmlsoap.org/soap/envelope/\" "						\
+	"xmlns:soap_enc=\"http://schemas.xmlsoap.org/soap/encoding/\" "						\
+	"xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" "							\
+	"xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" >"						\
+        "<soap_env:Header>"											\
+		"<cwmp:ID soap_env:mustUnderstand=\"1\"/>"							\
+	"</soap_env:Header>"											\
+	"<soap_env:Body>"											\
+	"<cwmp:Inform>"												\
+		"<DeviceId>"											\
+			"<Manufacturer/>"									\
+			"<OUI/>"										\
+			"<ProductClass/>"									\
+			"<SerialNumber/>"									\
+		"</DeviceId>"											\
+		"<Event soap_enc:arrayType=\"cwmp:EventStruct[0]\" />"						\
+		"<MaxEnvelopes>1</MaxEnvelopes>"								\
+		"<CurrentTime/>"										\
+		"<RetryCount/>"											\
+		"<ParameterList soap_enc:arrayType=\"cwmp:ParameterValueStruct[0]\" />"				\
+	"</cwmp:Inform>"											\
+"</soap_env:Body>"												\
+"</soap_env:Envelope>"
 
 struct cwmp_namespaces ns;
 const struct rpc_cpe_method rpc_cpe_methods[] = { [RPC_CPE_GET_RPC_METHODS] = { "GetRPCMethods", cwmp_handle_rpc_cpe_get_rpc_methods, AMD_1 },
@@ -64,7 +89,13 @@ char *boot_inform_parameters[MAX_NBRE_CUSTOM_INFORM] = { 0 };
 int nbre_custom_inform = 0;
 int nbre_boot_inform = 0;
 char *forced_inform_parameters[] = {
-	"Device.RootDataModelVersion", "Device.DeviceInfo.HardwareVersion", "Device.DeviceInfo.SoftwareVersion", "Device.DeviceInfo.ProvisioningCode", "Device.ManagementServer.ParameterKey", DM_CONN_REQ_URL, "Device.ManagementServer.AliasBasedAddressing"
+	"Device.RootDataModelVersion",
+	"Device.DeviceInfo.HardwareVersion",
+	"Device.DeviceInfo.SoftwareVersion",
+	"Device.DeviceInfo.ProvisioningCode",
+	"Device.ManagementServer.ParameterKey",
+	"Device.ManagementServer.AliasBasedAddressing",
+	DM_CONN_REQ_URL,
 };
 
 int xml_handle_message(struct session *session)
@@ -307,7 +338,7 @@ int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *sessi
 	if (!b)
 		goto error;
 
-	b = mxmlNewOpaque(b, mix_get_time());
+	b = mxmlNewOpaque(b, get_time(time(NULL)));
 	if (!b)
 		goto error;
 
@@ -603,7 +634,7 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *se
 	if (!n)
 		goto error;
 
-	n = mxmlNewOpaque(n, mix_get_time());
+	n = mxmlNewOpaque(n, get_time(time(NULL)));
 	if (!n)
 		goto error;
 

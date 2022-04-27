@@ -6,17 +6,14 @@ bin_PROGRAMS = icwmpd
 
 icwmpd_SOURCES =			\
 	./common.c				\
-	./cwmp_time.c			\
 	./log.c				\
 	./cwmp_uci.c			\
 	./config.c				\
 	./session.c			\
 	./backupSession.c		\
-	./md5.c				\
 	./digestauth.c			\
 	./event.c				\
-	./http.c				\
-	./netlink.c			\
+	./cwmp_http.c				\
 	./ubus.c				\
 	./datamodel_interface.c \
 	./cwmp_cli.c			\

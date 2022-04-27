@@ -25,7 +25,7 @@
 #include "log.h"
 #include "session.h"
 #include "diagnostic.h"
-#include "http.h"
+#include "cwmp_http.h"
 #include "rpc_soap.h"
 #include "config.h"
 #include "backupSession.h"
@@ -148,7 +148,7 @@ static int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 	struct list_head *ilist;
 	struct rpc *rpc_acs, *rpc_cpe;
 
-	if (http_client_init(cwmp) || thread_end) {
+	if (cwmp_http_client_init(cwmp) || thread_end) {
 		CWMP_LOG(INFO, "Initializing http client failed");
 		goto retry;
 	}
@@ -175,11 +175,6 @@ static int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 				goto retry;
 
 			CWMP_LOG(INFO, "Get the %sResponse message from the ACS", rpc_acs_methods[rpc_acs->type].name);
-			/*
-			 * This condition is not always false.
-			 * while the value of thread_end can be changed to true in the exit of icwmp.
-			 */
-			// cppcheck-suppress knownConditionTrueFalse
 			if (rpc_acs_methods[rpc_acs->type].parse_response || thread_end)
 				if (rpc_acs_methods[rpc_acs->type].parse_response(cwmp, session, rpc_acs))
 					goto retry;
@@ -250,7 +245,7 @@ retry:
 end:
 	MXML_DELETE(session->tree_in);
 	MXML_DELETE(session->tree_out);
-	http_client_exit();
+	cwmp_http_client_exit();
 	xml_exit();
 	return session->error;
 }
@@ -396,8 +391,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		cwmp->session_status.last_status = SESSION_RUNNING;
 		cwmp->session_status.next_retry = 0;
 
-		if (file_exists(fc_cookies))
-			remove(fc_cookies);
+		cwmp_http_remove_cookies_file();
 		CWMP_LOG(INFO, "Start session");
 
 		uci_get_value(UCI_CPE_EXEC_DOWNLOAD, &exec_download);
@@ -452,7 +446,7 @@ static void *thread_uloop_run(void *v __attribute__((unused)))
 
 static void *thread_http_cr_server_listen(void *v __attribute__((unused)))
 {
-	http_server_listen();
+	cwmp_http_server_listen();
 	return NULL;
 }
 
@@ -828,7 +822,7 @@ int main(int argc, char **argv)
 		return error;
 
 	configure_var_state(cwmp);
-	http_server_init();
+	cwmp_http_server_init();
 
 	sigemptyset(&set);
 	sigaddset(&set, SIGINT);

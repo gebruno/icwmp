@@ -4,12 +4,12 @@
  *	the Free Software Foundation, either version 2 of the License, or
  *	(at your option) any later version.
  *
- *	Copyright (C) 2013-2020 iopsys Software Solutions AB
+ *	Copyright (C) 2013-2022 iopsys Software Solutions AB
  *	  Author Omar Kallel <omar.kallel@pivasoftware.com>
  *
  */
-#ifndef __CCOMMON_H
-#define __CCOMMON_H
+#ifndef CWMP_COMMON_H
+#define CWMP_COMMON_H
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -21,9 +21,21 @@
 #define CWMP_VERSION "3.0.0"
 #endif
 
-#define __offsetof__(x) (x)
+#ifndef FREE
+#define FREE(x) do { if(x) {free(x); x = NULL;} } while (0)
+#endif
 
-#define ARRAYSIZEOF(a) (sizeof(a) / sizeof((a)[0]))
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#endif
+
+#define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : -1)
+
+#define CWMP_STRNCPY(DST, SRC, SIZE) \
+	do { \
+		strncpy(DST, SRC, SIZE - 1); \
+		DST[SIZE - 1] = '\0'; \
+	} while (0)
 
 #define USP_OBJECT_NAME "usp.raw"
 #define MAX_EVENTS 64
@@ -49,7 +61,6 @@
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
 #define CWMP_VARSTATE_UCI_PACKAGE "/var/state/cwmp"
 
-#define STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : -1)
 extern char *commandKey;
 extern bool thread_end;
 extern bool signal_exit;
@@ -156,7 +167,10 @@ enum action {
 	RESTART,
 };
 
-enum cwmp_start { CWMP_START_BOOT = 1, CWMP_START_PERIODIC = 2 };
+enum cwmp_start {
+	CWMP_START_BOOT = 1,
+	CWMP_START_PERIODIC = 2
+};
 
 enum cwmp_ret_err {
 	CWMP_XML_ERR = -1,
@@ -167,9 +181,16 @@ enum cwmp_ret_err {
 	CWMP_RETRY_SESSION
 };
 
-enum http_compression { COMP_NONE, COMP_GZIP, COMP_DEFLATE };
+enum http_compression {
+	COMP_NONE,
+	COMP_GZIP,
+	COMP_DEFLATE
+};
 
-enum enum_ip_version { IPv4 = 4, IPv6 = 6 };
+enum enum_ip_version {
+	IPv4 = 4,
+	IPv6 = 6
+};
 
 typedef struct rpc {
 	struct list_head list;
@@ -202,7 +223,10 @@ enum amd_version_enum {
 	AMD_5,
 };
 
-enum instance_mode { INSTANCE_MODE_NUMBER, INSTANCE_MODE_ALIAS };
+enum instance_mode {
+	INSTANCE_MODE_NUMBER,
+	INSTANCE_MODE_ALIAS
+};
 
 struct cwmp_namespaces {
 	char *soap_env;
@@ -248,9 +272,17 @@ enum acs_support_idx {
 	RPC_ACS_NOT_SUPPORT
 };
 
-enum load_type { TYPE_DOWNLOAD = 0, TYPE_SCHEDULE_DOWNLOAD, TYPE_UPLOAD };
+enum load_type {
+	TYPE_DOWNLOAD = 0,
+	TYPE_SCHEDULE_DOWNLOAD,
+	TYPE_UPLOAD
+};
 
-enum dustate_type { DU_INSTALL = 1, DU_UPDATE, DU_UNINSTALL };
+enum dustate_type {
+	DU_INSTALL = 1,
+	DU_UPDATE,
+	DU_UNINSTALL
+};
 
 enum fault_cpe_idx {
 	FAULT_CPE_NO_FAULT,
@@ -322,7 +354,10 @@ enum fault_code_enum {
 	__FAULT_MAX
 };
 
-enum client_server_faults { FAULT_CPE_TYPE_CLIENT, FAULT_CPE_TYPE_SERVER };
+enum client_server_faults {
+	FAULT_CPE_TYPE_CLIENT,
+	FAULT_CPE_TYPE_SERVER
+};
 
 struct rpc_cpe_method {
 	const char *name;
@@ -452,8 +487,7 @@ extern long int flashsize;
 extern struct FAULT_CPE FAULT_CPE_ARRAY[];
 extern struct cwmp_namespaces ns;
 
-void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *param_data, char *param_type,
-			      int notification, bool writable);
+void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *param_data, char *param_type, int notification, bool writable);
 void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter);
 void cwmp_free_all_dm_parameter_list(struct list_head *list);
 int global_env_init(int argc, char **argv, struct env *env);
@@ -494,27 +528,7 @@ void clean_custom_inform_parameters();
 char *string_to_hex(const unsigned char *str, size_t size);
 int copy_file(char *source_file, char *target_file);
 int get_connection_interface();
-bool is_obj_excluded(char *object_name);
+char *get_time(time_t t_time);
+bool is_obj_excluded(const char *object_name);
 
-#ifndef FREE
-#define FREE(x)                                                                                                        \
-	do {                                                                                                           \
-		if (x) {                                                                                               \
-			free(x);                                                                                       \
-			x = NULL;                                                                                      \
-		}                                                                                                      \
-	} while (0)
-#endif
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
-#endif
-
-
-#define CWMP_STRNCPY(DST, SRC, SIZE)                                                                                   \
-	do {                                                                                                           \
-		strncpy(DST, SRC, SIZE - 1);                                                                           \
-		DST[SIZE - 1] = '\0';                                                                                  \
-	} while (0)
-
-#endif
+#endif /* CWMP_COMMON_H */
