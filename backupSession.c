@@ -213,7 +213,7 @@ mxml_node_t *bkp_session_node_found(mxml_node_t *tree, char *name, struct search
 				if (mxmlGetType(c) == MXML_ELEMENT && strcmp(keys[i].name, (char *) mxmlGetElement(c)) == 0) {
 					d = c;
 					d = mxmlWalkNext(d, c, MXML_DESCEND);
-					if ((keys[i].value == NULL) || (d && mxmlGetType(d) == MXML_OPAQUE && STRCMP(keys[i].value, mxmlGetOpaque(d)) == 0))
+					if ((keys[i].value == NULL) || (d && mxmlGetType(d) == MXML_OPAQUE && CWMP_STRCMP(keys[i].value, mxmlGetOpaque(d)) == 0))
 						i++;
 				}
 				c = mxmlWalkNext(c, b, MXML_NO_DESCEND);

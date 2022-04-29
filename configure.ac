@@ -16,9 +16,6 @@ AS_IF([test "x$enable_acs" = "xmulti"], [AC_DEFINE(ACS_MULTI)])
 AS_IF([test "x$enable_acs" = "xyes"], [AC_DEFINE(ACS_MULTI)])
 AS_IF([test "x$enable_acs" = "xno"], [AC_DEFINE(ACS_MULTI)])
 
-AC_ARG_ENABLE(debug, [AS_HELP_STRING([--enable-debug], [enable debugging messages])], AC_DEFINE(WITH_CWMP_DEBUG),)
-AC_ARG_ENABLE(devel, [AS_HELP_STRING([--enable-devel], [enable development messages])], AC_DEFINE(WITH_DEV_DEBUG),)
-
 AC_ARG_ENABLE(libopenssl, [AS_HELP_STRING([--enable-libopenssl], [enable libopenssl feature])], AC_DEFINE(LOPENSSL))
 AM_CONDITIONAL([LOPENSSL],[test "x$enable_libopenssl" = "xyes"])
 

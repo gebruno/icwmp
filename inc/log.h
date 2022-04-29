@@ -43,54 +43,7 @@ int log_set_severity_idx(char *value);
 #define DEFAULT_LOG_FILE_NAME "/var/log/icwmpd.log"
 #define DEFAULT_LOG_SEVERITY INFO
 
-#ifdef WITH_CWMP_DEBUG
-#ifndef CWMP_LOG
 #define CWMP_LOG(SEV, MESSAGE, args...) puts_log(SEV, MESSAGE, ##args);
 #define CWMP_LOG_XML_MSG puts_log_xmlmsg
-#endif
-#else
-#define CWMP_LOG(SEV, MESSAGE, args...)
-#define CWMP_LOG_XML_MSG(X, Y, Z)
-#endif
-
-#ifdef WITH_DEV_DEBUG
-#ifndef DD
-#define DD(SEV, MESSAGE, args...) puts_log(SEV, MESSAGE, ##args);
-#endif
-#else
-#define DD(SEV, MESSAGE, args...)
-#endif
-
-#ifndef DETECT_CRASH
-#define DETECT_CRASH(MESSAGE, args...)                                                \
-	{                                                                             \
-		const char *A[] = { MESSAGE };                                        \
-		printf("DETECT_CRASH: %s %s %d\n", __FUNCTION__, __FILE__, __LINE__); \
-		fflush(stdout);                                                       \
-		if (sizeof(A) > 0)                                                    \
-			printf(*A, ##args);                                           \
-		sleep(1);                                                             \
-	}
-#endif
-
-#ifndef TRACE
-#define TRACE_TYPE 0
-static inline void trace_empty_func() {}
-#if TRACE_TYPE == 2
-#define TRACE(MESSAGE, args...)                                                        \
-	do {                                                                           \
-		const char *A[] = { MESSAGE };                                         \
-		fprintf(stderr, "TRACE: %s %s %d ", __FUNCTION__, __FILE__, __LINE__); \
-		if (sizeof(A) > 0)                                                     \
-			fprintf(stderr, *A, ##args);                                   \
-		fprintf(stderr, "\n");                                                 \
-		fflush(stderr);                                                        \
-	} while (0)
-#elif TRACE_TYPE == 1
-#define TRACE(MESSAGE, ...) printf(MESSAGE, ##__VA_ARGS__)
-#else
-#define TRACE(MESSAGE, ...) trace_empty_func()
-#endif
-#endif
 
 #endif /* _LOG_H_ */

@@ -51,7 +51,7 @@ static int cwmp_handle_command(struct ubus_context *ctx, struct ubus_object *obj
 	struct blob_attr *tb[__COMMAND_MAX];
 	struct blob_buf blob_command;
 
-	blobmsg_parse(command_policy, ARRAYSIZEOF(command_policy), tb, blob_data(msg), blob_len(msg));
+	blobmsg_parse(command_policy, ARRAY_SIZE(command_policy), tb, blob_data(msg), blob_len(msg));
 
 	if (!tb[COMMAND_NAME])
 		return UBUS_STATUS_INVALID_ARGUMENT;
@@ -213,7 +213,7 @@ static int cwmp_handle_inform(struct ubus_context *ctx, struct ubus_object *obj 
 	memset(&blob_inform, 0, sizeof(struct blob_buf));
 	blob_buf_init(&blob_inform, 0);
 
-	blobmsg_parse(inform_policy, ARRAYSIZEOF(inform_policy), tb, blob_data(msg), blob_len(msg));
+	blobmsg_parse(inform_policy, ARRAY_SIZE(inform_policy), tb, blob_data(msg), blob_len(msg));
 
 	if (tb[INFORM_GET_RPC_METHODS]) {
 		grm = blobmsg_data(tb[INFORM_GET_RPC_METHODS]);
@@ -273,7 +273,7 @@ static struct ubus_object main_object = {
 	.name = "tr069",
 	.type = &main_object_type,
 	.methods = freecwmp_methods,
-	.n_methods = ARRAYSIZEOF(freecwmp_methods),
+	.n_methods = ARRAY_SIZE(freecwmp_methods),
 };
 
 int cwmp_ubus_init(struct cwmp *cwmp)

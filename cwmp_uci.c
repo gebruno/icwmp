@@ -125,11 +125,11 @@ void cwmp_uci_exit_by_config(int config)
 	}
 }
 
-int cwmp_uci_init()
+int cwmp_uci_init(void)
 {
-	int i;
-	int uci_nbre_conf_paths = (int)(sizeof(uci_save_conf_paths) / sizeof(struct uci_paths));
-	for (i = 0; i < uci_nbre_conf_paths; i++) {
+	unsigned int i = 0;
+
+	for (i = 0; i < ARRAY_SIZE(uci_save_conf_paths); i++) {
 		cwmp_uci_init_by_config(i);
 	}
 	return 0;
@@ -137,9 +137,9 @@ int cwmp_uci_init()
 
 void cwmp_uci_exit(void)
 {
-	int i;
-	int uci_nbre_conf_paths = (int)(sizeof(uci_save_conf_paths) / sizeof(struct uci_paths));
-	for (i = 0; i < uci_nbre_conf_paths; i++) {
+	unsigned int i = 0;
+
+	for (i = 0; i < ARRAY_SIZE(uci_save_conf_paths); i++) {
 		cwmp_uci_exit_by_config(i);
 	}
 }
