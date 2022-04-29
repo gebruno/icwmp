@@ -18,7 +18,6 @@
 #include "cwmp_du_state.h"
 #include "log.h"
 #include "event.h"
-#include "cwmp_time.h"
 #include "datamodel_interface.h"
 #include "messages.h"
 #include "event.h"
@@ -307,7 +306,7 @@ int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *sessi
 	if (!b)
 		goto error;
 
-	b = mxmlNewOpaque(b, mix_get_time());
+	b = mxmlNewOpaque(b, get_time(time(NULL)));
 	if (!b)
 		goto error;
 
@@ -603,7 +602,7 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *se
 	if (!n)
 		goto error;
 
-	n = mxmlNewOpaque(n, mix_get_time());
+	n = mxmlNewOpaque(n, get_time(time(NULL)));
 	if (!n)
 		goto error;
 

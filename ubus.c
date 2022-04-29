@@ -26,7 +26,6 @@
 #include "cwmp_du_state.h"
 #include "netlink.h"
 #include "event.h"
-#include "cwmp_time.h"
 
 static struct ubus_context *ctx = NULL;
 
@@ -163,20 +162,20 @@ static int cwmp_handle_status(struct ubus_context *ctx, struct ubus_object *obj 
 
 	c = blobmsg_open_table(&blob_status, "cwmp");
 	blobmsg_add_string(&blob_status, "status", "up");
-	blobmsg_add_string(&blob_status, "start_time", mix_get_time_of(cwmp_main.start_time));
+	blobmsg_add_string(&blob_status, "start_time", get_time(cwmp_main.start_time));
 	blobmsg_add_string(&blob_status, "acs_url", cwmp_main.conf.acsurl);
 	blobmsg_close_table(&blob_status, c);
 
 	c = blobmsg_open_table(&blob_status, "last_session");
 	blobmsg_add_string(&blob_status, "status", cwmp_main.session_status.last_start_time ? arr_session_status[cwmp_main.session_status.last_status] : "N/A");
-	blobmsg_add_string(&blob_status, "start_time", cwmp_main.session_status.last_start_time ? mix_get_time_of(cwmp_main.session_status.last_start_time) : "N/A");
-	blobmsg_add_string(&blob_status, "end_time", cwmp_main.session_status.last_end_time ? mix_get_time_of(cwmp_main.session_status.last_end_time) : "N/A");
+	blobmsg_add_string(&blob_status, "start_time", cwmp_main.session_status.last_start_time ? get_time(cwmp_main.session_status.last_start_time) : "N/A");
+	blobmsg_add_string(&blob_status, "end_time", cwmp_main.session_status.last_end_time ? get_time(cwmp_main.session_status.last_end_time) : "N/A");
 	blobmsg_close_table(&blob_status, c);
 
 	c = blobmsg_open_table(&blob_status, "next_session");
 	blobmsg_add_string(&blob_status, "status", arr_session_status[SESSION_WAITING]);
 	ntime = get_session_status_next_time();
-	blobmsg_add_string(&blob_status, "start_time", ntime ? mix_get_time_of(ntime) : "N/A");
+	blobmsg_add_string(&blob_status, "start_time", ntime ? get_time(ntime) : "N/A");
 	blobmsg_add_string(&blob_status, "end_time", "N/A");
 	blobmsg_close_table(&blob_status, c);
 

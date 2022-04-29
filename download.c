@@ -16,7 +16,6 @@
 #include "ubus.h"
 #include "cwmp_uci.h"
 #include "backupSession.h"
-#include "cwmp_time.h"
 #include "log.h"
 #include "event.h"
 
@@ -175,7 +174,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 	char *download_startTime;
 	struct transfer_complete *p;
 
-	download_startTime = mix_get_time();
+	download_startTime = get_time(time(NULL));
 
 	ltype == TYPE_DOWNLOAD ? bkp_session_delete_download(pdownload) : bkp_session_delete_schedule_download(pdownload);
 	bkp_session_save();
@@ -246,7 +245,7 @@ end_download:
 
 	p->command_key = pdownload->command_key ? strdup(pdownload->command_key) : strdup("");
 	p->start_time = strdup(download_startTime);
-	p->complete_time = strdup(mix_get_time());
+	p->complete_time = strdup(get_time(time(NULL)));
 	p->type = ltype;
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;
@@ -348,7 +347,7 @@ struct transfer_complete *set_download_error_transfer_complete(struct cwmp *cwmp
 	ptransfer_complete = calloc(1, sizeof(struct transfer_complete));
 	if (ptransfer_complete != NULL) {
 		ptransfer_complete->command_key = strdup(pdownload->command_key);
-		ptransfer_complete->start_time = strdup(mix_get_time());
+		ptransfer_complete->start_time = strdup(get_time(time(NULL)));
 		ptransfer_complete->complete_time = strdup(ptransfer_complete->start_time);
 		ptransfer_complete->fault_code = ltype == TYPE_DOWNLOAD ? FAULT_CPE_DOWNLOAD_FAILURE : FAULT_CPE_DOWNLOAD_FAIL_WITHIN_TIME_WINDOW;
 		ptransfer_complete->type = ltype;
@@ -701,7 +700,7 @@ void *thread_cwmp_rpc_cpe_apply_schedule_download(void *v)
 			}
 			ptransfer_complete->command_key = strdup(apply_download->command_key);
 			ptransfer_complete->start_time = strdup(apply_download->start_time);
-			ptransfer_complete->complete_time = strdup(mix_get_time());
+			ptransfer_complete->complete_time = strdup(get_time(time(NULL)));
 			ptransfer_complete->fault_code = error;
 			ptransfer_complete->type = TYPE_SCHEDULE_DOWNLOAD;
 			bkp_session_insert_transfer_complete(ptransfer_complete);

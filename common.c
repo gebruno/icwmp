@@ -724,6 +724,26 @@ int get_connection_interface()
 	return CWMP_OK;
 }
 
+char *get_time(time_t t_time)
+{
+	static char local_time[32] = {0};
+	struct tm *t_tm;
+
+	t_tm = localtime(&t_time);
+	if (t_tm == NULL)
+		return NULL;
+
+	if (strftime(local_time, sizeof(local_time), "%FT%T%z", t_tm) == 0)
+		return NULL;
+
+	local_time[25] = local_time[24];
+	local_time[24] = local_time[23];
+	local_time[22] = ':';
+	local_time[26] = '\0';
+
+	return local_time;
+}
+
 bool is_obj_excluded(char *object_name)
 {
 	unsigned int i = 0;

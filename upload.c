@@ -14,7 +14,6 @@
 
 #include "upload.h"
 #include "download.h"
-#include "cwmp_time.h"
 #include "datamodel_interface.h"
 #include "log.h"
 #include "backupSession.h"
@@ -115,7 +114,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	char *upload_startTime;
 	struct transfer_complete *p;
 	char *name = NULL;
-	upload_startTime = mix_get_time();
+	upload_startTime = get_time(time(NULL));
 	char file_path[128] = {'\0'};
 	bkp_session_delete_upload(pupload);
 	bkp_session_save();
@@ -172,7 +171,7 @@ end_upload:
 
 	p->command_key = pupload->command_key ? strdup(pupload->command_key) : strdup("");
 	p->start_time = strdup(upload_startTime);
-	p->complete_time = strdup(mix_get_time());
+	p->complete_time = strdup(get_time(time(NULL)));
 	p->type = TYPE_UPLOAD;
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;
@@ -213,7 +212,7 @@ void *thread_cwmp_rpc_cpe_upload(void *v)
 					error = FAULT_CPE_DOWNLOAD_FAILURE;
 
 					ptransfer_complete->command_key = strdup(pupload->command_key);
-					ptransfer_complete->start_time = strdup(mix_get_time());
+					ptransfer_complete->start_time = strdup(get_time(time(NULL)));
 					ptransfer_complete->complete_time = strdup(ptransfer_complete->start_time);
 					ptransfer_complete->fault_code = error;
 					ptransfer_complete->type = TYPE_UPLOAD;

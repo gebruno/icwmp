@@ -494,6 +494,7 @@ void clean_custom_inform_parameters();
 char *string_to_hex(const unsigned char *str, size_t size);
 int copy_file(char *source_file, char *target_file);
 int get_connection_interface();
+char *get_time(time_t t_time);
 bool is_obj_excluded(char *object_name);
 
 #ifndef FREE

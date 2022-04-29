@@ -6,7 +6,6 @@ bin_PROGRAMS = icwmpd
 
 icwmpd_SOURCES =			\
 	./common.c				\
-	./cwmp_time.c			\
 	./log.c				\
 	./cwmp_uci.c			\
 	./config.c				\
