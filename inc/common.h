@@ -63,8 +63,6 @@
 
 extern char *commandKey;
 extern bool thread_end;
-extern bool signal_exit;
-extern bool ubus_exit;
 
 typedef struct env {
 	unsigned short boot;

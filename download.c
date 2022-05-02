@@ -13,7 +13,7 @@
 #include <libubox/blobmsg_json.h>
 
 #include "download.h"
-#include "ubus.h"
+#include "ubus_utils.h"
 #include "cwmp_uci.h"
 #include "backupSession.h"
 #include "log.h"
@@ -85,12 +85,17 @@ void ubus_check_image_callback(struct ubus_request *req, int type __attribute__(
 int cwmp_check_image()
 {
 	int code = 0, e;
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
 	CWMP_LOG(INFO, "Check downloaded image ...");
-	e = cwmp_ubus_call("rpc-sys", "upgrade_test", CWMP_UBUS_ARGS{ {} }, 0, ubus_check_image_callback, &code);
+	e = icwmp_ubus_invoke("rpc-sys", "upgrade_test", b.head, ubus_check_image_callback, &code);
 	if (e != 0) {
 		CWMP_LOG(INFO, "rpc-sys upbrade_test ubus method failed: Ubus err code: %d", e);
 		code = 1;
 	}
+	blob_buf_free(&b);
 	return code;
 }
 
@@ -132,10 +137,16 @@ void ubus_get_available_bank_callback(struct ubus_request *req, int type __attri
 int get_available_bank_id()
 {
 	int bank_id = 0, e;
-	e = cwmp_ubus_call("fwbank", "dump", CWMP_UBUS_ARGS{ {} }, 0, ubus_get_available_bank_callback, &bank_id);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	e = icwmp_ubus_invoke("fwbank", "dump", b.head, ubus_get_available_bank_callback, &bank_id);
 	if (e != 0) {
 		CWMP_LOG(INFO, "fwbank dump ubus method failed: Ubus err code: %d", e);
 	}
+
+	blob_buf_free(&b);
 	return bank_id;
 }
 
@@ -145,11 +156,18 @@ int get_available_bank_id()
 int cwmp_apply_firmware()
 {
 	int e;
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	blobmsg_add_u8(&b, "keep", true);
+
 	CWMP_LOG(INFO, "Apply downloaded image ...");
-	e = cwmp_ubus_call("rpc-sys", "upgrade_start", CWMP_UBUS_ARGS{ { "keep", { .bool_val = true }, UBUS_Bool } }, 1, NULL, NULL);
+	e = icwmp_ubus_invoke("rpc-sys", "upgrade_start", b.head, NULL, NULL);
 	if (e != 0) {
 		CWMP_LOG(INFO, "rpc-sys upgrade_start ubus method failed: Ubus err code: %d", e);
 	}
+
+	blob_buf_free(&b);
 	return e;
 }
 
@@ -160,7 +178,16 @@ int cwmp_apply_multiple_firmware()
 	if (bank_id <= 0)
 		return -1;
 
-	e = cwmp_ubus_call("fwbank", "upgrade", CWMP_UBUS_ARGS{ { "path", { .str_val = FIRMWARE_UPGRADE_IMAGE }, UBUS_String }, { "auto_activate", { .bool_val = false }, UBUS_Bool }, { "bank", { .int_val = bank_id }, UBUS_Integer } }, 3, NULL, NULL);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "path", FIRMWARE_UPGRADE_IMAGE);
+	blobmsg_add_u8(&b, "auto_activate", false);
+	blobmsg_add_u32(&b, "bank", bank_id);
+
+	e = icwmp_ubus_invoke("fwbank", "upgrade", b.head, NULL, NULL);
+	blob_buf_free(&b);
+
 	if (e != 0) {
 		CWMP_LOG(INFO, "fwbank upgrade ubus method failed: Ubus err code: %d", e);
 		return -1;

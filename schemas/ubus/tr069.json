@@ -4,11 +4,7 @@
       "type": "string",
       "description": "CWMP supported commands",
       "enum": [
-        "reload_end_session",
-        "reload",
-        "reboot_end_session",
-        "action_end_session",
-        "exit"
+        "reload"
       ]
     },
     "event_t": {
@@ -155,19 +151,48 @@
           }
         },
         "output": {
-          "type": "object",
-          "properties": {
-            "status": {
-              "type": "integer"
+          "oneof": [
+            {
+              "type": "object",
+              "properties": {
+                "SupportedCommands": {
+                  "type": "array",
+                  "items": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "command",
+                        "description"
+                      ],
+                      "properties": {
+                        "command": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
             },
-            "info": {
-              "type": "string"
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "integer"
+                },
+                "info": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "status"
+              ]
             }
-          },
-          "required": [
-            "status"
           ]
-        }
+	}
       }
     },
     "inform": {

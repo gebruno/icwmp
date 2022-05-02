@@ -13,7 +13,7 @@
             "method": "command",
             "args": {
             },
-            "rc": 2
+            "rc": 0
         },
         {
             "method": "status",
@@ -165,28 +165,6 @@
             "method": "inform",
             "args": {
 		    "event": "0 garbage"
-            },
-            "rc": 0
-        },
-        {
-            "method": "status",
-            "rc": 0
-        },
-        {
-            "method": "command",
-            "args": {
-		    "command": "reload_end_session"
-            },
-            "rc": 0
-        },
-        {
-            "method": "status",
-            "rc": 0
-        },
-        {
-            "method": "command",
-            "args": {
-		    "command": "action_end_session"
             },
             "rc": 0
         },

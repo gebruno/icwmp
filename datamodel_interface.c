@@ -11,7 +11,7 @@
 #include <libubox/blobmsg_json.h>
 
 #include "datamodel_interface.h"
-#include "ubus.h"
+#include "ubus_utils.h"
 #include "log.h"
 
 int transaction_id = 0;
@@ -200,7 +200,13 @@ bool cwmp_transaction_start(char *app)
 {
 	CWMP_LOG(INFO, "Starting transaction ...");
 	bool status = false;
-	int e = cwmp_ubus_call(USP_OBJECT_NAME, "transaction_start", CWMP_UBUS_ARGS{ { "app", { .str_val = app }, UBUS_String } }, 1, ubus_transaction_callback, &status);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "app", app);
+
+	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_start", b.head, ubus_transaction_callback, &status);
 	if (e != 0) {
 		CWMP_LOG(INFO, "Transaction start failed: Ubus err code: %d", e);
 		status = false;
@@ -208,6 +214,8 @@ bool cwmp_transaction_start(char *app)
 	if (!status) {
 		CWMP_LOG(INFO, "Transaction Start doesn't success\n");
 	}
+
+	blob_buf_free(&b);
 	return status;
 }
 
@@ -215,7 +223,14 @@ bool cwmp_transaction_commit()
 {
 	CWMP_LOG(INFO, "Transaction Commit ...");
 	bool status = false;
-	int e = cwmp_ubus_call(USP_OBJECT_NAME, "transaction_commit", CWMP_UBUS_ARGS{ { "transaction_id", { .int_val = transaction_id }, UBUS_Integer }, { "restart_services", { .bool_val = false }, UBUS_Bool } }, 2, ubus_transaction_commit_callback, &status);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	blobmsg_add_u32(&b, "transaction_id", transaction_id);
+	blobmsg_add_u8(&b, "restart_service", false);
+
+	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_commit", b.head, ubus_transaction_commit_callback, &status);
 	if (e != 0) {
 		CWMP_LOG(INFO, "Transaction commit failed: Ubus err code: %d", e);
 		status = false;
@@ -224,6 +239,7 @@ bool cwmp_transaction_commit()
 		CWMP_LOG(INFO, "Transaction Commit with id: %d doesn't success\n", transaction_id);
 	}
 
+	blob_buf_free(&b);
 	transaction_id = 0;
 	return status;
 }
@@ -232,7 +248,13 @@ bool cwmp_transaction_abort()
 {
 	CWMP_LOG(INFO, "Transaction Abort ...");
 	bool status = false;
-	int e = cwmp_ubus_call(USP_OBJECT_NAME, "transaction_abort", CWMP_UBUS_ARGS{ { "transaction_id", { .int_val = transaction_id }, UBUS_Integer } }, 1, ubus_transaction_callback, &status);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	blobmsg_add_u32(&b, "transaction_id", transaction_id);
+
+	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_abort", b.head, ubus_transaction_callback, &status);
 	if (e != 0) {
 		CWMP_LOG(INFO, "Transaction abort failed: Ubus err code: %d", e);
 		status = false;
@@ -240,6 +262,8 @@ bool cwmp_transaction_abort()
 	if (!status) {
 		CWMP_LOG(INFO, "Transaction Abort of transaction with id: %d failed\n", transaction_id);
 	}
+
+	blob_buf_free(&b);
 	transaction_id = 0;
 	return status;
 }
@@ -248,7 +272,15 @@ bool cwmp_transaction_status()
 {
 	CWMP_LOG(INFO, "Transaction Status");
 	bool status = false;
-	int e = cwmp_ubus_call(USP_OBJECT_NAME, "transaction_status", CWMP_UBUS_ARGS{ { "transaction_id", { .int_val = transaction_id }, UBUS_Integer } }, 1, ubus_transaction_status_callback, &status);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	blobmsg_add_u32(&b, "transaction_id", transaction_id);
+
+	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_status", b.head, ubus_transaction_status_callback, &status);
+	blob_buf_free(&b);
+
 	if (e != 0) {
 		CWMP_LOG(INFO, "Transaction status failed: Ubus err code: %d", e);
 		return false;
@@ -293,7 +325,17 @@ char *cwmp_get_single_parameter_value(char *parameter_name, struct cwmp_dm_param
 {
 	int e;
 	struct cwmp *cwmp = &cwmp_main;
-	e = cwmp_ubus_call(USP_OBJECT_NAME, "get", CWMP_UBUS_ARGS{ { "path", { .str_val = !parameter_name || parameter_name[0] == '\0' ? DM_ROOT_OBJ : parameter_name }, UBUS_String }, { "proto", { .str_val = "cwmp" }, UBUS_String }, { "instance_mode", { .int_val = cwmp->conf.instance_mode }, UBUS_Integer } }, 3, ubus_get_single_parameter_callback, dm_parameter);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "path", !parameter_name || parameter_name[0] == '\0' ? DM_ROOT_OBJ : parameter_name);
+	bb_add_string(&b, "proto", "cwmp");
+	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+
+	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "get", b.head, ubus_get_single_parameter_callback, dm_parameter);
+	blob_buf_free(&b);
+
 	if (e < 0) {
 		CWMP_LOG(INFO, "get ubus method failed: Ubus err code: %d", e);
 		return "9002";
@@ -370,7 +412,17 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 	int e;
 	struct cwmp *cwmp = &cwmp_main;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
-	e = cwmp_ubus_call(USP_OBJECT_NAME, "get", CWMP_UBUS_ARGS{ { "path", { .str_val = !parameter_name || parameter_name[0] == '\0' ? DM_ROOT_OBJ : parameter_name }, UBUS_String }, { "proto", { .str_val = "cwmp" }, UBUS_String }, { "instance_mode", { .int_val = cwmp->conf.instance_mode }, UBUS_Integer } }, 3, ubus_get_parameter_callback, &get_result);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "path", !parameter_name || parameter_name[0] == '\0' ? DM_ROOT_OBJ : parameter_name);
+	bb_add_string(&b, "proto", "cwmp");
+	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+
+	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "get", b.head, ubus_get_parameter_callback, &get_result);
+	blob_buf_free(&b);
+
 	if (e < 0) {
 		CWMP_LOG(INFO, "get ubus method failed: Ubus err code: %d", e);
 		return "9002";
@@ -387,8 +439,24 @@ char *cwmp_get_multiple_parameters_values(struct list_head *arg_params_list, str
 {
 	int e;
 	struct cwmp *cwmp = &cwmp_main;
+	struct cwmp_dm_parameter *param_value;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
-	e = cwmp_ubus_call(USP_OBJECT_NAME, "getm_values", CWMP_UBUS_ARGS{ { "paths", { .param_value_list = arg_params_list }, UBUS_List_Param_Get }, { "instance_mode", { .int_val = cwmp->conf.instance_mode }, UBUS_Integer } }, 2, ubus_get_parameter_callback, &get_result );
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	void *arr = blobmsg_open_array(&b, "paths");
+	list_for_each_entry (param_value, arg_params_list, list) {
+		if (!param_value->name)
+			break;
+		blobmsg_add_string(&b, NULL, param_value->name);
+	}
+	blobmsg_close_array(&b, arr);
+	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+
+	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "getm_values", b.head, ubus_get_parameter_callback, &get_result );
+	blob_buf_free(&b);
+
 	if (e < 0) {
 		CWMP_LOG(INFO, "getm_values ubus method failed: Ubus err code: %d", e);
 		return "9002";
@@ -406,7 +474,18 @@ char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_h
 	int e;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
 	struct cwmp *cwmp = &cwmp_main;
-	e = cwmp_ubus_call(USP_OBJECT_NAME, "object_names", CWMP_UBUS_ARGS{ { "path", { .str_val = object_name }, UBUS_String }, { "next-level", { .bool_val = next_level }, UBUS_Bool }, { "proto", { .str_val = "cwmp" }, UBUS_String }, { "instance_mode", { .int_val = cwmp->conf.instance_mode }, UBUS_Integer } }, 4, ubus_get_parameter_callback, &get_result);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "path", object_name);
+	blobmsg_add_u8(&b, "next-level", next_level);
+	bb_add_string(&b, "proto", "cwmp");
+	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+
+	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "object_names", b.head, ubus_get_parameter_callback, &get_result);
+	blob_buf_free(&b);
+
 	if (e < 0) {
 		CWMP_LOG(INFO, "object_names ubus method failed: Ubus err code: %d", e);
 		return "9002";
@@ -456,11 +535,30 @@ void ubus_setm_values_callback(struct ubus_request *req, int type __attribute__(
 int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list, char *parameter_key, int *flag, struct list_head *faults_list)
 {
 	int e;
+	struct cwmp_dm_parameter *param_value;
 	struct setm_values_res set_result = { .flag = flag, .faults_list = faults_list };
 	struct cwmp *cwmp = &cwmp_main;
-	e = cwmp_ubus_call(USP_OBJECT_NAME, "setm_values",
-			   CWMP_UBUS_ARGS{ { "pv_tuple", { .param_value_list = parameters_values_list }, UBUS_List_Param_Set }, { "key", { .str_val = parameter_key }, UBUS_String }, { "transaction_id", { .int_val = transaction_id }, UBUS_Integer }, { "proto", { .str_val = "cwmp" }, UBUS_String }, { "instance_mode", { .int_val = cwmp->conf.instance_mode }, UBUS_Integer } }, 5,
-			   ubus_setm_values_callback, &set_result);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	void *arr = blobmsg_open_array(&b, "pv_tuple");
+	list_for_each_entry (param_value, parameters_values_list, list) {
+		if (!param_value->name)
+			break;
+		void *tbl = blobmsg_open_table(&b, "");
+		blobmsg_add_string(&b, "path", param_value->name);
+		blobmsg_add_string(&b, "value", param_value->value);
+		blobmsg_close_table(&b, tbl);
+	}
+	blobmsg_close_array(&b, arr);
+	bb_add_string(&b, "key", parameter_key);
+	blobmsg_add_u32(&b, "transaction_id", transaction_id);
+	bb_add_string(&b, "proto", "cwmp");
+	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+
+	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "setm_values", b.head, ubus_setm_values_callback, &set_result);
+	blob_buf_free(&b);
 
 	if (e < 0) {
 		CWMP_LOG(INFO, "setm_values ubus method failed: Ubus err code: %d", e);
@@ -506,13 +604,30 @@ void ubus_objects_callback(struct ubus_request *req, int type __attribute__((unu
 	}
 }
 
+static void prepare_add_delete_blobmsg(struct blob_buf *b, char *object_name, char *key)
+{
+	if (b == NULL)
+		return;
+
+	bb_add_string(b, "path", object_name);
+	bb_add_string(b, "key", key);
+	blobmsg_add_u32(b, "transaction_id", transaction_id);
+	bb_add_string(b, "proto", "cwmp");
+	blobmsg_add_u32(b, "instance_mode", cwmp_main.conf.instance_mode);
+}
+
 char *cwmp_add_object(char *object_name, char *key, char **instance)
 {
 	int e;
-	struct cwmp *cwmp = &cwmp_main;
 	struct object_result add_result = { .instance = instance };
-	e = cwmp_ubus_call(USP_OBJECT_NAME, "add_object", CWMP_UBUS_ARGS{ { "path", { .str_val = object_name }, UBUS_String }, { "key", { .str_val = key }, UBUS_String }, { "transaction_id", { .int_val = transaction_id }, UBUS_Integer }, { "proto", { .str_val = "cwmp" }, UBUS_String }, { "instance_mode", { .int_val = cwmp->conf.instance_mode }, UBUS_Integer } }, 5,
-			   ubus_objects_callback, &add_result);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	prepare_add_delete_blobmsg(&b, object_name, key);
+
+	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "add_object", b.head, ubus_objects_callback, &add_result);
+	blob_buf_free(&b);
 
 	if (e < 0) {
 		CWMP_LOG(INFO, "add_object ubus method failed: Ubus err code: %d", e);
@@ -529,9 +644,15 @@ char *cwmp_delete_object(char *object_name, char *key)
 {
 	int e;
 	struct object_result add_result = { .instance = NULL };
-	struct cwmp *cwmp = &cwmp_main;
-	e = cwmp_ubus_call(USP_OBJECT_NAME, "del_object", CWMP_UBUS_ARGS{ { "path", { .str_val = object_name }, UBUS_String }, { "key", { .str_val = key }, UBUS_String }, { "transaction_id", { .int_val = transaction_id }, UBUS_Integer }, { "proto", { .str_val = "cwmp" }, UBUS_String }, { "instance_mode", { .int_val = cwmp->conf.instance_mode }, UBUS_Integer } }, 5,
-			   ubus_objects_callback, &add_result);
+	struct blob_buf b = { 0 };
+
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	prepare_add_delete_blobmsg(&b, object_name, key);
+
+	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "del_object", b.head, ubus_objects_callback, &add_result);
+	blob_buf_free(&b);
+
 	if (e < 0) {
 		CWMP_LOG(INFO, "del_object ubus method failed: Ubus err code: %d", e);
 		return "9002";

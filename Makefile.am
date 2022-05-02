@@ -15,7 +15,7 @@ icwmpd_SOURCES =			\
 	./event.c				\
 	./http.c				\
 	./netlink.c			\
-	./ubus.c				\
+	./ubus_utils.c				\
 	./datamodel_interface.c \
 	./cwmp_cli.c			\
 	./notifications.c		\

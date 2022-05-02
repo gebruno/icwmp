@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <syslog.h>
 #include <sys/file.h>
+#include <sys/socket.h>
 
 #include "common.h"
 #include "ssl_utils.h"
@@ -29,13 +30,14 @@
 #include "rpc_soap.h"
 #include "config.h"
 #include "backupSession.h"
-#include "ubus.h"
+#include "ubus_utils.h"
 #include "digestauth.h"
 #include "upload.h"
 #include "download.h"
 #include "sched_inform.h"
 #include "datamodel_interface.h"
 #include "cwmp_du_state.h"
+#include "netlink.h"
 
 static pthread_t periodic_event_thread;
 static pthread_t scheduleInform_thread;
@@ -47,8 +49,8 @@ static pthread_t upload_thread;
 static pthread_t ubus_thread;
 static pthread_t http_cr_server_thread;
 static pthread_t periodic_check_notify;
-static pthread_t signal_handler_thread;
 bool g_firewall_restart = false;
+static struct ubus_context *ctx = NULL;
 
 static int cwmp_get_retry_interval(struct cwmp *cwmp)
 {
@@ -439,9 +441,46 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 	}
 }
 
+static void check_exit_timer_expiry(struct uloop_timeout *timeout)
+{
+	if (thread_end == true) {
+		uloop_end();
+	}
+
+	uloop_timeout_set(timeout, 1);
+}
+
 static void *thread_uloop_run(void *v __attribute__((unused)))
 {
-	cwmp_ubus_init(&cwmp_main);
+	uloop_init();
+
+	if (netlink_init()) {
+		CWMP_LOG(ERROR, "netlink initialization failed");
+	}
+
+	if (cwmp_main.conf.ipv6_enable) {
+		if (netlink_init_v6()) {
+			CWMP_LOG(ERROR, "netlink initialization failed");
+		}
+	}
+
+	ctx = ubus_connect(cwmp_main.conf.ubus_socket);
+	if (!ctx)
+		return NULL;
+
+	ubus_add_uloop(ctx);
+
+	if (icwmp_register_object(ctx))
+		return NULL;
+
+	struct uloop_timeout tm;
+	memset(&tm, 0, sizeof(tm));
+	tm.cb = check_exit_timer_expiry;
+	uloop_timeout_set(&tm, 1);
+
+	uloop_run();
+	uloop_done();
+
 	return NULL;
 }
 
@@ -753,36 +792,37 @@ static void cwmp_free(struct cwmp *cwmp)
 	FREE(nonce_privacy_key);
 	clean_list_param_notify();
 	bkp_tree_clean();
-	cwmp_ubus_exit();
+
+	if (ctx) {
+		icwmp_delete_object(ctx);
+		ubus_free(ctx);
+	}
+
 	clean_custom_inform_parameters();
 	icwmp_cleanmem();
 	cwmp_uci_exit();
 }
 
-static void *thread_cwmp_signal_handler_thread(void *arg)
+static void icwmp_signal_handler(int signal_num)
 {
-	sigset_t *set = (sigset_t *)arg;
+	if (signal_num == SIGINT || signal_num == SIGTERM) {
+		thread_end = true;
 
-	for (;;) {
-		int s, signal_num;
-		s = sigwait(set, &signal_num);
-		if (s == -1) {
-			CWMP_LOG(ERROR, "Error in sigwait");
-		} else {
-			CWMP_LOG(INFO, "Catch of Signal(%d)", signal_num);
+		if (cwmp_main.session_status.last_status == SESSION_RUNNING)
+			http_set_timeout();
 
-			if (signal_num == SIGINT || signal_num == SIGTERM) {
-				signal_exit = true;
+		pthread_cond_signal(&(cwmp_main.threshold_session_send));
+		pthread_cond_signal(&(cwmp_main.threshold_periodic));
+		pthread_cond_signal(&(cwmp_main.threshold_notify_periodic));
+		pthread_cond_signal(&threshold_schedule_inform);
+		pthread_cond_signal(&threshold_download);
+		pthread_cond_signal(&threshold_change_du_state);
+		pthread_cond_signal(&threshold_schedule_download);
+		pthread_cond_signal(&threshold_apply_schedule_download);
+		pthread_cond_signal(&threshold_upload);
 
-				if (!ubus_exit)
-					cwmp_ubus_call("tr069", "command", CWMP_UBUS_ARGS{ { "command", { .str_val = "exit" }, UBUS_String } }, 1, NULL, NULL);
-
-				break;
-			}
-		}
+		shutdown(cwmp_main.cr_socket_desc, SHUT_RDWR);
 	}
-
-	return NULL;
 }
 
 static void configure_var_state(struct cwmp *cwmp)
@@ -805,7 +845,7 @@ static void configure_var_state(struct cwmp *cwmp)
 int main(int argc, char **argv)
 {
 	struct cwmp *cwmp = &cwmp_main;
-	sigset_t set;
+	struct sigaction act;
 	int error;
 
 	openlog("cwmp", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
@@ -825,10 +865,10 @@ int main(int argc, char **argv)
 	configure_var_state(cwmp);
 	http_server_init();
 
-	sigemptyset(&set);
-	sigaddset(&set, SIGINT);
-	sigaddset(&set, SIGTERM);
-	sigprocmask(SIG_BLOCK, &set, NULL);
+	memset(&act, 0, sizeof(act));
+	act.sa_handler = icwmp_signal_handler;
+	sigaction(SIGINT, &act, 0);
+	sigaction(SIGTERM, &act, 0);
 
 	error = pthread_create(&http_cr_server_thread, NULL, &thread_http_cr_server_listen, NULL);
 	if (error < 0) {
@@ -879,11 +919,6 @@ int main(int argc, char **argv)
 		CWMP_LOG(ERROR, "Error when creating the download thread!");
 	}
 
-	error = pthread_create(&signal_handler_thread, NULL, &thread_cwmp_signal_handler_thread, (void *)&set);
-	if (error < 0) {
-		CWMP_LOG(ERROR, "Error when creating the signal handler thread!");
-	}
-
 	cwmp_schedule_session(cwmp);
 
 	/* Join all threads */
@@ -897,7 +932,6 @@ int main(int argc, char **argv)
 	pthread_join(change_du_state_thread, NULL);
 	pthread_join(http_cr_server_thread, NULL);
 	pthread_join(ubus_thread, NULL);
-	pthread_join(signal_handler_thread, NULL);
 
 	/* Free all memory allocation */
 	cwmp_free(cwmp);
