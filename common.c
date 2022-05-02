@@ -635,14 +635,15 @@ char *string_to_hex(const unsigned char *str, size_t size)
 {
 	size_t i;
 
-	if (size == 0)
-		return "";
-
-	char* hex = (char*) calloc(size * 2 + 1, sizeof(char));
+	char *hex = (char*) calloc(size * 2 + 1, sizeof(char));
 
 	if (!hex) {
 		CWMP_LOG(ERROR, "Unable to allocate memory for hex string\n");
 		return NULL;
+	}
+
+	if (size == 0) {
+		return hex;
 	}
 
 	for (i = 0; i < size; i++)
@@ -738,4 +739,20 @@ bool is_obj_excluded(const char *object_name)
 			return true;
 	}
 	return false;
+}
+
+time_t convert_datetime_to_timestamp(char *value)
+{
+	struct tm tm = { 0 };
+	int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
+
+	sscanf(value, "%4d-%2d-%2dT%2d:%2d:%2d", &year, &month, &day, &hour, &min, &sec);
+	tm.tm_year = year - 1900; /* years since 1900 */
+	tm.tm_mon = month - 1;
+	tm.tm_mday = day;
+	tm.tm_hour = hour;
+	tm.tm_min = min;
+	tm.tm_sec = sec;
+
+	return mktime(&tm);
 }

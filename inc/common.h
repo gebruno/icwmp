@@ -95,6 +95,7 @@ typedef struct config {
 	int delay_reboot;
 	time_t schedule_reboot;
 	time_t time;
+	unsigned int periodic_entropy;
 	bool periodic_enable;
 	bool periodic_notify_enable;
 	bool insecure_enable;
@@ -529,5 +530,6 @@ int copy_file(char *source_file, char *target_file);
 int get_connection_interface();
 char *get_time(time_t t_time);
 bool is_obj_excluded(const char *object_name);
+time_t convert_datetime_to_timestamp(char *value);
 
 #endif

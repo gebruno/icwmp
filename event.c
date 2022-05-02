@@ -330,17 +330,24 @@ void *thread_event_periodic(void *v)
 	struct timespec periodic_timeout = { 0, 0 };
 	time_t current_time;
 	long int delta_time;
+	time_t unknown_time;
 
 	periodic_interval = cwmp->conf.period;
 	periodic_enable = cwmp->conf.periodic_enable;
 	periodic_time = cwmp->conf.time;
+	unknown_time = convert_datetime_to_timestamp("0001-01-01T00:00:00Z");
 
 	for (;;) {
 		pthread_mutex_lock(&(cwmp->mutex_periodic));
 		if (cwmp->conf.periodic_enable) {
 			current_time = time(NULL);
 			if (periodic_time != 0) {
-				delta_time = (current_time - periodic_time) % periodic_interval;
+				if (periodic_time == unknown_time) {
+					delta_time = (current_time + cwmp->conf.periodic_entropy) % periodic_interval;
+				} else {
+					delta_time = (current_time - periodic_time) % periodic_interval;
+				}
+
 				if (delta_time >= 0)
 					periodic_timeout.tv_sec = current_time + periodic_interval - delta_time;
 				else
