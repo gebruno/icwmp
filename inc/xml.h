@@ -28,5 +28,7 @@ mxml_node_t *mxmlFindElementOpaque(mxml_node_t *node, mxml_node_t *top, const ch
 char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value);
 char *xml_get_cwmp_version(int version);
 void xml_exit(void);
+void load_response_xml_schema(mxml_node_t **schema);
+void load_notification_xml_schema(mxml_node_t **tree);
 
 #endif

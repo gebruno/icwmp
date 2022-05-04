@@ -19,7 +19,6 @@
 #include "log.h"
 #include "event.h"
 #include "datamodel_interface.h"
-#include "messages.h"
 #include "event.h"
 #include "xml.h"
 #include "backupSession.h"
@@ -63,7 +62,13 @@ char *boot_inform_parameters[MAX_NBRE_CUSTOM_INFORM] = { 0 };
 int nbre_custom_inform = 0;
 int nbre_boot_inform = 0;
 char *forced_inform_parameters[] = {
-	"Device.RootDataModelVersion", "Device.DeviceInfo.HardwareVersion", "Device.DeviceInfo.SoftwareVersion", "Device.DeviceInfo.ProvisioningCode", "Device.ManagementServer.ParameterKey", DM_CONN_REQ_URL, "Device.ManagementServer.AliasBasedAddressing"
+	"Device.RootDataModelVersion",
+	"Device.DeviceInfo.HardwareVersion",
+	"Device.DeviceInfo.SoftwareVersion",
+	"Device.DeviceInfo.ProvisioningCode",
+	"Device.ManagementServer.ParameterKey",
+	DM_CONN_REQ_URL,
+	"Device.ManagementServer.AliasBasedAddressing"
 };
 
 int xml_handle_message(struct session *session)
@@ -153,16 +158,15 @@ error:
  * [RPC ACS]: Inform
  */
 
-static int xml_prepare_events_inform(struct session *session, mxml_node_t *tree)
+static int xml_prepare_events_inform(mxml_node_t *b1, struct session *session)
 {
-	mxml_node_t *node, *b1, *b2;
+	mxml_node_t *node, *b2;
 	char c[128];
 	unsigned int n = 0;
 	struct list_head *ilist;
 	struct event_container *event_container;
 	struct cwmp *cwmp = &cwmp_main;
 
-	b1 = mxmlFindElement(tree, tree, "Event", NULL, NULL, MXML_DESCEND);
 	if (!b1)
 		return -1;
 
@@ -248,108 +252,205 @@ create_value:
 	return 0;
 }
 
-// cppcheck-suppress constParameter
-int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *session, struct rpc *this)
+static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct session *session)
 {
-	struct cwmp_dm_parameter *dm_parameter;
-	struct event_container *event_container;
-	mxml_node_t *tree, *b, *node, *parameter_list;
-	char c[256];
-	int size = 0;
-	struct list_head *ilist, *jlist;
+	char declaration[1024] = {0};
 
-	if (session == NULL || this == NULL)
-		return -1;
+	if (tree == NULL)
+		return;
 
-	tree = mxmlLoadString(NULL, CWMP_INFORM_MESSAGE, MXML_OPAQUE_CALLBACK);
+	*tree = NULL;
 
-	if (!tree)
-		goto error;
-	b = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-	mxmlElementSetAttr(b, "xmlns:cwmp", cwmp_urls[(cwmp->conf.supported_amd_version) - 1]);
+	snprintf(declaration, sizeof(declaration), "?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?");
+	mxml_node_t *xml = mxmlNewElement(NULL, declaration);
+	if (xml == NULL)
+		return;
+
+	mxml_node_t *envelope = mxmlNewElement(xml, "soap_env:Envelope");
+	if (envelope == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlElementSetAttr(envelope, "xmlns:soap_env", "http://schemas.xmlsoap.org/soap/envelope/");
+	mxmlElementSetAttr(envelope, "xmlns:soap_enc", "http://schemas.xmlsoap.org/soap/encoding/");
+	mxmlElementSetAttr(envelope, "xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
+	mxmlElementSetAttr(envelope, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+	mxmlElementSetAttr(envelope, "xmlns:cwmp", cwmp_urls[(cwmp->conf.supported_amd_version) - 1]);
+
+	mxml_node_t *header = mxmlNewElement(envelope, "soap_env:Header");
+	if (header == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *id = mxmlNewElement(header, "cwmp:ID");
+	if (id == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlElementSetAttr(id, "soap_env:mustUnderstand", "1");
+
+	mxml_node_t *node = NULL;
 	if (cwmp->conf.supported_amd_version >= 4) {
-		b = mxmlFindElement(tree, tree, "soap_env:Header", NULL, NULL, MXML_DESCEND);
-		if (!b)
-			goto error;
-		node = mxmlNewElement(b, "cwmp:SessionTimeout");
-		if (!node)
-			goto error;
+		node = mxmlNewElement(header, "cwmp:SessionTimeout");
+		if (!node) {
+			MXML_DELETE(xml);
+			return;
+		}
+
 		mxmlElementSetAttr(node, "soap_env:mustUnderstand", "0");
 		node = mxmlNewInteger(node, cwmp->conf.session_timeout);
-		if (!node)
-			goto error;
-	}
-	if (cwmp->conf.supported_amd_version >= 5) {
-		node = mxmlNewElement(b, "cwmp:SupportedCWMPVersions");
-		if (!node)
-			goto error;
-		mxmlElementSetAttr(node, "soap_env:mustUnderstand", "0");
-		node = mxmlNewOpaque(node, xml_get_cwmp_version(cwmp->conf.supported_amd_version));
-		if (!node)
-			goto error;
-	}
-	b = mxmlFindElement(tree, tree, "RetryCount", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-
-	b = mxmlNewInteger(b, cwmp->retry_count_session);
-	if (!b)
-		goto error;
-
-	cwmp->is_boot = false;
-	if (xml_prepare_events_inform(session, tree))
-		goto error;
-
-	b = mxmlFindElement(tree, tree, "CurrentTime", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-
-	b = mxmlNewOpaque(b, get_time(time(NULL)));
-	if (!b)
-		goto error;
-
-	parameter_list = mxmlFindElement(tree, tree, "ParameterList", NULL, NULL, MXML_DESCEND);
-	if (!parameter_list)
-		goto error;
-
-	list_for_each (ilist, &(session->head_event_container)) {
-		event_container = list_entry(ilist, struct event_container, list);
-		list_for_each (jlist, &(event_container->head_dm_parameter)) {
-			dm_parameter = list_entry(jlist, struct cwmp_dm_parameter, list);
-			if (xml_prepare_parameters_inform(dm_parameter, parameter_list, &size))
-				goto error;
+		if (!node) {
+			MXML_DELETE(xml);
+			return;
 		}
 	}
 
-	b = mxmlFindElement(tree, tree, "OUI", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-	b = mxmlNewOpaque(b, cwmp->deviceid.oui ? cwmp->deviceid.oui : "");
-	if (!b)
-		goto error;
+	if (cwmp->conf.supported_amd_version >= 5) {
+		node = mxmlNewElement(header, "cwmp:SupportedCWMPVersions");
+		if (!node) {
+			MXML_DELETE(xml);
+			return;
+		}
 
-	b = mxmlFindElement(tree, tree, "Manufacturer", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-	b = mxmlNewOpaque(b, cwmp->deviceid.manufacturer ? cwmp->deviceid.manufacturer : "");
-	if (!b)
-		goto error;
+		mxmlElementSetAttr(node, "soap_env:mustUnderstand", "0");
+		node = mxmlNewOpaque(node, xml_get_cwmp_version(cwmp->conf.supported_amd_version));
+		if (!node) {
+			MXML_DELETE(xml);
+			return;
+		}
+	}
 
-	b = mxmlFindElement(tree, tree, "ProductClass", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-	b = mxmlNewOpaque(b, cwmp->deviceid.productclass ? cwmp->deviceid.productclass : "");
-	if (!b)
-		goto error;
+	mxml_node_t *body = mxmlNewElement(envelope, "soap_env:Body");
+	if (body == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
 
-	b = mxmlFindElement(tree, tree, "SerialNumber", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-	b = mxmlNewOpaque(b, cwmp->deviceid.serialnumber ? cwmp->deviceid.serialnumber : "");
-	if (!b)
-		goto error;
+	mxml_node_t *inform = mxmlNewElement(body, "cwmp:Inform");
+	if (inform == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *dev_id = mxmlNewElement(inform, "DeviceId");
+	if (dev_id == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *manufac = mxmlNewElement(dev_id, "Manufacturer");
+	if (manufac == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(manufac, cwmp->deviceid.manufacturer ? cwmp->deviceid.manufacturer : "")) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *oui = mxmlNewElement(dev_id, "OUI");
+	if (oui == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(oui, cwmp->deviceid.oui ? cwmp->deviceid.oui : "")) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *prod_class = mxmlNewElement(dev_id, "ProductClass");
+	if (prod_class == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(prod_class, cwmp->deviceid.productclass ? cwmp->deviceid.productclass : "")) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *sl_no = mxmlNewElement(dev_id, "SerialNumber");
+	if (sl_no == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(sl_no, cwmp->deviceid.serialnumber ? cwmp->deviceid.serialnumber : "")) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *event = mxmlNewElement(inform, "Event");
+	if (event == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlElementSetAttr(event, "soap_enc:arrayType", "cwmp:EventStruct[0]");
+
+	cwmp->is_boot = false;
+	if (xml_prepare_events_inform(event, session)) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *max_env = mxmlNewElement(inform, "MaxEnvelopes");
+	if (max_env == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlNewInteger(max_env, 1);
+
+	mxml_node_t *curr_time = mxmlNewElement(inform, "CurrentTime");
+	if (curr_time == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(curr_time, get_time(time(NULL)))) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *retry_count = mxmlNewElement(inform, "RetryCount");
+	if (retry_count == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewInteger(retry_count, cwmp->retry_count_session)) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *param_list = mxmlNewElement(inform, "ParameterList");
+	if (param_list == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlElementSetAttr(param_list, "soap_enc:arrayType", "cwmp:ParameterValueStruct[0]");
+
+	struct list_head *ilist, *jlist;
+	struct cwmp_dm_parameter *dm_parameter;
+	int size = 0;
+
+	list_for_each (ilist, &(session->head_event_container)) {
+		struct event_container *event_container = list_entry(ilist, struct event_container, list);
+		list_for_each (jlist, &(event_container->head_dm_parameter)) {
+			dm_parameter = list_entry(jlist, struct cwmp_dm_parameter, list);
+			if (xml_prepare_parameters_inform(dm_parameter, param_list, &size)) {
+				MXML_DELETE(xml);
+				return;
+			}
+		}
+	}
 
 	size_t inform_parameters_nbre = sizeof(forced_inform_parameters) / sizeof(forced_inform_parameters[0]);
 	size_t i;
@@ -364,33 +465,62 @@ int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *sessi
 		// An empty connection url cause CDR test to break
 		if (strcmp(forced_inform_parameters[i], DM_CONN_REQ_URL) == 0 && cwmp_dm_param.value != NULL && strlen(cwmp_dm_param.value) == 0) {
 			CWMP_LOG(ERROR, "# Empty CR URL[%s] value", forced_inform_parameters[i]);
-			goto error;
+			MXML_DELETE(xml);
+			return;
 		}
 
-		if (xml_prepare_parameters_inform(&cwmp_dm_param, parameter_list, &size))
-			goto error;
+		if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size)) {
+			MXML_DELETE(xml);
+			return;
+		}
 	}
+
 	for (j = 0; j < nbre_custom_inform; j++) {
 		char *fault = cwmp_get_single_parameter_value(custom_forced_inform_parameters[j], &cwmp_dm_param);
 		if (fault != NULL)
 			continue;
-		if (xml_prepare_parameters_inform(&cwmp_dm_param, parameter_list, &size))
-			goto error;
+		if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size)) {
+			MXML_DELETE(xml);
+			return;
+		}
 	}
+
 	if (cwmp->is_boot == true) {
 		for (j = 0; j < nbre_boot_inform; j++) {
 			char *fault = cwmp_get_single_parameter_value(boot_inform_parameters[j], &cwmp_dm_param);
 			if (fault != NULL)
 				continue;
-			if (xml_prepare_parameters_inform(&cwmp_dm_param, parameter_list, &size))
-				goto error;
+			if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size)) {
+				MXML_DELETE(xml);
+				return;
+			}
 		}
 	}
-	if (snprintf(c, sizeof(c), "cwmp:ParameterValueStruct[%d]", size) == -1)
-		goto error;
 
-	mxmlElementSetAttr(parameter_list, "xsi:type", "soap_enc:Array");
-	mxmlElementSetAttr(parameter_list, "soap_enc:arrayType", c);
+	char c[256] = {0};
+	if (snprintf(c, sizeof(c), "cwmp:ParameterValueStruct[%d]", size) == -1) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlElementSetAttr(param_list, "xsi:type", "soap_enc:Array");
+	mxmlElementSetAttr(param_list, "soap_enc:arrayType", c);
+
+	*tree = xml;
+}
+
+// cppcheck-suppress constParameter
+int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *session, struct rpc *this)
+{
+	mxml_node_t *tree;
+
+	if (session == NULL || this == NULL)
+		return -1;
+
+	load_inform_xml_schema(&tree, cwmp, session);
+
+	if (!tree)
+		goto error;
 
 	session->tree_out = tree;
 
@@ -531,7 +661,9 @@ int cwmp_rpc_acs_prepare_get_rpc_methods(struct cwmp *cwmp, struct session *sess
 {
 	mxml_node_t *tree, *n;
 
-	tree = mxmlLoadString(NULL, CWMP_RESPONSE_MESSAGE, MXML_OPAQUE_CALLBACK);
+	load_response_xml_schema(&tree);
+	if (!tree)
+		return -1;
 
 	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n)
@@ -560,7 +692,10 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *se
 	struct transfer_complete *p;
 
 	p = (struct transfer_complete *)rpc->extra_data;
-	tree = mxmlLoadString(NULL, CWMP_RESPONSE_MESSAGE, MXML_OPAQUE_CALLBACK);
+	load_response_xml_schema(&tree);
+	if (!tree)
+		goto error;
+
 	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		goto error;
@@ -654,7 +789,10 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 	char *c;
 
 	p = (struct du_state_change_complete *)rpc->extra_data;
-	tree = mxmlLoadString(NULL, CWMP_RESPONSE_MESSAGE, MXML_OPAQUE_CALLBACK);
+	load_response_xml_schema(&tree);
+	if (!tree)
+		goto error;
+
 	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		goto error;

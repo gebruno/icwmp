@@ -13,7 +13,6 @@
 #include "xml.h"
 #include "log.h"
 #include "notifications.h"
-#include "messages.h"
 #include "http.h"
 #include "cwmp_zlib.h"
 
@@ -23,6 +22,7 @@ static const char *xsd_url = "http://www.w3.org/2001/XMLSchema";
 static const char *xsi_url = "http://www.w3.org/2001/XMLSchema-instance";
 
 const char *cwmp_urls[] = { "urn:dslforum-org:cwmp-1-0", "urn:dslforum-org:cwmp-1-1", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", NULL };
+
 mxml_node_t * /* O - Element node or NULL */
 mxmlFindElementOpaque(mxml_node_t *node, /* I - Current node */
 		      mxml_node_t *top, /* I - Top node */
@@ -225,7 +225,10 @@ int xml_prepare_msg_out(struct session *session)
 	conf = &(cwmp->conf);
 	mxml_node_t *n;
 
-	session->tree_out = mxmlLoadString(NULL, CWMP_RESPONSE_MESSAGE, MXML_OPAQUE_CALLBACK);
+	load_response_xml_schema(&session->tree_out);
+	if (!session->tree_out)
+		return -1;
+
 	n = mxmlFindElement(session->tree_out, session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n) {
 		return -1;
@@ -391,75 +394,10 @@ error:
 
 int xml_prepare_lwnotification_message(char **msg_out)
 {
-	mxml_node_t *lw_tree, *b, *parameter_list;
-	struct cwmp *cwmp = &cwmp_main;
-	struct config *conf;
-	conf = &(cwmp->conf);
-	char *c = NULL;
+	mxml_node_t *lw_tree;
 
-	lw_tree = mxmlLoadString(NULL, CWMP_LWNOTIFICATION_MESSAGE, MXML_OPAQUE_CALLBACK);
+	load_notification_xml_schema(&lw_tree);
 	if (!lw_tree)
-		goto error;
-
-	b = mxmlFindElement(lw_tree, lw_tree, "TS", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-
-	if (cwmp_asprintf(&c, "%ld", time(NULL)) == -1)
-		goto error;
-	b = mxmlNewOpaque(b, c);
-	FREE(c);
-	if (!b)
-		goto error;
-
-	b = mxmlFindElement(lw_tree, lw_tree, "UN", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-
-	b = mxmlNewOpaque(b, conf->acs_userid);
-	if (!b)
-		goto error;
-
-	b = mxmlFindElement(lw_tree, lw_tree, "CN", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-
-	c = (char *)calculate_lwnotification_cnonce();
-	if (!c)
-		goto error;
-	b = mxmlNewOpaque(b, c);
-	free(c);
-	if (!b)
-		goto error;
-
-	b = mxmlFindElement(lw_tree, lw_tree, "OUI", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-
-	b = mxmlNewOpaque(b, cwmp->deviceid.oui);
-	if (!b)
-		goto error;
-
-	b = mxmlFindElement(lw_tree, lw_tree, "ProductClass", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-
-	b = mxmlNewOpaque(b, cwmp->deviceid.productclass ? cwmp->deviceid.productclass : "");
-	if (!b)
-		goto error;
-
-	b = mxmlFindElement(lw_tree, lw_tree, "SerialNumber", NULL, NULL, MXML_DESCEND);
-	if (!b)
-		goto error;
-
-	b = mxmlNewOpaque(b, cwmp->deviceid.serialnumber ? cwmp->deviceid.serialnumber : "");
-	if (!b)
-		goto error;
-
-	parameter_list = mxmlFindElement(lw_tree, lw_tree, "Notification", NULL, NULL, MXML_DESCEND);
-	if (!parameter_list)
-		goto error;
-	if (xml_prepare_lwnotifications(parameter_list))
 		goto error;
 
 	*msg_out = mxmlSaveAllocString(lw_tree, whitespace_cb);
@@ -469,4 +407,171 @@ int xml_prepare_lwnotification_message(char **msg_out)
 
 error:
 	return -1;
+}
+
+void load_notification_xml_schema(mxml_node_t **tree)
+{
+	char declaration[1024] = {0};
+	struct cwmp *cwmp = &cwmp_main;
+	struct config *conf;
+	conf = &(cwmp->conf);
+	char *c = NULL;
+
+	if (tree == NULL)
+		return;
+
+	*tree = NULL;
+
+	snprintf(declaration, sizeof(declaration), "?xml version=\"1.0\" encoding=\"UTF-8\"?");
+	mxml_node_t *xml = mxmlNewElement(NULL, declaration);
+	if (xml == NULL)
+		return;
+
+	mxml_node_t *notification = mxmlNewElement(xml, "Notification");
+	if (notification == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlElementSetAttr(notification, "xmlns", "urn:broadband-forum-org:cwmp:lwnotif-1-0");
+	mxmlElementSetAttr(notification, "xmlns:xs", xsd_url);
+	mxmlElementSetAttr(notification, "xmlns:xsi", xsi_url);
+	mxmlElementSetAttr(notification, "xsi:schemaLocation", "urn:broadband-forum-org:cwmp:lxnotif-1-0 http://www.broadband-forum.org/cwmp/cwmp-UDPLightweightNotification-1-0.xsd");
+
+	mxml_node_t *ts = mxmlNewElement(notification, "TS");
+	if (ts == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (cwmp_asprintf(&c, "%ld", time(NULL)) == -1) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(ts, c)) {
+		FREE(c);
+		MXML_DELETE(xml);
+		return;
+	}
+
+	FREE(c);
+
+	mxml_node_t *un = mxmlNewElement(notification, "UN");
+	if (un == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(un, conf->acs_userid)) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *cn = mxmlNewElement(notification, "CN");
+	if (cn == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	c = (char *)calculate_lwnotification_cnonce();
+	if (!c) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(cn, c)) {
+		FREE(c);
+		MXML_DELETE(xml);
+		return;
+	}
+
+	FREE(c);
+
+	mxml_node_t *oui = mxmlNewElement(notification, "OUI");
+	if (oui == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(oui, cwmp->deviceid.oui)) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *pclass = mxmlNewElement(notification, "ProductClass");
+	if (pclass == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(pclass, cwmp->deviceid.productclass ? cwmp->deviceid.productclass : "")) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *slno = mxmlNewElement(notification, "SerialNumber");
+	if (slno == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (NULL == mxmlNewOpaque(slno, cwmp->deviceid.serialnumber ? cwmp->deviceid.serialnumber : "")) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	if (xml_prepare_lwnotifications(notification)) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	*tree = xml;
+}
+
+void load_response_xml_schema(mxml_node_t **schema)
+{
+	char declaration[1024] = {0};
+
+	if (schema == NULL)
+		return;
+
+	*schema = NULL;
+
+	snprintf(declaration, sizeof(declaration), "?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?");
+	mxml_node_t *xml = mxmlNewElement(NULL, declaration);
+	if (xml == NULL)
+		return;
+
+	mxml_node_t *envlp = mxmlNewElement(xml, "soap_env:Envelope");
+	if (envlp == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlElementSetAttr(envlp, "xmlns:soap_env", soap_env_url);
+	mxmlElementSetAttr(envlp, "xmlns:soap_enc", soap_enc_url);
+	mxmlElementSetAttr(envlp, "xmlns:xsd", xsd_url);
+	mxmlElementSetAttr(envlp, "xmlns:xsi", xsi_url);
+
+	mxml_node_t *header = mxmlNewElement(envlp, "soap_env:Header");
+	if (header == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxml_node_t *id = mxmlNewElement(header, "cwmp:ID");
+	if (id == NULL) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	mxmlElementSetAttr(id, "soap_env:mustUnderstand", "1");
+
+	if (NULL == mxmlNewElement(envlp, "soap_env:Body")) {
+		MXML_DELETE(xml);
+		return;
+	}
+
+	*schema = xml;
 }
