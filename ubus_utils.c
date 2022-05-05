@@ -92,15 +92,15 @@ static const struct blobmsg_policy icwmp_cmd_policy[] = {
 
 static int icwmp_command_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
-	struct blob_attr *tb[__COMMAND_MAX];
+	struct blob_attr *tb[__COMMAND_MAX] = {0};
 	struct blob_buf blob_command;
+	int ret = -1;
 
 	memset(&blob_command, 0, sizeof(struct blob_buf));
 	blob_buf_init(&blob_command, 0);
 
-	blobmsg_parse(icwmp_cmd_policy, ARRAY_SIZE(icwmp_cmd_policy), tb, blob_data(msg), blob_len(msg));
-
-	if (!tb[COMMAND_NAME]) {
+	ret = blobmsg_parse(icwmp_cmd_policy, ARRAY_SIZE(icwmp_cmd_policy), tb, blob_data(msg), blob_len(msg));
+	if (ret != 0) {
 		int i;
 		int cmd_num = sizeof(cmd_cb)/sizeof(struct command_cb);
 		void *arr = blobmsg_open_array(&blob_command, "SupportedCommands");
@@ -111,17 +111,11 @@ static int icwmp_command_handler(struct ubus_context *ctx, struct ubus_object *o
 			blobmsg_close_table(&blob_command, tbl_in);
 		}
 		blobmsg_close_array(&blob_command, arr);
-		goto send_reply;
+	} else {
+		char *cmd = blobmsg_get_string(tb[COMMAND_NAME]);
+		call_command_cb(cmd, &blob_command);
 	}
 
-	char *cmd = blobmsg_data(tb[COMMAND_NAME]);
-
-	if (call_command_cb(cmd, &blob_command) != 0) {
-		blob_buf_free(&blob_command);
-		return -1;
-	}
-
-send_reply:
 	ubus_send_reply(ctx, req, blob_command.head);
 	blob_buf_free(&blob_command);
 
@@ -300,17 +294,19 @@ static void icwmp_inform_event(struct ubus_context *ctx, struct ubus_request_dat
 
 static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
-	struct blob_attr *tb[__INFORM_MAX];
+	struct blob_attr *tb[__INFORM_MAX] = {0};
 	bool is_get_rpc = false;
 	char *event = "";
+	int ret = -1;
 
-	blobmsg_parse(icwmp_inform_policy, ARRAY_SIZE(icwmp_inform_policy), tb, blob_data(msg), blob_len(msg));
+	ret = blobmsg_parse(icwmp_inform_policy, ARRAY_SIZE(icwmp_inform_policy), tb, blob_data(msg), blob_len(msg));
 
-	if (tb[INFORM_GET_RPC_METHODS]) {
-		is_get_rpc = blobmsg_data(tb[INFORM_GET_RPC_METHODS]);
+	if (ret == 0 && tb[INFORM_GET_RPC_METHODS] != NULL) {
+		is_get_rpc = blobmsg_get_u8(tb[INFORM_GET_RPC_METHODS]);
 	}
-	if (tb[INFORM_EVENT]) {
-		event = blobmsg_data(tb[INFORM_EVENT]);
+
+	if (ret == 0 && tb[INFORM_EVENT] != NULL) {
+		event = blobmsg_get_string(tb[INFORM_EVENT]);
 	}
 
 	if (is_get_rpc) {
