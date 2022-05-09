@@ -21,7 +21,7 @@
 #include "event.h"
 #include "ubus_utils.h"
 #include "config.h"
-#include "digestauth.h"
+#include "digauth.h"
 
 #define REALM "authenticate@cwmp"
 #define OPAQUE "11733b200778ce33060f31c9af70a870ba96ddd4"
@@ -326,12 +326,12 @@ static void http_cr_new_client(int client, bool service_available)
 	if (!service_available || !method_is_get) {
 		goto http_end;
 	}
-	int auth_check = http_digest_auth_check("GET", "/", auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, 300);
-	if (auth_check == MHD_INVALID_NONCE) {
+	int auth_check = validate_http_digest_auth("GET", "/", auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, 300);
+	if (auth_check == -1) { /* invalid nonce */
 		internal_error = true;
 		goto http_end;
 	}
-	if (auth_digest_checked && auth_check == MHD_YES)
+	if (auth_digest_checked && auth_check == 0)
 		auth_status = 1;
 	else
 		auth_status = 0;
@@ -357,7 +357,7 @@ http_end:
 		CWMP_LOG(INFO, "Receive Connection Request: Return 401 Unauthorized");
 		fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
 		fputs("Connection: close\r\n", fp);
-		http_digest_auth_fail_response(fp, "GET", "/", REALM, OPAQUE);
+		http_authentication_failure_resp(fp, "GET", "/", REALM, OPAQUE);
 		fputs("\r\n", fp);
 	}
 	fputs("\r\n", fp);

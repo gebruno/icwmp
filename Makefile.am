@@ -11,7 +11,7 @@ icwmpd_SOURCES =			\
 	./config.c				\
 	./session.c			\
 	./backupSession.c		\
-	./digestauth.c			\
+	./digauth.c			\
 	./event.c				\
 	./http.c				\
 	./netlink.c			\

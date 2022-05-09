@@ -31,7 +31,7 @@
 #include "config.h"
 #include "backupSession.h"
 #include "ubus_utils.h"
-#include "digestauth.h"
+#include "digauth.h"
 #include "upload.h"
 #include "download.h"
 #include "sched_inform.h"
@@ -763,7 +763,7 @@ static int cwmp_init(int argc, char **argv, struct cwmp *cwmp)
 	load_custom_notify_json(cwmp);
 	init_list_param_notify();
 	cwmp_uci_exit();
-	generate_nonce_priv_key();
+	get_nonce_key();
 	return CWMP_OK;
 }
 
@@ -789,7 +789,7 @@ static void cwmp_free(struct cwmp *cwmp)
 	FREE(cwmp->conf.forced_inform_json_file);
 	FREE(cwmp->conf.custom_notify_json);
 	FREE(cwmp->conf.boot_inform_json_file);
-	FREE(nonce_privacy_key);
+	FREE(nonce_key);
 	clean_list_param_notify();
 	bkp_tree_clean();
 
