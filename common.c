@@ -697,7 +697,7 @@ int copy_file(char *source_file, char *target_file)
 
 void ubus_network_interface_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
 {
-	const struct blobmsg_policy p[1] = { { "device", BLOBMSG_TYPE_STRING } };
+	const struct blobmsg_policy p[1] = { { "l3_device", BLOBMSG_TYPE_STRING } };
 	struct blob_attr *tb[1] = { NULL };
 	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
 	if (!tb[0]) {
