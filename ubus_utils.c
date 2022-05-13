@@ -13,6 +13,7 @@
 #include "log.h"
 #include "sched_inform.h"
 #include "event.h"
+#include "cwmp_uci.h"
 
 typedef int (*callback)(struct blob_buf *b);
 
@@ -38,6 +39,7 @@ static int reload_cmd(struct blob_buf *b)
 		blobmsg_add_string(b, "info", "Session running, reload at the end of the session");
 	} else {
 		pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
+		cwmp_uci_reinit();
 		cwmp_apply_acs_changes();
 		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 		blobmsg_add_u32(b, "status", 0);
