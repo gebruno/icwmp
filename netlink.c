@@ -39,6 +39,9 @@ static int itfcmp(char *itf1, char *itf2)
 	char *buf1 = NULL;
 	char *buf2 = NULL;
 
+	if (itf1 == NULL || itf2 == NULL)
+		return status;
+
 	if (itf1[0] == '\0')
 		goto end;
 	str = strchr(itf1, '.');
