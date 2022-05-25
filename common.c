@@ -699,16 +699,18 @@ void ubus_network_interface_callback(struct ubus_request *req __attribute__((unu
 {
 	const struct blobmsg_policy p[1] = { { "l3_device", BLOBMSG_TYPE_STRING } };
 	struct blob_attr *tb[1] = { NULL };
+	char *l3_device = NULL;
 	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
-	if (!tb[0]) {
-		cwmp_main.conf.interface = NULL;
-		CWMP_LOG(DEBUG, "CWMP IFACE - interface: NOT FOUND");
-		return;
+	if (tb[0] != NULL) {
+		l3_device = blobmsg_get_string(tb[0]);
 	}
 
-	FREE(cwmp_main.conf.interface);
-	cwmp_main.conf.interface = strdup(blobmsg_get_string(tb[0]));
-	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main.conf.interface);
+	// Only update the interface if its not empty
+	if (CWMP_STRLEN(l3_device)) {
+		cwmp_main.conf.interface = strdup(l3_device);
+	}
+
+	CWMP_LOG(INFO, "CWMP IFACE - interface: %s", cwmp_main.conf.interface);
 }
 
 int get_connection_interface()

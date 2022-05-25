@@ -30,6 +30,7 @@
 #endif
 
 #define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : -1)
+#define CWMP_STRLEN(S1) ((S1 != NULL) ? strlen(S1) : 0)
 
 #define CWMP_STRNCPY(DST, SRC, SIZE) \
 	do { \
