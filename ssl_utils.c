@@ -24,11 +24,13 @@
 #include <mbedtls/ctr_drbg.h>
 #else
 #include <openssl/ssl.h>
+#include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
 #endif
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "common.h"
 #include "log.h"
@@ -47,8 +49,12 @@ static int rand_bytes(unsigned char *output, size_t len)
 
 	FILE *urand = fopen("/dev/urandom", "r");
 	if (urand) {
-		fread(&rand_buffer.seed, sizeof(rand_buffer.seed), 1, urand);
+		size_t bytes = fread(&rand_buffer.seed, sizeof(rand_buffer.seed), 1, urand);
 		fclose(urand);
+		if (bytes < sizeof(rand_buffer.seed)) {
+			CWMP_LOG(ERROR, "Failed to seed random");
+			return -1;
+		}
 	} else {
 		rand_buffer.seed = (uint64_t)clock();
 	}
@@ -57,13 +63,13 @@ static int rand_bytes(unsigned char *output, size_t len)
 	mbedtls_ctr_drbg_init(&cd_ctx);
 
 	if (mbedtls_ctr_drbg_seed(&cd_ctx, mbedtls_entropy_func, &ec, (const unsigned char *)rand_buffer.buffer, 8) != 0) {
-		CWMP_LOG(ERROR, "Failed to initialize random generator\n");
+		CWMP_LOG(ERROR, "Failed to initialize random generator");
 		res = -1;
 		goto end;
 	}
 
 	if (mbedtls_ctr_drbg_random(&cd_ctx, output, len) != 0) {
-		CWMP_LOG(ERROR, "Failed to generate random bytes\n");
+		CWMP_LOG(ERROR, "Failed to generate random bytes");
 		res = -1;
 	}
 
@@ -83,7 +89,7 @@ char *generate_random_string(size_t size)
 
 	buf = (unsigned char *)calloc(size + 1, sizeof(unsigned char));
 	if (buf == NULL) {
-		CWMP_LOG(ERROR, "Unable to allocate memory for buf string\n");
+		CWMP_LOG(ERROR, "Unable to allocate memory for buf string");
 		goto end;
 	}
 
