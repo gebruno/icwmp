@@ -180,8 +180,14 @@ int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 
 			CWMP_LOG(INFO, "Send the %s RPC message to the ACS", rpc_acs_methods[rpc_acs->type].name);
 			if (xml_send_message(cwmp, session, rpc_acs)) {
-				if (rpc_acs->type == RPC_ACS_GET_RPC_METHODS)
+				if (rpc_acs->type == RPC_ACS_GET_RPC_METHODS) {
+					CWMP_LOG(ERROR, "Get the %sResponse failed message from the ACS", rpc_acs_methods[rpc_acs->type].name);
+					ilist = ilist->prev;
+					cwmp_session_rpc_destructor(rpc_acs);
+					MXML_DELETE(session->tree_in);
+					MXML_DELETE(session->tree_out);
 					continue;
+				}
 				else
 					goto retry;
 			}
@@ -189,8 +195,14 @@ int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 			CWMP_LOG(INFO, "Get the %sResponse message from the ACS", rpc_acs_methods[rpc_acs->type].name);
 			if (rpc_acs_methods[rpc_acs->type].parse_response || thread_end)
 				if (rpc_acs_methods[rpc_acs->type].parse_response(cwmp, session, rpc_acs)) {
-					if (rpc_acs->type == RPC_ACS_GET_RPC_METHODS)
+					if (rpc_acs->type == RPC_ACS_GET_RPC_METHODS) {
+						CWMP_LOG(ERROR, "Get the %sResponse failed message from the ACS", rpc_acs_methods[rpc_acs->type].name);
+						ilist = ilist->prev;
+						cwmp_session_rpc_destructor(rpc_acs);
+						MXML_DELETE(session->tree_in);
+						MXML_DELETE(session->tree_out);
 						continue;
+					}
 					else
 						goto retry;
 				}
