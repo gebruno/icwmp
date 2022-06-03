@@ -179,21 +179,13 @@ int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 				goto retry;
 
 			CWMP_LOG(INFO, "Send the %s RPC message to the ACS", rpc_acs_methods[rpc_acs->type].name);
-			if (xml_send_message(cwmp, session, rpc_acs)) {
-				if (rpc_acs->type == RPC_ACS_GET_RPC_METHODS)
-					continue;
-				else
-					goto retry;
-			}
+			if (xml_send_message(cwmp, session, rpc_acs) || thread_end)
+				goto retry;
 
 			CWMP_LOG(INFO, "Get the %sResponse message from the ACS", rpc_acs_methods[rpc_acs->type].name);
 			if (rpc_acs_methods[rpc_acs->type].parse_response || thread_end)
-				if (rpc_acs_methods[rpc_acs->type].parse_response(cwmp, session, rpc_acs)) {
-					if (rpc_acs->type == RPC_ACS_GET_RPC_METHODS)
-						continue;
-					else
-						goto retry;
-				}
+				if (rpc_acs_methods[rpc_acs->type].parse_response(cwmp, session, rpc_acs))
+					goto retry;
 
 			ilist = ilist->prev;
 			if (rpc_acs_methods[rpc_acs->type].extra_clean != NULL)
