@@ -15,18 +15,153 @@
 #include "config.h"
 #include "log.h"
 #include "reboot.h"
+#include "ubus_utils.h"
 #include "ssl_utils.h"
 #include "datamodel_interface.h"
 #include "heartbeat.h"
 
 pthread_mutex_t mutex_config_load = PTHREAD_MUTEX_INITIALIZER;
 
-static int check_global_config(struct config *conf)
+void get_dhcp_vend_info_cb(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
-	if (conf->acsurl == NULL) {
-		conf->acsurl = strdup(DEFAULT_ACSURL);
+	if (req == NULL || msg == NULL)
+		return;
+
+	char **v_info = (char **)req->priv;
+	if (v_info == NULL)
+		return;
+
+	struct blob_attr *param;
+	size_t rem;
+
+	enum {
+		E_VENDOR_INFO,
+		__E_MAX
+	};
+
+	const struct blobmsg_policy p[__E_MAX] = {
+		{ "vendorspecinf", BLOBMSG_TYPE_STRING },
+	};
+
+	blobmsg_for_each_attr(param, msg, rem) {
+		if (strcmp(blobmsg_name(param), "data") == 0) {
+			struct blob_attr *tb[__E_MAX] = {NULL};
+			if (blobmsg_parse(p, __E_MAX, tb, blobmsg_data(param), blobmsg_len(param)) != 0) {
+				return;
+			}
+
+			if (tb[E_VENDOR_INFO]) {
+				char *info = blobmsg_get_string(tb[E_VENDOR_INFO]);
+				int len = strlen(info) + 1;
+				*v_info = (char *)malloc(len);
+				if (*v_info == NULL)
+					return;
+
+				memset(*v_info, 0, len);
+				snprintf(*v_info, len, "%s", info);
+			}
+
+			break;
+		}
 	}
-	return CWMP_OK;
+
+	return;
+}
+
+bool configure_dhcp_options(char *vendspecinf)
+{
+	if (vendspecinf == NULL) {
+		CWMP_LOG(DEBUG, "No vendor specific info found");
+		return false;
+	}
+
+	// extract url from vendor info
+	int len = CWMP_STRLEN(vendspecinf) + 1;
+	char vend_info[len];
+	memset(vend_info, 0, len);
+	snprintf(vend_info, len, "%s", vendspecinf);
+
+	if (strncmp(vend_info, "http://", 7) == 0 || strncmp(vend_info, "https://", 8) == 0) {
+		uci_set_value_by_path(UCI_DHCP_ACS_URL, vend_info, UCI_STANDARD_CONFIG);
+		CWMP_LOG(DEBUG, "dhcp url: %s", vend_info);
+		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+		return true;
+
+	}
+
+	bool update_uci = false;
+	char *temp = strtok(vend_info, " ");
+	while (temp) {
+		if (strncmp(temp, "1=", 2) == 0) {
+			char *pos = temp + 2;
+			if (CWMP_STRLEN(pos)) {
+				uci_set_value_by_path(UCI_DHCP_ACS_URL, pos, UCI_STANDARD_CONFIG);
+				CWMP_LOG(DEBUG, "dhcp url: %s", pos);
+				update_uci = true;
+			}
+		}
+
+		if (strncmp(temp, "2=", 2) == 0) {
+			char *pos = temp + 2;
+			if (CWMP_STRLEN(pos)) {
+				uci_set_value_by_path(UCI_DHCP_CPE_PROV_CODE, pos, UCI_STANDARD_CONFIG);
+				update_uci = true;
+			}
+		}
+
+		if (strncmp(temp, "3=", 2) == 0) {
+			char *pos = temp + 2;
+			if (CWMP_STRLEN(pos)) {
+				uci_set_value_by_path(UCI_DHCP_ACS_RETRY_MIN_WAIT_INTERVAL, pos, UCI_STANDARD_CONFIG);
+				update_uci = true;
+			}
+		}
+
+		if (strncmp(temp, "4=", 2) == 0) {
+			char *pos = temp + 2;
+			if (CWMP_STRLEN(pos)) {
+				uci_set_value_by_path(UCI_DHCP_ACS_RETRY_INTERVAL_MULTIPLIER, pos, UCI_STANDARD_CONFIG);
+				update_uci = true;
+			}
+		}
+
+		temp = strtok(NULL, " ");
+	}
+
+	if (update_uci)
+		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+
+	return update_uci;
+}
+
+static void get_dhcp_vendor_info(char *intf)
+{
+	if (intf == NULL)
+		return;
+
+	char ubus_obj[100] = {0};
+	snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", intf);
+
+	struct blob_buf b;
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	for (int i = 0; i < DHCP_OPTION_READ_MAX_RETRY; i++) {
+		char *vendor_info = NULL;
+		if (icwmp_ubus_invoke(ubus_obj, "status", b.head, get_dhcp_vend_info_cb, &vendor_info) == 0) {
+			CWMP_LOG(DEBUG, "vendor info: %s", vendor_info);
+			if (configure_dhcp_options(vendor_info)) {
+				FREE(vendor_info);
+				break;
+			}
+		}
+
+		FREE(vendor_info);
+		CWMP_LOG(INFO, "Failed to read dhcp acs url from ifstatus, retry after %d sec.", DHCP_OPTION_READ_INTERVAL);
+		sleep(DHCP_OPTION_READ_INTERVAL);
+	}
+
+	blob_buf_free(&b);
 }
 
 int get_global_config(struct config *conf)
@@ -90,21 +225,48 @@ int get_global_config(struct config *conf)
 		return error;
 	}
 
+	if ((error = uci_get_value(UCI_CPE_DEFAULT_WAN_IFACE, &value)) == CWMP_OK) {
+		FREE(conf->default_wan_iface);
+		if (value != NULL) {
+			conf->default_wan_iface = strdup(value);
+			FREE(value);
+		} else {
+			conf->default_wan_iface = strdup("wan");
+		}
+
+		CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", conf->default_wan_iface ? conf->default_wan_iface : "");
+	} else {
+		return error;
+	}
+
 	error = uci_get_value(UCI_DHCP_DISCOVERY_PATH, &value);
+
+	// now read the vendor info from ifstatus before reading the DHCP_ACS_URL from uci
+	if (error == CWMP_OK && value != NULL) {
+		if (strcmp(value, "enable") == 0 && conf->default_wan_iface != NULL) {
+			get_dhcp_vendor_info(conf->default_wan_iface);
+		}
+	}
+
 	error2 = uci_get_value(UCI_ACS_URL_PATH, &value2);
 	error3 = uci_get_value(UCI_DHCP_ACS_URL, &value3);
 
+	FREE(conf->acsurl);
 	if ((((error == CWMP_OK) && (value != NULL) && (strcmp(value, "enable") == 0)) || ((error2 == CWMP_OK) && ((value2 == NULL) || (value2[0] == 0)))) && ((error3 == CWMP_OK) && (value3 != NULL) && (value3[0] != 0))) {
-		FREE(conf->acsurl);
 		conf->acsurl = strdup(value3);
 	} else if ((error2 == CWMP_OK) && (value2 != NULL) && (value2[0] != 0)) {
-		FREE(conf->acsurl);
 		conf->acsurl = strdup(value2);
 	}
 
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs url: %s", conf->acsurl ? conf->acsurl : "");
 	FREE(value);
 	FREE(value2);
 	FREE(value3);
+
+	if (conf->acsurl == NULL) {
+		CWMP_LOG(ERROR, "ACS URL is Null");
+		return -1;
+	}
 
 	if ((error = uci_get_value(UCI_ACS_USERID_PATH, &value)) == CWMP_OK) {
 		if (value != NULL) {
@@ -300,20 +462,6 @@ int get_global_config(struct config *conf)
 		}
 
 		CWMP_LOG(DEBUG, "CWMP CONFIG - connection request port: %d", conf->connection_request_port);
-	} else {
-		return error;
-	}
-
-	if ((error = uci_get_value(UCI_CPE_DEFAULT_WAN_IFACE, &value)) == CWMP_OK) {
-		FREE(conf->default_wan_iface);
-		if (value != NULL) {
-			conf->default_wan_iface = strdup(value);
-			FREE(value);
-		} else {
-			conf->default_wan_iface = strdup("wan");
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", conf->default_wan_iface ? conf->default_wan_iface : "");
 	} else {
 		return error;
 	}
@@ -651,11 +799,14 @@ int global_conf_init(struct cwmp *cwmp)
 	if ((error = get_global_config(&(cwmp->conf))))
 		goto end;
 
-	if ((error = check_global_config(&(cwmp->conf))))
-		goto end;
+	error = get_connection_interface();
+	while (error != CWMP_OK && thread_end != true) {
+		usleep(500);
+		error = get_connection_interface();
+	}
 
-	if ((error = get_connection_interface()))
-		return -1;
+	if (error != CWMP_OK)
+		goto end;
 
 	/* Launch reboot methods if needed */
 	launch_reboot_methods(cwmp);

@@ -74,18 +74,23 @@ function configure_download_firmware()
 	echo "Invalid" > /tmp/firmware/invalid_firmware_v1.0.bin
 }
 
-function configure_acs_url()
-{
-	url="http://$(hostname -i):7547"
-	uci set cwmp.acs.url=$url
-	uci commit cwmp
-	echo "Current ACS URL=$url"
-}
-
 function check_cwmp_status()
 {
-	status=`ubus call tr069 status | jq -r ".cwmp.status"`
-	if [ $status != "up" ]; then
+	iter=0
+	state=0
+	while [ $iter -lt 10 ]
+	do
+		status=`ubus call tr069 status | jq -r ".cwmp.status"`
+		if [ $status == "up" ]; then
+			state=1
+			break
+		fi
+
+		iter=$(( $iter + 1))
+		sleep 2
+	done
+
+	if [ $state -eq 0 ]; then
 		echo "icwmpd is not started correctly, (the current status=$status)"
 		exit 1
 	fi

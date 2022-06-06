@@ -268,7 +268,11 @@ int run_session_end_func(void)
 	if (end_session_flag & END_SESSION_RELOAD) {
 		CWMP_LOG(INFO, "Config reload: end session request");
 		cwmp_uci_reinit();
-		cwmp_apply_acs_changes();
+		if (cwmp_apply_acs_changes() != CWMP_OK) {
+			// calling exit to avoid race condition
+			CWMP_LOG(CRITIC, "terminating cwmp service");
+			exit(0);
+		}
 		check_trigger_heartbeat_session();
 	}
 
@@ -767,8 +771,10 @@ static int cwmp_init(int argc, char **argv, struct cwmp *cwmp)
 		return error;
 
 	cwmp_uci_init();
-	if ((error = global_conf_init(cwmp)))
+	if ((error = global_conf_init(cwmp))) {
+		cwmp_uci_exit();
 		return error;
+	}
 
 	cwmp_get_deviceid(cwmp);
 	load_forced_inform_json_file(cwmp);
@@ -821,6 +827,8 @@ static void icwmp_signal_handler(int signal_num)
 	if (signal_num == SIGINT || signal_num == SIGTERM) {
 		thread_end = true;
 
+		CWMP_LOG(INFO, "Received signal %d", signal_num);
+
 		if (cwmp_main.session_status.last_status == SESSION_RUNNING)
 			http_set_timeout();
 
@@ -833,6 +841,8 @@ static void icwmp_signal_handler(int signal_num)
 		pthread_cond_signal(&threshold_schedule_download);
 		pthread_cond_signal(&threshold_apply_schedule_download);
 		pthread_cond_signal(&threshold_upload);
+		pthread_cond_signal(&threshold_heartbeat_session);
+		pthread_cond_signal(&threasheld_retry_session);
 
 		shutdown(cwmp_main.cr_socket_desc, SHUT_RDWR);
 	}
@@ -883,14 +893,14 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &act, 0);
 	sigaction(SIGTERM, &act, 0);
 
-	error = pthread_create(&http_cr_server_thread, NULL, &thread_http_cr_server_listen, NULL);
-	if (error < 0) {
-		CWMP_LOG(ERROR, "Error when creating the http connection request server thread!");
-	}
-
 	error = pthread_create(&ubus_thread, NULL, &thread_uloop_run, NULL);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the ubus thread!");
+	}
+
+	error = pthread_create(&http_cr_server_thread, NULL, &thread_http_cr_server_listen, NULL);
+	if (error < 0) {
+		CWMP_LOG(ERROR, "Error when creating the http connection request server thread!");
 	}
 
 	error = pthread_create(&periodic_event_thread, NULL, &thread_event_periodic, (void *)cwmp);
@@ -902,6 +912,7 @@ int main(int argc, char **argv)
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the periodic check notify thread!");
 	}
+
 	error = pthread_create(&heart_beat_session_thread, NULL, &thread_heartbeat_session, (void *)cwmp);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating heartbeat session thread!");

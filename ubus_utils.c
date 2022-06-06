@@ -40,7 +40,11 @@ static int reload_cmd(struct blob_buf *b)
 	} else {
 		pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 		cwmp_uci_reinit();
-		cwmp_apply_acs_changes();
+		if (cwmp_apply_acs_changes() != CWMP_OK) {
+			// Exiting to avoid any race condition
+			CWMP_LOG(CRITIC, "cwmp service terminating");
+			exit(0);
+		}
 		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 		blobmsg_add_u32(b, "status", 0);
 		blobmsg_add_string(b, "info", "icwmpd config reloaded");

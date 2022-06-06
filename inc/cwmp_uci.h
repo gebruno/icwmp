@@ -61,6 +61,9 @@
 #define UCI_ACS_HEARTBEAT_ENABLE "cwmp.acs.heartbeat_enable"
 #define UCI_ACS_HEARTBEAT_INTERVAL "cwmp.acs.heartbeat_interval"
 #define UCI_ACS_HEARTBEAT_TIME "cwmp.acs.heartbeat_time"
+#define UCI_DHCP_CPE_PROV_CODE "cwmp.cpe.dhcp_provisioning_code"
+#define UCI_DHCP_ACS_RETRY_MIN_WAIT_INTERVAL "cwmp.acs.dhcp_retry_min_wait_interval"
+#define UCI_DHCP_ACS_RETRY_INTERVAL_MULTIPLIER "cwmp.acs.dhcp_retry_interval_multiplier"
 
 #define UCI_CPE_FIREWALL_RESTART_STATE "cwmp.cpe.firewall_restart"
 
@@ -68,6 +71,8 @@
 #define LIB_DB_CONFIG "/lib/db/config"
 #define ETC_DB_CONFIG "/etc/board-db/config"
 #define VARSTATE_CONFIG "/var/state"
+#define DHCP_OPTION_READ_MAX_RETRY 5
+#define DHCP_OPTION_READ_INTERVAL 5
 
 #define section_name(s) s ? (s)->e.name : ""
 typedef enum uci_config_paths

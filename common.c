@@ -718,17 +718,21 @@ int get_connection_interface()
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "interface", cwmp_main.conf.default_wan_iface);
 
-	int e = icwmp_ubus_invoke("network.interface", "status", b.head, ubus_network_interface_callback, NULL);
+	char ubus_obj[100] = {0};
+	snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", cwmp_main.conf.default_wan_iface);
+
+	FREE(cwmp_main.conf.interface);
+
+	int e = icwmp_ubus_invoke(ubus_obj, "status", b.head, ubus_network_interface_callback, NULL);
 	blob_buf_free(&b);
 
 	if (e != 0) {
-		CWMP_LOG(INFO, "Get network interface from network.interface ubus method failed. Ubus err code: %d", e);
+		CWMP_LOG(INFO, "Get network interface from %s ubus method failed. Ubus err code: %d", ubus_obj, e);
 		return -1;
 	}
 	if (cwmp_main.conf.interface == NULL) {
-		CWMP_LOG(INFO, "Not able to get the network interface from network.interface ubus method.");
+		CWMP_LOG(INFO, "Not able to get the network interface from %s ubus method.", ubus_obj);
 		return -1;
 	}
 	return CWMP_OK;

@@ -1,0 +1,14 @@
+{
+	"up": true,
+	"pending": false,
+	"available": true,
+	"autostart": true,
+	"dynamic": false,
+	"uptime": 0,
+	"l3_device": "eth0",
+	"proto": "dhcp",
+	"device": "eth0",
+	"data": {
+		
+	}
+}

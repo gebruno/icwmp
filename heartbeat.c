@@ -51,6 +51,9 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 
 	sleep(2);
 	for (;;) {
+		if (thread_end)
+			break;
+
 		if (cwmp_main.conf.heart_beat_enable) {
 			heartbeat_interval.tv_sec = time(NULL) + cwmp_main.conf.heartbeat_interval;
 			pthread_mutex_lock(&mutex_heartbeat);
@@ -63,6 +66,9 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 				pthread_cond_wait(&threasheld_retry_session, &mutex_heartbeat);
 				//continue;
 			}
+
+			if (thread_end)
+				break;
 
 			pthread_mutex_lock(&mutex_heartbeat_session);
 			struct session *heartbeat_session = NULL;
@@ -89,6 +95,7 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 				pthread_mutex_unlock(&mutex_heartbeat);
 				continue;
 			}
+
 			cwmp_uci_init();
 			if (heart_beat_session_status.last_status == SESSION_FAILURE)
 				reload_networking_config();
@@ -111,7 +118,8 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 				cwmp_uci_exit();
 				pthread_mutex_unlock(&(cwmp_main.mutex_session_send));
 				pthread_mutex_unlock(&mutex_heartbeat);
-				break;
+				// Exiting to avoid race conditions
+				exit(0);
 			}
 
 			if (error || heartbeat_session->error == CWMP_RETRY_SESSION) {
@@ -141,9 +149,6 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			cwmp_uci_exit();
 			pthread_mutex_unlock(&mutex_heartbeat_session);
 			pthread_mutex_unlock(&mutex_heartbeat);
-
-			if (thread_end)
-				break;
 		} else {
 			pthread_mutex_lock(&mutex_heartbeat);
 			pthread_cond_wait(&threshold_heartbeat_session, &mutex_heartbeat);
