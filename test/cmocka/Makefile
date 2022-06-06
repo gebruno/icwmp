@@ -4,7 +4,7 @@ LIB_LDFLAGS:= -luci -lblobmsg_json -lubox\
 	      -ljson-c -lubus -lpthread -lcurl\
 	      -lcrypto -lmxml
 	      
-LIB_CFLAGS:= -fPIC -I../../inc -DWC_NO_HARDEN -g -O0
+LIB_CFLAGS:= -fPIC -I../../inc -DLOPENSSL -g -O0
 UNIT_TESTS:= icwmp_unit_testd
 
 VALGRIND = /usr/bin/valgrind --xml=yes --xml-file=memory-report.xml --leak-check=full --show-reachable=yes --show-leak-kinds=all --errors-for-leak-kinds=all

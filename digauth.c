@@ -26,12 +26,18 @@
 #define MD5_INIT(X) { mbedtls_md5_init(X); mbedtls_md5_starts_ret(X); }
 #define MD5_UPDATE(X, Y, Z) mbedtls_md5_update_ret(X, (unsigned char *)Y, Z)
 #define MD5_FINAL(X, Y) mbedtls_md5_finish_ret(Y, X)
-#else
+#elif LOPENSSL
 #include <openssl/md5.h>
 #define MD5_CTX MD5_CTX
 #define MD5_INIT MD5_Init
 #define MD5_UPDATE MD5_Update
 #define MD5_FINAL MD5_Final
+#else
+#include <wolfssl/wolfcrypt/md5.h>
+#define MD5_CTX Md5
+#define MD5_INIT wc_InitMd5
+#define MD5_UPDATE wc_Md5Update
+#define MD5_FINAL(X, Y) wc_Md5Final(Y, X)
 #endif
 
 #ifndef MD5_DIGEST_SIZE
@@ -191,7 +197,7 @@ static void get_digest_ha1(const char *algo, const char *uname, const char *rlm,
 	snprintf(a, len, "%s:%s:%s", uname, rlm, psw);
 
 	MD5_INIT(&context);
-	MD5_UPDATE(&context, a, strlen(a));
+	MD5_UPDATE(&context, (unsigned char *)a, strlen(a));
 	MD5_FINAL(digest, &context);
 
 	free(a);
@@ -206,8 +212,8 @@ static void get_digest_ha1(const char *algo, const char *uname, const char *rlm,
 		snprintf(a, len, ":%s:%s", nonce, cnonce);
 
 		MD5_INIT(&context);
-		MD5_UPDATE(&context, digest, sizeof(digest));
-		MD5_UPDATE(&context, a, strlen(a));
+		MD5_UPDATE(&context, (unsigned char *)digest, sizeof(digest));
+		MD5_UPDATE(&context, (unsigned char *)a, strlen(a));
 		MD5_FINAL(digest, &context);
 
 		free(a);
@@ -232,7 +238,7 @@ static void get_digest_ha2(const char *method, const char *uri, char *ha2, int h
 	snprintf(a, len, "%s:%s", method, uri);
 
 	MD5_INIT(&context);
-	MD5_UPDATE(&context, a, strlen(a));
+	MD5_UPDATE(&context, (unsigned char *)a, strlen(a));
 	MD5_FINAL(digest, &context);
 
 	free(a);
@@ -273,9 +279,9 @@ static void get_digest_response(const char *ha1, const char *nonce, const char *
 	}
 
 	MD5_INIT(&context);
-	MD5_UPDATE(&context, ha1, MD5_HASH_HEX_LEN);
-	MD5_UPDATE(&context, a, strlen(a));
-	MD5_UPDATE(&context, ha2, MD5_HASH_HEX_LEN);
+	MD5_UPDATE(&context, (unsigned char *)ha1, MD5_HASH_HEX_LEN);
+	MD5_UPDATE(&context, (unsigned char *)a, strlen(a));
+	MD5_UPDATE(&context, (unsigned char *)ha2, MD5_HASH_HEX_LEN);
 	MD5_FINAL(digest, &context);
 
 	free(a);
@@ -319,11 +325,11 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 	unsigned char digest[MD5_DIGEST_SIZE];
 
 	MD5_INIT(&context);
-	MD5_UPDATE(&context, ts, 4);
-	MD5_UPDATE(&context, meth, strlen(meth));
+	MD5_UPDATE(&context, (unsigned char *)ts, 4);
+	MD5_UPDATE(&context, (unsigned char *)meth, strlen(meth));
 	if (rand != NULL && rand_size > 0)
-		MD5_UPDATE(&context, rand, rand_size);
-	MD5_UPDATE(&context, uri_realm, strlen(uri_realm));
+		MD5_UPDATE(&context, (unsigned char *)rand, rand_size);
+	MD5_UPDATE(&context, (unsigned char *)uri_realm, strlen(uri_realm));
 	MD5_FINAL(digest, &context);
 
 	free(meth);

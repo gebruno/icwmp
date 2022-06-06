@@ -379,6 +379,8 @@ void cwmp_free_uci_list(struct uci_list *list)
 	struct uci_element *e = NULL, *tmp = NULL;
 	if (list == NULL)
 		return;
+
+	// cppcheck-suppress unknownMacro
 	uci_foreach_element_safe(list, e, tmp)
 		cwmp_delete_uci_element_from_list(e);
 }

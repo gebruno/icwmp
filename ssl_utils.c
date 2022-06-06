@@ -22,11 +22,17 @@
 #include <mbedtls/md.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
-#else
+#endif
+#ifdef LOPENSSL
 #include <openssl/ssl.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
+#endif
+
+#ifdef LWOLFSSL
+#include <wolfssl/wolfcrypt/hmac.h>
+#include <wolfssl/wolfcrypt/random.h>
 #endif
 
 #include <string.h>
@@ -77,8 +83,20 @@ end:
 	mbedtls_ctr_drbg_free(&cd_ctx);
 	mbedtls_entropy_free(&ec);
 	return res;
-#else
+#elif LOPENSSL
 	return RAND_bytes(output, len);
+#else
+	RNG rng;
+	int res;
+
+	res = wc_InitRng(&rng);
+	if (res == 0) {
+		res = wc_RNG_GenerateBlock(&rng, output, len);
+	}
+
+	wc_FreeRng(&rng);
+
+	return res;
 #endif
 }
 
@@ -121,15 +139,22 @@ void message_compute_signature(char *msg_out, char *signature, size_t len)
 	unsigned char result[MBEDTLS_MD_MAX_SIZE] = {0};
 	const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA1);
 
-	mbedtls_md_hmac(md_info, (unsigned char *)conf->acs_passwd, strlen(conf->acs_passwd), (unsigned char *)msg_out, strlen(msg_out), result);
-#else
+	mbedtls_md_hmac(md_info, (unsigned char *)conf->acs_passwd, CWMP_STRLEN(conf->acs_passwd), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result);
+#elif LOPENSSL
 	unsigned char result[EVP_MAX_MD_SIZE] = {0};
 
-	HMAC(EVP_sha1(), conf->acs_passwd, strlen(conf->acs_passwd), (unsigned char *)msg_out, strlen(msg_out), result, NULL);
+	HMAC(EVP_sha1(), conf->acs_passwd, CWMP_STRLEN(conf->acs_passwd), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result, NULL);
+#else
+	Hmac hmac;
+	byte result[SHA_DIGEST_SIZE];
+
+	wc_HmacSetKey(&hmac, SHA, (unsigned char *)conf->acs_passwd, CWMP_STRLEN(conf->acs_passwd));
+	wc_HmacUpdate(&hmac, (unsigned char *)msg_out, CWMP_STRLEN(msg_out));
+	wc_HmacFinal(&hmac, result);
 #endif
 
 	for (int i = 0; i < result_len; i++) {
-		if (len - strlen(signature) < 3) // each time 2 hex chars + '\0' at end so needed space is 3 bytes
+		if (len - CWMP_STRLEN(signature) < 3) // each time 2 hex chars + '\0' at end so needed space is 3 bytes
 			break;
 
 		snprintf(&(signature[i * 2]), 3, "%02X", result[i]);

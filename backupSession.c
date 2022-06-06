@@ -802,11 +802,6 @@ void load_queue_event(mxml_node_t *tree, struct cwmp *cwmp)
 			const char *element = mxmlGetElement(b);
 
 			if (strcmp(element, "command_key") == 0) {
-				/*
-				 * This condition is not always false.
-				 * while the value of idx can be changed while call of load_specific_backup_attributes.
-				 */
-				// cppcheck-suppress knownConditionTrueFalse
 				if (idx != -1) {
 					if (EVENT_CONST[idx].RETRY & EVENT_RETRY_AFTER_REBOOT) {
 						event_container_save = cwmp_add_event_container(cwmp, idx, ((command_key != NULL) ? command_key : ""));
