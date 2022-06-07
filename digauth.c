@@ -33,11 +33,12 @@
 #define MD5_UPDATE MD5_Update
 #define MD5_FINAL MD5_Final
 #else
-#include <wolfssl/wolfcrypt/md5.h>
-#define MD5_CTX Md5
-#define MD5_INIT wc_InitMd5
-#define MD5_UPDATE wc_Md5Update
-#define MD5_FINAL(X, Y) wc_Md5Final(Y, X)
+#include <wolfssl/options.h>
+#include <wolfssl/openssl/md5.h>
+#define MD5_CTX MD5_CTX
+#define MD5_INIT MD5_Init
+#define MD5_UPDATE MD5_Update
+#define MD5_FINAL MD5_Final
 #endif
 
 #ifndef MD5_DIGEST_SIZE

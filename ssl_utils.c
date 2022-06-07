@@ -31,8 +31,8 @@
 #endif
 
 #ifdef LWOLFSSL
-#include <wolfssl/wolfcrypt/hmac.h>
-#include <wolfssl/wolfcrypt/random.h>
+#include <wolfssl/options.h>
+#include <wolfssl/openssl/ssl.h>
 #endif
 
 #include <string.h>
@@ -55,11 +55,10 @@ static int rand_bytes(unsigned char *output, size_t len)
 
 	FILE *urand = fopen("/dev/urandom", "r");
 	if (urand) {
-		size_t bytes = fread(&rand_buffer.seed, sizeof(rand_buffer.seed), 1, urand);
+		size_t bytes = fread(&rand_buffer.seed, 1, sizeof(rand_buffer.seed), urand);
 		fclose(urand);
 		if (bytes < sizeof(rand_buffer.seed)) {
-			CWMP_LOG(ERROR, "Failed to seed random");
-			return -1;
+			CWMP_LOG(INFO, "Failed to seed random [%d::%d]", sizeof(rand_buffer.seed), bytes);
 		}
 	} else {
 		rand_buffer.seed = (uint64_t)clock();
@@ -83,20 +82,8 @@ end:
 	mbedtls_ctr_drbg_free(&cd_ctx);
 	mbedtls_entropy_free(&ec);
 	return res;
-#elif LOPENSSL
-	return RAND_bytes(output, len);
 #else
-	RNG rng;
-	int res;
-
-	res = wc_InitRng(&rng);
-	if (res == 0) {
-		res = wc_RNG_GenerateBlock(&rng, output, len);
-	}
-
-	wc_FreeRng(&rng);
-
-	return res;
+	return RAND_bytes(output, len);
 #endif
 }
 
@@ -140,17 +127,10 @@ void message_compute_signature(char *msg_out, char *signature, size_t len)
 	const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA1);
 
 	mbedtls_md_hmac(md_info, (unsigned char *)conf->acs_passwd, CWMP_STRLEN(conf->acs_passwd), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result);
-#elif LOPENSSL
+#else
 	unsigned char result[EVP_MAX_MD_SIZE] = {0};
 
 	HMAC(EVP_sha1(), conf->acs_passwd, CWMP_STRLEN(conf->acs_passwd), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result, NULL);
-#else
-	Hmac hmac;
-	byte result[SHA_DIGEST_SIZE];
-
-	wc_HmacSetKey(&hmac, SHA, (unsigned char *)conf->acs_passwd, CWMP_STRLEN(conf->acs_passwd));
-	wc_HmacUpdate(&hmac, (unsigned char *)msg_out, CWMP_STRLEN(msg_out));
-	wc_HmacFinal(&hmac, result);
 #endif
 
 	for (int i = 0; i < result_len; i++) {
