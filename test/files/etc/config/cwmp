@@ -1,7 +1,7 @@
 config acs 'acs'
 	option userid 'iopsys'
 	option passwd 'iopsys'
-	option periodic_inform_enable 'true'
+	option periodic_inform_enable '0'
 	option periodic_inform_interval '1800'
 	option periodic_inform_time '0001-01-01T00:00:00Z'
 	option dhcp_discovery 'disable'
