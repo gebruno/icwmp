@@ -57,10 +57,11 @@
 #define DEFAULT_AMD_VERSION 5
 #define DEFAULT_INSTANCE_MODE 0
 #define DEFAULT_SESSION_TIMEOUT 60
-#define DEFAULT_ACSURL "http://192.168.1.1:8080/openacs/acs"
 #define MAX_NBRE_SERVICES 256
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
 #define CWMP_VARSTATE_UCI_PACKAGE "/var/state/cwmp"
+#define DM_PPP_INTERFACE_PATH "Device.PPP.Interface."
+#define DM_IP_INTERFACE_PATH "Device.IP.Interface."
 
 extern char *commandKey;
 extern bool thread_end;
@@ -484,6 +485,11 @@ typedef struct opfault {
 	char *fault_string;
 } opfault;
 
+typedef struct intf_reset_node {
+	char path[1024];
+	struct list_head list;
+} intf_reset_node;
+
 extern struct cwmp cwmp_main;
 extern long int flashsize;
 extern struct FAULT_CPE FAULT_CPE_ARRAY[];
@@ -536,5 +542,6 @@ time_t convert_datetime_to_timestamp(char *value);
 int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat);
 int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session);
 int run_session_end_func(void);
+void set_interface_reset_request(char *param_name, char *value);
 
 #endif

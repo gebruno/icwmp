@@ -509,11 +509,11 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 	*tree = xml;
 }
 
-int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *session, struct rpc *this)
+int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *session, struct rpc *this __attribute__((unused)))
 {
 	mxml_node_t *tree;
 
-	if (session == NULL || this == NULL)
+	if (session == NULL)
 		return -1;
 
 	load_inform_xml_schema(&tree, cwmp, session);
@@ -1348,9 +1348,10 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct session *session, struct rpc
 		goto fault;
 
 	struct cwmp_dm_parameter *param_value;
-	// cppcheck-suppress unknownMacro
-	list_for_each_entry (param_value, &list_set_param_value, list)
+	list_for_each_entry (param_value, &list_set_param_value, list) {
+		set_interface_reset_request(param_value->name, param_value->value);
 		set_diagnostic_parameter_structure_value(param_value->name, param_value->value);
+	}
 
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 

@@ -16,6 +16,7 @@
 #include <syslog.h>
 #include <sys/file.h>
 #include <sys/socket.h>
+#include <regex.h>
 
 #include "common.h"
 #include "ssl_utils.h"
@@ -53,6 +54,79 @@ static pthread_t periodic_check_notify;
 static pthread_t heart_beat_session_thread;
 bool g_firewall_restart = false;
 static struct ubus_context *ctx = NULL;
+struct list_head intf_reset_list;
+
+static void cwmp_invoke_intf_reset(char *path)
+{
+	if (path == NULL)
+		return;
+
+	CWMP_LOG(INFO, "Reset interface: %s", path);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "path", path);
+	bb_add_string(&b, "action", "Reset()");
+
+	icwmp_ubus_invoke(USP_OBJECT_NAME, "operate", b.head, NULL, NULL);
+	blob_buf_free(&b);
+
+	return;
+}
+
+static bool interface_reset_req(char *param_name, char *value)
+{
+	if (param_name == NULL || value == NULL)
+		return false;
+
+	char reg_exp[60] = {0};
+	snprintf(reg_exp, sizeof(reg_exp), "^(%s|%s)[0-9]+.Reset$", DM_IP_INTERFACE_PATH, DM_PPP_INTERFACE_PATH);
+
+	regex_t reegex;
+	int ret = regcomp(&reegex, reg_exp, REG_EXTENDED);
+	if (ret != 0)
+		return false;
+
+	ret = regexec(&reegex, param_name, 0, NULL, 0);
+	if (ret != 0)
+		return false;
+
+	if (strcmp(value, "1") != 0 && strcmp(value, "true") != 0)
+		return false;
+
+	return true;
+}
+
+void set_interface_reset_request(char *param_name, char *value)
+{
+	if (param_name == NULL || value == NULL)
+		return;
+
+	if (interface_reset_req(param_name, value) == false) {
+		return;
+	}
+
+	// Store the interface path to handle after session end
+	int len = 0;
+	char *pos = strrchr(param_name, '.');
+	if (pos == NULL)
+		return;
+
+	len = pos - param_name + 2;
+	if (len <= 0)
+		return;
+
+	intf_reset_node *node = (intf_reset_node *)malloc(sizeof(intf_reset_node));
+	if (node == NULL) {
+		CWMP_LOG(ERROR, "Out of memory");
+		return;
+	}
+
+	memset(node, 0, sizeof(intf_reset_node));
+	snprintf(node->path, len, "%s", param_name);
+	INIT_LIST_HEAD(&node->list);
+	list_add_tail(&node->list, &intf_reset_list);
+}
 
 int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat)
 {
@@ -338,6 +412,18 @@ int run_session_end_func(void)
 		cwmp_factory_reset();
 		exit(EXIT_SUCCESS);
 	}
+
+	// check if any interface reset request exists then take action
+	intf_reset_node *iter = NULL, *node = NULL;
+	list_for_each_entry_safe(iter, node, &intf_reset_list, list) {
+		CWMP_LOG(INFO, "Executing interface reset: end session request");
+		cwmp_invoke_intf_reset(iter->path);
+		list_del(&iter->list);
+		free(iter);
+	}
+
+	INIT_LIST_HEAD(&intf_reset_list);
+
 	cwmp_uci_exit();
 	icwmp_cleanmem();
 	end_session_flag = 0;
@@ -783,6 +869,8 @@ static int cwmp_init(int argc, char **argv, struct cwmp *cwmp)
 	init_list_param_notify();
 	cwmp_uci_exit();
 	get_nonce_key();
+	memset(&intf_reset_list, 0, sizeof(struct list_head));
+	INIT_LIST_HEAD(&intf_reset_list);
 	return CWMP_OK;
 }
 
