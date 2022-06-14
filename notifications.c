@@ -29,7 +29,8 @@ char *notifications[7] = {"disabled" , "passive", "active", "passive_lw", "passi
 
 struct cwmp_dm_parameter forced_notifications_parameters[] = {
 	{.name = "Device.DeviceInfo.SoftwareVersion", .notification = 2, .forced_notification_param = true},
-	{.name = "Device.DeviceInfo.ProvisioningCode", .notification = 2, .forced_notification_param = true}
+	{.name = "Device.DeviceInfo.ProvisioningCode", .notification = 2, .forced_notification_param = true},
+	{.name = "Device.ManagementServer.ConnectionRequestURL", .notification = 2, .forced_notification_param = true}
 };
 
 /*
