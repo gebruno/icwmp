@@ -125,6 +125,13 @@
       "multi": false,
       "options": [
         {
+          "name": "enable",
+          "type": "boolean",
+          "required": "no",
+          "default": "1",
+          "description": "if set to **1**, the cwmp client will be enabled. "
+        },
+        {
           "name": "manufacturer",
           "type": "string",
           "required": "no",

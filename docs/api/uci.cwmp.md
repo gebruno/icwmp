@@ -167,6 +167,13 @@
                     <td><div style="font-weight: bold; font-size: 14px;">description</div></td>
                   </tr>
                   <tr>
+                    <td class="td_row_even"><div class="td_row_even">enable</div></td>
+                    <td class="td_row_even"><div class="td_row_even">boolean</div></td>
+                    <td class="td_row_even"><div class="td_row_even">no</div></td>
+                    <td class="td_row_even"><div class="td_row_even">1</div></td>
+                    <td class="td_row_even"><div class="td_row_even">if set to <b>1</b>, the cwmp client will be enabled.</div></td>
+                  </tr>
+                  <tr>
                     <td class="td_row_even"><div class="td_row_even">manufacturer</div></td>
                     <td class="td_row_even"><div class="td_row_even">string</div></td>
                     <td class="td_row_even"><div class="td_row_even">no</div></td>
