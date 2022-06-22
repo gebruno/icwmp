@@ -22,8 +22,12 @@ fi
 rm /etc/icwmpd/dm_enabled_notify
 remove_icwmp_log
 echo "Restarting icwmpd in order to apply the new firmware"  >> ./funl-test-debug.log
-supervisorctl restart icwmpd  >> ./funl-test-debug.log
-sleep 5
+supervisorctl stop icwmpd >> ./funl-test-debug.log
+check_valgrind_xml
+supervisorctl start icwmpd  >> ./funl-test-debug.log
+check_cwmp_status
+sleep 2
+
 check_session "TransferComplete"
 received_command_key=$(print_tag_value "cwmp:TransferComplete" "CommandKey")
 if [ "$sent_command_key" != "$received_command_key" ]; then

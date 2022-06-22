@@ -138,3 +138,18 @@ function install_uspd()
 	exec_cmd make
 	exec_cmd cp uspd /usr/sbin/uspd
 }
+
+function check_valgrind_xml() {
+	echo "Checking memory leaks..."
+	grep -q "<kind>UninitCondition</kind>" memory-report.xml
+	error_on_zero $?
+
+	grep -q "<kind>Leak_PossiblyLost</kind>" memory-report.xml
+	error_on_zero $?
+
+	grep -q "<kind>Leak_DefinitelyLost</kind>" memory-report.xml
+	error_on_zero $?
+
+	grep -q "<kind>Leak_StillReachable</kind>" memory-report.xml
+	error_on_zero $?
+}

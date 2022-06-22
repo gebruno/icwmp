@@ -304,6 +304,7 @@ static void http_cr_new_client(int client, bool service_available)
 	char *username = cwmp_main.conf.cpe_userid;
 	char *password = cwmp_main.conf.cpe_passwd;
 
+	memset(auth_digest_buffer, 0, BUFSIZ);
 	if (!username || !password) {
 		// if we dont have username or password configured proceed with connecting to ACS
 		service_available = false;
@@ -326,6 +327,7 @@ static void http_cr_new_client(int client, bool service_available)
 	if (!service_available || !method_is_get) {
 		goto http_end;
 	}
+
 	int auth_check = validate_http_digest_auth("GET", "/", auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, 300);
 	if (auth_check == -1) { /* invalid nonce */
 		internal_error = true;

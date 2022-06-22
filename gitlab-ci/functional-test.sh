@@ -72,17 +72,6 @@ cp ./memory-report.xml ./funl-test-memory-report.xml
 #report part
 exec_cmd tap-junit --input ./funl-test-result.log --output report
 
-echo "Checking memory leaks..."
-grep -q "<kind>UninitCondition</kind>" memory-report.xml
-error_on_zero $?
-
-grep -q "<kind>Leak_PossiblyLost</kind>" memory-report.xml
-error_on_zero $?
-
-grep -q "<kind>Leak_DefinitelyLost</kind>" memory-report.xml
-error_on_zero $?
-
-grep -q "<kind>Leak_StillReachable</kind>" memory-report.xml
-error_on_zero $?
+check_valgrind_xml
 
 echo "Functional test :: PASS"

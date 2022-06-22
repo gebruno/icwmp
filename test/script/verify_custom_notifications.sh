@@ -22,10 +22,12 @@ exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_va
 uci commit cwmp
 
 supervisorctl start icwmpd
-
-sleep 7
+check_cwmp_status
+sleep 2
 
 supervisorctl stop icwmpd
+
+check_valgrind_xml
 
 notif1=`uci -c /var/state get cwmp.@notifications[0].active | grep "Device.Users."`
 if [[ $notif1 != *"Device.Users."* ]]; then
@@ -53,8 +55,12 @@ exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_in
 uci commit cwmp
 
 supervisorctl start icwmpd
-sleep 7
+check_cwmp_status
+sleep 2
+
 supervisorctl stop icwmpd
+
+check_valgrind_xml
 
 notif1=`uci -c /var/state get cwmp.@notifications[0].active | grep "Device.Users."`
 if [[ $notif1 == *"Device.Users."* ]]; then
@@ -88,8 +94,11 @@ exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_fo
 uci commit cwmp
 
 supervisorctl start icwmpd
-sleep 7
+check_cwmp_status
+sleep 2
 supervisorctl stop icwmpd
+
+check_valgrind_xml
 
 notif1=`uci -c /var/state get cwmp.@notifications[0].active | grep "Device.Users."`
 if [[ $notif1 != *"Device.Users."* ]]; then
@@ -123,8 +132,11 @@ exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_in
 uci commit cwmp
 
 supervisorctl start icwmpd
-sleep 7
+check_cwmp_status
+sleep 2
 supervisorctl stop icwmpd
+
+check_valgrind_xml
 
 notif1=`uci -c /var/state get cwmp.@notifications[0].active | grep "Device.Users."`
 if [[ $notif1 != *"Device.Users."* ]]; then

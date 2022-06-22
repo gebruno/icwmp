@@ -23,6 +23,8 @@ echo "Running the api test cases"
 ubus-api-validator -f ./test/api/json/tr069.validation.json > ./api-test-result.log
 check_ret $?
 
+sleep 5
+
 echo "Stop all services"
 supervisorctl stop icwmpd
 
@@ -36,14 +38,6 @@ cp ./memory-report.xml ./api-test-memory-report.xml
 #report part
 exec_cmd tap-junit --input ./api-test-result.log --output report
 
-echo "Checking memory leaks ..."
-grep -q "<kind>UninitCondition</kind>" memory-report.xml
-error_on_zero $?
-
-grep -q "<kind>Leak_PossiblyLost</kind>" memory-report.xml
-error_on_zero $?
-
-grep -q "<kind>Leak_DefinitelyLost</kind>" memory-report.xml
-error_on_zero $?
+check_valgrind_xml
 
 echo "Functional API test :: PASS"
