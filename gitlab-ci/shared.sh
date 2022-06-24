@@ -99,17 +99,18 @@ function check_cwmp_status()
 
 function clean_icwmp()
 {
-	if [ -f Makefile ]; then
-		exec_cmd make maintainer-clean
-		exec_cmd make -C test/cmocka clean
-		find -name '*.gcda' -exec rm {} -fv \;
-		find -name '*.gcno' -exec rm {} -fv \;
-		find -name '*.gcov' -exec rm {} -fv \;
-		find -name '*.deps' -exec rm {} -rfv \;
-		find -name '*.so' -exec rm {} -fv \;
-		rm -f *.o *.log *.xml vgcore.* firmware_v1.0.bin
-		rm -rf report
+	if [ -d build ]; then
+		rm -rf build
 	fi
+
+	exec_cmd make -C test/cmocka clean
+	find -name '*.gcda' -exec rm {} -fv \;
+	find -name '*.gcno' -exec rm {} -fv \;
+	find -name '*.gcov' -exec rm {} -fv \;
+	find -name '*.deps' -exec rm {} -rfv \;
+	find -name '*.so' -exec rm {} -fv \;
+	rm -f *.o *.log *.xml vgcore.* firmware_v1.0.bin
+	rm -rf report
 }
 
 function build_icwmp()
@@ -121,10 +122,15 @@ function build_icwmp()
 	clean_icwmp
 
 	# compile icwmp
-	autoreconf -i >/dev/null 2>&1
-	./configure CFLAGS="$COV_CFLAGS" LDFLAGS="$COV_LDFLAGS" --enable-acs=multi --enable-debug --enable-libopenssl >/dev/null 2>&1
-	make CFLAGS="$COV_CFLAGS" LDFLAGS="$COV_LDFLAGS"
-	check_ret $?
+	mkdir -p build
+	cd build
+	cmake ../ -DCMAKE_C_FLAGS="$COV_CFLAGS " -DCMAKE_EXE_LINKER_FLAGS="$COV_LDFLAGS" -DWITH_OPENSSL=ON -DCMAKE_INSTALL_PREFIX=/
+	exec_cmd make
+
+	echo "installing icwmpd binary"
+	exec_cmd cp icwmpd ../
+	exec_cmd make install
+	cd ..
 }
 
 function install_uspd()

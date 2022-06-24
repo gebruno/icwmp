@@ -6,7 +6,7 @@ variables:
   DEBUG: 'TRUE'
   COMMON_IMAGE: "iopsys/code-analysis:0.27"
   RUN_CPPCHECK: "cppcheck --enable=all --error-exitcode=1 -D_GNU_SOURCE --suppress=unusedFunction -i ./test/ --inline-suppr"
-  SOURCE_FOLDER: "."
+  SOURCE_FOLDER: "./src"
   CWMP_WORKER_PROCESSES: 1
   NBI_WORKER_PROCESSES: 1
   FS_WORKER_PROCESSES: 1

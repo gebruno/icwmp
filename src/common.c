@@ -22,11 +22,6 @@
 #include "ubus_utils.h"
 #include "log.h"
 
-
-#ifndef CWMP_REVISION
-#define CWMP_REVISION "8.2.10"
-#endif
-
 char *commandKey = NULL;
 bool thread_end = false;
 long int flashsize = 256000000;
@@ -91,18 +86,8 @@ static void show_help(void)
 	printf("Usage: icwmpd [OPTIONS]\n");
 	printf(" -b, --boot-event                                    (CWMP daemon) Start CWMP with BOOT event\n");
 	printf(" -g, --get-rpc-methods                               (CWMP daemon) Start CWMP with GetRPCMethods request to ACS\n");
-	printf(" -c, --cli                              	     CWMP CLI\n");
+	printf(" -c, --cli                              	     	 CWMP CLI\n");
 	printf(" -h, --help                                          Display this help text\n");
-	printf(" -v, --version                                       Display the version\n");
-}
-
-static void show_version()
-{
-#ifndef CWMP_REVISION
-	fprintf(stdout, "\nVersion: %s\n\n", CWMP_VERSION);
-#else
-	fprintf(stdout, "\nVersion: %s revision %s\n\n", CWMP_VERSION, CWMP_REVISION);
-#endif
 }
 
 int global_env_init(int argc, char **argv, struct env *env)
@@ -114,7 +99,6 @@ int global_env_init(int argc, char **argv, struct env *env)
 		case 'b':
 			env->boot = CWMP_START_BOOT;
 			break;
-
 		case 'g':
 			env->periodic = CWMP_START_PERIODIC;
 			break;
@@ -123,10 +107,6 @@ int global_env_init(int argc, char **argv, struct env *env)
 			exit(0);
 		case 'h':
 			show_help();
-			exit(0);
-
-		case 'v':
-			show_version();
 			exit(0);
 		}
 	}

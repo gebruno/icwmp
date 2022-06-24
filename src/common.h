@@ -18,10 +18,6 @@
 #include <libubox/list.h>
 #include <pthread.h>
 
-#ifndef CWMP_VERSION
-#define CWMP_VERSION "3.0.0"
-#endif
-
 #ifndef FREE
 #define FREE(x) do { if(x) {free(x); x = NULL;} } while (0)
 #endif
