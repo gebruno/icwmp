@@ -120,9 +120,9 @@ static void strip_lead_trail_char(char *str, char ch)
 	}
 }
 
-static void get_hexstring(unsigned char *hash, int len, char *hexstr, int buflen)
+static void get_hexstring(unsigned const char *hash, int len, char *hexstr, int buflen)
 {
-	int i, j;
+	int i;
 
 	if (hash == NULL || hexstr == NULL)
 		return;
@@ -132,10 +132,14 @@ static void get_hexstring(unsigned char *hash, int len, char *hexstr, int buflen
 
 	memset(hexstr, 0, buflen);
 
-	for (i = 0, j = 0; i < len; i++) {
-		sprintf(hexstr + j, "%02X", hash[i]);
-		j = j + 2;
+	for (i = 0; i < len; ++i) {
+		unsigned int j;
+		j = (hash[i] >> 4) & 0x0f;
+		hexstr[i * 2] = j <= 9 ? (j + '0') : (j + 'a' - 10);
+		j = hash[i] & 0x0f;
+		hexstr[i * 2 + 1] = j <= 9 ? (j + '0') : (j + 'a' - 10);
 	}
+	hexstr[len * 2] = '\0';
 }
 
 static void get_value_from_header(const char *data)

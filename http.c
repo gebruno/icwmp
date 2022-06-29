@@ -25,6 +25,7 @@
 
 #define REALM "authenticate@cwmp"
 #define OPAQUE "11733b200778ce33060f31c9af70a870ba96ddd4"
+#define HTTP_GET_HDR_LEN 512
 
 static struct http_client http_c;
 
@@ -297,7 +298,7 @@ static void http_cr_new_client(int client, bool service_available)
 	bool method_is_get = false;
 	bool internal_error = false;
 
-	char cr_http_get_head[512];
+	char cr_http_get_head[HTTP_GET_HDR_LEN];
 
 	pthread_mutex_lock(&mutex_config_load);
 	fp = fdopen(client, "r+");
@@ -312,8 +313,27 @@ static void http_cr_new_client(int client, bool service_available)
 	}
 	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", cwmp_main.conf.connection_request_path);
 	while (fgets(buffer, sizeof(buffer), fp)) {
-		if (!strncasecmp(buffer, cr_http_get_head, strlen(cr_http_get_head)))
-			method_is_get = true;
+		if (strstr(buffer, "GET ") != NULL && strstr(buffer, "HTTP/1.1") != NULL) {
+			// check if extra url parameter then ignore extra params
+			char rec_http_get_head[HTTP_GET_HDR_LEN];
+			int j = 0;
+			bool ignore = false;
+			memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
+			for (size_t i = 0; i < strlen(buffer) && j < (HTTP_GET_HDR_LEN - 1); i++) {
+				if (buffer[i] == '?')
+					ignore = true;
+				if (buffer[i] == ' ')
+					ignore = false;
+				if (ignore == false) {
+					rec_http_get_head[j] = buffer[i];
+					j++;
+				}
+			}
+
+			if (!strncasecmp(rec_http_get_head, cr_http_get_head, strlen(cr_http_get_head)))
+				method_is_get = true;
+		}
+
 		if (!strncasecmp(buffer, "Authorization: Digest ", strlen("Authorization: Digest "))) {
 			auth_digest_checked = true;
 			CWMP_STRNCPY(auth_digest_buffer, buffer, BUFSIZ);
@@ -333,7 +353,7 @@ static void http_cr_new_client(int client, bool service_available)
 		internal_error = true;
 		goto http_end;
 	}
-	if (auth_digest_checked && auth_check == 0)
+	if (auth_digest_checked && auth_check == 1)
 		auth_status = 1;
 	else
 		auth_status = 0;
