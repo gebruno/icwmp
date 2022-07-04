@@ -636,25 +636,6 @@ int get_global_config(struct config *conf)
 	} else {
 		return error;
 	}
-
-	if (uci_get_value(UCI_CPE_FORCED_INFORM_JSON, &value) == CWMP_OK) {
-		FREE(conf->forced_inform_json_file);
-		if (value != NULL) {
-			conf->forced_inform_json_file = strdup(value);
-			FREE(value);
-		} else {
-			conf->forced_inform_json_file = NULL;
-		}
-	}
-	if (uci_get_value(UCI_CPE_BOOT_INFORM_JSON, &value) == CWMP_OK) {
-		FREE(conf->boot_inform_json_file);
-		if (value != NULL) {
-			conf->boot_inform_json_file = strdup(value);
-			FREE(value);
-		} else {
-			conf->boot_inform_json_file = NULL;
-		}
-	}
 	if (uci_get_value(UCI_CPE_JSON_CUSTOM_NOTIFY_FILE, &value) == CWMP_OK) {
 		FREE(conf->custom_notify_json);
 		if (value != NULL) {

@@ -282,59 +282,22 @@ As per the cwmp inform requirements, cwmp client has list of parameters defined 
 | Device.ManagementServer.ConnectionRequestURL   |
 | Device.ManagementServer.AliasBasedAddressing   |
 
-In addition to the above defined forced inform parameters as specified in datamodel standard, icwmp gives the possibility to add other datamodel parameters as forced inform parameters, by defining them in a JSON file.
 
-Additional inform parameters can be configured in a JSON file as below:
-
-```bash
-root@iopsys:~# cat /etc/icwmpd/inform.json
-{
-  "forced_inform":[
-    "Device.DeviceInfo.X_IOPSYS_EU_BaseMACAddress",
-    "Device.DeviceInfo.UpTime"
-    ]
-}
-root@iopsys:~#
-```
-And then the path of the JSON file can be set in the UCI option: `cwmp.cpe.forced_inform_json` like below:
+In addition to the above defined forced inform parameters as specified in datamodel standard, TR-181 datamodel defines the multi instance object Device.ManagementServer.InformParameter.{i}. 
+So new inform parameter can be added through the ACS by the call of the RPC method AddObject for the object Device.ManagementServer.InformParameter.{i}. and then set its parameters values.
+icwmpd defines those new inform parameters in uci sections under the package /var/state/cwmp as below:
 
 ```bash
-root@iopsys:~# uci set cwmp.cpe.forced_inform_json=/etc/icwmpd/inform.json
-root@iopsys:~# uci commit cwmp
-root@iopsys:~# /etc/init.d/icwmpd restart
+root@iopsys-44d43771aff0:~# cat /var/state/cwmp 
+
+config inform_parameter
+	option enable '1'
+	option parameter_name "Device.DeviceInfo.UpTime"
+	option events_list '1 BOOT,6 CONNECTION REQUEST'
+
+config inform_parameter
+	option enable '0'
 ```
-
-> - It is required to restart icwmp service after the changes to use the new forced inform parameters
-> - This JSON file shouldn't contain duplicate parameters or parameters of the standard inform parameters specified in the datamodel
-> - Forced inform parameters defined in JSON should be leaf elements
-
-## Boot inform parameters
-In addition to the above defined forced inform parameters as specified in datamodel standard and forced inform parameters specified by the customer in a json file (defined in previous section), icwmp gives also possibility to add Boot Inform parameter by defining them in a JSON file.
-
-Boot inform parameters will appear in inform messages that includes '0 BOOTSTRAP' or '1 BOOT' events.
-
-inform parameters can be configured in a JSON file as below:
-
-```bash
-root@iopsys:~# cat /etc/icwmpd/inform.json
-{
-  "boot_inform":[
-    "Device.DeviceInfo.UpTime"
-    ]
-}
-root@iopsys:~#
-```
-And then the path of the JSON file can be set in the UCI option: `cwmp.cpe.boot_inform_json` like below:
-
-```bash
-root@iopsys:~# uci set cwmp.cpe.boot_inform_json=/etc/icwmpd/inform.json
-root@iopsys:~# uci commit cwmp
-root@iopsys:~# /etc/init.d/icwmpd restart
-```
-> - It is required to restart icwmp service after the changes to use the new boot inform parameters
-> - This JSON file shouldn't contain duplicate parameters or parameters of the standard inform parameters specified in the datamodel
-> - Boot inform parameters defined in JSON should be leaf elements
-> - Boot inform parameters appears only in BOOT or BOOTSTRAP inform message.
 
 ## Notification management
 `icwmpd` support below notification types, which can be configured from an ACS on the datamodel parameters

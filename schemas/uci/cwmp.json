@@ -314,20 +314,6 @@
           "description": "Interval in sec to check for value change notifications"
         },
         {
-          "name": "forced_inform_json",
-          "type": "string",
-          "required": "no",
-          "default": "",
-          "description": "Define absolute path for the JSON containing additional parameters as forced inform parameter. See readme for examples."
-        },
-        {
-          "name": "boot_inform_json",
-          "type": "string",
-          "required": "no",
-          "default": "",
-          "description": "Define absolute path for the JSON containing additional parameters as boot inform parameter. These parameters only gets added if the notify event is '0 Bootstrap' or '1 Boot'. To enable value change notification, please use custom_notify_json, See readme for examples."
-        },
-        {
           "name": "custom_notify_json",
           "type": "string",
           "required": "no",

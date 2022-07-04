@@ -61,6 +61,13 @@
 #define DM_PPP_INTERFACE_PATH "Device.PPP.Interface."
 #define DM_IP_INTERFACE_PATH "Device.IP.Interface."
 
+#define foreach_elt_in_strlist(elt, str, delim) \
+        char *tmpchr; \
+        char buffer_str[strlen(str) + 1]; \
+        strncpy(buffer_str, str, sizeof(buffer_str) - 1); \
+        buffer_str[sizeof(buffer_str) - 1] = '\0'; \
+        for (elt = strtok_r(buffer_str, delim, &tmpchr); elt != NULL; elt = strtok_r(NULL, delim, &tmpchr))
+
 extern char *commandKey;
 extern bool thread_end;
 
@@ -77,8 +84,6 @@ typedef struct config {
 	char *acs_ssl_capath;
 	char *cpe_userid;
 	char *cpe_passwd;
-	char *forced_inform_json_file;
-	char *boot_inform_json_file;
 	char *custom_notify_json;
 	char *ip;
 	char *ipv6;
@@ -159,7 +164,6 @@ typedef struct cwmp {
 	int cwmp_period;
 	time_t cwmp_periodic_time;
 	bool cwmp_periodic_enable;
-	bool is_boot;
 	bool custom_notify_active;
 } cwmp;
 
@@ -531,8 +535,6 @@ bool icwmp_validate_string_length(char *arg, int max_length);
 bool icwmp_validate_boolean_value(char *arg);
 bool icwmp_validate_unsignedint(char *arg);
 bool icwmp_validate_int_in_range(char *arg, int min, int max);
-void load_forced_inform_json_file(struct cwmp *cwmp);
-void clean_custom_inform_parameters();
 char *string_to_hex(const unsigned char *str, size_t size);
 int copy_file(char *source_file, char *target_file);
 int get_connection_interface();

@@ -25,6 +25,7 @@
 #include "upload.h"
 #include "sched_inform.h"
 #include "diagnostic.h"
+#include "cwmp_uci.h"
 
 #define PROCESSING_DELAY (1) // In download/upload the message enqueued before sending the response, which cause the download/upload
 			     // to start just before the time. This delay is to compensate the time lapsed during the message enqueue and response
@@ -56,10 +57,6 @@ struct rpc_acs_method rpc_acs_methods[] = { [RPC_ACS_INFORM] = { "Inform", cwmp_
 						  [RPC_ACS_DU_STATE_CHANGE_COMPLETE] = { "DUStateChangeComplete", cwmp_rpc_acs_prepare_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_du_state_change_complete, NOT_KNOWN }
 };
 
-char *custom_forced_inform_parameters[MAX_NBRE_CUSTOM_INFORM] = { 0 };
-char *boot_inform_parameters[MAX_NBRE_CUSTOM_INFORM] = { 0 };
-int nbre_custom_inform = 0;
-int nbre_boot_inform = 0;
 char *forced_inform_parameters[] = {
 	"Device.RootDataModelVersion",
 	"Device.DeviceInfo.HardwareVersion",
@@ -202,9 +199,33 @@ static int xml_prepare_parameters_inform(struct cwmp_dm_parameter *dm_parameter,
 	return 0;
 }
 
+bool event_in_session_event_list(char *event, struct list_head *list_evts)
+{
+	struct event_container *event_container;
+
+	list_for_each_entry (event_container, list_evts, list) {
+		if (strcmp(event, EVENT_CONST[event_container->code].CODE) == 0)
+			return true;
+	}
+	return false;
+}
+
+bool check_inform_parameter_events_list_corresponding(char *events_str_list, struct list_head *list_evts)
+{
+	char *evt = NULL;
+	if (events_str_list == NULL || strlen(events_str_list) == 0)
+		return true;
+	foreach_elt_in_strlist(evt, events_str_list, ",") {
+		if (event_in_session_event_list(evt, list_evts))
+			return true;
+	}
+	return false;
+}
+
 static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct session *session)
 {
 	char declaration[1024] = {0};
+
 	mxml_node_t *xml = NULL, *envelope = NULL;
 	if (tree == NULL)
 		return;
@@ -262,7 +283,6 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 		MXML_DELETE(xml);
 		return;
 	}
-
 	cwmp_free_all_xml_data_list(&xml_events_list);
 	mxml_node_t *param_list = mxmlNewElement(inform, "ParameterList");
 	if (param_list == NULL) {
@@ -271,7 +291,6 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 	}
 
 	mxmlElementSetAttr(param_list, "soap_enc:arrayType", "cwmp:ParameterValueStruct[0]");
-
 	struct list_head *ilist, *jlist;
 	struct cwmp_dm_parameter *dm_parameter;
 	int size = 0;
@@ -289,7 +308,6 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 
 	size_t inform_parameters_nbre = sizeof(forced_inform_parameters) / sizeof(forced_inform_parameters[0]);
 	size_t i;
-	int j;
 	struct cwmp_dm_parameter cwmp_dm_param = { 0 };
 	LIST_HEAD(list_inform);
 	for (i = 0; i < inform_parameters_nbre; i++) {
@@ -310,25 +328,27 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 		}
 	}
 
-	for (j = 0; j < nbre_custom_inform; j++) {
-		char *fault = cwmp_get_single_parameter_value(custom_forced_inform_parameters[j], &cwmp_dm_param);
+	struct uci_section *s = NULL;
+	cwmp_uci_foreach_sections("cwmp", "inform_parameter", UCI_VARSTATE_CONFIG, s)
+	{
+		char *enable = NULL;
+		cwmp_uci_get_value_by_section_string(s, "enable", &enable);
+		if (strcasecmp(enable, "0") == 0 || strcasecmp(enable , "false") == 0)
+			continue;
+		char *parameter_name = NULL;
+		cwmp_uci_get_value_by_section_string(s, "parameter_name", &parameter_name);
+
+		char *events_str_list = NULL;
+		cwmp_uci_get_value_by_section_string(s, "events_list", &events_str_list);
+
+		if (!check_inform_parameter_events_list_corresponding(events_str_list, &(session->head_event_container)))
+			continue;
+
+		char *fault = cwmp_get_single_parameter_value(parameter_name, &cwmp_dm_param);
 		if (fault != NULL)
 			continue;
 		if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size)) {
 			MXML_DELETE(xml);
-			return;
-		}
-	}
-
-	if (cwmp->is_boot == true) {
-		for (j = 0; j < nbre_boot_inform; j++) {
-			char *fault = cwmp_get_single_parameter_value(boot_inform_parameters[j], &cwmp_dm_param);
-			if (fault != NULL)
-				continue;
-			if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size)) {
-				MXML_DELETE(xml);
-				return;
-			}
 		}
 	}
 

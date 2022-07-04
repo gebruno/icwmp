@@ -340,9 +340,6 @@ int build_inform_events(mxml_node_t *event, struct xml_data_struct *xml_attrs)
 	mxml_node_t *node, *b2;
 	char c[128];
 	unsigned int n = 0;
-	struct cwmp *cwmp = &cwmp_main;
-
-	cwmp->is_boot = false;
 
 	if (!event)
 		return -1;
@@ -357,8 +354,7 @@ int build_inform_events(mxml_node_t *event, struct xml_data_struct *xml_attrs)
 		b2 = mxmlNewElement(node, "EventCode");
 		if (!b2)
 			goto error;
-		if (xml_data->event_code == EVENT_IDX_0BOOTSTRAP || xml_data->event_code == EVENT_IDX_1BOOT)
-			cwmp->is_boot = true;
+
 		b2 = mxmlNewOpaque(b2, EVENT_CONST[xml_data->event_code].CODE);
 		if (!b2)
 			goto error;

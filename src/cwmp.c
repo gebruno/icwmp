@@ -597,123 +597,6 @@ static void *thread_http_cr_server_listen(void *v __attribute__((unused)))
 	return NULL;
 }
 
-void load_forced_inform_json_file(struct cwmp *cwmp)
-{
-	struct blob_buf bbuf;
-	struct blob_attr *cur;
-	struct blob_attr *custom_forced_inform_list = NULL;
-	int rem;
-
-	if (cwmp->conf.forced_inform_json_file == NULL || !file_exists(cwmp->conf.forced_inform_json_file))
-		return;
-
-	memset(&bbuf, 0, sizeof(struct blob_buf));
-	blob_buf_init(&bbuf, 0);
-
-	if (blobmsg_add_json_from_file(&bbuf, cwmp->conf.forced_inform_json_file) == false) {
-		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp->conf.forced_inform_json_file);
-		blob_buf_free(&bbuf);
-		return;
-	}
-	const struct blobmsg_policy p[1] = { { "forced_inform", BLOBMSG_TYPE_ARRAY } };
-	struct blob_attr *tb[1] = { NULL };
-	blobmsg_parse(p, 1, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
-	if (tb[0] == NULL) {
-		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a forced inform parameters list", cwmp->conf.custom_notify_json);
-		blob_buf_free(&bbuf);
-		return;
-	}
-
-	custom_forced_inform_list = tb[0];
-
-	blobmsg_for_each_attr(cur, custom_forced_inform_list, rem)
-	{
-		char parameter_path[128];
-		char *val = NULL;
-		snprintf(parameter_path, sizeof(parameter_path), "%s", blobmsg_get_string(cur));
-		if (parameter_path[strlen(parameter_path)-1] == '.') {
-			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Only leaf parameters are allowed.", parameter_path);
-			continue;
-		}
-		int fault = cwmp_get_leaf_value(parameter_path, &val);
-		if (fault != 0) {
-			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Wrong parameter path.", parameter_path);
-			continue;
-		}
-		custom_forced_inform_parameters[nbre_custom_inform++] = strdup(parameter_path);
-		FREE(val);
-	}
-	blob_buf_free(&bbuf);
-
-}
-
-void load_boot_inform_json_file(struct cwmp *cwmp)
-{
-	struct blob_buf bbuf;
-	struct blob_attr *cur;
-	struct blob_attr *custom_boot_inform_list = NULL;
-	int rem;
-
-	if (cwmp->conf.boot_inform_json_file == NULL || !file_exists(cwmp->conf.boot_inform_json_file))
-		return;
-
-	memset(&bbuf, 0, sizeof(struct blob_buf));
-	blob_buf_init(&bbuf, 0);
-
-	if (blobmsg_add_json_from_file(&bbuf, cwmp->conf.boot_inform_json_file) == false) {
-		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp->conf.boot_inform_json_file);
-		blob_buf_free(&bbuf);
-		return;
-	}
-
-	const struct blobmsg_policy p[1] = { { "boot_inform", BLOBMSG_TYPE_ARRAY } };
-	struct blob_attr *tb[1] = { NULL };
-	blobmsg_parse(p, 1, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
-
-	if (tb[0] == NULL) {
-		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a boot inform parameters list", cwmp->conf.custom_notify_json);
-		blob_buf_free(&bbuf);
-		return;
-	}
-
-	custom_boot_inform_list = tb[0];
-
-	blobmsg_for_each_attr(cur, custom_boot_inform_list, rem)
-	{
-		char parameter_path[128];
-		char *val = NULL;
-
-		snprintf(parameter_path, sizeof(parameter_path), "%s", blobmsg_get_string(cur));
-		if (parameter_path[strlen(parameter_path)-1] == '.') {
-			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Only leaf parameters are allowed.", parameter_path);
-			continue;
-		}
-		int fault = cwmp_get_leaf_value(parameter_path, &val);
-		if (fault != 0) {
-			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Wrong parameter path.", parameter_path);
-			continue;
-		}
-		boot_inform_parameters[nbre_boot_inform++] = strdup(parameter_path);
-		FREE(val);
-	}
-	blob_buf_free(&bbuf);
-}
-
-void clean_custom_inform_parameters()
-{
-	int i;
-	for (i=0; i < nbre_custom_inform; i++) {
-		free(custom_forced_inform_parameters[i]);
-		custom_forced_inform_parameters[i] = NULL;
-	}
-	nbre_custom_inform = 0;
-	for (i=0; i < nbre_boot_inform; i++) {
-		free(boot_inform_parameters[i]);
-		boot_inform_parameters[i] = NULL;
-	}
-	nbre_boot_inform = 0;
-}
-
 int create_cwmp_var_state_files()
 {
 	/*
@@ -860,8 +743,6 @@ static int cwmp_init(struct cwmp *cwmp)
 
 	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
 	cwmp_get_deviceid(cwmp);
-	load_forced_inform_json_file(cwmp);
-	load_boot_inform_json_file(cwmp);
 	load_custom_notify_json(cwmp);
 	init_list_param_notify();
 	get_nonce_key();
@@ -889,9 +770,7 @@ static void cwmp_free(struct cwmp *cwmp)
 	FREE(cwmp->conf.ubus_socket);
 	FREE(cwmp->conf.connection_request_path);
 	FREE(cwmp->conf.default_wan_iface);
-	FREE(cwmp->conf.forced_inform_json_file);
 	FREE(cwmp->conf.custom_notify_json);
-	FREE(cwmp->conf.boot_inform_json_file);
 	FREE(nonce_key);
 	clean_list_param_notify();
 	bkp_tree_clean();
@@ -901,7 +780,6 @@ static void cwmp_free(struct cwmp *cwmp)
 		ubus_free(ctx);
 	}
 
-	clean_custom_inform_parameters();
 	icwmp_cleanmem();
 	cwmp_uci_exit();
 }
