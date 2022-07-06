@@ -238,7 +238,7 @@ int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 	while (1) {
 		list_for_each (ilist, &(session->head_rpc_acs)) {
 			rpc_acs = list_entry(ilist, struct rpc, list);
-			if (rpc_acs_methods[rpc_acs->type].acs_support == RPC_ACS_NOT_SUPPORT) {
+			if ((rpc_acs->type != RPC_ACS_INFORM) && (rpc_acs_methods[rpc_acs->type].acs_support == RPC_ACS_NOT_SUPPORT)) {
 				CWMP_LOG(WARNING, "The RPC method %s is not included in the RPCs list supported by the ACS", rpc_acs_methods[rpc_acs->type].name);
 				continue;
 			}

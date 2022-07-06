@@ -617,7 +617,7 @@ void set_not_known_acs_support()
 {
 	int i;
 	for (i=1; i < __RPC_ACS_MAX; i++) {
-		if (rpc_acs_methods[i].acs_support == NOT_KNOWN)
+		if ((i != RPC_ACS_INFORM) && (rpc_acs_methods[i].acs_support == NOT_KNOWN))
 			rpc_acs_methods[i].acs_support = RPC_ACS_NOT_SUPPORT;
 	}
 }
