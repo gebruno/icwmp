@@ -38,16 +38,20 @@ static int reload_cmd(struct blob_buf *b)
 		blobmsg_add_u32(b, "status", 0);
 		blobmsg_add_string(b, "info", "Session running, reload at the end of the session");
 	} else {
+		int error = CWMP_OK;
 		pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 		cwmp_uci_reinit();
-		if (cwmp_apply_acs_changes() != CWMP_OK) {
-			// Exiting to avoid any race condition
-			CWMP_LOG(CRITIC, "cwmp service terminating");
-			exit(0);
-		}
+		error = cwmp_apply_acs_changes();
 		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
-		blobmsg_add_u32(b, "status", 0);
-		blobmsg_add_string(b, "info", "icwmpd config reloaded");
+		if (error != CWMP_OK) {
+			// Failed to load cwmp config
+			CWMP_LOG(ERROR, "cwmp failed to reload the configuration");
+			blobmsg_add_u32(b, "status", -1);
+			blobmsg_add_string(b, "info", "icwmpd config reload failed");
+		} else {
+			blobmsg_add_u32(b, "status", 0);
+			blobmsg_add_string(b, "info", "icwmpd config reloaded");
+		}
 	}
 
 	return 0;
@@ -98,6 +102,11 @@ static const struct blobmsg_policy icwmp_cmd_policy[] = {
 
 static int icwmp_command_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
+	if (cwmp_main.init_complete == false) {
+		CWMP_LOG(INFO, "Request can't be handled since icwmpd is still in init state");
+		return 0;
+	}
+
 	struct blob_attr *tb[__COMMAND_MAX] = {0};
 	struct blob_buf blob_command;
 	int ret = -1;
@@ -167,7 +176,7 @@ static time_t get_next_session_time()
 static void bb_add_icwmp_status(struct blob_buf *bb)
 {
 	void *tbl = blobmsg_open_table(bb, "cwmp");
-	bb_add_string(bb, "status", "up");
+	bb_add_string(bb, "status", cwmp_main.init_complete ? "up" : "init");
 	bb_add_string(bb, "start_time", get_time(cwmp_main.start_time));
 	bb_add_string(bb, "acs_url", cwmp_main.conf.acsurl);
 	blobmsg_close_table(bb, tbl);
@@ -302,6 +311,11 @@ static void icwmp_inform_event(struct ubus_context *ctx, struct ubus_request_dat
 
 static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
+	if (cwmp_main.init_complete == false) {
+		CWMP_LOG(INFO, "Inform can't be sent since icwmpd is still in init state");
+		return 0;
+	}
+
 	struct blob_attr *tb[__INFORM_MAX] = {0};
 	bool is_get_rpc = false;
 	char *event = "";

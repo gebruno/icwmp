@@ -3,6 +3,7 @@
 echo "preparation script"
 pwd
 . ./gitlab-ci/shared.sh
+. ./test/script/common.sh
 
 trap cleanup EXIT
 trap cleanup SIGINT
@@ -38,25 +39,36 @@ echo > ./funl-test-result.log
 echo > ./funl-test-debug.log
 test_num=0
 for test in $(ls -I "common.sh" -I "verify_custom_notifications.sh" test/script/); do
+	ret=0
 	test_num=$(( test_num + 1 ))
+
+	echo "#### Start $test ####" >> "$icwmp_master_log"
 	if ./test/script/"${test}"; then
 		echo "ok ${test_num} - ${test}" >> ./funl-test-result.log
+		remove_icwmp_log
+		echo "#### $test Done ####" >> "$icwmp_master_log"
 	else
 		echo "not ok ${test_num} - ${test}" >> ./funl-test-result.log
+		remove_icwmp_log
+		echo "#### $test Ended with error ####" >> "$icwmp_master_log"
+		ret=1
 	fi
+	echo "########### $test result $ret ##########"
 done
 
 echo "Stop all services"
 supervisorctl stop icwmpd
 
-cp test/files/etc/config/users /etc/config/
-cp test/files/etc/config/wireless /etc/config/
-
 echo "Verify Custom notifications"
+echo "#### Start custom_notifications ####" >> "$icwmp_master_log"
 if ./test/script/verify_custom_notifications.sh; then
 	echo "ok - verify_custom_notifications" >> ./funl-test-result.log
+	remove_icwmp_log
+	echo "#### Done custom_notifications ####" >> "$icwmp_master_log"
 else
 	echo "not ok - verify_custom_notifications" >> ./funl-test-result.log
+	remove_icwmp_log
+	echo "#### custom_notifications ended with error ####" >> "$icwmp_master_log"
 fi
 
 test_num=$(( test_num + 1 ))

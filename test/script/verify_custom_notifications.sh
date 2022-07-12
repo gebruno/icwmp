@@ -22,8 +22,8 @@ exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_va
 uci commit cwmp
 
 supervisorctl start icwmpd
+sleep 5
 check_cwmp_status
-sleep 2
 
 supervisorctl stop icwmpd
 
@@ -55,8 +55,8 @@ exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_in
 uci commit cwmp
 
 supervisorctl start icwmpd
-check_cwmp_status
 sleep 2
+check_cwmp_status
 
 supervisorctl stop icwmpd
 

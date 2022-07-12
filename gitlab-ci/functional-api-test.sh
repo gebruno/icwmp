@@ -19,6 +19,9 @@ supervisorctl restart all
 exec_cmd ubus wait_for usp.raw tr069
 supervisorctl status all
 
+# wait until cwmp status is up
+check_cwmp_status
+
 echo "Running the api test cases"
 ubus-api-validator -f ./test/api/json/tr069.validation.json > ./api-test-result.log
 check_ret $?

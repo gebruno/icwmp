@@ -30,6 +30,7 @@
 #endif
 
 #define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : -1)
+#define CWMP_STRDUP(S1) ((S1 != NULL) ? strdup(S1) : NULL)
 #define CWMP_STRLEN(S1) ((S1 != NULL) ? strlen(S1) : 0)
 
 #define CWMP_STRNCPY(DST, SRC, SIZE) \
@@ -141,6 +142,7 @@ typedef struct cwmp {
 	pthread_mutex_t mutex_session_queue;
 	struct session *session_send;
 	bool cwmp_cr_event;
+	bool init_complete;
 	pthread_mutex_t mutex_session_send;
 	pthread_cond_t threshold_session_send;
 	pthread_mutex_t mutex_periodic;
@@ -543,5 +545,6 @@ int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat);
 int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session);
 int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);
+bool uci_str_to_bool(char *value);
 
 #endif

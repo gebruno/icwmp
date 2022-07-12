@@ -30,6 +30,9 @@ static pthread_mutex_t mutex_log = PTHREAD_MUTEX_INITIALIZER;
 
 int log_set_severity_idx(char *value)
 {
+	if (value == NULL)
+		return 1;
+
 	int i;
 	for (i = 0; i < 8; i++) {
 		if (strstr(SEVERITY_NAMES[i], value) != NULL) {
@@ -62,33 +65,28 @@ int log_set_file_max_size(char *value)
 
 int log_set_on_console(char *value)
 {
-	if (strcmp(value, "enable") == 0) {
-		enable_log_stdout = true;
-	}
-	if (strcmp(value, "disable") == 0) {
-		enable_log_stdout = false;
-	}
+	if (value == NULL)
+		return 1;
+
+	enable_log_stdout = uci_str_to_bool(value);
 	return 1;
 }
 
 int log_set_on_file(char *value)
 {
-	if (strcmp(value, "enable") == 0) {
-		enable_log_file = true;
-	}
-	if (strcmp(value, "disable") == 0) {
-		enable_log_file = false;
-	}
+	if (value == NULL)
+		return 1;
+
+	enable_log_file = uci_str_to_bool(value);
 	return 1;
 }
 
 int log_set_on_syslog(char *value)
 {
-	if ((strcasecmp(value, "TRUE") == 0) || (strcmp(value, "1") == 0) || (strcasecmp(value, "enable") == 0)) {
-		enable_log_syslog = true;
-	} else {
-		enable_log_syslog = false;
-	}
+	if (value == NULL)
+		return 1;
+
+	enable_log_syslog = uci_str_to_bool(value);
 	return 1;
 }
 

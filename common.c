@@ -710,17 +710,20 @@ void ubus_network_interface_callback(struct ubus_request *req __attribute__((unu
 		cwmp_main.conf.interface = strdup(l3_device);
 	}
 
-	CWMP_LOG(INFO, "CWMP IFACE - interface: %s", cwmp_main.conf.interface);
+	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main.conf.interface);
 }
 
-int get_connection_interface()
+int get_connection_interface(char *iface)
 {
+	if (iface == NULL)
+		return -1;
+
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	char ubus_obj[100] = {0};
-	snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", cwmp_main.conf.default_wan_iface);
+	snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", iface);
 
 	FREE(cwmp_main.conf.interface);
 
@@ -728,11 +731,9 @@ int get_connection_interface()
 	blob_buf_free(&b);
 
 	if (e != 0) {
-		CWMP_LOG(INFO, "Get network interface from %s ubus method failed. Ubus err code: %d", ubus_obj, e);
 		return -1;
 	}
 	if (cwmp_main.conf.interface == NULL) {
-		CWMP_LOG(INFO, "Not able to get the network interface from %s ubus method.", ubus_obj);
 		return -1;
 	}
 	return CWMP_OK;
@@ -783,4 +784,19 @@ time_t convert_datetime_to_timestamp(char *value)
 	tm.tm_sec = sec;
 
 	return mktime(&tm);
+}
+
+bool uci_str_to_bool(char *value)
+{
+	if (!value)
+		return false;
+
+	if (strncasecmp(value, "true", 4) == 0 ||
+	    value[0] == '1' ||
+	    strncasecmp(value, "on", 2) == 0 ||
+	    strncasecmp(value, "yes", 3) == 0 ||
+	    strncasecmp(value, "enable", 6) == 0)
+		return true;
+
+	return false;
 }

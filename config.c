@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "common.h"
 #include "config.h"
 #include "log.h"
 #include "reboot.h"
@@ -146,84 +147,170 @@ static void get_dhcp_vendor_info(char *intf)
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
-	for (int i = 0; i < DHCP_OPTION_READ_MAX_RETRY; i++) {
-		char *vendor_info = NULL;
-		if (icwmp_ubus_invoke(ubus_obj, "status", b.head, get_dhcp_vend_info_cb, &vendor_info) == 0) {
-			CWMP_LOG(DEBUG, "vendor info: %s", vendor_info);
-			if (configure_dhcp_options(vendor_info)) {
-				FREE(vendor_info);
-				break;
-			}
-		}
-
-		FREE(vendor_info);
-		CWMP_LOG(INFO, "Failed to read dhcp acs url from ifstatus, retry after %d sec.", DHCP_OPTION_READ_INTERVAL);
-		sleep(DHCP_OPTION_READ_INTERVAL);
+	char *vendor_info = NULL;
+	if (icwmp_ubus_invoke(ubus_obj, "status", b.head, get_dhcp_vend_info_cb, &vendor_info) == 0) {
+		CWMP_LOG(DEBUG, "vendor info: %s", vendor_info);
+		configure_dhcp_options(vendor_info);
 	}
+
+	FREE(vendor_info);
 
 	blob_buf_free(&b);
 }
 
+static char* get_value_from_uci_option(struct uci_option *tb) {
+	if (tb == NULL)
+		return NULL;
+
+	if (tb->type == UCI_TYPE_STRING) {
+		return tb->v.string;
+	}
+
+	return NULL;
+}
+
+static void config_get_cpe_elements(struct config *conf, struct uci_section *s)
+{
+	enum {
+		UCI_CPE_UBUS_SOCKET_PATH,
+		UCI_CPE_LOG_FILE_NAME,
+		UCI_CPE_LOG_MAX_SIZE,
+		UCI_CPE_ENABLE_STDOUT_LOG,
+		UCI_CPE_ENABLE_FILE_LOG,
+		UCI_LOG_SEVERITY_PATH,
+		UCI_CPE_ENABLE_SYSLOG,
+		UCI_CPE_AMD_VERSION,
+		__MAX_NUM_UCI_CPE_ATTRS,
+	};
+
+	const struct uci_parse_option cpe_opts[] = {
+		{ .name = "ubus_socket", .type = UCI_TYPE_STRING },
+		{ .name = "log_file_name", .type = UCI_TYPE_STRING },
+		{ .name = "log_max_size", .type = UCI_TYPE_STRING },
+		{ .name = "log_to_console", .type = UCI_TYPE_STRING },
+		{ .name = "log_to_file", .type = UCI_TYPE_STRING },
+		{ .name = "log_severity", .type = UCI_TYPE_STRING },
+		{ .name = "log_to_syslog", .type = UCI_TYPE_STRING },
+		{ .name = "amd_version", .type = UCI_TYPE_STRING },
+	};
+
+	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS] = {0};
+	uci_parse_section(s, cpe_opts, __MAX_NUM_UCI_CPE_ATTRS, cpe_tb);
+
+	conf->ubus_socket = CWMP_STRDUP(get_value_from_uci_option(cpe_tb[UCI_CPE_UBUS_SOCKET_PATH]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - ubus socket: %s", conf->ubus_socket ? conf->ubus_socket : "");
+
+	log_set_log_file_name(get_value_from_uci_option(cpe_tb[UCI_CPE_LOG_FILE_NAME]));
+
+	log_set_file_max_size(get_value_from_uci_option(cpe_tb[UCI_CPE_LOG_MAX_SIZE]));
+
+	log_set_on_console(get_value_from_uci_option(cpe_tb[UCI_CPE_ENABLE_STDOUT_LOG]));
+
+	log_set_on_file(get_value_from_uci_option(cpe_tb[UCI_CPE_ENABLE_FILE_LOG]));
+
+	log_set_severity_idx(get_value_from_uci_option(cpe_tb[UCI_LOG_SEVERITY_PATH]));
+
+	log_set_on_syslog(get_value_from_uci_option(cpe_tb[UCI_CPE_ENABLE_SYSLOG]));
+
+	conf->amd_version = DEFAULT_AMD_VERSION;
+	char *version = get_value_from_uci_option(cpe_tb[UCI_CPE_AMD_VERSION]);
+	if (version != NULL) {
+		int a = atoi(version);
+		if (a >= 1 && a <= 6) {
+			conf->amd_version = a;
+		}
+	}
+	conf->supported_amd_version = conf->amd_version;
+	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", conf->amd_version);
+}
+
+static void config_get_acs_elements(struct config *conf, struct uci_section *s)
+{
+	enum {
+		UCI_ACS_IPV6_ENABLE,
+		UCI_ACS_SSL_CAPATH,
+		HTTP_DISABLE_100CONTINUE,
+		UCI_ACS_INSECURE_ENABLE,
+		__MAX_NUM_UCI_ACS_ATTRS,
+	};
+
+	const struct uci_parse_option acs_opts[] = {
+		{ .name = "ipv6_enable", .type = UCI_TYPE_STRING },
+		{ .name = "ssl_capath", .type = UCI_TYPE_STRING },
+		{ .name = "http_disable_100continue", .type = UCI_TYPE_STRING },
+		{ .name = "insecure_enable", .type = UCI_TYPE_STRING },
+	};
+
+	struct uci_option *acs_tb[__MAX_NUM_UCI_ACS_ATTRS];
+	memset(acs_tb, 0, sizeof(acs_tb));
+	uci_parse_section(s, acs_opts, __MAX_NUM_UCI_ACS_ATTRS, acs_tb);
+
+	conf->ipv6_enable = uci_str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_IPV6_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - ipv6 enable: %d", conf->ipv6_enable);
+
+	conf->acs_ssl_capath = CWMP_STRDUP(get_value_from_uci_option(acs_tb[UCI_ACS_SSL_CAPATH]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs ssl cpath: %s", conf->acs_ssl_capath ? conf->acs_ssl_capath : "");
+
+	conf->http_disable_100continue = uci_str_to_bool(get_value_from_uci_option(acs_tb[HTTP_DISABLE_100CONTINUE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - http disable 100continue: %d", conf->http_disable_100continue);
+
+	conf->insecure_enable = uci_str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_INSECURE_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs insecure enable: %d", conf->insecure_enable);
+}
+
+int get_preinit_config(struct config *conf)
+{
+	struct uci_context *ctx;
+	struct uci_package *pkg;
+	struct uci_element *e;
+
+	ctx = uci_alloc_context();
+	if (!ctx)
+		return CWMP_GEN_ERR;
+
+	if (uci_load(ctx, "cwmp", &pkg)) {
+		uci_free_context(ctx);
+		return CWMP_GEN_ERR;
+	}
+
+	uci_foreach_element(&pkg->sections, e) {
+		struct uci_section *s = uci_to_section(e);
+		if (strcmp(s->type, "acs") == 0) {
+			config_get_acs_elements(conf, s);
+		} else if (strcmp(s->type, "cpe") == 0) {
+			config_get_cpe_elements(conf, s);
+		}
+	}
+
+	uci_free_context(ctx);
+	return CWMP_OK;
+}
+
+static char* get_alternate_option_value(bool discovery_enable, char *acs_val, char *dhcp_val)
+{
+	if ((discovery_enable == true || CWMP_STRLEN(acs_val) == 0) && (CWMP_STRLEN(dhcp_val) != 0)) {
+		return dhcp_val;
+	} else if (CWMP_STRLEN(acs_val) != 0) {
+		return acs_val;
+	}
+
+	return NULL;
+}
+
 int get_global_config(struct config *conf)
 {
-	int error, error2, error3;
+	int error;
 	char *value = NULL, *value2 = NULL, *value3 = NULL;
 
-	if ((error = uci_get_value(UCI_CPE_LOG_FILE_NAME, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			log_set_log_file_name(value);
+	if ((error = uci_get_value(UCI_CPE_CWMP_ENABLE, &value)) == CWMP_OK) {
+		if (value != NULL && uci_str_to_bool(value) == false) {
 			FREE(value);
-		} else
-			log_set_log_file_name(NULL);
-	} else {
-		log_set_log_file_name(NULL);
-	}
-
-	if ((error = uci_get_value(UCI_CPE_LOG_MAX_SIZE, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			log_set_file_max_size(value);
-			FREE(value);
-		} else
-			log_set_file_max_size(NULL);
-	} else {
-		log_set_file_max_size(NULL);
-	}
-
-	if ((error = uci_get_value(UCI_CPE_ENABLE_STDOUT_LOG, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			log_set_on_console(value);
-			FREE(value);
+			CWMP_LOG(ERROR, "CWMP service is disabled");
+			exit(0);
 		}
-	} else {
-		return error;
 	}
 
-	if ((error = uci_get_value(UCI_CPE_ENABLE_FILE_LOG, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			log_set_on_file(value);
-			FREE(value);
-		}
-	} else {
-		return error;
-	}
-
-	if ((error = uci_get_value(UCI_LOG_SEVERITY_PATH, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			log_set_severity_idx(value);
-			FREE(value);
-		}
-	} else {
-		return error;
-	}
-
-	if ((error = uci_get_value(UCI_CPE_ENABLE_SYSLOG, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			log_set_on_syslog(value);
-			FREE(value);
-		}
-	} else {
-		return error;
-	}
+	FREE(value);
 
 	if ((error = uci_get_value(UCI_CPE_DEFAULT_WAN_IFACE, &value)) == CWMP_OK) {
 		FREE(conf->default_wan_iface);
@@ -233,39 +320,37 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->default_wan_iface = strdup("wan");
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", conf->default_wan_iface ? conf->default_wan_iface : "");
 	} else {
 		return error;
 	}
 
+	error = get_connection_interface(conf->default_wan_iface);
+	if (error != CWMP_OK)
+		return error;
+
+	bool discovery_enable = false;
 	error = uci_get_value(UCI_DHCP_DISCOVERY_PATH, &value);
 
 	// now read the vendor info from ifstatus before reading the DHCP_ACS_URL from uci
 	if (error == CWMP_OK && value != NULL) {
-		if (strcmp(value, "enable") == 0 && conf->default_wan_iface != NULL) {
+		discovery_enable = uci_str_to_bool(value);
+		if (discovery_enable == true && conf->default_wan_iface != NULL) {
 			get_dhcp_vendor_info(conf->default_wan_iface);
 		}
 	}
+	FREE(value);
 
-	error2 = uci_get_value(UCI_ACS_URL_PATH, &value2);
-	error3 = uci_get_value(UCI_DHCP_ACS_URL, &value3);
+	uci_get_value(UCI_ACS_URL_PATH, &value2);
+	uci_get_value(UCI_DHCP_ACS_URL, &value3);
 
 	FREE(conf->acsurl);
-	if ((((error == CWMP_OK) && (value != NULL) && (strcmp(value, "enable") == 0)) || ((error2 == CWMP_OK) && ((value2 == NULL) || (value2[0] == 0)))) && ((error3 == CWMP_OK) && (value3 != NULL) && (value3[0] != 0))) {
-		conf->acsurl = strdup(value3);
-	} else if ((error2 == CWMP_OK) && (value2 != NULL) && (value2[0] != 0)) {
-		conf->acsurl = strdup(value2);
-	}
+	conf->acsurl = CWMP_STRDUP(get_alternate_option_value(discovery_enable, value2, value3));
 
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs url: %s", conf->acsurl ? conf->acsurl : "");
-	FREE(value);
 	FREE(value2);
 	FREE(value3);
 
 	if (conf->acsurl == NULL) {
-		CWMP_LOG(ERROR, "ACS URL is Null");
-		return -1;
+		return CWMP_GEN_ERR;
 	}
 
 	if ((error = uci_get_value(UCI_ACS_USERID_PATH, &value)) == CWMP_OK) {
@@ -274,8 +359,6 @@ int get_global_config(struct config *conf)
 			conf->acs_userid = strdup(value);
 			FREE(value);
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - acs username: %s", conf->acs_userid ? conf->acs_userid : "");
 	} else {
 		return error;
 	}
@@ -286,24 +369,6 @@ int get_global_config(struct config *conf)
 			conf->acs_passwd = strdup(value);
 			FREE(value);
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - acs password: %s", conf->acs_passwd ? conf->acs_passwd : "");
-	} else {
-		return error;
-	}
-
-	if ((error = uci_get_value(UCI_CPE_AMD_VERSION, &value)) == CWMP_OK) {
-		conf->amd_version = DEFAULT_AMD_VERSION;
-		if (value != NULL) {
-			int a = atoi(value);
-			if (a >= 1) {
-				conf->amd_version = a;
-			}
-			FREE(value);
-		}
-		conf->supported_amd_version = conf->amd_version;
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", conf->amd_version);
 	} else {
 		return error;
 	}
@@ -320,91 +385,43 @@ int get_global_config(struct config *conf)
 			}
 		}
 		FREE(value);
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - acs compression: %d", conf->compression);
 	} else {
 		conf->compression = COMP_NONE;
 	}
 
-	if ((error = uci_get_value(UCI_ACS_RETRY_MIN_WAIT_INTERVAL, &value)) == CWMP_OK) {
-		conf->retry_min_wait_interval = DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
-		if (conf->amd_version >= AMD_3 && value != NULL) {
-			int a = atoi(value);
+	conf->retry_min_wait_interval = DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
+	uci_get_value(UCI_ACS_RETRY_MIN_WAIT_INTERVAL, &value2);
+	uci_get_value(UCI_DHCP_ACS_RETRY_MIN_WAIT_INTERVAL, &value3);
+
+	char *op_interval = get_alternate_option_value(discovery_enable, value2, value3);
+	if (op_interval != NULL) {
+		if (conf->amd_version >= AMD_3) {
+			int a = atoi(op_interval);
 			if (a <= 65535 && a >= 1) {
 				conf->retry_min_wait_interval = a;
 			}
 		}
-		FREE(value);
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - acs retry minimum wait interval: %d", conf->retry_min_wait_interval);
-	} else {
-		return error;
 	}
 
-	if ((error = uci_get_value(UCI_ACS_RETRY_INTERVAL_MULTIPLIER, &value)) == CWMP_OK) {
-		conf->retry_interval_multiplier = DEFAULT_RETRY_INTERVAL_MULTIPLIER;
-		if (conf->amd_version >= AMD_3 && value != NULL) {
-			int a = atoi(value);
+	FREE(value2);
+	FREE(value3);
+
+	conf->retry_interval_multiplier = DEFAULT_RETRY_INTERVAL_MULTIPLIER;
+	uci_get_value(UCI_ACS_RETRY_INTERVAL_MULTIPLIER, &value2);
+	uci_get_value(UCI_DHCP_ACS_RETRY_INTERVAL_MULTIPLIER, &value3);
+
+	char *op_multi = get_alternate_option_value(discovery_enable, value2, value3);
+	if (op_multi != NULL) {
+		if (conf->amd_version >= AMD_3) {
+			int a = atoi(op_multi);
 			if (a <= 65535 && a >= 1000) {
 				conf->retry_interval_multiplier = a;
 			}
 		}
-		FREE(value);
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - acs retry interval: %d", conf->retry_interval_multiplier);
-	} else {
-		return error;
 	}
 
-	if ((error = uci_get_value(UCI_ACS_SSL_CAPATH, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			FREE(conf->acs_ssl_capath);
-			conf->acs_ssl_capath = strdup(value);
-			FREE(value);
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - acs ssl cpath: %s", conf->acs_ssl_capath ? conf->acs_ssl_capath : "");
-	} else {
-		return error;
-	}
-
-	if ((error = uci_get_value(HTTP_DISABLE_100CONTINUE, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			if ((strcasecmp(value, "true") == 0) || (strcmp(value, "1") == 0))
-				conf->http_disable_100continue = true;
-			FREE(value);
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - http disable 100continue: %d", conf->http_disable_100continue);
-	} else {
-		return error;
-	}
-
-	if ((error = uci_get_value(UCI_ACS_INSECURE_ENABLE, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			if ((strcasecmp(value, "true") == 0) || (strcmp(value, "1") == 0)) {
-				conf->insecure_enable = true;
-			}
-			FREE(value);
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - acs insecure enable: %d", conf->insecure_enable);
-	} else {
-		return error;
-	}
-
-	if ((error = uci_get_value(UCI_ACS_IPV6_ENABLE, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			if ((strcasecmp(value, "true") == 0) || (strcmp(value, "1") == 0)) {
-				conf->ipv6_enable = true;
-			}
-			FREE(value);
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - ipv6 enable: %d", conf->ipv6_enable);
-	} else {
-		return error;
-	}
+	FREE(value2);
+	FREE(value3);
 
 	if ((error = uci_get_value(UCI_CPE_USERID_PATH, &value)) == CWMP_OK) {
 		FREE(conf->cpe_userid);
@@ -414,8 +431,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->cpe_userid = strdup("");
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - cpe username: %s", conf->cpe_userid ? conf->cpe_userid : "");
 	} else {
 		return error;
 	}
@@ -428,20 +443,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->cpe_passwd = strdup("");
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - cpe password: %s", conf->cpe_passwd ? conf->cpe_passwd : "");
-	} else {
-		return error;
-	}
-
-	if ((error = uci_get_value(UCI_CPE_UBUS_SOCKET_PATH, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			FREE(conf->ubus_socket);
-			conf->ubus_socket = strdup(value);
-			FREE(value);
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - ubus socket: %s", conf->ubus_socket ? conf->ubus_socket : "");
 	} else {
 		return error;
 	}
@@ -460,8 +461,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->connection_request_port = a;
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - connection request port: %d", conf->connection_request_port);
 	} else {
 		return error;
 	}
@@ -480,8 +479,6 @@ int get_global_config(struct config *conf)
 			}
 			FREE(value);
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - connection request: %s", conf->connection_request_path ? conf->connection_request_path : "");
 	} else {
 		return error;
 	}
@@ -489,16 +486,10 @@ int get_global_config(struct config *conf)
 	if ((error = uci_get_value(UCI_CPE_NOTIFY_PERIODIC_ENABLE, &value)) == CWMP_OK) {
 		bool a = true;
 		if (value != NULL) {
-			if ((strcasecmp(value, "FALSE") == 0) || (strcmp(value, "0") == 0)) {
-				a = false;
-			} else {
-				a = true;
-			}
+			a = uci_str_to_bool(value);
 			FREE(value);
 		}
 		conf->periodic_notify_enable = a;
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - periodic notifiy enable: %d", conf->periodic_notify_enable);
 	} else {
 		return error;
 	}
@@ -517,8 +508,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->periodic_notify_interval = a;
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - periodic notifiy interval: %d", conf->periodic_notify_interval);
 	} else {
 		return error;
 	}
@@ -530,8 +519,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->time = 0;
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - periodic inform time: %ld", conf->time);
 	} else {
 		return error;
 	}
@@ -556,25 +543,13 @@ int get_global_config(struct config *conf)
 			CWMP_LOG(ERROR, "Period interval of periodic inform should be > %ds. Set to default: %ds", PERIOD_INFORM_MIN, PERIOD_INFORM_DEFAULT);
 			conf->period = PERIOD_INFORM_DEFAULT;
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - periodic inform interval: %d", conf->period);
 	} else {
 		return error;
 	}
 
 	if ((error = uci_get_value(UCI_PERIODIC_INFORM_ENABLE_PATH, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			if ((strcasecmp(value, "TRUE") == 0) || (strcmp(value, "1") == 0)) {
-				conf->periodic_enable = true;
-			} else {
-				conf->periodic_enable = false;
-			}
-			FREE(value);
-		} else {
-			conf->periodic_enable = false;
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - periodic inform enable: %d", conf->periodic_enable);
+		conf->periodic_enable = uci_str_to_bool(value);
+		FREE(value);
 	} else {
 		return error;
 	}
@@ -590,8 +565,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->instance_mode = DEFAULT_INSTANCE_MODE;
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - instance mode: %d (InstanceNumber=0, InstanceAlias=1)", conf->instance_mode);
 	} else {
 		return error;
 	}
@@ -605,25 +578,13 @@ int get_global_config(struct config *conf)
 			}
 			FREE(value);
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - session timeout: %d", conf->session_timeout);
 	} else {
 		return error;
 	}
 
 	if ((error = uci_get_value(LW_NOTIFICATION_ENABLE, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			if ((strcasecmp(value, "TRUE") == 0) || (strcmp(value, "1") == 0)) {
-				conf->lw_notification_enable = true;
-			} else {
-				conf->lw_notification_enable = false;
-			}
-			FREE(value);
-		} else {
-			conf->lw_notification_enable = false;
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - lightweight notification enable: %d", conf->lw_notification_enable);
+		conf->lw_notification_enable = uci_str_to_bool(value);
+		FREE(value);
 	} else {
 		return error;
 	}
@@ -636,8 +597,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->lw_notification_hostname = strdup(conf->acsurl ? conf->acsurl : "");
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - lightweight notification hostname: %s", conf->lw_notification_hostname ? conf->lw_notification_hostname : "");
 	} else {
 		return error;
 	}
@@ -650,8 +609,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->lw_notification_port = DEFAULT_LWN_PORT;
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - lightweight notification port: %d", conf->lw_notification_port);
 	} else {
 		return error;
 	}
@@ -663,8 +620,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->schedule_reboot = 0;
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - schedule reboot: %ld", conf->schedule_reboot);
 	} else {
 		return error;
 	}
@@ -678,8 +633,6 @@ int get_global_config(struct config *conf)
 		}
 
 		conf->delay_reboot = delay;
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - delay reboot: %d", conf->delay_reboot);
 	} else {
 		return error;
 	}
@@ -692,9 +645,6 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->forced_inform_json_file = NULL;
 		}
-		if (conf->forced_inform_json_file) {
-			CWMP_LOG(DEBUG, "CWMP CONFIG - cpe forced inform json file: %s", conf->forced_inform_json_file);
-		}
 	}
 	if (uci_get_value(UCI_CPE_BOOT_INFORM_JSON, &value) == CWMP_OK) {
 		FREE(conf->boot_inform_json_file);
@@ -703,9 +653,6 @@ int get_global_config(struct config *conf)
 			FREE(value);
 		} else {
 			conf->boot_inform_json_file = NULL;
-		}
-		if (conf->boot_inform_json_file) {
-			CWMP_LOG(DEBUG, "CWMP CONFIG - cpe boot inform json file: %s", conf->forced_inform_json_file);
 		}
 	}
 	if (uci_get_value(UCI_CPE_JSON_CUSTOM_NOTIFY_FILE, &value) == CWMP_OK) {
@@ -716,24 +663,11 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->custom_notify_json = NULL;
 		}
-		if (conf->custom_notify_json) {
-			CWMP_LOG(DEBUG, "CWMP CONFIG - cpe json custom notify file: %s", conf->custom_notify_json);
-		}
 	}
 
 	if ((error = uci_get_value(UCI_ACS_HEARTBEAT_ENABLE, &value)) == CWMP_OK) {
-		if (value != NULL) {
-			if ((strcasecmp(value, "true") == 0) || (strcmp(value, "1") == 0)) {
-				conf->heart_beat_enable = true;
-			} else {
-				conf->heart_beat_enable = false;
-			}
-			FREE(value);
-		} else {
-			conf->heart_beat_enable = false;
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - heart beat enable: %d ", conf->heart_beat_enable);
+		conf->heart_beat_enable = uci_str_to_bool(value);
+		FREE(value);
 	} else {
 		return error;
 	}
@@ -746,8 +680,6 @@ int get_global_config(struct config *conf)
 			FREE(value);
 		}
 		conf->heartbeat_interval = a;
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - heart beat interval: %d ", conf->heartbeat_interval);
 	} else {
 		return error;
 	}
@@ -759,34 +691,9 @@ int get_global_config(struct config *conf)
 		} else {
 			conf->heart_time = 0;
 		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - heart beat time: %d ", conf->heart_time);
 	} else {
 		return error;
 	}
-	return CWMP_OK;
-}
-
-int reload_networking_config()
-{
-	int error;
-	char *value = NULL;
-	if ((error = uci_get_value(UCI_CPE_DEFAULT_WAN_IFACE, &value)) == CWMP_OK) {
-		FREE(cwmp_main.conf.default_wan_iface);
-		if (value != NULL) {
-			cwmp_main.conf.default_wan_iface = strdup(value);
-			FREE(value);
-		} else {
-			cwmp_main.conf.default_wan_iface = strdup("wan");
-		}
-
-		CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", cwmp_main.conf.default_wan_iface ? cwmp_main.conf.default_wan_iface : "");
-	} else {
-		return error;
-	}
-
-	if (get_connection_interface() == -1)
-		return -1;
 	return CWMP_OK;
 }
 
@@ -796,18 +703,12 @@ int global_conf_init(struct cwmp *cwmp)
 
 	pthread_mutex_lock(&mutex_config_load);
 
-	if ((error = get_global_config(&(cwmp->conf))))
+	if ((error = get_global_config(&(cwmp->conf)))) {
+		cwmp->init_complete = false;
 		goto end;
-
-	error = get_connection_interface();
-	while (error != CWMP_OK && thread_end != true) {
-		usleep(500);
-		error = get_connection_interface();
 	}
 
-	if (error != CWMP_OK)
-		goto end;
-
+	cwmp->init_complete = true;
 	/* Launch reboot methods if needed */
 	launch_reboot_methods(cwmp);
 
@@ -815,6 +716,20 @@ end:
 	pthread_mutex_unlock(&mutex_config_load);
 
 	return error;
+}
+
+void cwmp_config_load(struct cwmp *cwmp)
+{
+	int ret;
+
+	cwmp_uci_reinit();
+	ret = global_conf_init(cwmp);
+	while (ret != CWMP_OK && thread_end != true) {
+		CWMP_LOG(DEBUG, "Error reading uci ret = %d", ret);
+		sleep(UCI_OPTION_READ_INTERVAL);
+		cwmp_uci_reinit();
+		ret = global_conf_init(cwmp);
+	}
 }
 
 int cwmp_get_deviceid(struct cwmp *cwmp)

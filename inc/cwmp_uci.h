@@ -24,26 +24,15 @@
 #define UCI_PERIODIC_INFORM_ENABLE_PATH "cwmp.acs.periodic_inform_enable"
 #define UCI_ACS_USERID_PATH "cwmp.acs.userid"
 #define UCI_ACS_PASSWD_PATH "cwmp.acs.passwd"
-#define UCI_ACS_SSL_CAPATH "cwmp.acs.ssl_capath"
-#define UCI_ACS_INSECURE_ENABLE "cwmp.acs.insecure_enable"
-#define UCI_ACS_IPV6_ENABLE "cwmp.acs.ipv6_enable"
 #define UCI_ACS_COMPRESSION "cwmp.acs.compression"
 #define UCI_ACS_RETRY_MIN_WAIT_INTERVAL "cwmp.acs.retry_min_wait_interval"
-#define HTTP_DISABLE_100CONTINUE "cwmp.acs.http_disable_100continue"
 #define UCI_ACS_RETRY_INTERVAL_MULTIPLIER "cwmp.acs.retry_interval_multiplier"
-#define UCI_LOG_SEVERITY_PATH "cwmp.cpe.log_severity"
 #define UCI_CPE_USERID_PATH "cwmp.cpe.userid"
 #define UCI_CPE_PASSWD_PATH "cwmp.cpe.passwd"
-#define UCI_CPE_UBUS_SOCKET_PATH "cwmp.cpe.ubus_socket"
+#define UCI_CPE_CWMP_ENABLE "cwmp.cpe.enable"
 #define UCI_CPE_PORT_PATH "cwmp.cpe.port"
 #define UCI_CPE_DEFAULT_WAN_IFACE "cwmp.cpe.default_wan_interface"
 #define UCI_CPE_CRPATH_PATH "cwmp.cpe.path"
-#define UCI_CPE_LOG_FILE_NAME "cwmp.cpe.log_file_name"
-#define UCI_CPE_LOG_MAX_SIZE "cwmp.cpe.log_max_size"
-#define UCI_CPE_ENABLE_STDOUT_LOG "cwmp.cpe.log_to_console"
-#define UCI_CPE_ENABLE_FILE_LOG "cwmp.cpe.log_to_file"
-#define UCI_CPE_ENABLE_SYSLOG "cwmp.cpe.log_to_syslog"
-#define UCI_CPE_AMD_VERSION "cwmp.cpe.amd_version"
 #define UCI_CPE_INSTANCE_MODE "cwmp.cpe.instance_mode"
 #define UCI_CPE_SESSION_TIMEOUT "cwmp.cpe.session_timeout"
 #define UCI_CPE_EXEC_DOWNLOAD "cwmp.cpe.exec_download"
@@ -72,7 +61,7 @@
 #define ETC_DB_CONFIG "/etc/board-db/config"
 #define VARSTATE_CONFIG "/var/state"
 #define DHCP_OPTION_READ_MAX_RETRY 5
-#define DHCP_OPTION_READ_INTERVAL 5
+#define UCI_OPTION_READ_INTERVAL 5
 
 #define section_name(s) s ? (s)->e.name : ""
 typedef enum uci_config_paths

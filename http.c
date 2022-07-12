@@ -55,13 +55,13 @@ int http_client_init(struct cwmp *cwmp)
 				return -1;
 			}
 		} else {
-			if (icwmp_asprintf(&http_c.url, "%s", cwmp->conf.acsurl) == -1) {
+			if (cwmp->conf.acsurl == NULL || icwmp_asprintf(&http_c.url, "%s", cwmp->conf.acsurl) == -1) {
 				FREE(dhcp_dis);
 				return -1;
 			}
 		}
 	} else {
-		if (icwmp_asprintf(&http_c.url, "%s", cwmp->conf.acsurl) == -1) {
+		if (cwmp->conf.acsurl == NULL || icwmp_asprintf(&http_c.url, "%s", cwmp->conf.acsurl) == -1) {
 			FREE(dhcp_dis);
 			return -1;
 		}

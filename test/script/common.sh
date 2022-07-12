@@ -2,6 +2,7 @@
 
 connection_request_path="http://localhost:7557/devices/XXX-FirstClass-000000001/tasks?timeout=3000&connection_request"
 icwmp_log_file="/var/log/icwmpd.log"
+icwmp_master_log="icwmpd_debug.txt"
 last_req=0
 
 valid_request()
@@ -50,8 +51,11 @@ function check_session()
 
 function remove_icwmp_log()
 {
-	rm -f $icwmp_log_file
+	if [ -f "$icwmp_log_file" ]; then
+		cat "$icwmp_log_file" >> "$icwmp_master_log"
+	fi
 
+	rm -f $icwmp_log_file
 	if [ -f "$icwmp_log_file" ]; then
 		echo "$icwmp_log_file exists" >> ./funl-test-debug.log
 		exit 1

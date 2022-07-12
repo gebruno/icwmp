@@ -81,7 +81,7 @@ function check_cwmp_status()
 	while [ $iter -lt 10 ]
 	do
 		status=`ubus call tr069 status | jq -r ".cwmp.status"`
-		if [ $status == "up" ]; then
+		if [ "${status}" == "up" ]; then
 			state=1
 			break
 		fi

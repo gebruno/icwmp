@@ -96,9 +96,16 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 				continue;
 			}
 
-			cwmp_uci_init();
-			if (heart_beat_session_status.last_status == SESSION_FAILURE)
-				reload_networking_config();
+			if (heart_beat_session_status.last_status == SESSION_FAILURE) {
+				cwmp_config_load(&cwmp_main);
+				if (thread_end) {
+					cwmp_session_destructor(heartbeat_session);
+					pthread_mutex_unlock(&mutex_heartbeat_session);
+					pthread_mutex_unlock(&mutex_heartbeat);
+					continue;
+				}
+			}
+
 			heart_beat_session_status.last_end_time = 0;
 			heart_beat_session_status.last_start_time = time(NULL);
 			heart_beat_session_status.last_status = SESSION_RUNNING;
@@ -107,15 +114,16 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			if (file_exists(fc_cookies))
 				remove(fc_cookies);
 
+			cwmp_uci_init();
 			CWMP_LOG(INFO, "Start HEARTBEAT session");
 			int error = cwmp_schedule_rpc(&cwmp_main, heartbeat_session);
 			CWMP_LOG(INFO, "End HEARTBEAT session");
+			cwmp_uci_exit();
 
 			if (thread_end) {
 				event_remove_all_event_container(heartbeat_session, RPC_SEND);
 				run_session_end_func();
 				cwmp_session_destructor(heartbeat_session);
-				cwmp_uci_exit();
 				pthread_mutex_unlock(&(cwmp_main.mutex_session_send));
 				pthread_mutex_unlock(&mutex_heartbeat);
 				// Exiting to avoid race conditions
@@ -123,8 +131,8 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			}
 
 			if (error || heartbeat_session->error == CWMP_RETRY_SESSION) {
+				cwmp_config_load(&cwmp_main);
 				heart_beat_retry_count_session++;
-				reload_networking_config();
 				run_session_end_func();
 				CWMP_LOG(INFO, "Retry HEARTBEAT session, retry count = %d, retry in %ds", cwmp_main.retry_count_session, cwmp_get_retry_interval(&cwmp_main, 1));
 				heart_beat_session_status.last_end_time = time(NULL);
@@ -132,7 +140,6 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 				heart_beat_session_status.next_retry = time(NULL) + cwmp_get_retry_interval(&cwmp_main, 1);
 				heartbeat_interval.tv_sec = time(NULL) + cwmp_get_retry_interval(&cwmp_main, 1);
 				heart_beat_session_status.failure_session++;
-				cwmp_uci_exit();
 				pthread_mutex_unlock(&mutex_heartbeat_session);
 				pthread_mutex_unlock(&mutex_heartbeat);
 				continue;
@@ -146,7 +153,6 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			heart_beat_session_status.next_retry = 0;
 			heart_beat_session_status.success_session++;
 			heartbeat_interval.tv_sec = time(NULL) + cwmp_main.conf.heartbeat_interval;
-			cwmp_uci_exit();
 			pthread_mutex_unlock(&mutex_heartbeat_session);
 			pthread_mutex_unlock(&mutex_heartbeat);
 		} else {

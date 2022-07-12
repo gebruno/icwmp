@@ -176,7 +176,7 @@ int cwmp_root_cause_event_bootstrap(struct cwmp *cwmp)
 	if (acsurl == NULL)
 		save_acs_bkp_config(cwmp);
 
-	if (acsurl == NULL || ((cmp = strcmp(cwmp->conf.acsurl, acsurl)) != 0)) {
+	if (acsurl == NULL || ((cmp = CWMP_STRCMP(cwmp->conf.acsurl, acsurl)) != 0)) {
 		pthread_mutex_lock(&(cwmp->mutex_session_queue));
 		if (cwmp->head_event_container != NULL && cwmp->head_session_queue.next != &(cwmp->head_session_queue)) {
 			struct session *session;

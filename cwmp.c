@@ -343,9 +343,7 @@ int run_session_end_func(void)
 		CWMP_LOG(INFO, "Config reload: end session request");
 		cwmp_uci_reinit();
 		if (cwmp_apply_acs_changes() != CWMP_OK) {
-			// calling exit to avoid race condition
-			CWMP_LOG(CRITIC, "terminating cwmp service");
-			exit(0);
+			CWMP_LOG(ERROR, "config reload failed at session end");
 		}
 		check_trigger_heartbeat_session();
 	}
@@ -467,9 +465,15 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 			retry = false;
 		}
 		pthread_mutex_lock(&mutex_heartbeat_session);
-		cwmp_uci_init();
-		if (cwmp->session_status.last_status == SESSION_FAILURE)
-			reload_networking_config();
+		if (cwmp->session_status.last_status == SESSION_FAILURE) {
+			cwmp_config_load(cwmp);
+			if (thread_end) {
+				pthread_mutex_unlock(&mutex_heartbeat_session);
+				pthread_mutex_unlock(&(cwmp->mutex_session_send));
+				return;
+			}
+		}
+
 		session = list_entry(ilist, struct session, list);
 		if (file_exists(DM_ENABLED_NOTIFY)) {
 			if (!event_exist_in_list(cwmp, EVENT_IDX_4VALUE_CHANGE))
@@ -493,6 +497,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 
 		if (file_exists(fc_cookies))
 			remove(fc_cookies);
+		cwmp_uci_init();
 		CWMP_LOG(INFO, "Start session");
 
 		uci_get_value(UCI_CPE_EXEC_DOWNLOAD, &exec_download);
@@ -504,17 +509,28 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		FREE(exec_download);
 		error = cwmp_schedule_rpc(cwmp, session);
 		CWMP_LOG(INFO, "End session");
+		cwmp_uci_exit();
 
 		if (thread_end) {
 			event_remove_all_event_container(session, RPC_SEND);
 			run_session_end_func();
 			cwmp_session_destructor(session);
+			pthread_mutex_unlock(&mutex_heartbeat_session);
 			pthread_mutex_unlock(&(cwmp->mutex_session_send));
 			return;
 		}
 
 		if (session->error == CWMP_RETRY_SESSION && (!list_empty(&(session->head_event_container)) || (list_empty(&(session->head_event_container)) && cwmp->cwmp_cr_event == 0))) {
-			reload_networking_config();
+			cwmp_config_load(cwmp);
+			if (thread_end) {
+				event_remove_all_event_container(session, RPC_SEND);
+				run_session_end_func();
+				cwmp_session_destructor(session);
+				pthread_mutex_unlock(&mutex_heartbeat_session);
+				pthread_mutex_unlock(&(cwmp->mutex_session_send));
+				return;
+			}
+
 			run_session_end_func();
 			error = cwmp_move_session_to_session_queue(cwmp, session);
 			CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp->retry_count_session, cwmp_get_retry_interval(cwmp, 0));
@@ -811,19 +827,9 @@ end:
 	return 0;
 }
 
-static int cwmp_init(int argc, char **argv, struct cwmp *cwmp)
+static int cwmp_init(struct cwmp *cwmp)
 {
 	int error;
-	struct env env;
-
-	memset(&env, 0, sizeof(struct env));
-	if ((error = global_env_init(argc, argv, &env)))
-		return error;
-
-	error = wait_for_usp_raw_object();
-	if (error)
-		return error;
-
 	icwmp_init_list_services();
 	cwmp->event_id = 0;
 	cwmp->cwmp_period = 0;
@@ -850,24 +856,23 @@ static int cwmp_init(int argc, char **argv, struct cwmp *cwmp)
 	pthread_mutex_init(&cwmp->mutex_session_send, NULL);
 	pthread_mutex_init(&mutex_heartbeat_session, NULL);
 	pthread_mutex_init(&mutex_heartbeat, NULL);
-	memcpy(&(cwmp->env), &env, sizeof(struct env));
 	INIT_LIST_HEAD(&(cwmp->head_session_queue));
 
 	if ((error = create_cwmp_var_state_files()))
 		return error;
 
-	cwmp_uci_init();
-	if ((error = global_conf_init(cwmp))) {
-		cwmp_uci_exit();
-		return error;
-	}
+	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
+	cwmp_config_load(cwmp);
 
+	if (thread_end == true)
+		return CWMP_GEN_ERR;
+
+	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
 	cwmp_get_deviceid(cwmp);
 	load_forced_inform_json_file(cwmp);
 	load_boot_inform_json_file(cwmp);
 	load_custom_notify_json(cwmp);
 	init_list_param_notify();
-	cwmp_uci_exit();
 	get_nonce_key();
 	memset(&intf_reset_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&intf_reset_list);
@@ -955,10 +960,11 @@ static void configure_var_state(struct cwmp *cwmp)
 
 int main(int argc, char **argv)
 {
-	struct cwmp *cwmp = &cwmp_main;
 	struct sigaction act;
 	int error;
+	struct env env;
 
+	memset(&cwmp_main, 0, sizeof(struct cwmp));
 	openlog("cwmp", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 
 	/* This is to initialize the global context in mxml,
@@ -966,19 +972,45 @@ int main(int argc, char **argv)
 	 */
 	mxml_error(NULL);
 
-	if ((error = cwmp_init(argc, argv, cwmp)))
+	cwmp_main.init_complete = false;
+
+	error = wait_for_usp_raw_object();
+	if (error)
 		return error;
+
+	memset(&env, 0, sizeof(struct env));
+	if ((error = global_env_init(argc, argv, &env)))
+		return error;
+
+	memcpy(&(cwmp_main.env), &env, sizeof(struct env));
+
+	error = get_preinit_config(&(cwmp_main.conf));
+	if (error) {
+		return error;
+	}
+
+	error = pthread_create(&ubus_thread, NULL, &thread_uloop_run, NULL);
+	if (error < 0) {
+		CWMP_LOG(ERROR, "Error when creating the ubus thread!");
+	}
+
+	if ((error = cwmp_init(&cwmp_main))) {
+		thread_end = true;
+		pthread_join(ubus_thread, NULL);
+		cwmp_free(&cwmp_main);
+		return error;
+	}
 
 	CWMP_LOG(INFO, "STARTING ICWMP with PID :%d", getpid());
-	cwmp->start_time = time(NULL);
+	cwmp_main.start_time = time(NULL);
 
-	if ((error = cwmp_init_backup_session(cwmp, NULL, ALL)))
+	if ((error = cwmp_init_backup_session(&cwmp_main, NULL, ALL)))
 		return error;
 
-	if ((error = cwmp_root_cause_events(cwmp)))
+	if ((error = cwmp_root_cause_events(&cwmp_main)))
 		return error;
 
-	configure_var_state(cwmp);
+	configure_var_state(&cwmp_main);
 	http_server_init();
 
 	memset(&act, 0, sizeof(act));
@@ -986,62 +1018,57 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &act, 0);
 	sigaction(SIGTERM, &act, 0);
 
-	error = pthread_create(&ubus_thread, NULL, &thread_uloop_run, NULL);
-	if (error < 0) {
-		CWMP_LOG(ERROR, "Error when creating the ubus thread!");
-	}
-
 	error = pthread_create(&http_cr_server_thread, NULL, &thread_http_cr_server_listen, NULL);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the http connection request server thread!");
 	}
 
-	error = pthread_create(&periodic_event_thread, NULL, &thread_event_periodic, (void *)cwmp);
+	error = pthread_create(&periodic_event_thread, NULL, &thread_event_periodic, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the periodic event thread!");
 	}
 
-	error = pthread_create(&periodic_check_notify, NULL, &thread_periodic_check_notify, (void *)cwmp);
+	error = pthread_create(&periodic_check_notify, NULL, &thread_periodic_check_notify, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the periodic check notify thread!");
 	}
 
-	error = pthread_create(&heart_beat_session_thread, NULL, &thread_heartbeat_session, (void *)cwmp);
+	error = pthread_create(&heart_beat_session_thread, NULL, &thread_heartbeat_session, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating heartbeat session thread!");
 	}
 
-	error = pthread_create(&scheduleInform_thread, NULL, &thread_cwmp_rpc_cpe_scheduleInform, (void *)cwmp);
+	error = pthread_create(&scheduleInform_thread, NULL, &thread_cwmp_rpc_cpe_scheduleInform, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the scheduled inform thread!");
 	}
 
-	error = pthread_create(&download_thread, NULL, &thread_cwmp_rpc_cpe_download, (void *)cwmp);
+	error = pthread_create(&download_thread, NULL, &thread_cwmp_rpc_cpe_download, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the download thread!");
 	}
 
-	error = pthread_create(&change_du_state_thread, NULL, &thread_cwmp_rpc_cpe_change_du_state, (void *)cwmp);
+	error = pthread_create(&change_du_state_thread, NULL, &thread_cwmp_rpc_cpe_change_du_state, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the state change thread!");
 	}
 
-	error = pthread_create(&schedule_download_thread, NULL, &thread_cwmp_rpc_cpe_schedule_download, (void *)cwmp);
+	error = pthread_create(&schedule_download_thread, NULL, &thread_cwmp_rpc_cpe_schedule_download, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the schedule download thread!");
 	}
 
-	error = pthread_create(&apply_schedule_download_thread, NULL, &thread_cwmp_rpc_cpe_apply_schedule_download, (void *)cwmp);
+	error = pthread_create(&apply_schedule_download_thread, NULL, &thread_cwmp_rpc_cpe_apply_schedule_download, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the schedule download thread!");
 	}
 
-	error = pthread_create(&upload_thread, NULL, &thread_cwmp_rpc_cpe_upload, (void *)cwmp);
+	error = pthread_create(&upload_thread, NULL, &thread_cwmp_rpc_cpe_upload, (void *)&cwmp_main);
 	if (error < 0) {
 		CWMP_LOG(ERROR, "Error when creating the download thread!");
 	}
 
-	cwmp_schedule_session(cwmp);
+	cwmp_schedule_session(&cwmp_main);
 
 	/* Join all threads */
 	pthread_join(periodic_event_thread, NULL);
@@ -1057,7 +1084,7 @@ int main(int argc, char **argv)
 	pthread_join(heart_beat_session_thread, NULL);
 
 	/* Free all memory allocation */
-	cwmp_free(cwmp);
+	cwmp_free(&cwmp_main);
 
 	CWMP_LOG(INFO, "EXIT ICWMP");
 	closelog();

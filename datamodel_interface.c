@@ -413,10 +413,11 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 	struct cwmp *cwmp = &cwmp_main;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
 	struct blob_buf b = { 0 };
+	char *param = CWMP_STRLEN(parameter_name) ? parameter_name : DM_ROOT_OBJ;
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "path", !parameter_name || parameter_name[0] == '\0' ? DM_ROOT_OBJ : parameter_name);
+	bb_add_string(&b, "path", param);
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
 
@@ -424,12 +425,12 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 	blob_buf_free(&b);
 
 	if (e < 0) {
-		CWMP_LOG(INFO, "get ubus method failed: Ubus err code: %d", e);
+		CWMP_LOG(WARNING, "Get failed (%s) Ubus err code: %d", param, e);
 		return "9002";
 	}
 
 	if (get_result.type == FAULT) {
-		CWMP_LOG(INFO, "Get parameter values failed: fault_code: %s", get_result.fault);
+		CWMP_LOG(WARNING, "Get parameter values (%s) failed: fault_code: %s", param, get_result.fault);
 		return icwmp_strdup(get_result.fault);
 	}
 	return NULL;
