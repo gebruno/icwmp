@@ -961,6 +961,11 @@ int main(int argc, char **argv)
 
 	openlog("cwmp", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 
+	/* This is to initialize the global context in mxml,
+	 *  with out init mxml sometimes segfaults, when calling the destructor.
+	 */
+	mxml_error(NULL);
+
 	if ((error = cwmp_init(argc, argv, cwmp)))
 		return error;
 
