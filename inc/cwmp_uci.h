@@ -31,7 +31,6 @@
 #define UCI_CPE_PASSWD_PATH "cwmp.cpe.passwd"
 #define UCI_CPE_CWMP_ENABLE "cwmp.cpe.enable"
 #define UCI_CPE_PORT_PATH "cwmp.cpe.port"
-#define UCI_CPE_DEFAULT_WAN_IFACE "cwmp.cpe.default_wan_interface"
 #define UCI_CPE_CRPATH_PATH "cwmp.cpe.path"
 #define UCI_CPE_INSTANCE_MODE "cwmp.cpe.instance_mode"
 #define UCI_CPE_SESSION_TIMEOUT "cwmp.cpe.session_timeout"

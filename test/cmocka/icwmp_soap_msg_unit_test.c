@@ -100,6 +100,7 @@ static int soap_unit_tests_init(void **state)
 	INIT_LIST_HEAD(&(cwmp_test->head_session_queue));
 	memcpy(&(cwmp_test->env), &cwmp_test, sizeof(struct env));
 	cwmp_uci_init();
+	log_set_severity_idx("DEBUG");
 	return 0;
 }
 
@@ -125,9 +126,9 @@ static int soap_unit_tests_clean(void **state)
  */
 static void get_config_test(void **state)
 {
-	int error = get_global_config(&(cwmp_test->conf));
+	int error = get_preinit_config(&(cwmp_test->conf));
 	assert_int_equal(error, CWMP_OK);
-	log_set_severity_idx("INFO");
+	error = get_global_config(&(cwmp_test->conf));
 }
 
 static void get_deviceid_test(void **state)
@@ -921,7 +922,8 @@ static void soap_set_parameter_attributes_message_test(void **state)
 int icwmp_soap_msg_test(void)
 {
 	const struct CMUnitTest tests[] = { //
-		    cmocka_unit_test(get_config_test), cmocka_unit_test(get_deviceid_test),
+		    cmocka_unit_test(get_config_test),
+		    cmocka_unit_test(get_deviceid_test),
 		    cmocka_unit_test(add_event_test),
 		    cmocka_unit_test(soap_inform_message_test),
 		    cmocka_unit_test(soap_get_param_value_message_test),

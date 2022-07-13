@@ -132,6 +132,7 @@ bool configure_dhcp_options(char *vendspecinf)
 	if (update_uci)
 		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 
+	cwmp_uci_reinit();
 	return update_uci;
 }
 
@@ -180,6 +181,7 @@ static void config_get_cpe_elements(struct config *conf, struct uci_section *s)
 		UCI_LOG_SEVERITY_PATH,
 		UCI_CPE_ENABLE_SYSLOG,
 		UCI_CPE_AMD_VERSION,
+		UCI_CPE_DEFAULT_WAN_IFACE,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -192,6 +194,7 @@ static void config_get_cpe_elements(struct config *conf, struct uci_section *s)
 		{ .name = "log_severity", .type = UCI_TYPE_STRING },
 		{ .name = "log_to_syslog", .type = UCI_TYPE_STRING },
 		{ .name = "amd_version", .type = UCI_TYPE_STRING },
+		{ .name = "default_wan_interface", .type = UCI_TYPE_STRING },
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS] = {0};
@@ -222,6 +225,12 @@ static void config_get_cpe_elements(struct config *conf, struct uci_section *s)
 	}
 	conf->supported_amd_version = conf->amd_version;
 	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", conf->amd_version);
+	if (cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]) {
+		conf->default_wan_iface = strdup(get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]));
+	} else {
+		conf->default_wan_iface = strdup("wan");
+	}
+	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", conf->default_wan_iface);
 }
 
 static void config_get_acs_elements(struct config *conf, struct uci_section *s)
@@ -309,24 +318,13 @@ int get_global_config(struct config *conf)
 			exit(0);
 		}
 	}
-
 	FREE(value);
 
-	if ((error = uci_get_value(UCI_CPE_DEFAULT_WAN_IFACE, &value)) == CWMP_OK) {
-		FREE(conf->default_wan_iface);
-		if (value != NULL) {
-			conf->default_wan_iface = strdup(value);
-			FREE(value);
-		} else {
-			conf->default_wan_iface = strdup("wan");
-		}
-	} else {
+	error = get_connection_interface(conf->default_wan_iface);
+	if (error != CWMP_OK) {
+		CWMP_LOG(DEBUG, "Failed to get interface [%s] details", conf->default_wan_iface);
 		return error;
 	}
-
-	error = get_connection_interface(conf->default_wan_iface);
-	if (error != CWMP_OK)
-		return error;
 
 	bool discovery_enable = false;
 	error = uci_get_value(UCI_DHCP_DISCOVERY_PATH, &value);
