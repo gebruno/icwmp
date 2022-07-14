@@ -110,13 +110,13 @@ int xml_handle_message(struct session *session)
 		char *tmp = strchr(c, ':');
 		size_t ns_len = tmp - c;
 
-		if (strlen(ns.cwmp) != ns_len) {
+		if (CWMP_STRLEN(ns.cwmp) != ns_len) {
 			CWMP_LOG(INFO, "Invalid received message");
 			session->fault_code = FAULT_CPE_REQUEST_DENIED;
 			goto fault;
 		}
 
-		if (strncmp(ns.cwmp, c, ns_len)) {
+		if (CWMP_STRNCMP(ns.cwmp, c, ns_len)) {
 			CWMP_LOG(INFO, "Invalid received message");
 			session->fault_code = FAULT_CPE_REQUEST_DENIED;
 			goto fault;
@@ -131,7 +131,7 @@ int xml_handle_message(struct session *session)
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
 	rpc_cpe = NULL;
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
-		if (i != RPC_CPE_FAULT && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
+		if (i != RPC_CPE_FAULT && CWMP_STRCMP(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
 			rpc_cpe = cwmp_add_session_rpc_cpe(session, i);
 			if (rpc_cpe == NULL)
@@ -216,7 +216,7 @@ static int xml_prepare_parameters_inform(struct cwmp_dm_parameter *dm_parameter,
 		if (!b)
 			return 0;
 		mxml_node_t *c = mxmlGetFirstChild(b);
-		if (c && strcmp(dm_parameter->value, mxmlGetOpaque(c)) == 0)
+		if (c && CWMP_STRCMP(dm_parameter->value, mxmlGetOpaque(c)) == 0)
 			return 0;
 		mxmlDelete(b);
 		(*size)--;
@@ -463,7 +463,7 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 			continue;
 
 		// An empty connection url cause CDR test to break
-		if (strcmp(forced_inform_parameters[i], DM_CONN_REQ_URL) == 0 && cwmp_dm_param.value != NULL && strlen(cwmp_dm_param.value) == 0) {
+		if (CWMP_STRCMP(forced_inform_parameters[i], DM_CONN_REQ_URL) == 0 && cwmp_dm_param.value != NULL && CWMP_STRLEN(cwmp_dm_param.value) == 0) {
 			CWMP_LOG(ERROR, "# Empty CR URL[%s] value", forced_inform_parameters[i]);
 			MXML_DELETE(xml);
 			return;
@@ -605,7 +605,7 @@ int set_rpc_acs_to_supported(char *rpc_name)
 	int i;
 
 	for (i=1; i < __RPC_ACS_MAX; i++) {
-		if (strcmp(rpc_acs_methods[i].name, rpc_name) == 0) {
+		if (CWMP_STRCMP(rpc_acs_methods[i].name, rpc_name) == 0) {
 			rpc_acs_methods[i].acs_support = RPC_ACS_SUPPORT;
 			return i;
 		}
@@ -635,7 +635,7 @@ int cwmp_rpc_acs_parse_response_get_rpc_methods(struct cwmp *cwmp __attribute__(
 			mxml_node_t *parent_node = mxmlGetParent(b);
 			mxml_type_t node_type = mxmlGetType(b);
 
-			if (node_type == MXML_OPAQUE && mxmlGetType(parent_node) == MXML_ELEMENT && node_opaque && strcmp((char *) mxmlGetElement(parent_node), "string") == 0)
+			if (node_type == MXML_OPAQUE && mxmlGetType(parent_node) == MXML_ELEMENT && node_opaque && CWMP_STRCMP((char *) mxmlGetElement(parent_node), "string") == 0)
 				set_rpc_acs_to_supported((char*)node_opaque);
 
 			b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
@@ -832,7 +832,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 		if (!b)
 			goto error;
 
-		c = q->uuid ? strdup(q->uuid) : strdup("");
+		c = CWMP_STRDUP_DEF(q->uuid, "");
 		b = mxmlNewOpaque(b, c);
 		FREE(c);
 		if (!b)
@@ -842,7 +842,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 		if (!b)
 			goto error;
 
-		c = q->du_ref ? strdup(q->du_ref) : strdup("");
+		c = CWMP_STRDUP_DEF(q->du_ref, "");
 		b = mxmlNewOpaque(b, c);
 		FREE(c);
 		if (!b)
@@ -852,7 +852,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 		if (!b)
 			goto error;
 
-		c = q->version ? strdup(q->version) : strdup("");
+		c = CWMP_STRDUP_DEF(q->version, "");
 		b = mxmlNewOpaque(b, c);
 		FREE(c);
 		if (!b)
@@ -862,7 +862,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 		if (!b)
 			goto error;
 
-		c = q->current_state ? strdup(q->current_state) : strdup("");
+		c = CWMP_STRDUP_DEF(q->current_state, "");
 		b = mxmlNewOpaque(b, c);
 		FREE(c);
 		if (!b)
@@ -872,7 +872,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 		if (!b)
 			goto error;
 
-		c = q->start_time ? strdup(q->start_time) : strdup("");
+		c = CWMP_STRDUP_DEF(q->start_time, "");
 		b = mxmlNewOpaque(b, c);
 		FREE(c);
 		if (!b)
@@ -882,7 +882,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 		if (!b)
 			goto error;
 
-		c = q->complete_time ? strdup(q->complete_time) : strdup("");
+		c = CWMP_STRDUP_DEF(q->complete_time, "");
 		b = mxmlNewOpaque(b, c);
 		FREE(c);
 		if (!b)
@@ -957,11 +957,11 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 		mxml_node_t *parent_node = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 		mxml_node_t *firstchild = mxmlGetFirstChild(b);
-		if (node_type == MXML_OPAQUE && mxmlGetType(parent_node) == MXML_ELEMENT && node_value && !strcmp((char *) mxmlGetElement(parent_node), "string")) {
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent_node) == MXML_ELEMENT && node_value && !CWMP_STRCMP((char *) mxmlGetElement(parent_node), "string")) {
 			parameter_name = icwmp_strdup(node_value);
 		}
 		if (node_type == MXML_ELEMENT && /* added in order to support GetParameterValues with empty string*/
-		    node_name != NULL && !strcmp(node_name, "string") && !firstchild) {
+		    !CWMP_STRCMP(node_name, "string") && !firstchild) {
 			parameter_name = icwmp_strdup("");
 		}
 		if (parameter_name) {
@@ -1071,13 +1071,13 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 		mxml_type_t node_type = mxmlGetType(b);
 		mxml_node_t *firstchild = mxmlGetFirstChild(b);
 
-		if (node_type == MXML_OPAQUE && node_value && mxmlGetType(parent) == MXML_ELEMENT && !strcmp((char *) mxmlGetElement(parent), "ParameterPath")) {
+		if (node_type == MXML_OPAQUE && node_value && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP((char *) mxmlGetElement(parent), "ParameterPath")) {
 			parameter_name = icwmp_strdup(node_value);
 		}
-		if (node_type == MXML_ELEMENT && node_name && !strcmp(node_name, "ParameterPath") && !firstchild) {
+		if (node_type == MXML_ELEMENT && !CWMP_STRCMP(node_name, "ParameterPath") && !firstchild) {
 			parameter_name = icwmp_strdup("");
 		}
-		if (node_type == MXML_OPAQUE && node_value && mxmlGetType(parent) == MXML_ELEMENT && !strcmp((char *) mxmlGetElement(parent), "NextLevel")) {
+		if (node_type == MXML_OPAQUE && node_value && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP((char *) mxmlGetElement(parent), "NextLevel")) {
 			NextLevel = icwmp_strdup(node_value);
 		}
 		b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
@@ -1089,7 +1089,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 	}
 
 	if (parameter_name && NextLevel) {
-		char *err = cwmp_get_parameter_names(parameter_name, strcmp(NextLevel, "true") == 0 || strcmp(NextLevel, "1") == 0 ? true : false, &parameters_list);
+		char *err = cwmp_get_parameter_names(parameter_name, cwmp_str_to_bool(NextLevel), &parameters_list);
 		if (err && !is_obj_excluded(parameter_name)) {
 			fault_code = cwmp_get_fault_code_by_string(err);
 			goto fault;
@@ -1186,10 +1186,10 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct session *session, struct
 		mxml_type_t node_type = mxmlGetType(b);
 		mxml_node_t *firstchild = mxmlGetFirstChild(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "string")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "string")) {
 			parameter_name = icwmp_strdup(node_opaque);
 		}
-		if (node_type == MXML_ELEMENT && !strcmp(node_name, "string") && !firstchild) {
+		if (node_type == MXML_ELEMENT && !CWMP_STRCMP(node_name, "string") && !firstchild) {
 			parameter_name = icwmp_strdup("");
 		}
 		if (parameter_name) {
@@ -1274,8 +1274,9 @@ static int is_duplicated_parameter(mxml_node_t *param_node, struct session *sess
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Name")) {
-			if (strcmp(node_opaque, mxmlGetOpaque(param_node)) == 0)
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Name")) {
+			const char *p_node = mxmlGetOpaque(param_node);
+			if (CWMP_STRCMP(node_opaque, p_node) == 0)
 				return -1;
 		}
 	}
@@ -1307,7 +1308,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct session *session, struct rpc
 		mxml_type_t node_type = mxmlGetType(b);
 		mxml_node_t *child = mxmlGetFirstChild(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Name")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Name")) {
 			parameter_name = icwmp_strdup(node_opaque);
 			if (is_duplicated_parameter(b, session)) {
 				fault_code = FAULT_CPE_INVALID_ARGUMENTS;
@@ -1315,10 +1316,10 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct session *session, struct rpc
 			}
 		}
 
-		if (node_type == MXML_ELEMENT && !strcmp(node_name, "Name") && !child) {
+		if (node_type == MXML_ELEMENT && !CWMP_STRCMP(node_name, "Name") && !child) {
 			parameter_name = icwmp_strdup("");
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Value")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Value")) {
 			parameter_value = icwmp_strdup((char *)mxmlGetOpaque(b));
 			while ((b = mxmlWalkNext(b, parent, MXML_DESCEND))) {
 				v = (char *)mxmlGetOpaque(b);
@@ -1327,7 +1328,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct session *session, struct rpc
 			}
 			b = mxmlGetLastChild(parent);
 		}
-		if (node_type == MXML_ELEMENT && !strcmp(node_name, "Value") && !child) {
+		if (node_type == MXML_ELEMENT && !CWMP_STRCMP(node_name, "Value") && !child) {
 			parameter_value = icwmp_strdup("");
 		}
 		if (parameter_name && parameter_value) {
@@ -1433,27 +1434,27 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct session *session, struct
 		mxml_type_t node_type = mxmlGetType(b);
 		mxml_node_t *child = mxmlGetFirstChild(b);
 
-		if (node_type == MXML_ELEMENT && !strcmp(node_name, "SetParameterAttributesStruct")) {
+		if (node_type == MXML_ELEMENT && !CWMP_STRCMP(node_name, "SetParameterAttributesStruct")) {
 			parameter_name = NULL;
 			parameter_notification = NULL;
 			notification_change = NULL;
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Name")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Name")) {
 			parameter_name = icwmp_strdup(node_opaque);
 		}
-		if (node_type == MXML_ELEMENT && !strcmp(node_name, "Name") && !child) {
+		if (node_type == MXML_ELEMENT && !CWMP_STRCMP(node_name, "Name") && !child) {
 			parameter_name = icwmp_strdup("");
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "NotificationChange")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "NotificationChange")) {
 			notification_change = icwmp_strdup(node_opaque);
 		}
-		if (node_type == MXML_ELEMENT && !strcmp(node_name, "NotificationChange") && !child) {
+		if (node_type == MXML_ELEMENT && !CWMP_STRCMP(node_name, "NotificationChange") && !child) {
 			notification_change = icwmp_strdup("");
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Notification")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Notification")) {
 			parameter_notification = icwmp_strdup(node_opaque);
 		}
-		if (node_type == MXML_ELEMENT && !strcmp(node_name, "Notification") && !child) {
+		if (node_type == MXML_ELEMENT && !CWMP_STRCMP(node_name, "Notification") && !child) {
 			parameter_notification = icwmp_strdup("");
 		}
 		if (parameter_name && parameter_notification && notification_change) {
@@ -1513,10 +1514,10 @@ int cwmp_handle_rpc_cpe_add_object(struct session *session, struct rpc *rpc)
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "ParameterKey")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "ParameterKey")) {
 			parameter_key = icwmp_strdup(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "ObjectName")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "ObjectName")) {
 			object_name = icwmp_strdup(node_opaque);
 		}
 		b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
@@ -1617,10 +1618,10 @@ int cwmp_handle_rpc_cpe_delete_object(struct session *session, struct rpc *rpc)
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "ObjectName")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "ObjectName")) {
 			object_name = icwmp_strdup(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "ParameterKey")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "ParameterKey")) {
 			parameter_key = icwmp_strdup(node_opaque);
 		}
 		b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
@@ -1811,7 +1812,7 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct session *session, struct rpc *rpc
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "CommandKey")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "CommandKey")) {
 			command_key = icwmp_strdup(node_opaque);
 		}
 		b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
@@ -1847,7 +1848,7 @@ int cancel_transfer(char *key)
 	if (list_download.next != &(list_download)) {
 		list_for_each_safe (ilist, q, &(list_download)) {
 			struct download *pdownload = list_entry(ilist, struct download, list);
-			if (strcmp(pdownload->command_key, key) == 0) {
+			if (CWMP_STRCMP(pdownload->command_key, key) == 0) {
 				pthread_mutex_lock(&mutex_download);
 				bkp_session_delete_download(pdownload);
 				bkp_session_save();
@@ -1862,7 +1863,7 @@ int cancel_transfer(char *key)
 	if (list_upload.next != &(list_upload)) {
 		list_for_each_safe (ilist, q, &(list_upload)) {
 			struct upload *pupload = list_entry(ilist, struct upload, list);
-			if (strcmp(pupload->command_key, key) == 0) {
+			if (CWMP_STRCMP(pupload->command_key, key) == 0) {
 				pthread_mutex_lock(&mutex_upload);
 				bkp_session_delete_upload(pupload);
 				bkp_session_save();
@@ -1895,7 +1896,7 @@ int cwmp_handle_rpc_cpe_reboot(struct session *session, struct rpc *rpc)
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "CommandKey")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "CommandKey")) {
 			command_key = icwmp_strdup(node_opaque);
 			commandKey = icwmp_strdup(node_opaque);
 		}
@@ -1956,11 +1957,11 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct session *session, struct rpc *rpc
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "CommandKey")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "CommandKey")) {
 			command_key = icwmp_strdup(node_opaque);
 		}
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "DelaySeconds")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "DelaySeconds")) {
 			delay_seconds = atoi(node_opaque);
 		}
 		b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
@@ -2005,7 +2006,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct session *session, struct rpc *rpc
 		pthread_mutex_unlock(&mutex_schedule_inform);
 		goto fault;
 	}
-	schedule_inform->commandKey = strdup(command_key);
+	schedule_inform->commandKey = CWMP_STRDUP(command_key);
 	schedule_inform->scheduled_time = scheduled_time;
 	list_add(&(schedule_inform->list), ilist->prev);
 	bkp_session_insert_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey);
@@ -2062,9 +2063,9 @@ int cwmp_handle_rpc_cpe_change_du_state(struct session *session, struct rpc *rpc
 		mxml_type_t node_type = mxmlGetType(b);
 		mxml_node_t *parent = mxmlGetParent(b);
 		t = b;
-		if (node_type == MXML_ELEMENT && strcmp(node_name, "Operations") == 0) {
+		if (node_type == MXML_ELEMENT && CWMP_STRCMP(node_name, "Operations") == 0) {
 			char *operation = (char *)mxmlElementGetAttr(b, "xsi:type");
-			if (!strcmp(operation, "cwmp:InstallOpStruct")) {
+			if (!CWMP_STRCMP(operation, "cwmp:InstallOpStruct")) {
 				elem = (operations *)calloc(1, sizeof(operations));
 				elem->type = DU_INSTALL;
 				list_add_tail(&(elem->list), &(change_du_state->list_operation));
@@ -2074,24 +2075,24 @@ int cwmp_handle_rpc_cpe_change_du_state(struct session *session, struct rpc *rpc
 					mxml_node_t *prt = mxmlGetParent(t);
 					mxml_type_t type = mxmlGetType(t);
 
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "URL")) {
-						elem->url = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "URL")) {
+						elem->url = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "UUID")) {
-						elem->uuid = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "UUID")) {
+						elem->uuid = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "Username")) {
-						elem->username = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "Username")) {
+						elem->username = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "Password")) {
-						elem->password = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "Password")) {
+						elem->password = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "ExecutionEnvRef")) {
-						elem->executionenvref = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "ExecutionEnvRef")) {
+						elem->executionenvref = CWMP_STRDUP(opaque);
 					}
 					t = mxmlWalkNext(t, b, MXML_DESCEND);
 				}
-			} else if (!strcmp(operation, "cwmp:UpdateOpStruct")) {
+			} else if (!CWMP_STRCMP(operation, "cwmp:UpdateOpStruct")) {
 				elem = (operations *)calloc(1, sizeof(operations));
 				elem->type = DU_UPDATE;
 				list_add_tail(&(elem->list), &(change_du_state->list_operation));
@@ -2101,25 +2102,25 @@ int cwmp_handle_rpc_cpe_change_du_state(struct session *session, struct rpc *rpc
 					mxml_node_t *prt = mxmlGetParent(t);
 					mxml_type_t type = mxmlGetType(t);
 
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "Username")) {
-						elem->url = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "Username")) {
+						elem->url = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "Version")) {
-						elem->uuid = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "Version")) {
+						elem->uuid = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "URL")) {
-						elem->username = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "URL")) {
+						elem->username = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "Password")) {
-						elem->password = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "Password")) {
+						elem->password = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "UUID")) {
-						elem->executionenvref = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "UUID")) {
+						elem->executionenvref = CWMP_STRDUP(opaque);
 					}
 
 					t = mxmlWalkNext(t, b, MXML_DESCEND);
 				}
-			} else if (!strcmp(operation, "cwmp:UninstallOpStruct")) {
+			} else if (!CWMP_STRCMP(operation, "cwmp:UninstallOpStruct")) {
 				elem = (operations *)calloc(1, sizeof(operations));
 				elem->type = DU_UNINSTALL;
 				list_add_tail(&(elem->list), &(change_du_state->list_operation));
@@ -2129,22 +2130,22 @@ int cwmp_handle_rpc_cpe_change_du_state(struct session *session, struct rpc *rpc
 					mxml_node_t *prt = mxmlGetParent(t);
 					mxml_type_t type = mxmlGetType(t);
 
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "Version")) {
-						elem->url = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "Version")) {
+						elem->url = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "ExecutionEnvRef")) {
-						elem->uuid = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "ExecutionEnvRef")) {
+						elem->uuid = CWMP_STRDUP(opaque);
 					}
-					if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "URL")) {
-						elem->username = strdup(opaque);
+					if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "URL")) {
+						elem->username = CWMP_STRDUP(opaque);
 					}
 
 					t = mxmlWalkNext(t, b, MXML_DESCEND);
 				}
 			}
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "CommandKey")) {
-			change_du_state->command_key = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "CommandKey")) {
+			change_du_state->command_key = CWMP_STRDUP(node_opaque);
 		}
 		b = mxmlWalkNext(b, n, MXML_DESCEND);
 	}
@@ -2259,12 +2260,12 @@ int cwmp_handle_rpc_cpe_download(struct session *session, struct rpc *rpc)
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "CommandKey")) {
-			download->command_key = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "CommandKey")) {
+			download->command_key = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "FileType")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "FileType")) {
 			if (download->file_type == NULL) {
-				download->file_type = strdup(node_opaque);
+				download->file_type = CWMP_STRDUP(node_opaque);
 				file_type = icwmp_strdup(node_opaque);
 			} else {
 				tmp = file_type;
@@ -2274,21 +2275,21 @@ int cwmp_handle_rpc_cpe_download(struct session *session, struct rpc *rpc)
 				}
 			}
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "URL")) {
-			download->url = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "URL")) {
+			download->url = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Username")) {
-			download->username = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Username")) {
+			download->username = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Password")) {
-			download->password = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Password")) {
+			download->password = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "FileSize")) {
-			str_file_size = strdup(node_opaque ? node_opaque: "0");
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "FileSize")) {
+			str_file_size = CWMP_STRDUP_DEF(node_opaque, "0");
 			download->file_size = atoi(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "DelaySeconds")) {
-			str_download_delay = strdup(node_opaque ? node_opaque: "0");
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "DelaySeconds")) {
+			str_download_delay = CWMP_STRDUP_DEF(node_opaque, "0");
 			download_delay = atol(node_opaque);
 		}
 		b = mxmlWalkNext(b, n, MXML_DESCEND);
@@ -2322,15 +2323,15 @@ int cwmp_handle_rpc_cpe_download(struct session *session, struct rpc *rpc)
 	}
 	FREE(str_download_delay);
 
-	if (strcmp(file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && strcmp(file_type, WEB_CONTENT_FILE_TYPE) && strcmp(file_type, VENDOR_CONFIG_FILE_TYPE) && strcmp(file_type, TONE_FILE_TYPE) && strcmp(file_type, RINGER_FILE_TYPE) && strcmp(file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
+	if (CWMP_STRCMP(file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && CWMP_STRCMP(file_type, WEB_CONTENT_FILE_TYPE) && CWMP_STRCMP(file_type, VENDOR_CONFIG_FILE_TYPE) && CWMP_STRCMP(file_type, TONE_FILE_TYPE) && CWMP_STRCMP(file_type, RINGER_FILE_TYPE) && CWMP_STRCMP(file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
 	} else if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
-	} else if (download->url == NULL || (strcmp(download->url, "") == 0)) {
+	} else if (CWMP_STRLEN(download->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
 	} else if (strstr(download->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if (strncmp(download->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && strncmp(download->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0 && strncmp(download->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
+	} else if (CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_HTTP, CWMP_STRLEN(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_HTTPS, CWMP_STRLEN(DOWNLOAD_PROTOCOL_HTTPS)) != 0 && CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_FTP, CWMP_STRLEN(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
 	}
 	if (error != FAULT_CPE_NO_FAULT)
@@ -2413,10 +2414,10 @@ int cwmp_handle_rpc_cpe_schedule_download(struct session *session, struct rpc *r
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 		t = b;
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "CommandKey")) {
-			schedule_download->command_key = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "CommandKey")) {
+			schedule_download->command_key = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "FileType")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "FileType")) {
 			if (schedule_download->file_type != NULL) {
 				tmp = file_type;
 				if (cwmp_asprintf(&file_type, "%s %s", tmp, node_opaque) == -1) {
@@ -2424,24 +2425,24 @@ int cwmp_handle_rpc_cpe_schedule_download(struct session *session, struct rpc *r
 					goto fault;
 				}
 			} else {
-				schedule_download->file_type = strdup(node_opaque);
+				schedule_download->file_type = CWMP_STRDUP(node_opaque);
 				file_type = icwmp_strdup(node_opaque);
 			}
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "URL")) {
-			schedule_download->url = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "URL")) {
+			schedule_download->url = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Username")) {
-			schedule_download->username = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Username")) {
+			schedule_download->username = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Password")) {
-			schedule_download->password = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Password")) {
+			schedule_download->password = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "FileSize")) {
-			str_file_size = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "FileSize")) {
+			str_file_size = CWMP_STRDUP(node_opaque);
 			schedule_download->file_size = atoi(node_opaque);
 		}
-		if (node_type== MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "TimeWindowList")) {
+		if (node_type== MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "TimeWindowList")) {
 			if (!t)
 				return -1; //TO CHECK*/
 			t = mxmlWalkNext(t, b, MXML_DESCEND);
@@ -2450,17 +2451,17 @@ int cwmp_handle_rpc_cpe_schedule_download(struct session *session, struct rpc *r
 				mxml_node_t *prt = mxmlGetParent(t);
 				mxml_type_t type = mxmlGetType(t);
 
-				if (type == MXML_OPAQUE && node_opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "WindowStart")) {
+				if (type == MXML_OPAQUE && node_opaque && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "WindowStart")) {
 					schedule_download_delay[j] = atol(opaque);
 					j++;
 				}
-				if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "WindowEnd")) {
+				if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "WindowEnd")) {
 					schedule_download_delay[j] = atol(opaque);
 					j++;
 				}
-				if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "WindowMode")) {
+				if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "WindowMode")) {
 					if (schedule_download->timewindowstruct[i].windowmode == NULL) {
-						schedule_download->timewindowstruct[i].windowmode = strdup(opaque);
+						schedule_download->timewindowstruct[i].windowmode = CWMP_STRDUP(opaque);
 						if (i == 0)
 							windowmode0 = icwmp_strdup(opaque);
 						else
@@ -2479,10 +2480,10 @@ int cwmp_handle_rpc_cpe_schedule_download(struct session *session, struct rpc *r
 						}
 					}
 				}
-				if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "UserMessage")) {
-					schedule_download->timewindowstruct[i].usermessage = strdup(opaque);
+				if (type == MXML_OPAQUE && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "UserMessage")) {
+					schedule_download->timewindowstruct[i].usermessage = CWMP_STRDUP(opaque);
 				}
-				if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !strcmp(mxmlGetElement(prt), "MaxRetries")) {
+				if (type == MXML_OPAQUE && opaque && mxmlGetType(prt) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(prt), "MaxRetries")) {
 					schedule_download->timewindowstruct[i].maxretries = atoi(opaque);
 				}
 				t = mxmlWalkNext(t, b, MXML_DESCEND);
@@ -2513,17 +2514,17 @@ int cwmp_handle_rpc_cpe_schedule_download(struct session *session, struct rpc *r
 		goto fault;
 	}
 	FREE(str_file_size);
-	if (strcmp(file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && strcmp(file_type, WEB_CONTENT_FILE_TYPE) && strcmp(file_type, VENDOR_CONFIG_FILE_TYPE) && strcmp(file_type, TONE_FILE_TYPE) && strcmp(file_type, RINGER_FILE_TYPE) && strcmp(file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
+	if (CWMP_STRCMP(file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && CWMP_STRCMP(file_type, WEB_CONTENT_FILE_TYPE) && CWMP_STRCMP(file_type, VENDOR_CONFIG_FILE_TYPE) && CWMP_STRCMP(file_type, TONE_FILE_TYPE) && CWMP_STRCMP(file_type, RINGER_FILE_TYPE) && CWMP_STRCMP(file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if ((strcmp(windowmode0, "1 At Any Time") && strcmp(windowmode0, "2 Immediately") && strcmp(windowmode0, "3 When Idle")) || (strcmp(windowmode1, "1 At Any Time") && strcmp(windowmode1, "2 Immediately") && strcmp(windowmode1, "3 When Idle"))) {
+	} else if ((CWMP_STRCMP(windowmode0, "1 At Any Time") && CWMP_STRCMP(windowmode0, "2 Immediately") && CWMP_STRCMP(windowmode0, "3 When Idle")) || (CWMP_STRCMP(windowmode1, "1 At Any Time") && CWMP_STRCMP(windowmode1, "2 Immediately") && CWMP_STRCMP(windowmode1, "3 When Idle"))) {
 		error = FAULT_CPE_REQUEST_DENIED;
 	} else if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
-	} else if (schedule_download->url == NULL || (strcmp(schedule_download->url, "") == 0)) {
+	} else if (CWMP_STRLEN(schedule_download->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
 	} else if (strstr(schedule_download->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if (strncmp(schedule_download->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && strncmp(schedule_download->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
+	} else if (CWMP_STRNCMP(schedule_download->url, DOWNLOAD_PROTOCOL_HTTP, CWMP_STRLEN(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(schedule_download->url, DOWNLOAD_PROTOCOL_FTP, CWMP_STRLEN(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
 	} else {
 		for (j = 0; j < 3; j++) {
@@ -2614,20 +2615,20 @@ int cwmp_handle_rpc_cpe_upload(struct session *session, struct rpc *rpc)
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "CommandKey")) {
-			upload->command_key = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "CommandKey")) {
+			upload->command_key = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "FileType")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "FileType")) {
 			char log_config[16]={0};
 			int ftype, instance = 0;
 			sscanf(node_opaque, "%1d Vendor %15s File %8d", &ftype, log_config, &instance);
-			if (strcmp(log_config, "Configuration") != 0 && strcmp(log_config, "Log") != 0) {
+			if (CWMP_STRCMP(log_config, "Configuration") != 0 && CWMP_STRCMP(log_config, "Log") != 0) {
 				error = FAULT_CPE_INVALID_ARGUMENTS;
 				goto fault;
-			} else if (strcmp(log_config, "Configuration") == 0 && ftype != 1 && ftype != 3) {
+			} else if (CWMP_STRCMP(log_config, "Configuration") == 0 && ftype != 1 && ftype != 3) {
 				error = FAULT_CPE_INVALID_ARGUMENTS;
 				goto fault;
-			} else if (strcmp(log_config, "Log") == 0 && ftype != 2 && ftype != 4) {
+			} else if (CWMP_STRCMP(log_config, "Log") == 0 && ftype != 2 && ftype != 4) {
 				error = FAULT_CPE_INVALID_ARGUMENTS;
 				goto fault;
 			}
@@ -2639,20 +2640,20 @@ int cwmp_handle_rpc_cpe_upload(struct session *session, struct rpc *rpc)
 				error = FAULT_CPE_INVALID_ARGUMENTS;
 				goto fault;
 			}
-			upload->file_type = strdup(node_opaque);
+			upload->file_type = CWMP_STRDUP(node_opaque);
 			upload->f_instance = instance;
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "URL")) {
-			upload->url = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "URL")) {
+			upload->url = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Username")) {
-			upload->username = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Username")) {
+			upload->username = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Password")) {
-			upload->password = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "Password")) {
+			upload->password = CWMP_STRDUP(node_opaque);
 		}
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "DelaySeconds")) {
-			str_upload_delay = strdup(node_opaque);
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(parent), "DelaySeconds")) {
+			str_upload_delay = CWMP_STRDUP(node_opaque);
 			upload_delay = atol(node_opaque);
 		}
 		b = mxmlWalkNext(b, n, MXML_DESCEND);
@@ -2682,11 +2683,11 @@ int cwmp_handle_rpc_cpe_upload(struct session *session, struct rpc *rpc)
 
 	if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
-	} else if (upload->url == NULL || (strcmp(upload->url, "") == 0)) {
+	} else if (CWMP_STRLEN(upload->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
 	} else if (strstr(upload->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if (strncmp(upload->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0  && strncmp(upload->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && strncmp(upload->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
+	} else if (CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_HTTPS, CWMP_STRLEN(DOWNLOAD_PROTOCOL_HTTPS)) != 0  && CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_HTTP, CWMP_STRLEN(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_FTP, CWMP_STRLEN(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
 	}
 

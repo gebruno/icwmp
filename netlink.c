@@ -75,7 +75,7 @@ static int itfcmp(char *itf1, char *itf2)
 	strncpy(buf2, itf1, index);
 	buf2[index] = '\0';
 
-	if (strcmp(buf1, buf2) == 0)
+	if (CWMP_STRCMP(buf1, buf2) == 0)
 		status = 0;
 end:
 	if (buf1)
@@ -119,7 +119,7 @@ static void freecwmp_netlink_interface(struct nlmsghdr *nlh)
 			inet_ntop(AF_INET, &(addr), if_addr, INET_ADDRSTRLEN);
 
 			FREE(cwmp_main.conf.ip);
-			cwmp_main.conf.ip = strdup(if_addr);
+			cwmp_main.conf.ip = CWMP_STRDUP(if_addr);
 			cwmp_uci_set_varstate_value("cwmp", "cpe", "ip", cwmp_main.conf.ip);
 			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 			connection_request_ip_value_change(&cwmp_main, IPv4);
@@ -134,13 +134,13 @@ static void freecwmp_netlink_interface(struct nlmsghdr *nlh)
 			}
 			inet_ntop(AF_INET6, RTA_DATA(rth), pradd_v6, sizeof(pradd_v6));
 			if_indextoname(ifa->ifa_index, if_name);
-			if (strncmp(cwmp_main.conf.interface, if_name, IFNAMSIZ)) {
+			if (CWMP_STRNCMP(cwmp_main.conf.interface, if_name, IFNAMSIZ)) {
 				rth = RTA_NEXT(rth, rtl);
 				continue;
 			}
 
 			FREE(cwmp_main.conf.ipv6);
-			cwmp_main.conf.ipv6 = strdup(pradd_v6);
+			cwmp_main.conf.ipv6 = CWMP_STRDUP(pradd_v6);
 			cwmp_uci_set_varstate_value("cwmp", "cpe", "ipv6", cwmp_main.conf.ip);
 			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 			connection_request_ip_value_change(&cwmp_main, IPv6);

@@ -124,9 +124,9 @@ static bool set_specific_diagnostic_object_parameter_structure_value(struct diag
 {
 	int i;
 	for (i = 0; i < number_inputs; i++) {
-		if (strcmp((*diagnostics_array)[i].parameter_name, parameter) == 0) {
+		if (CWMP_STRCMP((*diagnostics_array)[i].parameter_name, parameter) == 0) {
 			FREE((*diagnostics_array)[i].value);
-			(*diagnostics_array)[i].value = strdup(value);
+			(*diagnostics_array)[i].value = CWMP_STRDUP(value);
 			return true;
 		}
 	}

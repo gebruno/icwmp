@@ -46,7 +46,7 @@ int http_client_init(struct cwmp *cwmp)
 
 	uci_get_value(UCI_DHCP_DISCOVERY_PATH, &dhcp_dis);
 
-	if (dhcp_dis && cwmp->retry_count_session > 0 && strcmp(dhcp_dis, "enable") == 0) {
+	if (cwmp->retry_count_session > 0 && cwmp_str_to_bool(dhcp_dis) == true) {
 		uci_get_state_value(UCI_DHCP_ACS_URL, &acs_var_stat);
 		if (acs_var_stat) {
 			if (icwmp_asprintf(&http_c.url, "%s", acs_var_stat) == -1) {
@@ -210,7 +210,7 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 	res = curl_easy_perform(curl);
 
 	if (res != CURLE_OK) {
-		size_t len = strlen(errbuf);
+		size_t len = CWMP_STRLEN(errbuf);
 		if (len) {
 			if (errbuf[len - 1] == '\n')
 				errbuf[len - 1] = '\0';
@@ -220,12 +220,12 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 		}
 	}
 
-	if (!strlen(*msg_in))
+	if (!CWMP_STRLEN(*msg_in))
 		FREE(*msg_in);
 
 	curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);
-	if (ip && ip[0] != '\0') {
-		if (ip_acs[0] == '\0' || strcmp(ip_acs, ip) != 0) {
+	if (CWMP_STRLEN(ip) > 0) {
+		if (CWMP_STRCMP(ip_acs, ip) != 0) {
 			CWMP_STRNCPY(ip_acs, ip, sizeof(ip_acs));
 			tmp = inet_pton(AF_INET, ip, buf);
 			if (tmp == 1)
@@ -319,7 +319,7 @@ static void http_cr_new_client(int client, bool service_available)
 			int j = 0;
 			bool ignore = false;
 			memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
-			for (size_t i = 0; i < strlen(buffer) && j < (HTTP_GET_HDR_LEN - 1); i++) {
+			for (size_t i = 0; i < CWMP_STRLEN(buffer) && j < (HTTP_GET_HDR_LEN - 1); i++) {
 				if (buffer[i] == '?')
 					ignore = true;
 				if (buffer[i] == ' ')
@@ -330,11 +330,11 @@ static void http_cr_new_client(int client, bool service_available)
 				}
 			}
 
-			if (!strncasecmp(rec_http_get_head, cr_http_get_head, strlen(cr_http_get_head)))
+			if (!CWMP_STRNCASECMP(rec_http_get_head, cr_http_get_head, CWMP_STRLEN(cr_http_get_head)))
 				method_is_get = true;
 		}
 
-		if (!strncasecmp(buffer, "Authorization: Digest ", strlen("Authorization: Digest "))) {
+		if (!CWMP_STRNCASECMP(buffer, "Authorization: Digest ", CWMP_STRLEN("Authorization: Digest "))) {
 			auth_digest_checked = true;
 			CWMP_STRNCPY(auth_digest_buffer, buffer, BUFSIZ);
 		}

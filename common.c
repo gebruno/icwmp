@@ -145,11 +145,11 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	list_for_each (ilist, head) {
 		int cmp;
 		dm_parameter = list_entry(ilist, struct cwmp_dm_parameter, list);
-		cmp = strcmp(dm_parameter->name, param_name);
+		cmp = CWMP_STRCMP(dm_parameter->name, param_name);
 		if (cmp == 0) {
-			if (param_val && strcmp(dm_parameter->value, param_val) != 0) {
+			if (CWMP_STRCMP(dm_parameter->value, param_val) != 0) {
 				free(dm_parameter->value);
-				dm_parameter->value = strdup(param_val);
+				dm_parameter->value = CWMP_STRDUP(param_val);
 			}
 			dm_parameter->notification = notification;
 			return;
@@ -159,12 +159,10 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	}
 	dm_parameter = calloc(1, sizeof(struct cwmp_dm_parameter));
 	_list_add(&dm_parameter->list, ilist->prev, ilist);
-	if (param_name)
-		dm_parameter->name = strdup(param_name);
-	if (param_val)
-		dm_parameter->value = strdup(param_val);
+	dm_parameter->name = CWMP_STRDUP(param_name);
+	dm_parameter->value = CWMP_STRDUP(param_val);
 
-	dm_parameter->type = strdup(param_type ? param_type : "xsd:string");
+	dm_parameter->type = CWMP_STRDUP_DEF(param_type, "xsd:string");
 	dm_parameter->notification = notification;
 	dm_parameter->writable = writable;
 }
@@ -198,7 +196,7 @@ void cwmp_add_list_fault_param(char *param, int fault, struct list_head *list_se
 
 	param_fault = calloc(1, sizeof(struct cwmp_param_fault));
 	list_add_tail(&param_fault->list, list_set_value_fault);
-	param_fault->name = strdup(param);
+	param_fault->name = CWMP_STRDUP(param);
 	param_fault->fault = fault;
 }
 
@@ -233,9 +231,14 @@ int cwmp_asprintf(char **s, const char *format, ...)
 	}
 	va_end(argcopy);
 	str = (char *)calloc(sizeof(char), size + 1);
+	if (str == NULL) {
+		va_end(arg);
+		return -1;
+	}
+
 	vsnprintf(str, size + 1, format, arg);
 	va_end(arg);
-	*s = strdup(str);
+	*s = CWMP_STRDUP(str);
 	FREE(str);
 	if (*s == NULL) {
 		return -1;
@@ -266,7 +269,7 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 		cwmp_uci_get_value_by_section_string(s, "network", &network);
 		char *net = strtok(network, " ");
 		while (net != NULL) {
-			if (strcmp(net, if_wan) == 0) {
+			if (CWMP_STRCMP(net, if_wan) == 0) {
 				cwmp_uci_get_value_by_section_string(s, "name", zone_name);
 				icwmp_free(network);
 				return;
@@ -433,7 +436,7 @@ int cwmp_get_fault_code_by_string(char *fault_code)
 	int i;
 
 	for (i = 1; i < __FAULT_CPE_MAX; i++) {
-		if (strcmp(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0)
+		if (CWMP_STRCMP(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0)
 			break;
 	}
 
@@ -484,6 +487,9 @@ void *icwmp_realloc(void *n, size_t size)
 
 char *icwmp_strdup(const char *s)
 {
+	if (s == NULL)
+		return NULL;
+
 	size_t len = strlen(s) + 1;
 	void *new = icwmp_malloc(len);
 	if (new == NULL)
@@ -553,7 +559,7 @@ int icwmp_add_service(char *service)
 {
 	if (nbre_services >= MAX_NBRE_SERVICES)
 		return -1;
-	list_services[nbre_services++] = strdup(service);
+	list_services[nbre_services++] = CWMP_STRDUP(service);
 	return 0;
 }
 
@@ -583,7 +589,7 @@ void icwmp_restart_services()
 
 		blob_buf_free(&b);
 
-		if (strcmp(list_services[i], "firewall") == 0) {
+		if (CWMP_STRCMP(list_services[i], "firewall") == 0) {
 			g_firewall_restart = true;
 		}
 	}
@@ -600,7 +606,7 @@ void icwmp_restart_services()
  */
 bool icwmp_validate_string_length(char *arg, int max_length)
 {
-	if (arg != NULL && strlen(arg) > (size_t)max_length)
+	if (CWMP_STRLEN(arg) > (size_t)max_length)
 		return false;
 	return true;
 }
@@ -657,7 +663,7 @@ char *string_to_hex(const unsigned char *str, size_t size)
 		return NULL;
 	}
 
-	if (size == 0) {
+	if (size == 0 || str == NULL) {
 		return hex;
 	}
 
@@ -671,6 +677,12 @@ int copy_file(char *source_file, char *target_file)
 {
 	char ch;
 	FILE *source, *target;
+
+	if (source_file == NULL || target_file == NULL) {
+		CWMP_LOG(ERROR, "file path not mentioned");
+		return -1;
+	}
+
 	source = fopen(source_file, "r");
 	if (source == NULL) {
 		CWMP_LOG(ERROR, "Not able to open the source file: %s\n", source_file);
@@ -707,7 +719,7 @@ void ubus_network_interface_callback(struct ubus_request *req __attribute__((unu
 
 	// Only update the interface if its not empty
 	if (CWMP_STRLEN(l3_device)) {
-		cwmp_main.conf.interface = strdup(l3_device);
+		cwmp_main.conf.interface = CWMP_STRDUP(l3_device);
 	}
 
 	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main.conf.interface);
@@ -764,7 +776,7 @@ bool is_obj_excluded(const char *object_name)
 	unsigned int i = 0;
 
 	for (i = 0; i < ARRAY_SIZE(Obj_Excluded); i++) {
-		if (strncmp(Obj_Excluded[i], object_name, strlen(Obj_Excluded[i])) == 0)
+		if (CWMP_STRNCMP(Obj_Excluded[i], object_name, CWMP_STRLEN(Obj_Excluded[i])) == 0)
 			return true;
 	}
 	return false;
@@ -786,16 +798,13 @@ time_t convert_datetime_to_timestamp(char *value)
 	return mktime(&tm);
 }
 
-bool uci_str_to_bool(char *value)
+bool cwmp_str_to_bool(char *value)
 {
-	if (!value)
-		return false;
-
-	if (strncasecmp(value, "true", 4) == 0 ||
-	    value[0] == '1' ||
-	    strncasecmp(value, "on", 2) == 0 ||
-	    strncasecmp(value, "yes", 3) == 0 ||
-	    strncasecmp(value, "enable", 6) == 0)
+	if (CWMP_STRNCASECMP(value, "true", 4) == 0 ||
+	    (value != NULL && value[0] == '1') ||
+	    CWMP_STRNCASECMP(value, "on", 2) == 0 ||
+	    CWMP_STRNCASECMP(value, "yes", 3) == 0 ||
+	    CWMP_STRNCASECMP(value, "enable", 6) == 0)
 		return true;
 
 	return false;

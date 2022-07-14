@@ -36,7 +36,7 @@ mxmlFindElementOpaque(mxml_node_t *node, /* I - Current node */
 
 	while (node != NULL) {
 		const char *op = mxmlGetOpaque(node);
-		if (mxmlGetType(node) == MXML_OPAQUE && op && (!strcmp(op, text))) {
+		if (mxmlGetType(node) == MXML_OPAQUE && (!CWMP_STRCMP(op, text))) {
 			return (node);
 		}
 
@@ -55,7 +55,7 @@ char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value)
 	for (i = 0; i < attributes_nbre; i++) {
 		char *attr_name = NULL;
 		const char *attr_value = mxmlElementGetAttrByIndex(node, i, (const char **)&attr_name);
-		if (strcmp(attr_value, value) == 0)
+		if (CWMP_STRCMP(attr_value, value) == 0)
 			return attr_name;
 	}
 	return NULL;
@@ -77,28 +77,28 @@ int xml_recreate_namespace(mxml_node_t *tree)
 
 		c = (char *)xml__get_attribute_name_by_value(b, soap_env_url);
 		if (c && *(c + 5) == ':') {
-			ns.soap_env = strdup((c + 6));
+			ns.soap_env = CWMP_STRDUP((c + 6));
 		} else {
 			continue;
 		}
 
 		c = (char *)xml__get_attribute_name_by_value(b, soap_enc_url);
 		if (c && *(c + 5) == ':') {
-			ns.soap_enc = strdup((c + 6));
+			ns.soap_enc = CWMP_STRDUP((c + 6));
 		} else {
 			continue;
 		}
 
 		c = (char *)xml__get_attribute_name_by_value(b, xsd_url);
 		if (c && *(c + 5) == ':') {
-			ns.xsd = strdup((c + 6));
+			ns.xsd = CWMP_STRDUP((c + 6));
 		} else {
 			continue;
 		}
 
 		c = (char *)xml__get_attribute_name_by_value(b, xsi_url);
 		if (c && *(c + 5) == ':') {
-			ns.xsi = strdup((c + 6));
+			ns.xsi = CWMP_STRDUP((c + 6));
 		} else {
 			continue;
 		}
@@ -107,7 +107,7 @@ int xml_recreate_namespace(mxml_node_t *tree)
 			cwmp_urn = cwmp_urls[i];
 			c = (char *)xml__get_attribute_name_by_value(b, cwmp_urn);
 			if (c && *(c + 5) == ':') {
-				ns.cwmp = strdup((c + 6));
+				ns.cwmp = CWMP_STRDUP((c + 6));
 				break;
 			}
 		}
@@ -148,7 +148,7 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 			FREE(msg_out);
 			msg_out = (char *)zmsg_out;
 		} else {
-			msg_out_len = strlen(msg_out);
+			msg_out_len = CWMP_STRLEN(msg_out);
 		}
 	}
 	while (1) {

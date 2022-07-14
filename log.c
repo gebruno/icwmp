@@ -68,7 +68,7 @@ int log_set_on_console(char *value)
 	if (value == NULL)
 		return 1;
 
-	enable_log_stdout = uci_str_to_bool(value);
+	enable_log_stdout = cwmp_str_to_bool(value);
 	return 1;
 }
 
@@ -77,7 +77,7 @@ int log_set_on_file(char *value)
 	if (value == NULL)
 		return 1;
 
-	enable_log_file = uci_str_to_bool(value);
+	enable_log_file = cwmp_str_to_bool(value);
 	return 1;
 }
 
@@ -86,7 +86,7 @@ int log_set_on_syslog(char *value)
 	if (value == NULL)
 		return 1;
 
-	enable_log_syslog = uci_str_to_bool(value);
+	enable_log_syslog = cwmp_str_to_bool(value);
 	return 1;
 }
 
@@ -112,7 +112,7 @@ void puts_log(int severity, const char *fmt, ...)
 	gettimeofday(&tv, 0);
 	Tm = localtime(&tv.tv_sec);
 	i = snprintf(buf, sizeof(buf), "%02d-%02d-%4d, %02d:%02d:%02d %s ", Tm->tm_mday, Tm->tm_mon + 1, Tm->tm_year + 1900, Tm->tm_hour, Tm->tm_min, Tm->tm_sec, SEVERITY_NAMES[severity]);
-	if (strlen(log_file_name) == 0) {
+	if (CWMP_STRLEN(log_file_name) == 0) {
 		CWMP_STRNCPY(log_file_name, DEFAULT_LOG_FILE_NAME, sizeof(log_file_name));
 	}
 	if (enable_log_file) {
@@ -131,8 +131,8 @@ void puts_log(int severity, const char *fmt, ...)
 	vsprintf(buf + i, (const char *)fmt, args);
 	if (enable_log_file) {
 		CWMP_STRNCPY(buf_file, buf, sizeof(buf_file));
-		buf_file[strlen(buf)] = '\n';
-		buf_file[strlen(buf) + 1] = '\0';
+		buf_file[CWMP_STRLEN(buf)] = '\n';
+		buf_file[CWMP_STRLEN(buf) + 1] = '\0';
 		fputs(buf_file, pLog);
 	}
 	va_end(args);
@@ -172,7 +172,7 @@ void puts_log_xmlmsg(int severity, char *msg, int msgtype)
 	gettimeofday(&tv, 0);
 	Tm = localtime(&tv.tv_sec);
 	snprintf(buf, sizeof(buf), "%02d-%02d-%4d, %02d:%02d:%02d %s ", Tm->tm_mday, Tm->tm_mon + 1, Tm->tm_year + 1900, Tm->tm_hour, Tm->tm_min, Tm->tm_sec, SEVERITY_NAMES[severity]);
-	if (strlen(log_file_name) == 0) {
+	if (CWMP_STRLEN(log_file_name) == 0) {
 		CWMP_STRNCPY(log_file_name, DEFAULT_LOG_FILE_NAME, sizeof(log_file_name));
 	}
 
@@ -198,7 +198,8 @@ void puts_log_xmlmsg(int severity, char *msg, int msgtype)
 		fputs(buf, pLog);
 		fputs(description, pLog);
 		fputs(separator, pLog);
-		fputs(msg, pLog);
+		if (CWMP_STRLEN(msg) > 0)
+			fputs(msg, pLog);
 		fputs("\n", pLog);
 		fputs(separator, pLog);
 		fclose(pLog);
@@ -207,15 +208,16 @@ void puts_log_xmlmsg(int severity, char *msg, int msgtype)
 		puts(buf);
 		puts(description);
 		puts(separator);
-		puts(msg);
+		if (CWMP_STRLEN(msg) > 0)
+			puts(msg);
 		puts("\n");
 		puts(separator);
 	}
 
 	if (enable_log_syslog) {
 		syslog(severity, "%s: %s", ((msgtype == XML_MSG_IN) ? "IN" : "OUT"), msg);
-		if (sizeof(buf) < strlen(msg))
-			syslog(severity, "Truncated message at %zu characters", strlen(msg));
+		if (sizeof(buf) < CWMP_STRLEN(msg))
+			syslog(severity, "Truncated message at %zu characters", CWMP_STRLEN(msg));
 	}
 end:
 	pthread_mutex_unlock(&mutex_log);

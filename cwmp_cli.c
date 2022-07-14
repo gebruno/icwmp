@@ -42,7 +42,7 @@ char *get_fault_message_by_fault_code(char *fault_code)
 	size_t i;
 	size_t faults_array_size = sizeof(faults_array) / sizeof(struct fault_resp);
 	for (i = 0; i < faults_array_size; i++) {
-		if (strcmp(faults_array[i].fault_code, fault_code) == 0)
+		if (CWMP_STRCMP(faults_array[i].fault_code, fault_code) == 0)
 			return faults_array[i].fault_message;
 	}
 	return NULL;
@@ -77,7 +77,7 @@ void display_get_cmd_result(struct cmd_input in __attribute__((unused)), union c
 char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)))
 {
 	int flag;
-	if (in.first_input == NULL || in.second_input == NULL || strlen(in.first_input) == 0 || strlen(in.second_input) == 0)
+	if (CWMP_STRLEN(in.first_input) == 0 || CWMP_STRLEN(in.second_input) == 0)
 		return "9003";
 	if (transaction_id == 0) {
 		if (!cwmp_transaction_start("cwmp"))
@@ -145,7 +145,15 @@ void display_add_cmd_result(struct cmd_input in, union cmd_result res, char *fau
 		fprintf(stderr, "Fault %s: %s\n", fault, get_fault_message_by_fault_code(fault));
 		return;
 	}
-	if (in.first_input[strlen(in.first_input) - 1] == '.')
+
+	int len = CWMP_STRLEN(in.first_input);
+	if (len == 0) {
+		fprintf(stderr, "Fault DM Path is \"\".\n");
+		FREE(res.instance);
+		return;
+	}
+
+	if (in.first_input[len - 1] == '.')
 		fprintf(stdout, "Added %s%s.\n", in.first_input, res.instance);
 	else
 		fprintf(stdout, "Added %s.%s.\n", in.first_input, res.instance);
@@ -255,7 +263,7 @@ char *cmd_get_names_exec_func(struct cmd_input in, union cmd_result *res)
 	if (in.first_input == NULL)
 		in.first_input = "";
 	res->param_list = &parameters_list;
-	bool next_level = in.second_input && (strcmp(in.second_input, "1") == 0 || strcasecmp(in.second_input, "true") == 0) ? true : false;
+	bool next_level = cwmp_str_to_bool(in.second_input);
 	char *fault = cwmp_get_parameter_names(in.first_input, next_level, res->param_list);
 	return fault;
 }
@@ -301,11 +309,12 @@ const struct cwmp_cli_command_struct icwmp_commands[] = {
 
 char* execute_cwmp_cli_command(char *cmd, char *args[])
 {
-	if (!cmd || strlen(cmd) == 0) {
+	if (CWMP_STRLEN(cmd) == 0) {
 		printf("You must add a command as input: \n\n");
 		goto cli_help;
 	}
-	if (strcmp(cmd, "help") == 0)
+
+	if (CWMP_STRCMP(cmd, "help") == 0)
 		goto cli_help;
 	struct cmd_input cmd_in = { args[0] ? args[0] : NULL, args[0] && args[1] ? args[1] : NULL };
 	union cmd_result cmd_out = { 0 };
@@ -314,10 +323,9 @@ char* execute_cwmp_cli_command(char *cmd, char *args[])
 	size_t commands_array_size = sizeof(icwmp_commands) / sizeof(struct cwmp_cli_command_struct);
 	cwmp_uci_init();
 	for (i = 0; i < commands_array_size; i++) {
-		if (strcmp(icwmp_commands[i].command_name, cmd) == 0) {
+		if (CWMP_STRCMP(icwmp_commands[i].command_name, cmd) == 0) {
 			fault = icwmp_commands[i].cmd_exec_func(cmd_in, &cmd_out);
-			if (fault)
-				fault_ret = strdup(fault);
+			fault_ret = CWMP_STRDUP(fault);
 			icwmp_commands[i].display_cmd_result(cmd_in, cmd_out, fault);
 			goto cli_end;
 		}

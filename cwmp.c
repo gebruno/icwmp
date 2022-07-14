@@ -91,10 +91,7 @@ static bool interface_reset_req(char *param_name, char *value)
 	if (ret != 0)
 		return false;
 
-	if (strcmp(value, "1") != 0 && strcmp(value, "true") != 0)
-		return false;
-
-	return true;
+	return cwmp_str_to_bool(value);
 }
 
 void set_interface_reset_request(char *param_name, char *value)
@@ -205,7 +202,7 @@ void check_firewall_restart_state()
 		if (get_firewall_restart_state(&state) != CWMP_OK)
 			break;
 
-		if (state != NULL && strcmp(state, "init") == 0) {
+		if (CWMP_STRCMP(state, "init") == 0) {
 			init = true;
 			FREE(state);
 			break;
@@ -501,7 +498,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		CWMP_LOG(INFO, "Start session");
 
 		uci_get_value(UCI_CPE_EXEC_DOWNLOAD, &exec_download);
-		if (exec_download && strcmp(exec_download, "1") == 0) {
+		if (CWMP_STRCMP(exec_download, "1") == 0) {
 			CWMP_LOG(INFO, "Firmware downloaded and applied successfully");
 			cwmp_uci_set_value("cwmp", "cpe", "exec_download", "0");
 			cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
@@ -638,10 +635,17 @@ void load_forced_inform_json_file(struct cwmp *cwmp)
 
 	blobmsg_for_each_attr(cur, custom_forced_inform_list, rem)
 	{
-		char parameter_path[128];
+		char parameter_path[128] = {0};
 		char *val = NULL;
 		snprintf(parameter_path, sizeof(parameter_path), "%s", blobmsg_get_string(cur));
-		if (parameter_path[strlen(parameter_path)-1] == '.') {
+
+		int len = CWMP_STRLEN(parameter_path);
+		if (len == 0) {
+			CWMP_LOG(WARNING, "parameter path is empty so rejected ad inform parameter");
+			continue;
+		}
+
+		if (parameter_path[len - 1] == '.') {
 			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Only leaf parameters are allowed.", parameter_path);
 			continue;
 		}
@@ -650,7 +654,7 @@ void load_forced_inform_json_file(struct cwmp *cwmp)
 			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Wrong parameter path.", parameter_path);
 			continue;
 		}
-		custom_forced_inform_parameters[nbre_custom_inform++] = strdup(parameter_path);
+		custom_forced_inform_parameters[nbre_custom_inform++] = CWMP_STRDUP(parameter_path);
 		FREE(val);
 	}
 	blob_buf_free(&bbuf);
@@ -694,7 +698,13 @@ void load_boot_inform_json_file(struct cwmp *cwmp)
 		char *val = NULL;
 
 		snprintf(parameter_path, sizeof(parameter_path), "%s", blobmsg_get_string(cur));
-		if (parameter_path[strlen(parameter_path)-1] == '.') {
+		int len = CWMP_STRLEN(parameter_path);
+		if (len == 0) {
+			CWMP_LOG(WARNING, "parameter path is empty so rejected ad inform parameter");
+			continue;
+		}
+
+		if (parameter_path[len - 1] == '.') {
 			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Only leaf parameters are allowed.", parameter_path);
 			continue;
 		}
@@ -703,7 +713,7 @@ void load_boot_inform_json_file(struct cwmp *cwmp)
 			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Wrong parameter path.", parameter_path);
 			continue;
 		}
-		boot_inform_parameters[nbre_boot_inform++] = strdup(parameter_path);
+		boot_inform_parameters[nbre_boot_inform++] = CWMP_STRDUP(parameter_path);
 		FREE(val);
 	}
 	blob_buf_free(&bbuf);
@@ -757,7 +767,7 @@ static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 	struct blob_attr *attr;
 	const char *path;
 
-	if (strcmp(type, "ubus.object.add") != 0)
+	if (CWMP_STRCMP(type, "ubus.object.add") != 0)
 		return;
 
 	blobmsg_parse(&policy, 1, &attr, blob_data(msg), blob_len(msg));
@@ -765,7 +775,7 @@ static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 		return;
 
 	path = blobmsg_data(attr);
-	if (strcmp(path, USP_OBJECT_NAME) == 0) {
+	if (CWMP_STRCMP(path, USP_OBJECT_NAME) == 0) {
 		g_usp_object_available = true;
 		uloop_end();
 	}

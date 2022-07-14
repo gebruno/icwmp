@@ -32,7 +32,7 @@ void ubus_du_state_callback(struct ubus_request *req, int type __attribute__((un
 	if (tb[0] && blobmsg_get_bool(tb[0])) {
 		*fault = NULL;
 	} else {
-		*fault = strdup("9010");
+		*fault = CWMP_STRDUP("9010");
 	}
 }
 
@@ -130,10 +130,10 @@ static char *get_software_module_object_eq(char *param1, char *val1, char *param
 	}
 
 	list_for_each_entry (param_value, sw_parameters, list) {
-		if (regexec(&regex1, param_value->name, 0, NULL, 0) == 0 && strcmp(param_value->value, val1) == 0)
+		if (regexec(&regex1, param_value->name, 0, NULL, 0) == 0 && CWMP_STRCMP(param_value->value, val1) == 0)
 			softwaremodule_filter_param = true;
 
-		if (param2 && regexec(&regex2, param_value->name, 0, NULL, 0) == 0 && strcmp(param_value->value, val2) == 0)
+		if (param2 && regexec(&regex2, param_value->name, 0, NULL, 0) == 0 && CWMP_STRCMP(param_value->value, val2) == 0)
 			softwaremodule_filter_param = true;
 
 		if (softwaremodule_filter_param == false)
@@ -142,7 +142,7 @@ static char *get_software_module_object_eq(char *param1, char *val1, char *param
 		snprintf(instance, (size_t)(strchr(param_value->name + strlen("Device.SoftwareModules.DeploymentUnit."), '.') - param_value->name - strlen("Device.SoftwareModules.DeploymentUnit.") + 1), "%s", (char *)(param_value->name + strlen("Device.SoftwareModules.DeploymentUnit.")));
 		break;
 	}
-	return (strlen(instance) > 0) ? strdup(instance) : NULL;
+	return (CWMP_STRLEN(instance) > 0) ? CWMP_STRDUP(instance) : NULL;
 }
 
 static int get_deployment_unit_name_version(char *uuid, char **name, char **version, char **env)
@@ -158,16 +158,16 @@ static int get_deployment_unit_name_version(char *uuid, char **name, char **vers
 	snprintf(environment_param, sizeof(environment_param), "Device.SoftwareModules.DeploymentUnit.%s.ExecutionEnvRef", sw_by_uuid_instance);
 	struct cwmp_dm_parameter *param_value;
 	list_for_each_entry (param_value, &sw_parameters, list) {
-		if (strcmp(param_value->name, name_param) == 0) {
-			*name = strdup(param_value->value);
+		if (CWMP_STRCMP(param_value->name, name_param) == 0) {
+			*name = CWMP_STRDUP(param_value->value);
 			continue;
 		}
-		if (strcmp(param_value->name, version_param) == 0) {
-			*version = strdup(param_value->value);
+		if (CWMP_STRCMP(param_value->name, version_param) == 0) {
+			*version = CWMP_STRDUP(param_value->value);
 			continue;
 		}
-		if (strcmp(param_value->name, environment_param) == 0) {
-			*env = strdup(param_value->value);
+		if (CWMP_STRCMP(param_value->name, environment_param) == 0) {
+			*env = CWMP_STRDUP(param_value->value);
 			continue;
 		}
 	}
@@ -216,13 +216,13 @@ static char *get_exec_env_name(char *environment_path)
 	LIST_HEAD(environment_list);
 	char *err = cwmp_get_parameter_values(environment_path, &environment_list);
 	if (err)
-		return strdup("");
+		return CWMP_STRDUP("");
 
 	struct cwmp_dm_parameter *param_value;
 	snprintf(env_param, sizeof(env_param), "%sName", environment_path);
 	list_for_each_entry (param_value, &environment_list, list) {
-		if (strcmp(param_value->name, env_param) == 0) {
-			env_name = strdup(param_value->value);
+		if (CWMP_STRCMP(param_value->name, env_param) == 0) {
+			env_name = CWMP_STRDUP(param_value->value);
 			break;
 		}
 	}
@@ -235,14 +235,14 @@ static int cwmp_launch_du_install(char *url, char *uuid, char *user, char *pass,
 	int error = FAULT_CPE_NO_FAULT;
 	char *fault_code;
 
-	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
+	(*pchange_du_state_complete)->start_time = CWMP_STRDUP(get_time(time(NULL)));
 	cwmp_du_install(url, uuid, user, pass, env_name, env_id, &fault_code);
 
 	if (fault_code != NULL) {
 		if (fault_code[0] == '9') {
 			int i;
 			for (i = 1; i < __FAULT_CPE_MAX; i++) {
-				if (strcmp(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0) {
+				if (CWMP_STRCMP(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0) {
 					error = i;
 					break;
 				}
@@ -258,14 +258,14 @@ static int cwmp_launch_du_update(char *uuid, char *url, char *user, char *pass, 
 	int error = FAULT_CPE_NO_FAULT;
 	char *fault_code;
 
-	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
+	(*pchange_du_state_complete)->start_time = CWMP_STRDUP(get_time(time(NULL)));
 
 	cwmp_du_update(url, uuid, user, pass, env_name, env_id, &fault_code);
 	if (fault_code != NULL) {
 		if (fault_code[0] == '9') {
 			int i;
 			for (i = 1; i < __FAULT_CPE_MAX; i++) {
-				if (strcmp(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0) {
+				if (CWMP_STRCMP(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0) {
 					error = i;
 					break;
 				}
@@ -281,7 +281,7 @@ static int cwmp_launch_du_uninstall(char *package_name, char *env_name, int env_
 	int error = FAULT_CPE_NO_FAULT;
 	char *fault_code;
 
-	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
+	(*pchange_du_state_complete)->start_time = CWMP_STRDUP(get_time(time(NULL)));
 
 	cwmp_du_uninstall(package_name, env_name, env_id, &fault_code);
 
@@ -289,7 +289,7 @@ static int cwmp_launch_du_uninstall(char *package_name, char *env_name, int env_
 		if (fault_code[0] == '9') {
 			int i;
 			for (i = 1; i < __FAULT_CPE_MAX; i++) {
-				if (strcmp(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0) {
+				if (CWMP_STRCMP(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0) {
 					error = i;
 					break;
 				}
@@ -351,16 +351,16 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 				if (pdu_state_change_complete != NULL) {
 					error = FAULT_CPE_DOWNLOAD_FAILURE;
 					INIT_LIST_HEAD(&(pdu_state_change_complete->list_opresult));
-					pdu_state_change_complete->command_key = strdup(pchange_du_state->command_key ? pchange_du_state->command_key : "");
+					pdu_state_change_complete->command_key = CWMP_STRDUP_DEF(pchange_du_state->command_key, "");
 					pdu_state_change_complete->timeout = pchange_du_state->timeout;
 					list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
 						res = calloc(1, sizeof(struct opresult));
 						list_add_tail(&(res->list), &(pdu_state_change_complete->list_opresult));
-						res->uuid = strdup(p->uuid);
-						res->version = strdup(p->version);
-						res->current_state = strdup("Failed");
-						res->start_time = strdup(get_time(time(NULL)));
-						res->complete_time = strdup(res->start_time);
+						res->uuid = CWMP_STRDUP(p->uuid);
+						res->version = CWMP_STRDUP(p->version);
+						res->current_state = CWMP_STRDUP("Failed");
+						res->start_time = CWMP_STRDUP(get_time(time(NULL)));
+						res->complete_time = CWMP_STRDUP(res->start_time);
 						res->fault = error;
 					}
 					bkp_session_insert_du_state_change_complete(pdu_state_change_complete);
@@ -379,12 +379,13 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 				if (pdu_state_change_complete != NULL) {
 					error = FAULT_CPE_NO_FAULT;
 					INIT_LIST_HEAD(&(pdu_state_change_complete->list_opresult));
-					pdu_state_change_complete->command_key = strdup(pchange_du_state->command_key);
+					pdu_state_change_complete->command_key = CWMP_STRDUP(pchange_du_state->command_key);
 					pdu_state_change_complete->timeout = pchange_du_state->timeout;
 
 					list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
 						res = calloc(1, sizeof(struct opresult));
 						list_add_tail(&(res->list), &(pdu_state_change_complete->list_opresult));
+						char *end_time = NULL;
 						switch (p->type) {
 						case DU_INSTALL:
 							if (!environment_exists(p->executionenvref)) {
@@ -399,19 +400,20 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 							if (error == FAULT_CPE_NO_FAULT) {
 								du_ref = (package_name && p->executionenvref) ? get_deployment_unit_reference(package_name, p->executionenvref) : NULL;
 								get_du_version(du_ref, &package_version);
-								res->du_ref = strdup("");
-								res->uuid = strdup("");
-								res->current_state = strdup("Installed");
+								res->du_ref = CWMP_STRDUP("");
+								res->uuid = CWMP_STRDUP("");
+								res->current_state = CWMP_STRDUP("Installed");
 								res->resolved = 1;
-								res->version = strdup("");
+								res->version = CWMP_STRDUP("");
 								FREE(du_ref);
 							} else {
-								res->uuid = strdup(p->uuid ? p->uuid : "");
-								res->current_state = strdup("Failed");
+								res->uuid = CWMP_STRDUP_DEF(p->uuid, "");
+								res->current_state = CWMP_STRDUP("Failed");
 								res->resolved = 0;
 							}
 
-							res->complete_time = strdup(get_time(time(NULL)));
+							end_time = get_time(time(NULL));
+							res->complete_time = CWMP_STRDUP(end_time);
 							res->fault = error;
 							break;
 
@@ -431,20 +433,21 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 							snprintf(execenv, 40, "Device.SoftwareModules.ExecEnv.%s.", du_ref);
 							error = cwmp_launch_du_update(p->uuid, p->url, p->username, p->password, get_exec_env_name(execenv), get_exec_env_id(execenv), &res);
 
-							res->uuid = strdup(p->uuid ? p->uuid : "");
+							res->uuid = CWMP_STRDUP_DEF(p->uuid, "");
 
 							if (error == FAULT_CPE_NO_FAULT) {
-								res->current_state = strdup("Installed");
+								res->current_state = CWMP_STRDUP("Installed");
 								res->resolved = 1;
 							} else {
-								res->current_state = strdup("Failed");
+								res->current_state = CWMP_STRDUP("Failed");
 								res->resolved = 0;
 							}
 
 							get_du_version(du_ref, &package_version);
-							res->version = strdup(package_version ? package_version : "");
-							res->du_ref = strdup(du_ref ? du_ref : "");
-							res->complete_time = strdup(get_time(time(NULL)));
+							res->version = CWMP_STRDUP_DEF(package_version, "");
+							res->du_ref = CWMP_STRDUP_DEF(du_ref, "");
+							end_time = get_time(time(NULL));
+							res->complete_time = CWMP_STRDUP(end_time);
 							res->fault = error;
 							FREE(du_ref);
 							break;
@@ -464,17 +467,18 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 							get_du_version(du_ref, &package_version);
 							error = cwmp_launch_du_uninstall(package_name, get_exec_env_name(package_env), get_exec_env_id(package_env), &res);
 							if (error == FAULT_CPE_NO_FAULT) {
-								res->current_state = strdup("Uninstalled");
+								res->current_state = CWMP_STRDUP("Uninstalled");
 								res->resolved = 1;
 							} else {
-								res->current_state = strdup("Installed");
+								res->current_state = CWMP_STRDUP("Installed");
 								res->resolved = 0;
 							}
 
-							res->du_ref = strdup(du_ref ? du_ref : "");
-							res->uuid = strdup(p->uuid);
-							res->version = strdup(package_version);
-							res->complete_time = strdup(get_time(time(NULL)));
+							res->du_ref = CWMP_STRDUP_DEF(du_ref, "");
+							res->uuid = CWMP_STRDUP(p->uuid);
+							res->version = CWMP_STRDUP(package_version);
+							end_time = get_time(time(NULL));
+							res->complete_time = CWMP_STRDUP(end_time);
 							res->fault = error;
 							FREE(du_ref);
 							FREE(package_name);

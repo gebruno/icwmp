@@ -36,7 +36,7 @@ int add_heart_beat_event(struct session *heartbeat_session)
 	INIT_LIST_HEAD(&(event_container->head_dm_parameter));
 	list_add(&(event_container->list), heartbeat_session->head_event_container.prev);
 	event_container->code = EVENT_IDX_14HEARTBEAT;
-	event_container->command_key = strdup("");
+	event_container->command_key = CWMP_STRDUP("");
 	event_container->id = 1;
 	/*
 	 * event_container will be freed in the destruction of the session heartbeat_session

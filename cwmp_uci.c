@@ -175,11 +175,20 @@ int cwmp_uci_get_option_value_string(char *package, char *section, char *option,
 int cwmp_uci_get_value_by_path(char *path, uci_config_paths uci_type, char **value)
 {
 	struct uci_ptr ptr;
-	char *s;
 
 	*value = NULL;
 
-	s = strdup(path);
+	if (CWMP_STRLEN(path) == 0) {
+		CWMP_LOG(DEBUG, "uci get with empty path");
+		return UCI_OK;
+	}
+
+	char *s = CWMP_STRDUP(path);
+	if (s == NULL) {
+		CWMP_LOG(DEBUG, "uci get failed, memory faiure");
+		return UCI_OK;
+	}
+
 	if (uci_lookup_ptr(uci_save_conf_paths[uci_type].uci_ctx, &ptr, s, true) != UCI_OK) {
 		CWMP_LOG(ERROR, "Error occurred in uci get %s", path);
 		free(s);
@@ -191,7 +200,7 @@ int cwmp_uci_get_value_by_path(char *path, uci_config_paths uci_type, char **val
 			CWMP_LOG(INFO, "%s not found or empty value", path);
 			return UCI_OK;
 		}
-		*value = strdup(ptr.o->v.string);
+		*value = CWMP_STRDUP(ptr.o->v.string);
 	}
 	return UCI_OK;
 }
@@ -222,7 +231,7 @@ int cwmp_uci_get_value_by_section_string(struct uci_section *s, char *option, ch
 	uci_foreach_element(&s->options, e)
 	{
 		o = (uci_to_option(e));
-		if (!strcmp(o->e.name, option)) {
+		if (!CWMP_STRCMP(o->e.name, option)) {
 			if (o->type == UCI_TYPE_LIST) {
 				*value = cwmp_uci_list_to_string(&o->v.list, " ");
 			} else {
@@ -253,7 +262,7 @@ int cwmp_uci_get_value_by_section_list(struct uci_section *s, char *option, stru
 	uci_foreach_element(&s->options, e)
 	{
 		o = (uci_to_option(e));
-		if (strcmp(o->e.name, option) == 0) {
+		if (CWMP_STRCMP(o->e.name, option) == 0) {
 			switch (o->type) {
 			case UCI_TYPE_LIST:
 				*value = &o->v.list;
@@ -428,12 +437,21 @@ int cwmp_uci_get_option_value_list(char *package, char *section, char *option, u
 				option_type = UCI_TYPE_LIST;
 				break;
 			case UCI_TYPE_STRING:
-				if (!ptr.o->v.string || (ptr.o->v.string)[0] == '\0') {
+				if (CWMP_STRLEN(ptr.o->v.string) == 0) {
 					return UCI_TYPE_STRING;
 				}
 				list = calloc(1, sizeof(struct uci_list));
+				if (list == NULL) {
+					return UCI_TYPE_STRING;
+				}
+
 				cwmp_uci_list_init(list);
-				dup = strdup(ptr.o->v.string);
+				dup = CWMP_STRDUP(ptr.o->v.string);
+				if (dup == NULL) {
+					free(list);
+					return UCI_TYPE_STRING;
+				}
+
 				pch = strtok_r(dup, " ", &spch);
 				while (pch != NULL) {
 					e = calloc(1, sizeof(struct uci_element));
@@ -545,7 +563,8 @@ struct uci_section* get_section_by_section_name(char *package, char *stype, char
 {
 	struct uci_section *s;
 	cwmp_uci_foreach_sections(package, stype, uci_type, s) {
-		if (strcmp(section_name(s), sname) == 0)
+		char *s_name = section_name(s);
+		if (CWMP_STRCMP(s_name, sname) == 0)
 			return s;
 	}
  	return NULL;
@@ -635,13 +654,13 @@ struct uci_section *cwmp_uci_walk_section(char *package, char *stype, void *arg1
 
 	while (&e->list != list_section) {
 		s = uci_to_section(e);
-		if (s && s->type && strcmp(s->type, stype) == 0) {
+		if (s && CWMP_STRCMP(s->type, stype) == 0) {
 			switch (cmp) {
 			case CWMP_CMP_SECTION:
 				goto end;
 			case CWMP_CMP_OPTION_EQUAL:
 				cwmp_uci_get_value_by_section_string(s, (char *)arg1, &value);
-				if (strcmp(value, (char *)arg2) == 0)
+				if (CWMP_STRCMP(value, (char *)arg2) == 0)
 					goto end;
 				break;
 			case CWMP_CMP_OPTION_CONTAINING:
@@ -654,7 +673,7 @@ struct uci_section *cwmp_uci_walk_section(char *package, char *stype, void *arg1
 				snprintf(dup, sizeof(dup), "%s", value);
 				pch = strtok_r(dup, " ", &spch);
 				while (pch != NULL) {
-					if (strcmp((char *)arg2, pch) == 0)
+					if (CWMP_STRCMP((char *)arg2, pch) == 0)
 						goto end;
 
 					pch = strtok_r(NULL, " ", &spch);
@@ -665,7 +684,7 @@ struct uci_section *cwmp_uci_walk_section(char *package, char *stype, void *arg1
 				if (list_value != NULL) {
 					uci_foreach_element(list_value, m)
 					{
-						if (strcmp(m->name, (char *)arg2) == 0)
+						if (CWMP_STRCMP(m->name, (char *)arg2) == 0)
 							goto end;
 					}
 				}

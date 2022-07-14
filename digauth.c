@@ -91,7 +91,8 @@ static int get_param_index(char *key)
 	unsigned int i;
 
 	for (i = 0; i < (sizeof(param)/sizeof(param[0])); i++) {
-		if (strncmp(key, param[i].key, strlen(param[i].key)) == 0)
+		int key_len = CWMP_STRLEN(param[i].key);
+		if (CWMP_STRNCMP(key, param[i].key, key_len) == 0)
 			return i;
 	}
 
@@ -100,6 +101,9 @@ static int get_param_index(char *key)
 
 static void strip_lead_trail_char(char *str, char ch)
 {
+	if (str == NULL)
+		return;
+
 	/* First remove leading strip-char */
 	const char* first_valid = str;
 
@@ -107,12 +111,12 @@ static void strip_lead_trail_char(char *str, char ch)
 		++first_valid;
 	}
 
-	size_t len = strlen(first_valid) + 1;
+	size_t len = CWMP_STRLEN(first_valid) + 1;
 
 	memmove(str, first_valid, len);
 
 	/* Now remove trailing strip-char */
-	char* end_str = str + strlen(str) - 1;
+	char* end_str = str + CWMP_STRLEN(str) - 1;
 
 	while(str < end_str  && *end_str == ch) {
 		*end_str = '\0';
@@ -167,7 +171,7 @@ static void get_value_from_header(const char *data)
 		strip_lead_trail_char(key, '\"');
 
 		eq = eq + 1;
-		char *end = eq + strlen(eq) - 1;
+		char *end = eq + CWMP_STRLEN(eq) - 1;
 		len = end - eq + 2;
 		char val[len];
 		snprintf(val, len, "%s", eq);
@@ -208,7 +212,7 @@ static void get_digest_ha1(const char *algo, const char *uname, const char *rlm,
 	free(a);
 	a = NULL;
 
-	if (0 == strcasecmp(algo, "md5-sess")) {
+	if (0 == CWMP_STRCASECMP(algo, "md5-sess")) {
 		len = strlen(nonce) + strlen(cnonce) + 3;
 		a = (char *)calloc(sizeof(char), len);
 		if (a == NULL)
@@ -372,28 +376,28 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 {
 	get_value_from_header(hdr);
 
-	if (strcmp(param[E_USERNAME].value, usr) != 0)
+	if (CWMP_STRCMP(param[E_USERNAME].value, usr) != 0)
 		return 0;
 
-	if (strlen(param[E_REALM].value) == 0)
+	if (CWMP_STRLEN(param[E_REALM].value) == 0)
 		return 0;
 
-	if (strcmp(param[E_REALM].value, rlm) != 0)
+	if (CWMP_STRCMP(param[E_REALM].value, rlm) != 0)
 		return 0;
 
-	if (strlen(param[E_CNONCE].value) == 0)
+	if (CWMP_STRLEN(param[E_CNONCE].value) == 0)
 		return 0;
 
-	if (strlen(param[E_QOP].value) == 0)
+	if (CWMP_STRLEN(param[E_QOP].value) == 0)
 		return 0;
 
-	if (strlen(param[E_NC].value) == 0)
+	if (CWMP_STRLEN(param[E_NC].value) == 0)
 		return 0;
 
-	if (strlen(param[E_RESPONSE].value) == 0)
+	if (CWMP_STRLEN(param[E_RESPONSE].value) == 0)
 		return 0;
 
-	int len = strlen(param[E_NONCE].value);
+	int len = CWMP_STRLEN(param[E_NONCE].value);
 	if (len == 0)
 		return 0;
 
@@ -414,20 +418,21 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	char nonce[MD5_HASH_HEX_LEN + 9];
 	get_nonce(tm, http_meth, nonce_key, strlen(nonce_key), uri, rlm, nonce, sizeof(nonce));
 
-	if (strcmp(param[E_NONCE].value, nonce) != 0) {
+	if (CWMP_STRCMP(param[E_NONCE].value, nonce) != 0) {
 		CWMP_LOG(ERROR, "Nonce value is probably fabricated");
 		return 0;
 	}
 
-	if (strlen(param[E_URI].value) == 0)
+	if (CWMP_STRLEN(param[E_URI].value) == 0)
 		return 0;
 
-	if (strncmp(param[E_URI].value, uri, strlen(uri)) != 0) {
+	int uri_len = CWMP_STRLEN(uri);
+	if (CWMP_STRNCMP(param[E_URI].value, uri, uri_len) != 0) {
 		CWMP_LOG(ERROR, "Authentication failed, URI is not matched");
 		return 0;
 	}
 
-	if ((strcmp(param[E_QOP].value, "auth") != 0) && (strcmp(param[E_QOP].value, "") != 0))
+	if ((CWMP_STRCMP(param[E_QOP].value, "auth") != 0) && (CWMP_STRCMP(param[E_QOP].value, "") != 0))
 		return 0;
 
 	char *tmp;
@@ -446,7 +451,7 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	get_digest_response(ha1, param[E_NONCE].value, param[E_NC].value, param[E_CNONCE].value,
 			    param[E_QOP].value, ha2, resp, sizeof(resp));
 
-	if (strcmp(resp, param[E_RESPONSE].value) != 0)
+	if (CWMP_STRCMP(resp, param[E_RESPONSE].value) != 0)
 		return 0;
 
 	return 1;

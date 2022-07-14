@@ -112,7 +112,7 @@ int get_bkp_attribute_index_type(const char *name)
 		return -1;
 	size_t total_size = sizeof(bkp_attrs_names) / sizeof(struct backup_attributes_name_type);
 	for (i = 0; i < total_size; i++) {
-		if (strcmp(name, bkp_attrs_names[i].name) == 0)
+		if (CWMP_STRCMP(name, bkp_attrs_names[i].name) == 0)
 			return i;
 	}
 	return -1;
@@ -141,7 +141,7 @@ void load_specific_backup_attributes(mxml_node_t *tree, struct backup_attributes
 					switch (bkp_attrs_names[idx].bkp_type) {
 					case BKP_STRING:
 						str = (char **)(*ptr);
-						*str = strdup(opaque);
+						*str = CWMP_STRDUP(opaque);
 						break;
 					case BKP_INTEGER:
 						intgr = (int *)(*ptr);
@@ -210,7 +210,7 @@ mxml_node_t *bkp_session_node_found(mxml_node_t *tree, char *name, struct search
 		if (c) {
 			i = 0;
 			while (c && i < size) {
-				if (mxmlGetType(c) == MXML_ELEMENT && strcmp(keys[i].name, (char *) mxmlGetElement(c)) == 0) {
+				if (mxmlGetType(c) == MXML_ELEMENT && CWMP_STRCMP(keys[i].name, (char *) mxmlGetElement(c)) == 0) {
 					d = c;
 					d = mxmlWalkNext(d, c, MXML_DESCEND);
 					if ((keys[i].value == NULL) || (d && mxmlGetType(d) == MXML_OPAQUE && CWMP_STRCMP(keys[i].value, mxmlGetOpaque(d)) == 0))
@@ -312,7 +312,7 @@ void bkp_session_move_inform_to_inform_send()
 	pthread_mutex_lock(&mutex_backup_session);
 	while (b) {
 		mxml_node_t *p = mxmlGetParent(b);
-		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "queue_event") && mxmlGetType(p) == MXML_ELEMENT && !strcmp(mxmlGetElement(p), "cwmp"))
+		if (mxmlGetType(b) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(b), "queue_event") && mxmlGetType(p) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(p), "cwmp"))
 			mxmlSetElement(b, "send_event");
 
 		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
@@ -327,7 +327,7 @@ void bkp_session_move_inform_to_inform_queue()
 	pthread_mutex_lock(&mutex_backup_session);
 	while (b) {
 		mxml_node_t *p = mxmlGetParent(b);
-		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "send_event") && mxmlGetType(p) == MXML_ELEMENT && !strcmp(mxmlGetElement(p), "cwmp"))
+		if (mxmlGetType(b) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(b), "send_event") && mxmlGetType(p) == MXML_ELEMENT && !CWMP_STRCMP(mxmlGetElement(p), "cwmp"))
 			mxmlSetElement(b, "queue_event");
 
 		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
@@ -775,10 +775,7 @@ char *load_child_value(mxml_node_t *tree, char *sub_name)
 		if (b) {
 			b = mxmlWalkNext(b, tree, MXML_DESCEND);
 			if (b && mxmlGetType(b) == MXML_OPAQUE) {
-				const char *opaque = mxmlGetOpaque(b);
-				if (opaque != NULL) {
-					value = strdup(opaque);
-				}
+				value = CWMP_STRDUP(mxmlGetOpaque(b));
 			}
 		}
 	}
@@ -801,7 +798,7 @@ void load_queue_event(mxml_node_t *tree, struct cwmp *cwmp)
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			const char *element = mxmlGetElement(b);
 
-			if (strcmp(element, "command_key") == 0) {
+			if (CWMP_STRCMP(element, "command_key") == 0) {
 				if (idx != -1) {
 					if (EVENT_CONST[idx].RETRY & EVENT_RETRY_AFTER_REBOOT) {
 						event_container_save = cwmp_add_event_container(cwmp, idx, ((command_key != NULL) ? command_key : ""));
@@ -811,7 +808,7 @@ void load_queue_event(mxml_node_t *tree, struct cwmp *cwmp)
 					}
 				}
 				FREE(command_key);
-			} else if (strcmp(element, "parameter") == 0) {
+			} else if (CWMP_STRCMP(element, "parameter") == 0) {
 				c = mxmlWalkNext(b, b, MXML_DESCEND);
 				if (c && mxmlGetType(c) == MXML_OPAQUE) {
 					const char *op = mxmlGetOpaque(c);
@@ -981,20 +978,20 @@ void load_change_du_state(mxml_node_t *tree)
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			const char *element = mxmlGetElement(b);
-			if (strcmp(element, "update") == 0) {
+			if (CWMP_STRCMP(element, "update") == 0) {
 				elem = (operations *)calloc(1, sizeof(operations));
 				elem->type = DU_UPDATE;
 				list_add_tail(&(elem->list), &(change_du_state_request->list_operation));
 				struct backup_attributes update_bkp_attrs = { .uuid = &elem->uuid, .version = &elem->version, .url = &elem->url, .username = &elem->username, .password = &elem->password };
 				load_specific_backup_attributes(b, &update_bkp_attrs);
-			} else if (strcmp(element, "install") == 0) {
+			} else if (CWMP_STRCMP(element, "install") == 0) {
 				elem = (operations *)calloc(1, sizeof(operations));
 				elem->type = DU_INSTALL;
 				list_add_tail(&(elem->list), &(change_du_state_request->list_operation));
 
 				struct backup_attributes install_bkp_attrs = { .uuid = &elem->uuid, .executionenvref = &elem->executionenvref, .url = &elem->url, .username = &elem->username, .password = &elem->password };
 				load_specific_backup_attributes(b, &install_bkp_attrs);
-			} else if (strcmp(element, "uninstall") == 0) {
+			} else if (CWMP_STRCMP(element, "uninstall") == 0) {
 				elem = (operations *)calloc(1, sizeof(operations));
 				elem->type = DU_UNINSTALL;
 				list_add_tail(&(elem->list), &(change_du_state_request->list_operation));
@@ -1023,7 +1020,7 @@ void load_du_state_change_complete(mxml_node_t *tree, struct cwmp *cwmp)
 
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
-			if (strcmp(mxmlGetElement(b), "opresult") == 0) {
+			if (CWMP_STRCMP(mxmlGetElement(b), "opresult") == 0) {
 				elem = (opresult *)calloc(1, sizeof(opresult));
 				list_add_tail(&(elem->list), &(du_state_change_complete_request->list_opresult));
 
@@ -1123,47 +1120,47 @@ int cwmp_load_saved_session(struct cwmp *cwmp, char **ret, enum backup_loading l
 		mxml_type_t ntype = mxmlGetType(b);
 		const char *elem_name = mxmlGetElement(b);
 		if (load == ACS) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "acs") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "acs") == 0) {
 				*ret = load_child_value(b, "url");
 				break;
 			}
 		}
 		if (load == CR_IP) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "ip");
 				break;
 			}
 		}
 		if (load == CR_IPv6) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "ipv6");
 				break;
 			}
 		}
 		if (load == CR_PORT) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "port");
 				break;
 			}
 		}
 		if (load == ALL) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "queue_event") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "queue_event") == 0) {
 				load_queue_event(b, cwmp);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "download") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "download") == 0) {
 				load_download(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "upload") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "upload") == 0) {
 				load_upload(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "transfer_complete") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "transfer_complete") == 0) {
 				load_transfer_complete(b, cwmp);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "schedule_inform") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "schedule_inform") == 0) {
 				load_schedule_inform(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "change_du_state") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "change_du_state") == 0) {
 				load_change_du_state(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "du_state_change_complete") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "du_state_change_complete") == 0) {
 				load_du_state_change_complete(b, cwmp);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "schedule_download") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "schedule_download") == 0) {
 				load_schedule_download(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "apply_schedule_download") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "apply_schedule_download") == 0) {
 				load_apply_schedule_download(b);
 			}
 		}

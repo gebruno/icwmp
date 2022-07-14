@@ -38,7 +38,7 @@ int lookup_vcf_name(int instance, char **value)
 	}
 	struct cwmp_dm_parameter *param_value;
 	list_for_each_entry (param_value, &vcf_parameters, list) {
-		*value = param_value->value ? strdup(param_value->value) : NULL;
+		*value = CWMP_STRDUP(param_value->value);
 		break;
 	}
 	cwmp_free_all_dm_parameter_list(&vcf_parameters);
@@ -56,7 +56,7 @@ int lookup_vlf_name(int instance, char **value)
 	}
 	struct cwmp_dm_parameter *param_value;
 	list_for_each_entry (param_value, &vlf_parameters, list) {
-		*value = param_value->value ? strdup(param_value->value) : NULL;
+		*value = CWMP_STRDUP(param_value->value);
 		break;
 	}
 	cwmp_free_all_dm_parameter_list(&vlf_parameters);
@@ -85,7 +85,7 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 
 		snprintf(userpass, sizeof(userpass), "%s:%s", username, password);
 		curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
-		if (strncmp(url, "https://", 8) == 0)
+		if (CWMP_STRNCMP(url, "https://", 8) == 0)
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
@@ -129,8 +129,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 		copy("/var/log/syslog", file_path);
 	} else if (pupload->file_type[0] == '3') {
 		lookup_vcf_name(pupload->f_instance, &name);
-		if (name && strlen(name) > 0) {
-			// cppcheck-suppress uninitvar
+		if (CWMP_STRLEN(name) > 0) {
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
 			cwmp_uci_init();
 			cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);
@@ -142,7 +141,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 		}
 	} else { //file_type is 4
 		lookup_vlf_name(pupload->f_instance, &name);
-		if (name && strlen(name) > 0) {
+		if (CWMP_STRLEN(name) > 0) {
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
 			copy(name, file_path);
 			FREE(name);
@@ -150,7 +149,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 			error = FAULT_CPE_UPLOAD_FAILURE;
 	}
 
-	if (error != FAULT_CPE_NO_FAULT || strlen(file_path) == 0) {
+	if (error != FAULT_CPE_NO_FAULT || CWMP_STRLEN(file_path) == 0) {
 		error = FAULT_CPE_UPLOAD_FAILURE;
 		goto end_upload;
 	}
@@ -169,9 +168,10 @@ end_upload:
 		return error;
 	}
 
-	p->command_key = pupload->command_key ? strdup(pupload->command_key) : strdup("");
-	p->start_time = strdup(upload_startTime);
-	p->complete_time = strdup(get_time(time(NULL)));
+	p->command_key = CWMP_STRDUP_DEF(pupload->command_key, "");
+	p->start_time = CWMP_STRDUP(upload_startTime);
+	char *end_time = get_time(time(NULL));
+	p->complete_time = CWMP_STRDUP(end_time);
 	p->type = TYPE_UPLOAD;
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;
@@ -211,9 +211,10 @@ void *thread_cwmp_rpc_cpe_upload(void *v)
 				if (ptransfer_complete != NULL) {
 					error = FAULT_CPE_DOWNLOAD_FAILURE;
 
-					ptransfer_complete->command_key = strdup(pupload->command_key);
-					ptransfer_complete->start_time = strdup(get_time(time(NULL)));
-					ptransfer_complete->complete_time = strdup(ptransfer_complete->start_time);
+					ptransfer_complete->command_key = CWMP_STRDUP(pupload->command_key);
+					char *start_time = get_time(time(NULL));
+					ptransfer_complete->start_time = CWMP_STRDUP(start_time);
+					ptransfer_complete->complete_time = CWMP_STRDUP(ptransfer_complete->start_time);
 					ptransfer_complete->fault_code = error;
 					ptransfer_complete->type = TYPE_UPLOAD;
 					bkp_session_insert_transfer_complete(ptransfer_complete);

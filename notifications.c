@@ -38,10 +38,13 @@ struct cwmp_dm_parameter forced_notifications_parameters[] = {
  */
 static bool parameter_is_subobject_of_parameter(char *parent, char *child)
 {
-	if (strcmp(parent, child) == 0)
+	if (CWMP_STRCMP(parent, child) == 0)
 		return false;
-	if (strncmp(parent, child, strlen(parent)) == 0)
+
+	int len = CWMP_STRLEN(parent);
+	if (CWMP_STRNCMP(parent, child, len) == 0)
 		return true;
+
 	return false;
 }
 
@@ -50,7 +53,7 @@ int check_parameter_forced_notification(const char *parameter)
 	int i;
 
 	for (i = 0; i < (int)ARRAY_SIZE(forced_notifications_parameters); i++) {
-		if (strcmp(forced_notifications_parameters[i].name, parameter) == 0)
+		if (CWMP_STRCMP(forced_notifications_parameters[i].name, parameter) == 0)
 			return forced_notifications_parameters[i].notification;
 	}
 
@@ -64,7 +67,7 @@ char *check_valid_parameter_path(char *parameter_name)
 
 	error = cwmp_get_parameter_names(parameter_name, true, &parameters_list);
 
-	if (error != NULL && strcmp(error, "9003") == 0)
+	if (CWMP_STRCMP(error, "9003") == 0)
 		error = cwmp_get_parameter_values(parameter_name, &parameters_list);
 
 	cwmp_free_all_dm_parameter_list(&parameters_list);
@@ -134,10 +137,10 @@ bool update_notifications_list(char *parameter_name, int notification)
 			uci_foreach_element_safe(list_notif, tmp, e) {
 				if (e->name == NULL)
 					continue;
-				ename = strdup(e->name);
-				if ((strcmp(parameter_name, e->name) == 0 && (i != notification)) || parameter_is_subobject_of_parameter(parameter_name, e->name))
+				ename = CWMP_STRDUP(e->name);
+				if ((CWMP_STRCMP(parameter_name, e->name) == 0 && (i != notification)) || parameter_is_subobject_of_parameter(parameter_name, e->name))
 					cwmp_uci_del_list_value("cwmp", "@notifications[0]", notifications[i], e->name, UCI_VARSTATE_CONFIG);
-				if (ename && (strcmp(parameter_name, ename) == 0 || parameter_is_subobject_of_parameter(ename, parameter_name) ) && (i == notification))
+				if (ename && (CWMP_STRCMP(parameter_name, ename) == 0 || parameter_is_subobject_of_parameter(ename, parameter_name) ) && (i == notification))
 					update_ret = false;
 				FREE(ename);
 			}
@@ -193,7 +196,7 @@ int get_parameter_family_notifications(char *parameter_name, struct list_head *c
 						parent_param = e->name;
 						notif_ret = i;
 				}
-				if (strcmp(parameter_name, e->name) == 0)
+				if (CWMP_STRCMP(parameter_name, e->name) == 0)
 					notif_ret = i;
 			}
 		}
@@ -211,7 +214,7 @@ int get_parameter_leaf_notification_from_childs_list(char *parameter_name, struc
 	if (childs_list == NULL)
 		return -1;
 	list_for_each_entry (param_value, childs_list, list) {
-		if (strcmp(param_value->name, parameter_name) == 0) {
+		if (CWMP_STRCMP(param_value->name, parameter_name) == 0) {
 			ret_notif = param_value->notification;
 			break;
 		}
@@ -277,9 +280,11 @@ bool parameter_is_other_notif_object_child(char *parent, char *parameter)
 		list_ptr = list_iter.prev;
 		list_iter.prev = list_ptr->prev;
 		list_iter.next = list_ptr->next;
-		if (strcmp(parent, dm_parameter->name) == 0)
+		if (CWMP_STRCMP(parent, dm_parameter->name) == 0)
 			continue;
-		if (strncmp(parent, dm_parameter->name, strlen(parent)) == 0 && strncmp(parameter, dm_parameter->name, strlen(dm_parameter->name)) == 0)
+		int p_len = CWMP_STRLEN(parent);
+		int n_len = CWMP_STRLEN(dm_parameter->name);
+		if (CWMP_STRNCMP(parent, dm_parameter->name, p_len) == 0 && CWMP_STRNCMP(parameter, dm_parameter->name, n_len) == 0)
 			return true;
 	}
 	return false;
@@ -441,13 +446,11 @@ void load_custom_notify_json(struct cwmp *cwmp)
 			continue;
 		}
 		char *fault = cwmp_set_parameter_attributes(blobmsg_get_string(tb[0]), atoi(blobmsg_get_string(tb[1])));
-		if (fault == NULL)
-			continue;
-		if (strcmp(fault, "9005") == 0) {
+		if (CWMP_STRCMP(fault, "9005") == 0) {
 			CWMP_LOG(WARNING, "The parameter %s is wrong path", blobmsg_get_string(tb[0]));
 			continue;
 		}
-		if (strcmp(fault, "9009") == 0) {
+		if (CWMP_STRCMP(fault, "9009") == 0) {
 			CWMP_LOG(WARNING, "This parameter %s is forced notification parameter, can't be changed", blobmsg_get_string(tb[0]));
 			continue;
 		}
@@ -464,9 +467,7 @@ void get_parameter_value_from_parameters_list(struct list_head *params_list, cha
 {
 	struct cwmp_dm_parameter *param_value;
 	list_for_each_entry (param_value, params_list, list) {
-		if (param_value->name == NULL)
-			continue;
-		if (strcmp(parameter_name, param_value->name) != 0)
+		if (CWMP_STRCMP(parameter_name, param_value->name) != 0)
 			continue;
 		*value = strdup(param_value->value ? param_value->value : "");
 		*type = strdup(param_value->type ? param_value->type : "");
@@ -490,7 +491,7 @@ int check_value_change(void)
 	LIST_HEAD(list_notify_params);
 	create_list_param_leaf_notify(&list_notify_params, NULL, NULL);
 	while (fgets(buf, 1280, fp) != NULL) {
-		int len = strlen(buf);
+		int len = CWMP_STRLEN(buf);
 		if (len)
 			buf[len - 1] = '\0';
 
@@ -518,7 +519,7 @@ int check_value_change(void)
 			value = NULL;
 			continue;
 		}
-		if ((notification >= 1) && (dm_value != NULL) && (strcmp(dm_value, value) != 0)) {
+		if ((notification >= 1) && (dm_value != NULL) && (CWMP_STRCMP(dm_value, value) != 0)) {
 			if (notification == 1 || notification == 2)
 				add_list_value_change(parameter, dm_value, dm_type);
 			if (notification >= 3)
@@ -553,7 +554,7 @@ void sotfware_version_value_change(struct cwmp *cwmp, struct transfer_complete *
 		return;
 
 	current_software_version = cwmp->deviceid.softwareversion;
-	if (p->old_software_version && current_software_version && strcmp(p->old_software_version, current_software_version) != 0) {
+	if (p->old_software_version && current_software_version && CWMP_STRCMP(p->old_software_version, current_software_version) != 0) {
 		pthread_mutex_lock(&(cwmp->mutex_session_queue));
 		cwmp_add_event_container(cwmp, EVENT_IDX_4VALUE_CHANGE, "");
 		pthread_mutex_unlock(&(cwmp->mutex_session_queue));
@@ -675,7 +676,9 @@ static void send_udp_message(struct addrinfo *servaddr, char *msg)
 	fd = socket(servaddr->ai_family, SOCK_DGRAM, 0);
 
 	if (fd >= 0) {
-		sendto(fd, msg, strlen(msg), 0, servaddr->ai_addr, servaddr->ai_addrlen);
+		int msg_len = CWMP_STRLEN(msg);
+		if (msg_len > 0)
+			sendto(fd, msg, msg_len, 0, servaddr->ai_addr, servaddr->ai_addrlen);
 		close(fd);
 	}
 }
@@ -700,8 +703,8 @@ static void free_all_list_lw_notify()
 
 void cwmp_lwnotification()
 {
-	char msg[1024], *msg_out;
-	char signature[41];
+	char msg[1024] = {0}, *msg_out = NULL;
+	char signature[41] = {0};
 	struct addrinfo *servaddr;
 	struct cwmp *cwmp = &cwmp_main;
 	struct config *conf;
@@ -710,7 +713,7 @@ void cwmp_lwnotification()
 	udplw_server_param(&servaddr);
 	xml_prepare_lwnotification_message(&msg_out);
 	message_compute_signature(msg_out, signature, sizeof(signature));
-	snprintf(msg, sizeof(msg), "%s \n %s: %s \n %s: %s \n %s: %zu\n %s: %s\n\n%s", "POST /HTTPS/1.1", "HOST", conf->lw_notification_hostname, "Content-Type", "test/xml; charset=utf-8", "Content-Lenght", strlen(msg_out), "Signature", signature, msg_out);
+	snprintf(msg, sizeof(msg), "%s \n %s: %s \n %s: %s \n %s: %zu\n %s: %s\n\n%s", "POST /HTTPS/1.1", "HOST", conf->lw_notification_hostname, "Content-Type", "test/xml; charset=utf-8", "Content-Lenght", CWMP_STRLEN(msg_out), "Signature", signature, msg_out);
 
 	send_udp_message(servaddr, msg);
 	free_all_list_lw_notify();

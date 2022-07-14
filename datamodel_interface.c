@@ -98,11 +98,11 @@ int get_parameters_list_from_parameters_blob_array(struct blob_attr *parameters,
 			continue;
 		int notification = 0;
 		bool writable = 0;
-		if (tb[1] && strncmp(blobmsg_get_string(tb[1]), "1", 1) == 0)
+		if (tb[1] && CWMP_STRNCMP(blobmsg_get_string(tb[1]), "1", 1) == 0)
 			notification = 1;
-		else if (tb[1] && strncmp(blobmsg_get_string(tb[1]), "2", 1) == 0)
+		else if (tb[1] && CWMP_STRNCMP(blobmsg_get_string(tb[1]), "2", 1) == 0)
 			notification = 2;
-		if (tb[4] && (strncmp(blobmsg_get_string(tb[4]), "1", 1) == 0 || strcasecmp(blobmsg_get_string(tb[4]), "true") == 0))
+		if (tb[4] && cwmp_str_to_bool(blobmsg_get_string(tb[4])) == true)
 			writable = true;
 		add_dm_parameter_to_list(parameters_list, blobmsg_get_string(tb[0]), tb[1] ? blobmsg_get_string(tb[1]) : "", tb[2] ? blobmsg_get_string(tb[2]) : "", notification, writable);
 	}
@@ -161,12 +161,11 @@ void ubus_transaction_commit_callback(struct ubus_request *req __attribute__((un
 		blobmsg_for_each_attr(cur, updated_services, rem)
 		{
 			char *service_name = blobmsg_get_string(cur);
-			if (!service_name || strlen(service_name) == 0 || strcmp(service_name, "cwmp") == 0)
+			if (!service_name || CWMP_STRLEN(service_name) == 0 || CWMP_STRCMP(service_name, "cwmp") == 0)
 				continue;
 			CWMP_LOG(INFO, "Detected service: %s will be restarted in the end session", service_name);
 			/*Add the service to the list*/
-			if (strcmp(service_name, "cwmp") != 0)
-				icwmp_add_service(service_name);
+			icwmp_add_service(service_name);
 		}
 	}
 }
@@ -190,7 +189,7 @@ void ubus_transaction_status_callback(struct ubus_request *req __attribute__((un
 	struct blob_attr *tb[2] = { NULL, NULL };
 	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
 	status_str = blobmsg_get_string(tb[0]);
-	if (strcmp(status_str, "on-going") == 0)
+	if (CWMP_STRCMP(status_str, "on-going") == 0)
 		*status = true;
 	else
 		*status = false;
@@ -353,12 +352,12 @@ int cwmp_get_leaf_value(char *leaf, char **value)
 	struct cwmp_dm_parameter dm_param = {0};
 	size_t llen;
 
-	if (leaf == NULL || value == NULL) {
+	if (value == NULL) {
 		CWMP_LOG(INFO, "Empty parameter/value in arguments")
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	}
 
-	llen = strlen(leaf);
+	llen = CWMP_STRLEN(leaf);
 	if (llen == 0) {
 		CWMP_LOG(INFO, "Empty parameter in arguments")
 		return FAULT_CPE_INVALID_ARGUMENTS;
@@ -375,8 +374,8 @@ int cwmp_get_leaf_value(char *leaf, char **value)
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
-	if (strncmp(leaf, dm_param.name, llen) == 0) {
-		*value = (dm_param.value) ? strdup(dm_param.value) : strdup("");
+	if (CWMP_STRNCMP(leaf, dm_param.name, llen) == 0) {
+		*value = CWMP_STRDUP_DEF(dm_param.value, "");
 	} else {
 		CWMP_LOG(WARNING, "Param %s, does not return a value", leaf);
 		return FAULT_CPE_INTERNAL_ERROR;
@@ -465,7 +464,7 @@ char *cwmp_get_multiple_parameters_values(struct list_head *arg_params_list, str
 
 	if (get_result.type == FAULT) {
 		CWMP_LOG(INFO, "Get multiple parameters values failed: fault_code: %s", get_result.fault);
-		return strdup(get_result.fault);
+		return CWMP_STRDUP(get_result.fault);
 	}
 	return NULL;
 }
@@ -599,7 +598,8 @@ void ubus_objects_callback(struct ubus_request *req, int type __attribute__((unu
 		result->status = blobmsg_get_u8(tb[0]);
 		if (tb[1]) {
 			char **instance = result->instance;
-			*instance = strdup(blobmsg_get_string(tb[1]));
+			char *val = blobmsg_get_string(tb[1]);
+			*instance = CWMP_STRDUP(val);
 		}
 		break;
 	}

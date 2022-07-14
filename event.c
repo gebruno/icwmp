@@ -85,7 +85,7 @@ struct event_container *cwmp_add_event_container(struct cwmp *cwmp, int event_co
 	INIT_LIST_HEAD(&(event_container->head_dm_parameter));
 	list_add(&(event_container->list), ilist->prev);
 	event_container->code = event_code;
-	event_container->command_key = command_key ? strdup(command_key) : strdup("");
+	event_container->command_key = CWMP_STRDUP_DEF(command_key, "");
 	if ((cwmp->event_id < 0) || (cwmp->event_id >= MAX_INT_ID)) {
 		cwmp->event_id = 0;
 	}
@@ -445,7 +445,7 @@ void connection_request_ip_value_change(struct cwmp *cwmp, int version)
 		bkp_session_save();
 		return;
 	}
-	if (strcmp(bip, ip_value) != 0) {
+	if (CWMP_STRCMP(bip, ip_value) != 0) {
 		struct event_container *event_container;
 		pthread_mutex_lock(&(cwmp->mutex_session_queue));
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_4VALUE_CHANGE, "");
@@ -477,7 +477,7 @@ void connection_request_port_value_change(struct cwmp *cwmp, int port)
 		bkp_session_save();
 		return;
 	}
-	if (strcmp(bport, bufport) != 0) {
+	if (CWMP_STRCMP(bport, bufport) != 0) {
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_4VALUE_CHANGE, "");
 		if (event_container == NULL) {

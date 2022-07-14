@@ -43,12 +43,12 @@ int download_file(const char *file_path, const char *url, const char *username, 
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-		if (username != NULL && strlen(username) > 0) {
+		if (CWMP_STRLEN(username) > 0) {
 			char userpass[1024];
 			snprintf(userpass, sizeof(userpass), "%s:%s", username, password);
 			curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 		}
-		if (strncmp(url, "https://", 8) == 0)
+		if (CWMP_STRNCMP(url, "https://", 8) == 0)
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)CURLAUTH_ANY);
@@ -223,7 +223,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 	if (error != FAULT_CPE_NO_FAULT)
 		goto end_download;
 
-	if (strcmp(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0 || strcmp(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
+	if (CWMP_STRCMP(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0 || CWMP_STRCMP(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
 		rename(ICWMP_DOWNLOAD_FILE, FIRMWARE_UPGRADE_IMAGE);
 		if (cwmp_check_image() == 0) {
 			long int file_size = get_file_size(FIRMWARE_UPGRADE_IMAGE);
@@ -239,10 +239,10 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 			remove(FIRMWARE_UPGRADE_IMAGE);
 		}
-	} else if (strcmp(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
+	} else if (CWMP_STRCMP(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
-	} else if (strcmp(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
+	} else if (CWMP_STRCMP(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
 		if (download_file_name != NULL) {
 			char file_path[512];
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", download_file_name);
@@ -251,10 +251,10 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 			rename(ICWMP_DOWNLOAD_FILE, VENDOR_CONFIG_FILE);
 
 		error = FAULT_CPE_NO_FAULT;
-	}  else if (strcmp(pdownload->file_type, TONE_FILE_TYPE) == 0) {
+	}  else if (CWMP_STRCMP(pdownload->file_type, TONE_FILE_TYPE) == 0) {
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
-	} else if (strcmp(pdownload->file_type, RINGER_FILE_TYPE) == 0) {
+	} else if (CWMP_STRCMP(pdownload->file_type, RINGER_FILE_TYPE) == 0) {
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
 
@@ -270,9 +270,10 @@ end_download:
 		return error;
 	}
 
-	p->command_key = pdownload->command_key ? strdup(pdownload->command_key) : strdup("");
-	p->start_time = strdup(download_startTime);
-	p->complete_time = strdup(get_time(time(NULL)));
+	p->command_key = CWMP_STRDUP_DEF(pdownload->command_key, "");
+	p->start_time = CWMP_STRDUP(download_startTime);
+	char *end_time = get_time(time(NULL));
+	p->complete_time = CWMP_STRDUP(end_time);
 	p->type = ltype;
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;
@@ -298,7 +299,7 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 	}
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
-	if (strcmp(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
+	if (CWMP_STRCMP(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
 		cwmp_uci_set_value("cwmp", "cpe", "exec_download", "1");
 		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 		if (cwmp_apply_firmware() != 0)
@@ -309,10 +310,10 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 		}
 
-	} else if (strcmp(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
+	} else if (CWMP_STRCMP(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
-	} else if (strcmp(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
+	} else if (CWMP_STRCMP(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
 		cwmp_uci_init();
 		int err = CWMP_OK;
 		if (download_file_name != NULL) {
@@ -332,14 +333,14 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 			error = FAULT_CPE_INTERNAL_ERROR;
 		else if (err == -1)
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
-	} else if (strcmp(pdownload->file_type, TONE_FILE_TYPE) == 0) {
+	} else if (CWMP_STRCMP(pdownload->file_type, TONE_FILE_TYPE) == 0) {
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
-	} else if (strcmp(pdownload->file_type, RINGER_FILE_TYPE) == 0) {
+	} else if (CWMP_STRCMP(pdownload->file_type, RINGER_FILE_TYPE) == 0) {
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
 
-	} else if (strcmp(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
+	} else if (CWMP_STRCMP(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
 		int err = cwmp_apply_multiple_firmware();
 		if (err == CWMP_OK)
 			error = FAULT_CPE_NO_FAULT;
@@ -373,9 +374,10 @@ struct transfer_complete *set_download_error_transfer_complete(struct cwmp *cwmp
 	struct transfer_complete *ptransfer_complete;
 	ptransfer_complete = calloc(1, sizeof(struct transfer_complete));
 	if (ptransfer_complete != NULL) {
-		ptransfer_complete->command_key = strdup(pdownload->command_key);
-		ptransfer_complete->start_time = strdup(get_time(time(NULL)));
-		ptransfer_complete->complete_time = strdup(ptransfer_complete->start_time);
+		ptransfer_complete->command_key = CWMP_STRDUP(pdownload->command_key);
+		char *start_time = get_time(time(NULL));
+		ptransfer_complete->start_time = CWMP_STRDUP(start_time);
+		ptransfer_complete->complete_time = CWMP_STRDUP(ptransfer_complete->start_time);
 		ptransfer_complete->fault_code = ltype == TYPE_DOWNLOAD ? FAULT_CPE_DOWNLOAD_FAILURE : FAULT_CPE_DOWNLOAD_FAIL_WITHIN_TIME_WINDOW;
 		ptransfer_complete->type = ltype;
 		bkp_session_insert_transfer_complete(ptransfer_complete);
@@ -474,9 +476,9 @@ int cwmp_add_apply_schedule_download(struct download *schedule_download, char *s
 	}
 	if (error == FAULT_CPE_NO_FAULT) {
 		pthread_mutex_lock(&mutex_apply_schedule_download);
-		apply_schedule_download->command_key = strdup(schedule_download->command_key);
-		apply_schedule_download->file_type = strdup(schedule_download->file_type);
-		apply_schedule_download->start_time = strdup(start_time);
+		apply_schedule_download->command_key = CWMP_STRDUP(schedule_download->command_key);
+		apply_schedule_download->file_type = CWMP_STRDUP(schedule_download->file_type);
+		apply_schedule_download->start_time = CWMP_STRDUP(start_time);
 		for (i = 0; i < 2; i++) {
 			apply_schedule_download->timeintervals[i].windowstart = schedule_download->timewindowstruct[i].windowstart;
 			apply_schedule_download->timeintervals[i].windowend = schedule_download->timewindowstruct[i].windowend;
@@ -725,24 +727,25 @@ void *thread_cwmp_rpc_cpe_apply_schedule_download(void *v)
 			if (apply_download->file_type[0] == '1') {
 				ptransfer_complete->old_software_version = cwmp->deviceid.softwareversion;
 			}
-			ptransfer_complete->command_key = strdup(apply_download->command_key);
-			ptransfer_complete->start_time = strdup(apply_download->start_time);
-			ptransfer_complete->complete_time = strdup(get_time(time(NULL)));
+			ptransfer_complete->command_key = CWMP_STRDUP(apply_download->command_key);
+			ptransfer_complete->start_time = CWMP_STRDUP(apply_download->start_time);
+			char *end_time = get_time(time(NULL));
+			ptransfer_complete->complete_time = CWMP_STRDUP(end_time);
 			ptransfer_complete->fault_code = error;
 			ptransfer_complete->type = TYPE_SCHEDULE_DOWNLOAD;
 			bkp_session_insert_transfer_complete(ptransfer_complete);
 			bkp_session_save();
 
-			if (strcmp(apply_download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
+			if (CWMP_STRCMP(apply_download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
 				cwmp_uci_set_value("cwmp", "cpe", "exec_download", "1");
 				cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 				cwmp_apply_firmware();
 				sleep(70);
 				error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
-			} else if (strcmp(apply_download->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
+			} else if (CWMP_STRCMP(apply_download->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
 				//TODO Not Supported
 				error = FAULT_CPE_NO_FAULT;
-			} else if (strcmp(apply_download->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
+			} else if (CWMP_STRCMP(apply_download->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
 				cwmp_uci_init();
 				int err = cwmp_uci_import(NULL, VENDOR_CONFIG_FILE, UCI_STANDARD_CONFIG);
 				cwmp_uci_exit();

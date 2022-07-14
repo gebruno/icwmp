@@ -71,7 +71,7 @@ static int call_command_cb(char *cmd, struct blob_buf *b)
 
 	cmd_num = sizeof(cmd_cb)/sizeof(struct command_cb);
 	for (i = 0; i < cmd_num; i++) {
-		if (strcmp(cmd, cmd_cb[i].str) == 0) {
+		if (CWMP_STRCMP(cmd, cmd_cb[i].str) == 0) {
 			cb = cmd_cb[i].cb;
 			break;
 		}
