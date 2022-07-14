@@ -6,6 +6,7 @@
 *.xml
 *.so
 *.txt
+*.orig
 bin/*
 !bin/Makefile.am
 .prepared*

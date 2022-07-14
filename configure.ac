@@ -1,6 +1,6 @@
 AC_INIT([icwmp], [1.0], [dev@iopsys.eu])
 AM_INIT_AUTOMAKE
-AC_CONFIG_SRCDIR([cwmp.c])
+AC_CONFIG_SRCDIR([src/cwmp.c])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 

@@ -4,20 +4,20 @@ LIB_LDFLAGS:= -luci -lblobmsg_json -lubox\
 	      -ljson-c -lubus -lpthread -lcurl\
 	      -lcrypto -lmxml
 	      
-LIB_CFLAGS:= -fPIC -I../../inc -DLOPENSSL -g -O0
+LIB_CFLAGS:= -fPIC -I../../src/ -DLOPENSSL -g -O0
 UNIT_TESTS:= icwmp_unit_testd
 
 VALGRIND = /usr/bin/valgrind --xml=yes --xml-file=memory-report.xml --leak-check=full --show-reachable=yes --show-leak-kinds=all --errors-for-leak-kinds=all
-
-ICWMP_SOURCES=$(patsubst ./%.c, ../../%.c, $(icwmpd_SOURCES))
-ICWMP_OBJS=$(patsubst ../../%.c, %.o, $(ICWMP_SOURCES))
+	
+ICWMP_SOURCES=$(patsubst ./src/%.c, ../../src/%.c, $(icwmpd_SOURCES))
+ICWMP_OBJS=$(patsubst ../../src/%.c, %.o, $(ICWMP_SOURCES))
 TEST_SRCS =  $(wildcard *.c)
 TEST_OBJS = $(TEST_SRCS:=.o)
 
 %.c.o: %.c
-	$(CC) -g -O0 -I../../inc -c -o $@ $<
+	$(CC) -g -O0 -I../../src/ -c -o $@ $<
 
-%.o: ../../%.c
+%.o: ../../src/%.c
 	$(CC) ${LIB_CFLAGS} -c -o $@ $<
 
 libunit: ${ICWMP_OBJS}

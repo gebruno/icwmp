@@ -1,0 +1,25 @@
+/*
+ * upload.h - Upload method corresponding functions
+ *
+ * Copyright (C) 2021-2022, IOPSYS Software Solutions AB.
+ *
+ *	  Author Omar Kallel <omar.kallel@pivasoftware.com>
+ *
+ * See LICENSE file for license related information.
+ *
+ */
+
+#ifndef CWMP_UPLOAD_H
+#define CWMP_UPLOAD_H
+
+#include "common.h"
+
+extern struct list_head list_upload;
+extern pthread_mutex_t mutex_upload;
+extern pthread_cond_t threshold_upload;
+
+int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptransfer_complete);
+void *thread_cwmp_rpc_cpe_upload(void *v);
+int cwmp_scheduledUpload_remove_all();
+int cwmp_free_upload_request(struct upload *upload);
+#endif

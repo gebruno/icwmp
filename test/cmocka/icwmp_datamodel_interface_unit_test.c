@@ -19,7 +19,7 @@
 #include "datamodel_interface.h"
 #include "event.h"
 #include "xml.h"
-#include "rpc_soap.h"
+#include "rpc.h"
 #include "session.h"
 #include "log.h"
 
