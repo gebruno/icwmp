@@ -8,21 +8,6 @@ pwd
 trap cleanup EXIT
 trap cleanup SIGINT
 
-function check_valgrind_xml() {
-	echo "Checking memory leaks..."
-	grep -q "<kind>UninitCondition</kind>" memory-report.xml
-	error_on_zero $?
-
-	grep -q "<kind>Leak_PossiblyLost</kind>" memory-report.xml
-	error_on_zero $?
-
-	grep -q "<kind>Leak_DefinitelyLost</kind>" memory-report.xml
-	error_on_zero $?
-
-	grep -q "<kind>Leak_StillReachable</kind>" memory-report.xml
-	error_on_zero $?
-}
-
 date +%s > timestamp.log
 echo "Compiling icmwp"
 build_icwmp
@@ -73,11 +58,6 @@ done
 
 echo "Stop all services"
 supervisorctl stop icwmpd
-
-check_valgrind_xml
-
-cp test/files/etc/config/users /etc/config/
-cp test/files/etc/config/wireless /etc/config/
 
 echo "Verify Custom notifications"
 echo "#### Start custom_notifications ####" >> "$icwmp_master_log"

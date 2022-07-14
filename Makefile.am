@@ -5,31 +5,32 @@ CWMP_VERSION = 3.0.1
 bin_PROGRAMS = icwmpd
 
 icwmpd_SOURCES =			\
-	./src/common.c				\
-	./src/log.c				\
-	./src/cwmp_uci.c			\
-	./src/config.c				\
-	./src/session.c			\
-	./src/backupSession.c		\
-	./src/digauth.c			\
-	./src/event.c				\
-	./src/http.c				\
-	./src/ubus_utils.c				\
-	./src/datamodel_interface.c \
-	./src/cwmp_cli.c			\
-	./src/notifications.c		\
-	./src/cwmp_zlib.c			\
-	./src/cwmp_du_state.c		\
-	./src/download.c			\
-	./src/upload.c				\
-	./src/sched_inform.c		\
-	./src/xml.c				\
-	./src/rpc.c			\
-	./src/diagnostic.c			\
-	./src/reboot.c 			\
-	./src/heartbeat.c		\
-	./src/cwmp.c			\
-	./src/ssl_utils.c
+	./common.c				\
+	./log.c				\
+	./cwmp_uci.c			\
+	./config.c				\
+	./session.c			\
+	./backupSession.c		\
+	./digauth.c			\
+	./event.c				\
+	./http.c				\
+	./netlink.c			\
+	./ubus_utils.c				\
+	./datamodel_interface.c \
+	./cwmp_cli.c			\
+	./notifications.c		\
+	./cwmp_zlib.c			\
+	./cwmp_du_state.c		\
+	./download.c			\
+	./upload.c				\
+	./sched_inform.c		\
+	./xml.c				\
+	./rpc_soap.c			\
+	./diagnostic.c			\
+	./reboot.c 			\
+	./heartbeat.c		\
+	./cwmp.c			\
+	./ssl_utils.c
 
 icwmpd_CFLAGS =			\
 	$(AM_CFLAGS)		\
@@ -65,4 +66,4 @@ icwmpd_LDADD =			\
 icwmpd_CFLAGS+=-DCWMP_VERSION=\"$(CWMP_VERSION)\"
 icwmpd_LDFLAGS+=-DCWMP_VERSION=\"$(CWMP_VERSION)\"
 
-icwmpd_CFLAGS+=-I..
+icwmpd_CFLAGS+=-I./inc

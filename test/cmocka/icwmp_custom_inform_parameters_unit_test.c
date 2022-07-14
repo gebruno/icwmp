@@ -18,7 +18,7 @@
 
 #include "common.h"
 #include "config.h"
-#include "rpc.h"
+#include "rpc_soap.h"
 
 static struct cwmp cwmp_main_test = { 0 };
 
