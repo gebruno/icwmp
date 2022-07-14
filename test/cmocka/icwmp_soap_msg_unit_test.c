@@ -16,7 +16,7 @@
 #include <string.h>
 #include <mxml.h>
 
-#include "rpc_soap.h"
+#include "rpc.h"
 #include "event.h"
 #include "session.h"
 #include "config.h"
