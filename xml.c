@@ -21,7 +21,7 @@ static const char *soap_enc_url = "http://schemas.xmlsoap.org/soap/encoding/";
 static const char *xsd_url = "http://www.w3.org/2001/XMLSchema";
 static const char *xsi_url = "http://www.w3.org/2001/XMLSchema-instance";
 
-const char *cwmp_urls[] = { "urn:dslforum-org:cwmp-1-0", "urn:dslforum-org:cwmp-1-1", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", NULL };
+const char *cwmp_urls[] = { "urn:dslforum-org:cwmp-1-0", "urn:dslforum-org:cwmp-1-1", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", NULL };
 
 mxml_node_t * /* O - Element node or NULL */
 mxmlFindElementOpaque(mxml_node_t *node, /* I - Current node */

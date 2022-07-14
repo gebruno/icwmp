@@ -929,10 +929,14 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 	char *parameter_name = NULL;
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
 #ifdef ACS_MULTI
-	char c[256];
+	char c[256] = {0};
 #endif
+	LIST_HEAD(parameters_list);
 
 	b = session->body_in;
+	if (session->tree_out == NULL)
+		goto fault;
+
 	n = mxmlFindElement(session->tree_out, session->tree_out, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		goto fault;
@@ -947,7 +951,6 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 #ifdef ACS_MULTI
 	mxmlElementSetAttr(parameter_list, "xsi:type", "soap_enc:Array");
 #endif
-	LIST_HEAD(parameters_list);
 	while (b) {
 		const char *node_value = mxmlGetOpaque(b);
 		const char *node_name = (char *) mxmlGetElement(b);
@@ -958,7 +961,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 			parameter_name = icwmp_strdup(node_value);
 		}
 		if (node_type == MXML_ELEMENT && /* added in order to support GetParameterValues with empty string*/
-		    !strcmp(node_name, "string") && !firstchild) {
+		    node_name != NULL && !strcmp(node_name, "string") && !firstchild) {
 			parameter_name = icwmp_strdup("");
 		}
 		if (parameter_name) {
@@ -982,8 +985,12 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 					goto fault;
 
 				n = mxmlGetParent(n);
-				if (n)
-					n = mxmlGetParent(n);
+				if (!n)
+					goto fault;
+
+				n = mxmlGetParent(n);
+				if (!n)
+					goto fault;
 
 				n = mxmlNewElement(n, "Value");
 				if (!n)
@@ -1036,8 +1043,11 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
 	LIST_HEAD(parameters_list);
 #ifdef ACS_MULTI
-	char c[256];
+	char c[256] = {0};
 #endif
+	if (session->tree_out == NULL)
+		goto fault;
+
 	n = mxmlFindElement(session->tree_out, session->tree_out, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		goto fault;
@@ -1064,7 +1074,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 		if (node_type == MXML_OPAQUE && node_value && mxmlGetType(parent) == MXML_ELEMENT && !strcmp((char *) mxmlGetElement(parent), "ParameterPath")) {
 			parameter_name = icwmp_strdup(node_value);
 		}
-		if (node_type == MXML_ELEMENT && !strcmp(node_name, "ParameterPath") && !firstchild) {
+		if (node_type == MXML_ELEMENT && node_name && !strcmp(node_name, "ParameterPath") && !firstchild) {
 			parameter_name = icwmp_strdup("");
 		}
 		if (node_type == MXML_OPAQUE && node_value && mxmlGetType(parent) == MXML_ELEMENT && !strcmp((char *) mxmlGetElement(parent), "NextLevel")) {
@@ -1102,8 +1112,12 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 			goto fault;
 
 		n = mxmlGetParent(n);
-		if (n)
-			n = mxmlGetParent(n);
+		if (!n)
+			goto fault;
+
+		n = mxmlGetParent(n);
+		if (!n)
+			goto fault;
 
 		n = mxmlNewElement(n, "Writable");
 		if (!n)
@@ -1523,6 +1537,11 @@ int cwmp_handle_rpc_cpe_add_object(struct session *session, struct rpc *rpc)
 			fault_code = cwmp_get_fault_code_by_string(err);
 			goto fault;
 		}
+
+		if (instance == NULL) {
+			fault_code = FAULT_CPE_INTERNAL_ERROR;
+			goto fault;
+		}
 	} else {
 		fault_code = FAULT_CPE_INVALID_PARAMETER_NAME;
 		goto fault;
@@ -1545,8 +1564,12 @@ int cwmp_handle_rpc_cpe_add_object(struct session *session, struct rpc *rpc)
 		goto fault;
 
 	b = mxmlGetParent(b);
-	if (b)
-		b = mxmlGetParent(b);
+	if (!b)
+		goto fault;
+
+	b = mxmlGetParent(b);
+	if (!b)
+		goto fault;
 
 	b = mxmlNewElement(b, "Status");
 	if (!b)
