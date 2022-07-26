@@ -335,9 +335,10 @@ static void http_cr_new_client(int client, bool service_available)
 	while (fgets(buffer, sizeof(buffer), fp)) {
 		if (strstr(buffer, "GET ") != NULL && strstr(buffer, "HTTP/1.1") != NULL) {
 			// check if extra url parameter then ignore extra params
-			char rec_http_get_head[HTTP_GET_HDR_LEN];
 			int j = 0;
 			bool ignore = false;
+			char rec_http_get_head[HTTP_GET_HDR_LEN] = {0};
+
 			memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
 			for (size_t i = 0; i < strlen(buffer) && j < (HTTP_GET_HDR_LEN - 1); i++) {
 				if (buffer[i] == '?')
@@ -368,7 +369,7 @@ static void http_cr_new_client(int client, bool service_available)
 		goto http_end;
 	}
 
-	int auth_check = validate_http_digest_auth("GET", "/", auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, 300);
+	int auth_check = validate_http_digest_auth("GET", cwmp_main.conf.connection_request_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, 300);
 	if (auth_check == -1) { /* invalid nonce */
 		internal_error = true;
 		goto http_end;
