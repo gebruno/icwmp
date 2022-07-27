@@ -400,7 +400,7 @@ http_end:
 		CWMP_LOG(INFO, "Receive Connection Request: Return 401 Unauthorized");
 		fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
 		fputs("Connection: close\r\n", fp);
-		http_authentication_failure_resp(fp, "GET", "/", REALM, OPAQUE);
+		http_authentication_failure_resp(fp, "GET", cwmp_main.conf.connection_request_path, REALM, OPAQUE);
 		fputs("\r\n", fp);
 	}
 	fputs("\r\n", fp);
