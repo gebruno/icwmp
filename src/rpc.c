@@ -553,9 +553,9 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *se
 	transfer_complete_xml_attrs.command_key = &p->command_key;
 	transfer_complete_xml_attrs.start_time = &p->start_time;
 	transfer_complete_xml_attrs.complete_time = &p->complete_time;
-	int faultcode = p->fault_code ? atoi(FAULT_CPE_ARRAY[p->fault_code].CODE) : 0;
+	int faultcode = (p && p->fault_code) ? atoi(FAULT_CPE_ARRAY[p->fault_code].CODE) : 0;
 	transfer_complete_xml_attrs.fault_code = &faultcode;
-	char *faultstring = strdup(p->fault_code ? FAULT_CPE_ARRAY[p->fault_code].DESCRIPTION : "");
+	char *faultstring = strdup((p && p->fault_code) ? FAULT_CPE_ARRAY[p->fault_code].DESCRIPTION : "");
 	transfer_complete_xml_attrs.fault_string = &faultstring;
 
 	int fault = build_xml_node_data(SOAP_ACS_TRANSCOMPLETE, n, &transfer_complete_xml_attrs);
@@ -1392,7 +1392,7 @@ int cwmp_handle_rpc_cpe_reboot(struct session *session, struct rpc *rpc)
 	if (fault_code)
 		goto fault;
 
-	commandKey = icwmp_strdup(command_key);
+	commandKey = icwmp_strdup(command_key ? command_key : "");
 
 	pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 	event_container = cwmp_add_event_container(&cwmp_main, EVENT_IDX_M_Reboot, command_key);
@@ -1436,7 +1436,6 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct session *session, struct rpc *rpc
 	int fault = FAULT_CPE_NO_FAULT;
 	int delay_seconds = 0;
 
-
 	pthread_mutex_lock(&mutex_schedule_inform);
 
 	struct xml_data_struct schedinform_obj_xml_attrs = {0};
@@ -1478,7 +1477,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct session *session, struct rpc *rpc
 		pthread_mutex_unlock(&mutex_schedule_inform);
 		goto fault;
 	}
-	schedule_inform->commandKey = strdup(command_key);
+	schedule_inform->commandKey = strdup(command_key ? command_key : "");
 	schedule_inform->scheduled_time = scheduled_time;
 	list_add(&(schedule_inform->list), ilist->prev);
 	bkp_session_insert_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey);
