@@ -188,6 +188,13 @@
           "description": "Configure the default wan interface of the device."
         },
         {
+          "name": "default_lan_interface",
+          "type": "string",
+          "required": "no",
+          "default": "",
+          "description": "Configure the default lan interface of the device."
+        },
+        {
           "name": "log_to_console",
           "type": "string",
           "required": "no",
