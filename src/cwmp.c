@@ -88,6 +88,7 @@ static bool interface_reset_req(char *param_name, char *value)
 		return false;
 
 	ret = regexec(&reegex, param_name, 0, NULL, 0);
+	regfree(&reegex);
 	if (ret != 0)
 		return false;
 

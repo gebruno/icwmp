@@ -201,7 +201,7 @@ static int xml_prepare_parameters_inform(struct cwmp_dm_parameter *dm_parameter,
 
 bool event_in_session_event_list(char *event, struct list_head *list_evts)
 {
-	struct event_container *event_container;
+	struct event_container *event_container = NULL;
 
 	list_for_each_entry (event_container, list_evts, list) {
 		if (strcmp(event, EVENT_CONST[event_container->code].CODE) == 0)
@@ -311,8 +311,7 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 	struct cwmp_dm_parameter cwmp_dm_param = { 0 };
 	LIST_HEAD(list_inform);
 	for (i = 0; i < inform_parameters_nbre; i++) {
-		char *fault = cwmp_get_single_parameter_value(forced_inform_parameters[i], &cwmp_dm_param);
-		if (fault != NULL)
+		if (NULL != cwmp_get_single_parameter_value(forced_inform_parameters[i], &cwmp_dm_param))
 			continue;
 
 		// An empty connection url cause CDR test to break
@@ -344,9 +343,9 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 		if (!check_inform_parameter_events_list_corresponding(events_str_list, &(session->head_event_container)))
 			continue;
 
-		char *fault = cwmp_get_single_parameter_value(parameter_name, &cwmp_dm_param);
-		if (fault != NULL)
+		if (NULL != cwmp_get_single_parameter_value(parameter_name, &cwmp_dm_param))
 			continue;
+
 		if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size)) {
 			MXML_DELETE(xml);
 		}
@@ -364,11 +363,11 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 	*tree = xml;
 }
 
-int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *session, struct rpc *this)
+int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *session, struct rpc *this __attribute__((unused)))
 {
 	mxml_node_t *tree;
 
-	if (session == NULL || this == NULL)
+	if (session == NULL)
 		return -1;
 
 	load_inform_xml_schema(&tree, cwmp, session);
@@ -915,10 +914,11 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct session *session, struct rpc
 		goto fault;
 
 	FREE(parameter_key);
-	struct cwmp_dm_parameter *param_value;
-	// cppcheck-suppress unknownMacro
-	list_for_each_entry (param_value, &list_set_param_value, list)
+	struct cwmp_dm_parameter *param_value = NULL;
+	list_for_each_entry (param_value, &list_set_param_value, list) {
+		set_interface_reset_request(param_value->name, param_value->value);
 		set_diagnostic_parameter_structure_value(param_value->name, param_value->value);
+	}
 
 	cwmp_free_all_xml_data_list(&xml_list_set_param_value);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
