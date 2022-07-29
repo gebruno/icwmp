@@ -363,6 +363,30 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 	*tree = xml;
 }
 
+static int validate_inform_parameter_name(struct list_head *parameters_values_list)
+{
+	struct cwmp_dm_parameter *param_value = NULL;
+	char reg_exp[65] = {0};
+	snprintf(reg_exp, sizeof(reg_exp), "^Device.ManagementServer.InformParameter.[0-9]+.ParameterName$");
+
+	list_for_each_entry(param_value, parameters_values_list, list) {
+		if (param_value->name == NULL || param_value->value == NULL)
+			continue;
+
+		if (match_reg_exp(reg_exp, param_value->name) == false)
+			continue;
+
+		size_t inform_parameters_nbr = sizeof(forced_inform_parameters) / sizeof(forced_inform_parameters[0]);
+		size_t i;
+		for (i = 0; i < inform_parameters_nbr; i++) {
+			if (strcmp(forced_inform_parameters[i], param_value->value) == 0)
+				return FAULT_CPE_INVALID_PARAMETER_VALUE;
+		}
+	}
+
+	return FAULT_CPE_NO_FAULT;
+}
+
 int cwmp_rpc_acs_prepare_message_inform(struct cwmp *cwmp, struct session *session, struct rpc *this __attribute__((unused)))
 {
 	mxml_node_t *tree;
@@ -908,6 +932,11 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct session *session, struct rpc
 			goto fault;
 		}
 	}
+
+	/* Before set check if exists Device.ManagementServer.InformParameter.{i}.ParameterName with ForcedInform Parameter */
+	fault_code = validate_inform_parameter_name(&list_set_param_value);
+	if (fault_code != FAULT_CPE_NO_FAULT)
+		goto fault;
 
 	fault_code = cwmp_set_multiple_parameters_values(&list_set_param_value, parameter_key ? parameter_key : "", &flag, rpc->list_set_value_fault);
 	if (fault_code != FAULT_CPE_NO_FAULT)

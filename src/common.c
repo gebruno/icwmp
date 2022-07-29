@@ -15,6 +15,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <stdarg.h>
+#include <regex.h>
 
 #include "common.h"
 #include "cwmp_cli.h"
@@ -781,4 +782,22 @@ bool uci_str_to_bool(char *value)
 		return true;
 
 	return false;
+}
+
+bool match_reg_exp(char *reg_exp, char *param_name)
+{
+	if (reg_exp == NULL || param_name == NULL)
+		return false;
+
+	regex_t reegex;
+	int ret = regcomp(&reegex, reg_exp, REG_EXTENDED);
+	if (ret != 0)
+		return false;
+
+	ret = regexec(&reegex, param_name, 0, NULL, 0);
+	regfree(&reegex);
+	if (ret != 0)
+		return false;
+
+	return true;
 }

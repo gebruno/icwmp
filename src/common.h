@@ -546,5 +546,6 @@ int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session);
 int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);
 bool uci_str_to_bool(char *value);
+bool match_reg_exp(char *reg_exp, char *param_name);
 
 #endif

@@ -17,7 +17,6 @@
 #include <syslog.h>
 #include <sys/file.h>
 #include <sys/socket.h>
-#include <regex.h>
 
 #include "common.h"
 #include "ssl_utils.h"
@@ -82,14 +81,7 @@ static bool interface_reset_req(char *param_name, char *value)
 	char reg_exp[60] = {0};
 	snprintf(reg_exp, sizeof(reg_exp), "^(%s|%s)[0-9]+.Reset$", DM_IP_INTERFACE_PATH, DM_PPP_INTERFACE_PATH);
 
-	regex_t reegex;
-	int ret = regcomp(&reegex, reg_exp, REG_EXTENDED);
-	if (ret != 0)
-		return false;
-
-	ret = regexec(&reegex, param_name, 0, NULL, 0);
-	regfree(&reegex);
-	if (ret != 0)
+	if (match_reg_exp(reg_exp, param_name) == false)
 		return false;
 
 	if (strcmp(value, "1") != 0 && strcmp(value, "true") != 0)
