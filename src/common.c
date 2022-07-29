@@ -769,13 +769,13 @@ time_t convert_datetime_to_timestamp(char *value)
 	return mktime(&tm);
 }
 
-bool uci_str_to_bool(char *value)
+bool cwmp_str_to_bool(char *value)
 {
-	if (!value)
+	if (value == NULL)
 		return false;
 
 	if (strncasecmp(value, "true", 4) == 0 ||
-	    value[0] == '1' ||
+	    (value[0] == '1') ||
 	    strncasecmp(value, "on", 2) == 0 ||
 	    strncasecmp(value, "yes", 3) == 0 ||
 	    strncasecmp(value, "enable", 6) == 0)

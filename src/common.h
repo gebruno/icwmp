@@ -27,7 +27,11 @@
 #endif
 
 #define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : -1)
+#define CWMP_STRNCMP(S1, S2, SIZE) ((S1 != NULL && S2 != NULL && SIZE > 0) ? strncmp(S1, S2, SIZE) : -1)
+#define CWMP_STRCASECMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcasecmp(S1, S2) : -1)
+#define CWMP_STRNCASECMP(S1, S2, SIZE) ((S1 != NULL && S2 != NULL && SIZE > 0) ? strncasecmp(S1, S2, SIZE) : -1)
 #define CWMP_STRDUP(S1) ((S1 != NULL) ? strdup(S1) : NULL)
+#define CWMP_STRDUP_DEF(S1, DEF) ((S1 != NULL) ? strdup(S1) : strdup(DEF))
 #define CWMP_STRLEN(S1) ((S1 != NULL) ? strlen(S1) : 0)
 
 #define CWMP_STRNCPY(DST, SRC, SIZE) \
@@ -545,7 +549,7 @@ int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat);
 int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session);
 int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);
-bool uci_str_to_bool(char *value);
+bool cwmp_str_to_bool(char *value);
 bool match_reg_exp(char *reg_exp, char *param_name);
 
 #endif

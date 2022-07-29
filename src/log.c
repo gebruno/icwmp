@@ -69,7 +69,7 @@ int log_set_on_console(char *value)
 	if (value == NULL)
 		return 1;
 
-	enable_log_stdout = uci_str_to_bool(value);
+	enable_log_stdout = cwmp_str_to_bool(value);
 	return 1;
 }
 
@@ -78,7 +78,7 @@ int log_set_on_file(char *value)
 	if (value == NULL)
 		return 1;
 
-	enable_log_file = uci_str_to_bool(value);
+	enable_log_file = cwmp_str_to_bool(value);
 	return 1;
 }
 
@@ -87,7 +87,7 @@ int log_set_on_syslog(char *value)
 	if (value == NULL)
 		return 1;
 
-	enable_log_syslog = uci_str_to_bool(value);
+	enable_log_syslog = cwmp_str_to_bool(value);
 	return 1;
 }
 
