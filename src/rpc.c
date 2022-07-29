@@ -1448,7 +1448,6 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct session *session, struct rpc *rpc
 
 	fault = load_xml_node_data(SOAP_REQ_SCHEDINF, session->body_in, &schedinform_obj_xml_attrs);
 
-	FREE(command_key);
 	if (fault)
 		goto fault;
 
@@ -1478,7 +1477,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct session *session, struct rpc *rpc
 		pthread_mutex_unlock(&mutex_schedule_inform);
 		goto fault;
 	}
-	schedule_inform->commandKey = strdup(command_key);
+	schedule_inform->commandKey = CWMP_STRDUP(command_key);
 	schedule_inform->scheduled_time = scheduled_time;
 	list_add(&(schedule_inform->list), ilist->prev);
 	bkp_session_insert_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey);
@@ -1486,16 +1485,15 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct session *session, struct rpc *rpc
 	pthread_mutex_unlock(&mutex_schedule_inform);
 	pthread_cond_signal(&threshold_schedule_inform);
 
-success:
+	FREE(command_key);
 	return 0;
 
 fault:
+	FREE(command_key);
 	if (cwmp_create_fault_message(session, rpc, fault ? fault : FAULT_CPE_INTERNAL_ERROR))
-		goto error;
-	goto success;
+		return -1;
 
-error:
-	return -1;
+	return 0;
 }
 
 /*
