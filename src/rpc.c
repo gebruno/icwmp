@@ -337,18 +337,34 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 		char *parameter_name = NULL;
 		cwmp_uci_get_value_by_section_string(s, "parameter_name", &parameter_name);
 
+		if (CWMP_STRLEN(parameter_name) == 0)
+			continue;
+
 		char *events_str_list = NULL;
 		cwmp_uci_get_value_by_section_string(s, "events_list", &events_str_list);
 
 		if (!check_inform_parameter_events_list_corresponding(events_str_list, &(session->head_event_container)))
 			continue;
 
-		if (NULL != cwmp_get_single_parameter_value(parameter_name, &cwmp_dm_param))
+		LIST_HEAD(parameters_list);
+		char *err = cwmp_get_parameter_values(parameter_name, &parameters_list);
+		if (err) {
+			continue;
+		}
+
+		if (list_empty(&parameters_list))
 			continue;
 
-		if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size)) {
-			MXML_DELETE(xml);
+		struct list_head *data_list = &parameters_list;
+		struct cwmp_dm_parameter *dm_param = NULL;
+		list_for_each_entry(dm_param, data_list, list) {
+			if (xml_prepare_parameters_inform(dm_param, param_list, &size)) {
+				MXML_DELETE(xml);
+				cwmp_free_all_dm_parameter_list(&parameters_list);
+				return;
+			}
 		}
+		cwmp_free_all_dm_parameter_list(&parameters_list);
 	}
 
 	char c[256] = {0};
