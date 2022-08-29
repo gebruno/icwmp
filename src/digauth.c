@@ -98,7 +98,7 @@ static int get_param_index(char *key)
 	return -1;
 }
 
-static void strip_lead_trail_char(char *str, char ch)
+void strip_lead_trail_char(char *str, char ch)
 {
 	/* First remove leading strip-char */
 	const char* first_valid = str;
@@ -366,9 +366,33 @@ int http_authentication_failure_resp(FILE *fp, const char *http_meth, const char
 	return 1;
 }
 
+static void get_relative_path(const char *uri, const char *req_host, char *req_path, size_t size)
+{
+	if (uri == NULL || req_path == NULL)
+		return;
+
+	memset(req_path, 0, size);
+	if (req_host == NULL || strlen(req_host) == 0) {
+		snprintf(req_path, size, "%s", uri);
+		return;
+	}
+
+	size_t host_len = strlen(req_host);
+	if (strncmp(uri, req_host, host_len) == 0) {
+		if (strlen(uri) == host_len) {
+			snprintf(req_path, size, "/");
+		} else {
+			snprintf(req_path, size, "%s", uri + strlen(req_host));
+		}
+		return;
+	}
+
+	snprintf(req_path, size, "%s", uri);
+}
+
 int validate_http_digest_auth(const char *http_meth, const char *uri, const char *hdr,
 			      const char *rlm, const char *usr, const char *psw,
-			      unsigned int timeout)
+			      unsigned int timeout, const char *req_host)
 {
 	get_value_from_header(hdr);
 
@@ -422,13 +446,22 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	if (strlen(param[E_URI].value) == 0)
 		return 0;
 
-	if (strncmp(param[E_URI].value, uri, strlen(uri)) != 0) {
-		CWMP_LOG(ERROR, "Authentication failed, URI is not matched");
+	CWMP_LOG(INFO, "Requested URI: (%s)", param[E_URI].value);
+	char req_path[2049] = {0};
+	get_relative_path(param[E_URI].value, req_host, req_path, sizeof(req_path));
+	if (strlen(req_path) == 0)
+		return 0;
+
+	CWMP_LOG(INFO, "Abs path: (%s)", req_path);
+	if (strncmp(req_path, uri, strlen(uri)) != 0) {
+		CWMP_LOG(ERROR, "Authentication failed, configured uri(%s), req path(%s) not matched", uri, req_path);
 		return 0;
 	}
 
-	if ((strcmp(param[E_QOP].value, "auth") != 0) && (strcmp(param[E_QOP].value, "") != 0))
+	if ((strcmp(param[E_QOP].value, "auth") != 0) && (strcmp(param[E_QOP].value, "") != 0)) {
+		CWMP_LOG(ERROR, "Authentication failed, due to qop value: (%s)", param[E_QOP].value);
 		return 0;
+	}
 
 	char *tmp;
 	unsigned long int nc_int = strtoul(param[E_NC].value, &tmp, 16);
@@ -442,12 +475,17 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	char resp[MD5_HASH_HEX_LEN + 1];
 
 	get_digest_ha1("md5", usr, rlm, psw, param[E_NONCE].value, param[E_CNONCE].value, ha1, sizeof(ha1));
-	get_digest_ha2(http_meth, uri, ha2, sizeof(ha2));
+	get_digest_ha2(http_meth, param[E_URI].value, ha2, sizeof(ha2));
 	get_digest_response(ha1, param[E_NONCE].value, param[E_NC].value, param[E_CNONCE].value,
 			    param[E_QOP].value, ha2, resp, sizeof(resp));
 
-	if (strcmp(resp, param[E_RESPONSE].value) != 0)
+	if (strcmp(resp, param[E_RESPONSE].value) != 0) {
+		CWMP_LOG(ERROR, "Authentication failed due to response, rec(%s) calc(%s)", param[E_RESPONSE].value, resp);
+		CWMP_LOG(ERROR, "## received nonce:(%s) nc:(%s) usr:(%s)", param[E_NONCE].value, param[E_NC].value, usr);
+		CWMP_LOG(ERROR, "## rlm:(%s) psw:(%s) meth:(%s)", rlm, psw, http_meth);
+		CWMP_LOG(ERROR, "## cnonce:(%s)", param[E_CNONCE].value);
 		return 0;
+	}
 
 	return 1;
 }

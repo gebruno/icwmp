@@ -101,26 +101,31 @@ int xml_handle_message(struct session *session)
 	}
 
 	c = (char *)mxmlGetElement(b);
+	if (c == NULL) {
+		CWMP_LOG(INFO, "Could not get element from received message");
+		goto error;
+	}
+
 	/* convert QName to localPart, check that ns is the expected one */
 	if (strchr(c, ':')) {
 		char *tmp = strchr(c, ':');
 		size_t ns_len = tmp - c;
 
 		if (strlen(ns.cwmp) != ns_len) {
-			CWMP_LOG(INFO, "Invalid received message");
+			CWMP_LOG(INFO, "Namespace length is not matched in string (%s) and expected (%s)", c, ns.cwmp);
 			session->fault_code = FAULT_CPE_REQUEST_DENIED;
 			goto fault;
 		}
 
 		if (strncmp(ns.cwmp, c, ns_len)) {
-			CWMP_LOG(INFO, "Invalid received message");
+			CWMP_LOG(INFO, "Namespace in string (%s) is not the expected (%s) one", c, ns.cwmp);
 			session->fault_code = FAULT_CPE_REQUEST_DENIED;
 			goto fault;
 		}
 
 		c = tmp + 1;
 	} else {
-		CWMP_LOG(INFO, "Invalid received message");
+		CWMP_LOG(INFO, "Can not convert QName to local part with received string (%s)", c);
 		session->fault_code = FAULT_CPE_REQUEST_DENIED;
 		goto fault;
 	}

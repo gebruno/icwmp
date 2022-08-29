@@ -317,6 +317,7 @@ static void http_cr_new_client(int client, bool service_available)
 	bool auth_digest_checked = false;
 	bool method_is_get = false;
 	bool internal_error = false;
+	char request_host[2049] = {0};
 
 	char cr_http_get_head[HTTP_GET_HDR_LEN] = {0};
 
@@ -333,6 +334,11 @@ static void http_cr_new_client(int client, bool service_available)
 	}
 	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", cwmp_main.conf.connection_request_path);
 	while (fgets(buffer, sizeof(buffer), fp)) {
+		if (buffer[0] == '\r' || buffer[0] == '\n') {
+			/* end of http request (empty line) */
+			break;
+		}
+
 		if (strstr(buffer, "GET ") != NULL && strstr(buffer, "HTTP/1.1") != NULL) {
 			// check if extra url parameter then ignore extra params
 			int j = 0;
@@ -355,21 +361,23 @@ static void http_cr_new_client(int client, bool service_available)
 				method_is_get = true;
 		}
 
+		strip_lead_trail_char(buffer, '\n');
+		strip_lead_trail_char(buffer, '\r');
 		if (!strncasecmp(buffer, "Authorization: Digest ", strlen("Authorization: Digest "))) {
 			auth_digest_checked = true;
 			CWMP_STRNCPY(auth_digest_buffer, buffer, BUFSIZ);
 		}
 
-		if (buffer[0] == '\r' || buffer[0] == '\n') {
-			/* end of http request (empty line) */
-			break;
+		if (strncasecmp(buffer, "Host: ", strlen("Host: ")) == 0 && strlen(buffer) > strlen("Host: ")) {
+			snprintf(request_host, sizeof(request_host), "http://%s", buffer + strlen("Host: "));
 		}
 	}
 	if (!service_available || !method_is_get) {
 		goto http_end;
 	}
 
-	int auth_check = validate_http_digest_auth("GET", cwmp_main.conf.connection_request_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, 300);
+	CWMP_LOG(INFO, "Received host: (%s)", request_host);
+	int auth_check = validate_http_digest_auth("GET", cwmp_main.conf.connection_request_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, 300, request_host);
 	if (auth_check == -1) { /* invalid nonce */
 		internal_error = true;
 		goto http_end;
