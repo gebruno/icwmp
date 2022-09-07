@@ -918,8 +918,6 @@ char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value)
 
 int xml_recreate_namespace(mxml_node_t *tree)
 {
-	const char *cwmp_urn;
-	int i;
 	mxml_node_t *b = tree;
 
 	FREE(ns.soap_env);
@@ -928,57 +926,49 @@ int xml_recreate_namespace(mxml_node_t *tree)
 	FREE(ns.xsi);
 	FREE(ns.cwmp);
 
-	do {
-		char *c;
+	if (tree) {
+		do {
+			char *c;
 
-		c = (char *)xml__get_attribute_name_by_value(b, soap_env_url);
-		if (c && *(c + 5) == ':') {
-			FREE(ns.soap_env);
-			ns.soap_env = strdup((c + 6));
-		} else {
-			continue;
-		}
-
-		c = (char *)xml__get_attribute_name_by_value(b, soap_enc_url);
-		if (c && *(c + 5) == ':') {
-			FREE(ns.soap_enc);
-			ns.soap_enc = strdup((c + 6));
-		} else {
-			continue;
-		}
-
-		c = (char *)xml__get_attribute_name_by_value(b, xsd_url);
-		if (c && *(c + 5) == ':') {
-			FREE(ns.xsd);
-			ns.xsd = strdup((c + 6));
-		} else {
-			continue;
-		}
-
-		c = (char *)xml__get_attribute_name_by_value(b, xsi_url);
-		if (c && *(c + 5) == ':') {
-			FREE(ns.xsi);
-			ns.xsi = strdup((c + 6));
-		} else {
-			continue;
-		}
-
-		for (i = 0; cwmp_urls[i] != NULL; i++) {
-			cwmp_urn = cwmp_urls[i];
-			c = (char *)xml__get_attribute_name_by_value(b, cwmp_urn);
+			c = (char *)xml__get_attribute_name_by_value(b, soap_env_url);
 			if (c && *(c + 5) == ':') {
-				FREE(ns.cwmp);
-				ns.cwmp = strdup((c + 6));
-				break;
-			} else {
-				continue;
+				FREE(ns.soap_env);
+				ns.soap_env = strdup((c + 6));
 			}
-		}
 
-		if (ns.cwmp && ns.soap_env && ns.xsd && ns.soap_enc && ns.xsi)
-			return 0;
+			c = (char *)xml__get_attribute_name_by_value(b, soap_enc_url);
+			if (c && *(c + 5) == ':') {
+				FREE(ns.soap_enc);
+				ns.soap_enc = strdup((c + 6));
+			}
 
-	} while ((b = mxmlWalkNext(b, tree, MXML_DESCEND)));
+			c = (char *)xml__get_attribute_name_by_value(b, xsd_url);
+			if (c && *(c + 5) == ':') {
+				FREE(ns.xsd);
+				ns.xsd = strdup((c + 6));
+			}
+
+			c = (char *)xml__get_attribute_name_by_value(b, xsi_url);
+			if (c && *(c + 5) == ':') {
+				FREE(ns.xsi);
+				ns.xsi = strdup((c + 6));
+			}
+
+			int i;
+			for (i = 0; cwmp_urls[i] != NULL; i++) {
+				const char *cwmp_urn = cwmp_urls[i];
+
+				c = (char *)xml__get_attribute_name_by_value(b, cwmp_urn);
+				if (c && *(c + 5) == ':') {
+					FREE(ns.cwmp);
+					ns.cwmp = strdup((c + 6));
+					break;
+				}
+			}
+
+		} while ((b = mxmlWalkNext(b, tree, MXML_DESCEND)));
+		return 0;
+	}
 
 	return -1;
 }
@@ -1005,6 +995,7 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 		CWMP_LOG_XML_MSG(DEBUG, msg_out, XML_MSG_OUT);
 		if (cwmp->conf.compression != COMP_NONE) {
 			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, cwmp->conf.compression)) {
+				CWMP_LOG(ERROR,"zlib_compress failed");
 				return -1;
 			}
 			FREE(msg_out);
@@ -1016,6 +1007,7 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 	while (1) {
 		f = 0;
 		if (icwmp_http_send_message(cwmp, msg_out, msg_out_len, &msg_in)) {
+			CWMP_LOG(ERROR,"Failed to icwmp_http_send_message");
 			goto error;
 		}
 		if (msg_in) {
