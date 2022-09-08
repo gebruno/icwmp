@@ -118,9 +118,8 @@ end:
 void message_compute_signature(char *msg_out, char *signature, size_t len)
 {
 	int result_len = 20;
-	struct cwmp *cwmp = &cwmp_main;
 	struct config *conf;
-	conf = &(cwmp->conf);
+	conf = &(cwmp_main->conf);
 
 #ifdef LMBEDTLS
 	unsigned char result[MBEDTLS_MD_MAX_SIZE] = {0};

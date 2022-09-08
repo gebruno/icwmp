@@ -70,4 +70,6 @@ run_functional_test:
             - funl-test-memory-report.xml
             - funl-test-result.log
             - funl-test-debug.log
+            - memory-report.xml
+            - memory-report-download.xml
             - icwmpd_debug.txt

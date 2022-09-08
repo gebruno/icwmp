@@ -15,11 +15,11 @@
 
 extern char *nonce_key;
 
-int get_nonce_key(void);
 void strip_lead_trail_char(char *str, char ch);
+int get_nonce_key(void);
 int validate_http_digest_auth(const char *http_meth, const char *uri, const char *hdr,
 			      const char *rlm, const char *usr, const char *psw,
-			      unsigned int timeout, const char *req_host);
+				  unsigned int timeout, const char *req_host);
 int http_authentication_failure_resp(FILE *fp, const char *http_meth, const char *uri,
 				     const char *rlm, const char *opq);
 

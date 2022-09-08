@@ -1,7 +1,7 @@
 
-LIB_LDFLAGS:= -luci -lblobmsg_json -lubox\
+LIB_LDFLAGS:= -lmxml -luci -lblobmsg_json -lubox\
 	      -ljson-c -lubus -lpthread -lcurl\
-	      -lcrypto -lmxml
+	      -lcrypto
 	      
 LIB_CFLAGS:= -fPIC -I../../ -DLOPENSSL -g -O0
 UNIT_TESTS:= icwmp_unit_testd

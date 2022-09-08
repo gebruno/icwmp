@@ -23,9 +23,45 @@
 #include "session.h"
 #include "log.h"
 
+static LIST_HEAD(list_set_param_value);
+static LIST_HEAD(faults_array);
+static LIST_HEAD(parameters_list);
+
+static int dm_iface_unit_tests_init(void **state)
+{
+	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
+	create_cwmp_session_structure();
+	cwmp_session_init();
+	global_conf_init();
+	return 0;
+}
+
 static int dm_iface_unit_tests_clean(void **state)
 {
-	icwmp_cleanmem();
+	icwmp_free_list_services();
+	clean_cwmp_session_structure();
+	FREE(cwmp_main->deviceid.manufacturer);
+	FREE(cwmp_main->deviceid.serialnumber);
+	FREE(cwmp_main->deviceid.productclass);
+	FREE(cwmp_main->deviceid.oui);
+	FREE(cwmp_main->deviceid.softwareversion);
+	FREE(cwmp_main->conf.lw_notification_hostname);
+	FREE(cwmp_main->conf.ip);
+	FREE(cwmp_main->conf.ipv6);
+	FREE(cwmp_main->conf.acsurl);
+	FREE(cwmp_main->conf.acs_userid);
+	FREE(cwmp_main->conf.acs_passwd);
+	FREE(cwmp_main->conf.interface);
+	FREE(cwmp_main->conf.cpe_userid);
+	FREE(cwmp_main->conf.cpe_passwd);
+	FREE(cwmp_main->conf.ubus_socket);
+	FREE(cwmp_main->conf.connection_request_path);
+	FREE(cwmp_main->conf.default_wan_iface);
+	FREE(cwmp_main->conf.custom_notify_json);
+	FREE(cwmp_main);
+	cwmp_free_all_list_param_fault(&faults_array);
+	cwmp_free_all_dm_parameter_list(&list_set_param_value);
+	cwmp_session_exit();
 	return 0;
 }
 
@@ -35,7 +71,6 @@ static int dm_iface_unit_tests_clean(void **state)
 static void dm_get_parameter_values_test(void **state)
 {
 	char *fault = NULL;
-	LIST_HEAD(parameters_list);
 	/*
 	 * Test of valid parameter path
 	 */
@@ -89,8 +124,6 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	int fault_code = 0;
 	char *fault_name = NULL;
 	struct cwmp_param_fault *param_fault = NULL;
-	LIST_HEAD(list_set_param_value);
-	LIST_HEAD(faults_array);
 
 	/*
 	 * Test of one valid parameter
@@ -194,6 +227,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	assert_int_equal(fault, 0);
 	assert_in_set(flag, flag_values, 15);
 	cwmp_transaction_commit();
+	cwmp_free_all_list_param_fault(&faults_array);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 
 	/*
@@ -285,7 +319,6 @@ static void dm_delete_object_test(void **state)
 static void dm_get_parameter_names_test(void **state)
 {
 	char *fault = NULL;
-	LIST_HEAD(parameters_list);
 
 	/*
 	 * Valid multi-instance object path
@@ -331,5 +364,5 @@ int icwmp_datamodel_interface_test(void)
 		cmocka_unit_test(dm_get_parameter_names_test),
 	};
 
-	return cmocka_run_group_tests(tests, NULL, dm_iface_unit_tests_clean);
+	return cmocka_run_group_tests(tests, dm_iface_unit_tests_init, dm_iface_unit_tests_clean);
 }

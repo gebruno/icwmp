@@ -19,10 +19,9 @@
 #include "datamodel_interface.h"
 #include "backupSession.h"
 #include "event.h"
+#include "session.h"
 
 LIST_HEAD(list_change_du_state);
-pthread_mutex_t mutex_change_du_state = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t threshold_change_du_state;
 
 void ubus_du_state_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
@@ -323,198 +322,194 @@ int get_du_version(char *du_ref, char **version)
 	return cwmp_get_leaf_value(version_param_path, version);
 }
 
-void *thread_cwmp_rpc_cpe_change_du_state(void *v)
+int change_du_state_fault(struct change_du_state *pchange_du_state, struct du_state_change_complete **pdu_state_change_complete)
 {
-	struct cwmp *cwmp = (struct cwmp *)v;
-	struct timespec change_du_state_timeout = { 50, 0 };
 	int error = FAULT_CPE_NO_FAULT;
-	struct du_state_change_complete *pdu_state_change_complete;
-	long int time_of_grace = 216000;
+	struct operations *p, *q;
+
+	*pdu_state_change_complete = calloc(1, sizeof(struct du_state_change_complete));
+	if (*pdu_state_change_complete == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
+
+	error = FAULT_CPE_DOWNLOAD_FAILURE;
+	INIT_LIST_HEAD(&((*pdu_state_change_complete)->list_opresult));
+	(*pdu_state_change_complete)->command_key = strdup(pchange_du_state->command_key ? pchange_du_state->command_key : "");
+	(*pdu_state_change_complete)->timeout = pchange_du_state->timeout;
+	list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
+		struct opresult *res = calloc(1, sizeof(struct opresult));
+		list_add_tail(&(res->list), &((*pdu_state_change_complete)->list_opresult));
+		res->uuid = strdup(p->uuid);
+		res->version = strdup(p->version);
+		res->current_state = strdup("Failed");
+		res->start_time = strdup(get_time(time(NULL)));
+		res->complete_time = strdup(res->start_time);
+		res->fault = error;
+	}
+	bkp_session_insert_du_state_change_complete(*pdu_state_change_complete);
+	bkp_session_save();
+	//cwmp_root_cause_changedustate_complete(*pdu_state_change_complete);
+	list_del(&(pchange_du_state->list));
+	cwmp_free_change_du_state_request(pchange_du_state);
+	return FAULT_CPE_NO_FAULT;
+}
+
+void change_du_state_execute(struct uloop_timeout *utimeout)
+{
+	int error = FAULT_CPE_NO_FAULT;
 	char *package_version = NULL;
 	char *package_name = NULL;
 	char *package_env = NULL;
 	struct operations *p, *q;
 	struct opresult *res;
+	struct du_state_change_complete *pdu_state_change_complete;
 	char *du_ref = NULL;
+	//struct session_timer_event cdu_inform_event = {.session_timer_evt = {.cb = cwmp_schedule_session_with_event}, .event = CDU_Evt};
+	struct session_timer_event *cdu_inform_event = calloc(1, sizeof(struct session_timer_event));
+	struct change_du_state *pchange_du_state = container_of(utimeout, struct change_du_state, handler_timer);
 
-	for (;;) {
+	time_t current_time = time(NULL);
+	time_t timeout = current_time - pchange_du_state->timeout;
 
-		if (thread_end)
+	if ((timeout >= 0) && (timeout > CDU_TIMEOUT)) {
+		int err = change_du_state_fault(pchange_du_state, &pdu_state_change_complete);
+		if (err) {
+			CWMP_LOG(ERROR, "Not able to create CDU Change Complete fault because of an internal error");
+			return;
+		}
+		goto end;
+	}
+
+	pdu_state_change_complete = calloc(1, sizeof(struct du_state_change_complete));
+	if (pdu_state_change_complete == NULL) {
+		return;
+	}
+
+	error = FAULT_CPE_NO_FAULT;
+	INIT_LIST_HEAD(&(pdu_state_change_complete->list_opresult));
+	pdu_state_change_complete->command_key = strdup(pchange_du_state->command_key);
+	pdu_state_change_complete->timeout = pchange_du_state->timeout;
+
+	list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
+		res = calloc(1, sizeof(struct opresult));
+		list_add_tail(&(res->list), &(pdu_state_change_complete->list_opresult));
+		switch (p->type) {
+		case DU_INSTALL:
+			if (!environment_exists(p->executionenvref)) {
+				res->fault = FAULT_CPE_INTERNAL_ERROR;
+				break;
+			}
+
+			error = cwmp_launch_du_install(p->url, p->uuid, p->username, p->password, get_exec_env_name(p->executionenvref), get_exec_env_id(p->executionenvref), &res);
+
+			package_name = get_package_name_by_url(p->url);
+
+			if (error == FAULT_CPE_NO_FAULT) {
+				du_ref = (package_name && p->executionenvref) ? get_deployment_unit_reference(package_name, p->executionenvref) : NULL;
+				get_du_version(du_ref, &package_version);
+				res->du_ref = strdup(du_ref ? du_ref : "");
+				res->uuid = strdup(p->uuid ? p->uuid : "");
+				res->current_state = strdup("Installed");
+				res->resolved = 1;
+				res->version = strdup(package_version);
+				FREE(du_ref);
+			} else {
+				res->uuid = strdup(p->uuid ? p->uuid : "");
+				res->current_state = strdup("Failed");
+				res->resolved = 0;
+			}
+
+			res->complete_time = strdup(get_time(time(NULL)));
+			res->fault = error;
+			FREE(du_ref);
+			FREE(package_version);
 			break;
-		if (list_change_du_state.next != &(list_change_du_state)) {
-			struct change_du_state *pchange_du_state = list_entry(list_change_du_state.next, struct change_du_state, list);
-			time_t current_time = time(NULL);
-			time_t timeout = current_time - pchange_du_state->timeout;
 
-			if ((timeout >= 0) && (timeout > time_of_grace)) {
-				pthread_mutex_lock(&mutex_change_du_state);
-				pdu_state_change_complete = calloc(1, sizeof(struct du_state_change_complete));
-				if (pdu_state_change_complete != NULL) {
-					error = FAULT_CPE_DOWNLOAD_FAILURE;
-					INIT_LIST_HEAD(&(pdu_state_change_complete->list_opresult));
-					pdu_state_change_complete->command_key = strdup(pchange_du_state->command_key ? pchange_du_state->command_key : "");
-					pdu_state_change_complete->timeout = pchange_du_state->timeout;
-					list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
-						res = calloc(1, sizeof(struct opresult));
-						list_add_tail(&(res->list), &(pdu_state_change_complete->list_opresult));
-						res->uuid = strdup(p->uuid);
-						res->version = strdup(p->version);
-						res->current_state = strdup("Failed");
-						res->start_time = strdup(get_time(time(NULL)));
-						res->complete_time = strdup(res->start_time);
-						res->fault = error;
-					}
-					bkp_session_insert_du_state_change_complete(pdu_state_change_complete);
-					bkp_session_save();
-					cwmp_root_cause_changedustate_complete(cwmp, pdu_state_change_complete);
-				}
-				list_del(&(pchange_du_state->list));
-				cwmp_free_change_du_state_request(pchange_du_state);
-				pthread_mutex_unlock(&mutex_change_du_state);
-				continue;
+		case DU_UPDATE:
+			if (p->url == NULL || p->uuid == NULL || *(p->url) == '\0' || *(p->uuid) == '\0') {
+				error = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				break;
 			}
 
-			if ((timeout >= 0) && (timeout <= time_of_grace)) {
-				pthread_mutex_lock(&(cwmp->mutex_session_send));
-				pdu_state_change_complete = calloc(1, sizeof(struct du_state_change_complete));
-				if (pdu_state_change_complete != NULL) {
-					error = FAULT_CPE_NO_FAULT;
-					INIT_LIST_HEAD(&(pdu_state_change_complete->list_opresult));
-					pdu_state_change_complete->command_key = strdup(pchange_du_state->command_key);
-					pdu_state_change_complete->timeout = pchange_du_state->timeout;
+			du_ref = get_deployment_unit_by_uuid(p->uuid);
+			if (du_ref == NULL) {
+				error = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				break;
+			}
+			char *execenv = calloc(40, sizeof(char));
 
-					list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
-						res = calloc(1, sizeof(struct opresult));
-						list_add_tail(&(res->list), &(pdu_state_change_complete->list_opresult));
-						switch (p->type) {
-						case DU_INSTALL:
-							if (!environment_exists(p->executionenvref)) {
-								res->fault = FAULT_CPE_INTERNAL_ERROR;
-								break;
-							}
+			snprintf(execenv, 40, "Device.SoftwareModules.ExecEnv.%s.", du_ref);
+			error = cwmp_launch_du_update(p->uuid, p->url, p->username, p->password, get_exec_env_name(execenv), get_exec_env_id(execenv), &res);
 
-							error = cwmp_launch_du_install(p->url, p->uuid, p->username, p->password, get_exec_env_name(p->executionenvref), get_exec_env_id(p->executionenvref), &res);
+			res->uuid = strdup(p->uuid ? p->uuid : "");
 
-							package_name = get_package_name_by_url(p->url);
-
-							if (error == FAULT_CPE_NO_FAULT) {
-								du_ref = (package_name && p->executionenvref) ? get_deployment_unit_reference(package_name, p->executionenvref) : NULL;
-								get_du_version(du_ref, &package_version);
-								res->du_ref = strdup("");
-								res->uuid = strdup("");
-								res->current_state = strdup("Installed");
-								res->resolved = 1;
-								res->version = strdup("");
-								FREE(du_ref);
-							} else {
-								res->uuid = strdup(p->uuid ? p->uuid : "");
-								res->current_state = strdup("Failed");
-								res->resolved = 0;
-							}
-
-							res->complete_time = strdup(get_time(time(NULL)));
-							res->fault = error;
-							break;
-
-						case DU_UPDATE:
-							if (p->url == NULL || p->uuid == NULL || *(p->url) == '\0' || *(p->uuid) == '\0') {
-								error = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
-								break;
-							}
-
-							du_ref = get_deployment_unit_by_uuid(p->uuid);
-							if (du_ref == NULL) {
-								error = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
-								break;
-							}
-							char *execenv = calloc(40, sizeof(char));
-
-							snprintf(execenv, 40, "Device.SoftwareModules.ExecEnv.%s.", du_ref);
-							error = cwmp_launch_du_update(p->uuid, p->url, p->username, p->password, get_exec_env_name(execenv), get_exec_env_id(execenv), &res);
-
-							res->uuid = strdup(p->uuid ? p->uuid : "");
-
-							if (error == FAULT_CPE_NO_FAULT) {
-								res->current_state = strdup("Installed");
-								res->resolved = 1;
-							} else {
-								res->current_state = strdup("Failed");
-								res->resolved = 0;
-							}
-
-							get_du_version(du_ref, &package_version);
-							res->version = strdup(package_version ? package_version : "");
-							res->du_ref = strdup(du_ref ? du_ref : "");
-							res->complete_time = strdup(get_time(time(NULL)));
-							res->fault = error;
-							FREE(du_ref);
-							break;
-
-						case DU_UNINSTALL:
-							if (p->uuid == NULL || *(p->uuid) == '\0' || !environment_exists(p->executionenvref)) {
-								res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
-								break;
-							}
-
-							get_deployment_unit_name_version(p->uuid, &package_name, &package_version, &package_env);
-							if (!package_name || *package_name == '\0' || !package_version || *package_version == '\0' || !package_env || *package_env == '\0') {
-								res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
-								break;
-							}
-							du_ref = (package_name && package_env) ? get_deployment_unit_reference(package_name, package_env) : NULL;
-							get_du_version(du_ref, &package_version);
-							error = cwmp_launch_du_uninstall(package_name, get_exec_env_name(package_env), get_exec_env_id(package_env), &res);
-							if (error == FAULT_CPE_NO_FAULT) {
-								res->current_state = strdup("Uninstalled");
-								res->resolved = 1;
-							} else {
-								res->current_state = strdup("Installed");
-								res->resolved = 0;
-							}
-
-							res->du_ref = strdup(du_ref ? du_ref : "");
-							res->uuid = strdup(p->uuid);
-							res->version = strdup(package_version);
-							res->complete_time = strdup(get_time(time(NULL)));
-							res->fault = error;
-							FREE(du_ref);
-							FREE(package_name);
-							FREE(package_version);
-							FREE(package_env);
-							break;
-						}
-					}
-
-					bkp_session_delete_change_du_state(pchange_du_state);
-					bkp_session_save();
-					bkp_session_insert_du_state_change_complete(pdu_state_change_complete);
-					bkp_session_save();
-					cwmp_root_cause_changedustate_complete(cwmp, pdu_state_change_complete);
-				}
+			if (error == FAULT_CPE_NO_FAULT) {
+				res->current_state = strdup("Installed");
+				res->resolved = 1;
+			} else {
+				res->current_state = strdup("Failed");
+				res->resolved = 0;
 			}
 
-			pthread_mutex_lock(&mutex_change_du_state);
-			pthread_cond_timedwait(&threshold_change_du_state, &mutex_change_du_state, &change_du_state_timeout);
-			pthread_mutex_unlock(&mutex_change_du_state);
+			get_du_version(du_ref, &package_version);
+			res->version = strdup(package_version ? package_version : "");
+			res->du_ref = strdup(du_ref ? du_ref : "");
+			res->complete_time = strdup(get_time(time(NULL)));
+			res->fault = error;
+			FREE(du_ref);
+			FREE(package_version);
+			break;
 
-			pthread_mutex_unlock(&(cwmp->mutex_session_send));
-			pthread_cond_signal(&(cwmp->threshold_session_send));
+		case DU_UNINSTALL:
+			if (p->uuid == NULL || *(p->uuid) == '\0' || !environment_exists(p->executionenvref)) {
+				res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				break;
+			}
 
-			pthread_mutex_lock(&mutex_change_du_state);
-			list_del(&(pchange_du_state->list));
-			cwmp_free_change_du_state_request(pchange_du_state);
-			pthread_mutex_unlock(&mutex_change_du_state);
-			continue;
-		} else {
-			pthread_mutex_lock(&mutex_change_du_state);
-			pthread_cond_wait(&threshold_change_du_state, &mutex_change_du_state);
-			pthread_mutex_unlock(&mutex_change_du_state);
+			get_deployment_unit_name_version(p->uuid, &package_name, &package_version, &package_env);
+			if (!package_name || *package_name == '\0' || !package_version || *package_version == '\0' || !package_env || *package_env == '\0') {
+				res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				break;
+			}
+			du_ref = (package_name && package_env) ? get_deployment_unit_reference(package_name, package_env) : NULL;
+			get_du_version(du_ref, &package_version);
+			error = cwmp_launch_du_uninstall(package_name, get_exec_env_name(package_env), get_exec_env_id(package_env), &res);
+			if (error == FAULT_CPE_NO_FAULT) {
+				res->current_state = strdup("Uninstalled");
+				res->resolved = 1;
+			} else {
+				res->current_state = strdup("Installed");
+				res->resolved = 0;
+			}
+
+			res->du_ref = strdup(du_ref ? du_ref : "");
+			res->uuid = strdup(p->uuid);
+			res->version = strdup(package_version);
+			res->complete_time = strdup(get_time(time(NULL)));
+			res->fault = error;
+			FREE(du_ref);
+			FREE(package_name);
+			FREE(package_version);
+			FREE(package_env);
+			break;
 		}
 	}
-	return NULL;
+	bkp_session_delete_change_du_state(pchange_du_state);
+	bkp_session_save();
+	bkp_session_insert_du_state_change_complete(pdu_state_change_complete);
+	bkp_session_save();
+	//cwmp_root_cause_changedustate_complete(pdu_state_change_complete);
+
+	list_del(&(pchange_du_state->list));
+	cwmp_free_change_du_state_request(pchange_du_state);
+end:
+	cdu_inform_event->extra_data = pdu_state_change_complete;
+	cdu_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;
+	cdu_inform_event->event = Schedule_Inform_Evt;
+	trigger_cwmp_session_timer_with_event(&cdu_inform_event->session_timer_evt);
+
 }
 
-int cwmp_rpc_acs_destroy_data_du_state_change_complete(struct session *session __attribute__((unused)), struct rpc *rpc)
+int cwmp_rpc_acs_destroy_data_du_state_change_complete(struct rpc *rpc)
 {
 	if (rpc->extra_data != NULL) {
 		struct du_state_change_complete *p;
@@ -546,4 +541,13 @@ int cwmp_free_change_du_state_request(struct change_du_state *change_du_state)
 		FREE(change_du_state);
 	}
 	return CWMP_OK;
+}
+
+void apply_change_du_state()
+{
+	struct list_head *ilist;
+	list_for_each (ilist, &(list_change_du_state)) {
+		struct change_du_state *pchange_du_state = list_entry(ilist, struct change_du_state, list);;
+		uloop_timeout_set(&pchange_du_state->handler_timer, 10);
+	}
 }

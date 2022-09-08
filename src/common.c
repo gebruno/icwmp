@@ -24,9 +24,10 @@
 #include "log.h"
 
 char *commandKey = NULL;
-bool thread_end = false;
+bool cwmp_stop = false;
 long int flashsize = 256000000;
-struct cwmp cwmp_main = { 0 };
+struct cwmp *cwmp_main = NULL;
+struct session_timer_event *global_session_event = NULL;
 static int nbre_services = 0;
 static char *list_services[MAX_NBRE_SERVICES] = { 0 };
 LIST_HEAD(cwmp_memory_list);
@@ -257,6 +258,45 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 			net = strtok(NULL, " ");
 		}
 		icwmp_free(network);
+	}
+}
+
+
+int get_firewall_restart_state(char **state)
+{
+	cwmp_uci_reinit();
+	return uci_get_state_value(UCI_CPE_FIREWALL_RESTART_STATE, state);
+}
+
+// wait till firewall restart is not complete or 5 sec, whichever is less
+void check_firewall_restart_state()
+{
+	int count = 0;
+	bool init = false;
+
+	do {
+		char *state = NULL;
+
+		if (get_firewall_restart_state(&state) != CWMP_OK)
+			break;
+
+		if (state != NULL && strcmp(state, "init") == 0) {
+			init = true;
+			FREE(state);
+			break;
+		}
+
+		usleep(500 * 1000);
+		FREE(state);
+		count++;
+	} while(count < 10);
+
+	// mark the firewall restart as done
+	g_firewall_restart = false;
+	if (init == false) { // In case of timeout reset the firewall_restart flag
+		CWMP_LOG(ERROR, "Firewall restart took longer than usual");
+		cwmp_uci_set_varstate_value("cwmp", "cpe", "firewall_restart", "init");
+		cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 	}
 }
 
@@ -640,9 +680,8 @@ char *string_to_hex(const unsigned char *str, size_t size)
 		return NULL;
 	}
 
-	if (size == 0) {
+	if (size == 0)
 		return hex;
-	}
 
 	for (i = 0; i < size; i++)
 		snprintf(hex + (i * 2), 3, "%02X", str[i]);
@@ -690,10 +729,10 @@ void ubus_network_interface_callback(struct ubus_request *req __attribute__((unu
 
 	// Only update the interface if its not empty
 	if (CWMP_STRLEN(l3_device)) {
-		cwmp_main.conf.interface = strdup(l3_device);
+		cwmp_main->conf.interface = strdup(l3_device);
 	}
 
-	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main.conf.interface);
+	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main->conf.interface);
 }
 
 int get_connection_interface(char *iface)
@@ -708,7 +747,7 @@ int get_connection_interface(char *iface)
 	char ubus_obj[100] = {0};
 	snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", iface);
 
-	FREE(cwmp_main.conf.interface);
+	FREE(cwmp_main->conf.interface);
 
 	int e = icwmp_ubus_invoke(ubus_obj, "status", b.head, ubus_network_interface_callback, NULL);
 	blob_buf_free(&b);
@@ -716,7 +755,7 @@ int get_connection_interface(char *iface)
 	if (e != 0) {
 		return -1;
 	}
-	if (cwmp_main.conf.interface == NULL) {
+	if (cwmp_main->conf.interface == NULL) {
 		return -1;
 	}
 	return CWMP_OK;
@@ -800,4 +839,47 @@ bool match_reg_exp(char *reg_exp, char *param_name)
 		return false;
 
 	return true;
+}
+
+void cwmp_invoke_intf_reset(char *path)
+{
+	if (path == NULL)
+		return;
+
+	CWMP_LOG(INFO, "Reset interface: %s", path);
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	bb_add_string(&b, "path", path);
+	bb_add_string(&b, "action", "Reset()");
+
+	icwmp_ubus_invoke(USP_OBJECT_NAME, "operate", b.head, NULL, NULL);
+	blob_buf_free(&b);
+
+	return;
+}
+
+int get_month_days(struct tm time)
+{
+	if (time.tm_mon == 2)
+		return (time.tm_year % 4 == 0 ) ? 29 : 28;
+	if (((time.tm_mon % 2 == 0) && (time.tm_mon <= 7)) ||  ((time.tm_mon % 2 == 1) && (time.tm_mon > 7)))
+		return 30;
+	if (((time.tm_mon % 2 == 1) && (time.tm_mon <= 7)) ||  ((time.tm_mon % 2 == 0) && (time.tm_mon > 7)))
+		return 31;
+	return 30;
+}
+
+void add_day_to_time(struct tm *time)
+{
+	int month_days = get_month_days(*time);
+	if (time->tm_mon == month_days) {
+		time->tm_mday = 1;
+		if (time->tm_mon == 12) {
+			time->tm_mon = 1;
+			time->tm_year = time->tm_year + 1;
+		} else
+			time->tm_mon = time->tm_mon + 1;
+	} else
+		time->tm_mday = time->tm_mday + 1;
 }

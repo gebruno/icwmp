@@ -52,7 +52,7 @@ struct xml_node_data xml_nodes_data[] = {
 		[SOAP_TIMEWINDOW_REF] = {XML_LIST, SOAP_TIME_REF, NULL, {}},
 		[SOAP_TIME_REF] = {XML_SINGLE, 0, NULL, {{"WindowStart", XML_LINTEGER, 0, NULL}, {"WindowEnd", XML_LINTEGER, 0, NULL}, {"WindowMode", XML_STRING, 0, NULL}, {"WindowMode", XML_FUNC, 0, load_sched_download_window_mode}, {"MaxRetries", XML_INTEGER, 0, NULL}}},
 		[SOAP_REQ_CDU_OPERATIONS] = {XML_LIST, SOAP_REQ_CDU_OPS_REF, "Operations", {}},
-		[SOAP_REQ_CDU_OPS_REF] = {XML_SINGLE, 0, NULL, {{"Operations", XML_FUNC, 0, NULL}}},
+		[SOAP_REQ_CDU_OPS_REF] = {XML_SINGLE, 0, NULL, {{"Operations", XML_FUNC, 0, load_change_du_state_operation}}},
 		[SOAP_REQ_DU_INSTALL] = {XML_SINGLE, 0, NULL, {{"URL", XML_STRING, 0, NULL}, {"UUID", XML_STRING, 0, NULL}, {"Username", XML_STRING, 0, NULL}, {"Password", XML_STRING, 0, NULL}, {"ExecutionEnvRef", XML_STRING, 0, NULL}}},
 		[SOAP_REQ_DU_UPDATE] = {XML_SINGLE, 0, NULL, {{"URL", XML_STRING, 0, NULL}, {"UUID", XML_STRING, 0, NULL}, {"Username", XML_STRING, 0, NULL}, {"Password", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}}},
 		[SOAP_REQ_DU_UNINSTALL] = {XML_SINGLE, 0, NULL, {{"Version", XML_STRING, 0, NULL}, {"ExecutionEnvRef", XML_STRING, 0, NULL}, {"URL", XML_STRING, 0, NULL}}},
@@ -88,7 +88,7 @@ struct xml_node_data xml_nodes_data[] = {
 		[SOAP_INFORM_CWMP] = {XML_SINGLE, 0, NULL, {{"DeviceId", XML_REC, SOAP_DEVID, NULL}, {"Event", XML_FUNC, 0, build_inform_events}, {"MaxEnvelopes", XML_INTEGER, 0, NULL}, {"CurrentTime", XML_STRING, 0, NULL}, {"RetryCount", XML_INTEGER, 0, NULL}}},
 		[SOAP_DEVID] = {XML_SINGLE, 0, NULL, {{"Manufacturer", XML_STRING, 0, NULL}, {"OUI", XML_STRING, 0, NULL}, {"ProductClass", XML_STRING, 0, NULL}, {"SerialNumber", XML_STRING, 0, NULL}}},
 		[SOAP_DU_CHANGE_COMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, 0, NULL}, {"Results", XML_REC, SOAP_CDU_RESULTS_REF, NULL}}},
-		[SOAP_CDU_RESULTS_REF] = {XML_LIST, 0, NULL, {{"OpResultStruct", XML_REC, SOAP_CDU_OPTS_REF, NULL}}},
+		[SOAP_CDU_RESULTS_REF] = {XML_LIST, SOAP_CDU_OPTS_REF, "OpResultStruct", {}},
 		[SOAP_CDU_OPTS_REF] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, 0, NULL}, {"DeploymentUnitRef", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}, {"CurrentState", XML_STRING, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}}},
 		[ATTR_PARAM_STRUCT] = {XML_SINGLE, 0, NULL, {{"xsi:type", XML_STRING, 0, NULL}}},
 		[ATTR_SOAP_ENV] = {XML_SINGLE, 0, NULL, {{"xmlns:soap_env", XML_STRING, 0, NULL}, {"xmlns:soap_enc", XML_STRING, 0, NULL}, {"xmlns:xsd", XML_STRING, 0, NULL}, {"xmlns:xsi", XML_STRING, 0, NULL}}}
@@ -253,29 +253,32 @@ int load_change_du_state_operation(mxml_node_t *b, struct xml_data_struct *xml_a
 	int cdu_ref = 0;
 	int type = 0;
 
+	if (xml_attrs->cdu_type == NULL) {
+		CWMP_LOG(ERROR, "Not able to load CDU operation");
+		return FAULT_CPE_INTERNAL_ERROR;
+
+	}
 	if (strcmp(operation, "cwmp:InstallOpStruct") == 0) {
 		cdu_ref = SOAP_REQ_DU_INSTALL;
 		type = DU_INSTALL;
 	}
 	else if (strcmp(operation, "cwmp:UpdateOpStruct") == 0) {
-		cdu_ref = SOAP_REQ_DU_INSTALL;
+		cdu_ref = SOAP_REQ_DU_UPDATE;
 		type = DU_UPDATE;
 	}
+
 	else if (strcmp(operation, "cwmp:UninstallOpStruct") == 0) {
-		cdu_ref = SOAP_REQ_DU_INSTALL;
+		cdu_ref = SOAP_REQ_DU_UNINSTALL;
 		type = DU_UNINSTALL;
 	}
 
-	// cppcheck-suppress autoVariables
-	xml_attrs->cdu_type = &type;
+	*(xml_attrs->cdu_type) = type;
 
 	if (cdu_ref == 0)
 		return FAULT_CPE_INVALID_ARGUMENTS;
-
 	int fault = load_xml_node_data(cdu_ref, b, xml_attrs);
 	if (fault)
 		return fault;
-
 
 	return FAULT_CPE_NO_FAULT;
 }
@@ -572,7 +575,6 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 			default:
 				break;
 			}
-
 		}
 		b = mxmlWalkNext(b, node, MXML_DESCEND);
 	}
@@ -681,6 +683,11 @@ void event_container_list_to_xml_data_list(struct list_head *event_container_lis
 	struct event_container *event_container;
 
 	list_for_each_entry (event_container, event_container_list, list) {
+		// cppcheck-suppress uninitvar
+		if (cwmp_main->session->session_status.is_heartbeat && event_container->code != EVENT_IDX_14HEARTBEAT)
+			continue;
+		if ((!cwmp_main->session->session_status.is_heartbeat) && (event_container->code == EVENT_IDX_14HEARTBEAT))
+			continue;
 		struct xml_list_data *xml_data =  calloc(1, sizeof(struct xml_list_data));
 		list_add_tail(&xml_data->list, xml_data_list);
 		xml_data->event_code = event_container->code;
@@ -695,7 +702,6 @@ void get_xml_data_value_by_name(int type, int idx, struct xml_data_struct *xml_a
 	bool *bol;
 	long int *lint;
 	time_t *time;
-
 	void **ptr = (void **)((char *)xml_attrs + idx * sizeof(char *));
 	switch(type) {
 	case XML_STRING:
@@ -820,6 +826,10 @@ int build_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_st
 			xml_ref_data.fault_code = &xml_data->fault_code;
 			xml_ref_data.current_state = &xml_data->current_state;
 			xml_ref_data.du_ref = &xml_data->du_ref;
+			xml_ref_data.uuid = &xml_data->uuid;
+			xml_ref_data.version = &xml_data->version;
+			xml_ref_data.start_time = &xml_data->start_time;
+			xml_ref_data.complete_time = &xml_data->complete_time;
 
 			int fault = build_xml_node_data(xml_nodes_data[node_ref].tag_node_ref, n, &xml_ref_data);
 
@@ -925,7 +935,6 @@ int xml_recreate_namespace(mxml_node_t *tree)
 	FREE(ns.xsd);
 	FREE(ns.xsi);
 	FREE(ns.cwmp);
-
 	if (tree) {
 		do {
 			char *c;
@@ -957,7 +966,6 @@ int xml_recreate_namespace(mxml_node_t *tree)
 			int i;
 			for (i = 0; cwmp_urls[i] != NULL; i++) {
 				const char *cwmp_urn = cwmp_urls[i];
-
 				c = (char *)xml__get_attribute_name_by_value(b, cwmp_urn);
 				if (c && *(c + 5) == ':') {
 					FREE(ns.cwmp);
@@ -966,10 +974,10 @@ int xml_recreate_namespace(mxml_node_t *tree)
 				}
 			}
 
+			if (ns.cwmp && ns.soap_env && ns.xsd && ns.soap_enc && ns.xsi)
+				return 0;
 		} while ((b = mxmlWalkNext(b, tree, MXML_DESCEND)));
-		return 0;
 	}
-
 	return -1;
 }
 
@@ -982,20 +990,19 @@ void xml_exit(void)
 	FREE(ns.cwmp);
 }
 
-int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc)
+int xml_send_message(struct rpc *rpc)
 {
 	char *s, *msg_out = NULL, *msg_in = NULL;
 	char c[512];
 	int msg_out_len = 0, f, r = 0;
 	mxml_node_t *b;
 
-	if (session->tree_out) {
+	if (cwmp_main->session->tree_out) {
 		unsigned char *zmsg_out;
-		msg_out = mxmlSaveAllocString(session->tree_out, whitespace_cb);
+		msg_out = mxmlSaveAllocString(cwmp_main->session->tree_out, whitespace_cb);
 		CWMP_LOG_XML_MSG(DEBUG, msg_out, XML_MSG_OUT);
-		if (cwmp->conf.compression != COMP_NONE) {
-			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, cwmp->conf.compression)) {
-				CWMP_LOG(ERROR,"zlib_compress failed");
+		if (cwmp_main->conf.compression != COMP_NONE) {
+			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, cwmp_main->conf.compression)) {
 				return -1;
 			}
 			FREE(msg_out);
@@ -1006,8 +1013,7 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 	}
 	while (1) {
 		f = 0;
-		if (icwmp_http_send_message(cwmp, msg_out, msg_out_len, &msg_in)) {
-			CWMP_LOG(ERROR,"Failed to icwmp_http_send_message");
+		if (icwmp_http_send_message(msg_out, msg_out_len, &msg_in)) {
 			goto error;
 		}
 		if (msg_in) {
@@ -1035,34 +1041,32 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 		}
 	}
 
-	session->tree_in = mxmlLoadString(NULL, msg_in, MXML_OPAQUE_CALLBACK);
-	if (!session->tree_in)
+	cwmp_main->session->tree_in = mxmlLoadString(NULL, msg_in, MXML_OPAQUE_CALLBACK);
+	if (!cwmp_main->session->tree_in)
 		goto error;
-
-	if (xml_recreate_namespace(session->tree_in) == -1) {
+	if (xml_recreate_namespace(cwmp_main->session->tree_in) == -1) {
 		CWMP_LOG(ERROR, "Failed to get ns parameters");
 		goto error;
 	}
-
 	/* get NoMoreRequests or HolRequest*/
-	session->hold_request = false;
+	cwmp_main->session->hold_request = false;
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "NoMoreRequests") == -1)
 		goto error;
-	b = mxmlFindElement(session->tree_in, session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
 	if (b) {
-		b = mxmlWalkNext(b, session->tree_in, MXML_DESCEND_FIRST);
+		b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
 		if (b && mxmlGetType(b) == MXML_OPAQUE && mxmlGetOpaque(b))
-			session->hold_request = atoi(mxmlGetOpaque(b));
+			cwmp_main->session->hold_request = atoi(mxmlGetOpaque(b));
 	} else {
 		if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "HoldRequests") == -1)
 			goto error;
 
-		b = mxmlFindElement(session->tree_in, session->tree_in, c, NULL, NULL, MXML_DESCEND);
+		b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
 		if (b) {
-			b = mxmlWalkNext(b, session->tree_in, MXML_DESCEND_FIRST);
+			b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
 			if (b && mxmlGetType(b) == MXML_OPAQUE && mxmlGetOpaque(b))
-				session->hold_request = atoi(mxmlGetOpaque(b));
+				cwmp_main->session->hold_request = atoi(mxmlGetOpaque(b));
 		}
 	}
 
@@ -1077,39 +1081,37 @@ error:
 	return -1;
 }
 
-int xml_prepare_msg_out(struct session *session)
+int xml_prepare_msg_out()
 {
-	struct cwmp *cwmp = &cwmp_main;
-	struct config *conf;
-	conf = &(cwmp->conf);
+	struct config *conf = &(cwmp_main->conf);
 	mxml_node_t *n;
 
-	load_response_xml_schema(&session->tree_out);
-	if (!session->tree_out)
+	load_response_xml_schema(&cwmp_main->session->tree_out);
+	if (!cwmp_main->session->tree_out)
 		return -1;
 
-	n = mxmlFindElement(session->tree_out, session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n) {
 		return -1;
 	}
 
 	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(conf->amd_version) - 1]);
-	if (!session->tree_out)
+	if (!cwmp_main->session->tree_out)
 		return -1;
 
 	return 0;
 }
 
-int xml_set_cwmp_id(struct session *session)
+int xml_set_cwmp_id()
 {
 	char c[32];
 	mxml_node_t *b;
 
 	/* define cwmp id */
-	if (snprintf(c, sizeof(c), "%u", ++(cwmp_main.cwmp_id)) == -1)
+	if (snprintf(c, sizeof(c), "%u", ++(cwmp_main->cwmp_id)) == -1)
 		return -1;
 
-	b = mxmlFindElement(session->tree_out, session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
+	b = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
 	if (!b)
 		return -1;
 
@@ -1120,7 +1122,7 @@ int xml_set_cwmp_id(struct session *session)
 	return 0;
 }
 
-int xml_set_cwmp_id_rpc_cpe(struct session *session)
+int xml_set_cwmp_id_rpc_cpe()
 {
 	char c[512];
 	mxml_node_t *b;
@@ -1129,16 +1131,16 @@ int xml_set_cwmp_id_rpc_cpe(struct session *session)
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "ID") == -1)
 		return -1;
 
-	b = mxmlFindElement(session->tree_in, session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
 
 	if (b) {
 		/* ACS send ID parameter */
-		b = mxmlWalkNext(b, session->tree_in, MXML_DESCEND_FIRST);
+		b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
 		if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
 			return 0;
 		snprintf(c, sizeof(c), "%s", mxmlGetOpaque(b));
 
-		b = mxmlFindElement(session->tree_out, session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
+		b = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
 		if (!b)
 			return -1;
 
@@ -1147,7 +1149,7 @@ int xml_set_cwmp_id_rpc_cpe(struct session *session)
 			return -1;
 	} else {
 		/* ACS does not send ID parameter */
-		int r = xml_set_cwmp_id(session);
+		int r = xml_set_cwmp_id();
 		return r;
 	}
 	return 0;
@@ -1269,9 +1271,7 @@ error:
 void load_notification_xml_schema(mxml_node_t **tree)
 {
 	char declaration[1024] = {0};
-	struct cwmp *cwmp = &cwmp_main;
-	struct config *conf;
-	conf = &(cwmp->conf);
+	struct config *conf = &(cwmp_main->conf);
 	char *c = NULL;
 
 	if (tree == NULL)
@@ -1351,7 +1351,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(oui, cwmp->deviceid.oui)) {
+	if (NULL == mxmlNewOpaque(oui, cwmp_main->deviceid.oui)) {
 		MXML_DELETE(xml);
 		return;
 	}
@@ -1362,7 +1362,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(pclass, cwmp->deviceid.productclass ? cwmp->deviceid.productclass : "")) {
+	if (NULL == mxmlNewOpaque(pclass, cwmp_main->deviceid.productclass ? cwmp_main->deviceid.productclass : "")) {
 		MXML_DELETE(xml);
 		return;
 	}
@@ -1373,7 +1373,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(slno, cwmp->deviceid.serialnumber ? cwmp->deviceid.serialnumber : "")) {
+	if (NULL == mxmlNewOpaque(slno, cwmp_main->deviceid.serialnumber ? cwmp_main->deviceid.serialnumber : "")) {
 		MXML_DELETE(xml);
 		return;
 	}

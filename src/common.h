@@ -12,11 +12,16 @@
 #ifndef __CCOMMON_H
 #define __CCOMMON_H
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <math.h>
 #include <libubox/list.h>
 #include <pthread.h>
+#include <libubox/uloop.h>
 
 #ifndef FREE
 #define FREE(x) do { if(x) {free(x); x = NULL;} } while (0)
@@ -54,7 +59,7 @@
 #define DEFAULT_RETRY_MAX_INTERVAL 60
 #define DEFAULT_AMD_VERSION 5
 #define DEFAULT_INSTANCE_MODE 0
-#define DEFAULT_SESSION_TIMEOUT 300
+#define DEFAULT_SESSION_TIMEOUT 60
 #define MAX_NBRE_SERVICES 256
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
 #define CWMP_VARSTATE_UCI_PACKAGE "/var/state/cwmp"
@@ -69,7 +74,12 @@
         for (elt = strtok_r(buffer_str, delim, &tmpchr); elt != NULL; elt = strtok_r(NULL, delim, &tmpchr))
 
 extern char *commandKey;
-extern bool thread_end;
+extern bool cwmp_stop;
+extern struct uloop_timeout session_timer;
+extern struct uloop_timeout periodic_session_timer;
+extern struct uloop_timeout retry_session_timer;
+extern bool g_firewall_restart;
+extern struct list_head intf_reset_list;
 
 typedef struct env {
 	unsigned short boot;
@@ -126,42 +136,30 @@ struct deviceid {
 	char *softwareversion;
 };
 
-typedef struct session_status {
-	time_t last_start_time;
-	time_t last_end_time;
-	int last_status;
-	time_t next_periodic;
-	time_t next_retry;
-	unsigned int success_session;
-	unsigned int failure_session;
-} session_status;
-
 typedef struct cwmp {
 	struct env env;
 	struct config conf;
 	struct deviceid deviceid;
-	struct list_head head_session_queue;
-	pthread_mutex_t mutex_session_queue;
-	struct session *session_send;
+	struct session *session;
 	bool cwmp_cr_event;
 	bool init_complete;
-	pthread_mutex_t mutex_session_send;
-	pthread_cond_t threshold_session_send;
-	pthread_mutex_t mutex_periodic;
-	pthread_mutex_t mutex_notify_periodic;
-	pthread_cond_t threshold_periodic;
-	pthread_cond_t threshold_notify_periodic;
-	pthread_cond_t threshold_handle_notify;
+	bool prev_periodic_enable;
+	bool prev_heartbeat_enable;
+	bool heart_session;
+	bool diag_session;
+	int prev_periodic_interval;
+	int prev_heartbeat_interval;
 	int count_handle_notify;
 	int retry_count_session;
-	struct list_head *head_event_container;
 	FILE *pid_file;
 	time_t start_time;
-	struct session_status session_status;
+	time_t prev_periodic_time;
+	time_t prev_heartbeat_time;
 	unsigned int cwmp_id;
 	int event_id;
 	int cr_socket_desc;
 	int cwmp_period;
+	long int heart_session_interval;
 	time_t cwmp_periodic_time;
 	bool cwmp_periodic_enable;
 	bool custom_notify_active;
@@ -172,6 +170,11 @@ enum action {
 	START,
 	STOP,
 	RESTART,
+};
+
+enum auth_type_enum {
+	AUTH_BASIC,
+	AUTH_DIGEST
 };
 
 enum cwmp_start {
@@ -368,15 +371,15 @@ enum client_server_faults {
 
 struct rpc_cpe_method {
 	const char *name;
-	int (*handler)(struct session *session, struct rpc *rpc);
+	int (*handler)(struct rpc *rpc);
 	int amd;
 };
 
 struct rpc_acs_method {
 	const char *name;
-	int (*prepare_message)(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
-	int (*parse_response)(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
-	int (*extra_clean)(struct session *session, struct rpc *rpc);
+	int (*prepare_message)(struct rpc *rpc);
+	int (*parse_response)(struct rpc *rpc);
+	int (*extra_clean)(struct rpc *rpc);
 	int acs_support;
 };
 
@@ -389,6 +392,7 @@ typedef struct FAULT_CPE {
 
 typedef struct schedule_inform {
 	struct list_head list;
+	struct uloop_timeout handler_timer ;
 	time_t scheduled_time;
 	char *commandKey;
 } schedule_inform;
@@ -403,6 +407,7 @@ typedef struct timewindow {
 
 typedef struct download {
 	struct list_head list;
+	struct uloop_timeout handler_timer;
 	time_t scheduled_time;
 	int file_size;
 	char *command_key;
@@ -419,16 +424,9 @@ typedef struct timeinterval {
 	int maxretries;
 } timeinterval;
 
-typedef struct apply_schedule_download {
-	struct list_head list;
-	char *start_time;
-	char *command_key;
-	char *file_type;
-	struct timeinterval timeintervals[2];
-} apply_schedule_download;
-
 typedef struct change_du_state {
 	struct list_head list;
+	struct uloop_timeout handler_timer;
 	time_t timeout;
 	char *command_key;
 	struct list_head list_operation;
@@ -447,6 +445,7 @@ typedef struct operations {
 
 typedef struct upload {
 	struct list_head list;
+	struct uloop_timeout handler_timer ;
 	time_t scheduled_time;
 	char *file_type;
 	char *command_key;
@@ -494,10 +493,11 @@ typedef struct intf_reset_node {
 	struct list_head list;
 } intf_reset_node;
 
-extern struct cwmp cwmp_main;
+extern struct cwmp *cwmp_main;
 extern long int flashsize;
 extern struct FAULT_CPE FAULT_CPE_ARRAY[];
 extern struct cwmp_namespaces ns;
+extern struct session_timer_event *global_session_event;
 
 void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *param_data, char *param_type, int notification, bool writable);
 void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter);
@@ -541,11 +541,11 @@ int get_connection_interface();
 char *get_time(time_t t_time);
 bool is_obj_excluded(const char *object_name);
 time_t convert_datetime_to_timestamp(char *value);
-int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat);
-int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session);
 int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);
 bool uci_str_to_bool(char *value);
 bool match_reg_exp(char *reg_exp, char *param_name);
-
+void cwmp_invoke_intf_reset(char *path);
+void check_firewall_restart_state();
+void add_day_to_time(struct tm *time);
 #endif

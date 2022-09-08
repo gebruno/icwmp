@@ -23,7 +23,9 @@ fi
 remove_icwmp_log
 echo "Restarting icwmpd in order to apply the new firmware"  >> ./funl-test-debug.log
 supervisorctl stop icwmpd >> ./funl-test-debug.log
-check_valgrind_xml
+sleep 20
+cp memory-report.xml memory-report-download.xml
+#check_valgrind_xml
 supervisorctl start icwmpd  >> ./funl-test-debug.log
 check_cwmp_status
 sleep 5

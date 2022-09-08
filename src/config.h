@@ -17,10 +17,10 @@
 
 extern pthread_mutex_t mutex_config_load;
 
-int global_conf_init(struct cwmp *cwmp);
-int get_global_config(struct config *conf);
-int cwmp_get_deviceid(struct cwmp *cwmp);
-int cwmp_config_reload(struct cwmp *cwmp);
-int get_preinit_config(struct config *conf);
-void cwmp_config_load(struct cwmp *cwmp);
+int global_conf_init();
+int get_global_config();
+int cwmp_get_deviceid();
+int cwmp_config_reload();
+int get_preinit_config();
+void cwmp_config_load();
 #endif

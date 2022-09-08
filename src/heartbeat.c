@@ -10,6 +10,7 @@
  */
 #include <pthread.h>
 #include <unistd.h>
+#include <libubox/uloop.h>
 
 #include "heartbeat.h"
 #include "common.h"
@@ -20,156 +21,89 @@
 #include "log.h"
 #include "event.h"
 #include "http.h"
+#include "cwmp_event.h"
 
-pthread_cond_t threshold_heartbeat_session;
-pthread_cond_t threasheld_retry_session;
-pthread_mutex_t mutex_heartbeat;
-pthread_mutex_t mutex_heartbeat_session;
 bool old_heartbeat_enable = false;
 int heart_beat_retry_count_session = 0;
 
-static struct session_status heart_beat_session_status = {0};
+struct uloop_timeout heartbeat_session_timer = { .cb = cwmp_heartbeat_session_timer };
 
-void check_trigger_heartbeat_session()
+long int cwmp_heartbeat_session_time(void)
 {
-	if (cwmp_main.conf.heart_beat_enable && !old_heartbeat_enable)
-		pthread_cond_signal(&threshold_heartbeat_session);
-}
-
-int add_heart_beat_event(struct session *heartbeat_session)
-{
-	struct event_container *event_container;
-	event_container = calloc(1, sizeof(struct event_container));
-	if (event_container == NULL) {
-		return -1;
+	long int heartbeat_report;
+	time_t now = time(NULL);
+	struct tm *now_tm = gmtime((const time_t *)&now);
+	struct tm *heart_time = gmtime((const time_t *)&cwmp_main->conf.heart_time);
+	struct tm heart_init_tm = {.tm_year = now_tm->tm_year, .tm_mon = now_tm->tm_mon, .tm_mday = now_tm->tm_mday, .tm_hour = heart_time->tm_hour, .tm_min = heart_time->tm_min, .tm_sec = heart_time->tm_sec};
+	time_t heart_init_time = mktime(&heart_init_tm);
+	if (heart_init_time - mktime(now_tm) < 0) {
+		add_day_to_time(&heart_init_tm);
+		heart_init_time = mktime(&heart_init_tm);
 	}
-	INIT_LIST_HEAD(&(event_container->head_dm_parameter));
-	list_add(&(event_container->list), heartbeat_session->head_event_container.prev);
-	event_container->code = EVENT_IDX_14HEARTBEAT;
-	event_container->command_key = strdup("");
-	event_container->id = 1;
-	/*
-	 * event_container will be freed in the destruction of the session heartbeat_session
-	 */
-	// cppcheck-suppress memleak
-	return 0;
+
+	heartbeat_report = heart_init_time - mktime(now_tm);
+
+	return  heartbeat_report;
 }
 
-void *thread_heartbeat_session(void *v __attribute__((unused)))
+void cwmp_heartbeat_session_timer(struct uloop_timeout *timeout  __attribute__((unused)))
 {
-	static struct timespec heartbeat_interval = { 0, 0 };
-
-	sleep(2);
-	for (;;) {
-		if (thread_end)
-			break;
-
-		if (cwmp_main.conf.heart_beat_enable) {
-			heartbeat_interval.tv_sec = time(NULL) + cwmp_main.conf.heartbeat_interval;
-			pthread_mutex_lock(&mutex_heartbeat);
-			pthread_cond_timedwait(&threshold_heartbeat_session, &mutex_heartbeat, &heartbeat_interval);
-			if (thread_end)
-				break;
-
-			if (cwmp_main.session_status.last_status == SESSION_FAILURE) {
-				CWMP_LOG(WARNING, "Not able to start HEARTBEAT Session for this period: CWMP Session is retrying");
-				pthread_cond_wait(&threasheld_retry_session, &mutex_heartbeat);
-				//continue;
-			}
-
-			if (thread_end)
-				break;
-
-			pthread_mutex_lock(&mutex_heartbeat_session);
-			struct session *heartbeat_session = NULL;
-			heartbeat_session = calloc(1, sizeof(struct session));
-			if (heartbeat_session == NULL) {
-				pthread_mutex_unlock(&mutex_heartbeat_session);
-				pthread_mutex_unlock(&mutex_heartbeat);
-				continue;
-			}
-			INIT_LIST_HEAD(&(heartbeat_session->head_event_container));
-			INIT_LIST_HEAD(&(heartbeat_session->head_rpc_acs));
-			INIT_LIST_HEAD(&(heartbeat_session->head_rpc_cpe));
-			struct rpc *rpc_acs;
-			rpc_acs = cwmp_add_session_rpc_acs_head(heartbeat_session, RPC_ACS_INFORM);
-			if (rpc_acs == NULL) {
-				cwmp_session_destructor(heartbeat_session);
-				pthread_mutex_unlock(&mutex_heartbeat_session);
-				pthread_mutex_unlock(&mutex_heartbeat);
-				continue;
-			}
-			if (add_heart_beat_event(heartbeat_session) != 0) {
-				cwmp_session_destructor(heartbeat_session);
-				pthread_mutex_unlock(&mutex_heartbeat_session);
-				pthread_mutex_unlock(&mutex_heartbeat);
-				continue;
-			}
-
-			if (heart_beat_session_status.last_status == SESSION_FAILURE) {
-				cwmp_config_load(&cwmp_main);
-				if (thread_end) {
-					cwmp_session_destructor(heartbeat_session);
-					pthread_mutex_unlock(&mutex_heartbeat_session);
-					pthread_mutex_unlock(&mutex_heartbeat);
-					continue;
-				}
-			}
-
-			heart_beat_session_status.last_end_time = 0;
-			heart_beat_session_status.last_start_time = time(NULL);
-			heart_beat_session_status.last_status = SESSION_RUNNING;
-			heart_beat_session_status.next_retry = 0;
-
-			if (file_exists(fc_cookies))
-				remove(fc_cookies);
-
-			cwmp_uci_init();
-			CWMP_LOG(INFO, "Start HEARTBEAT session");
-			int error = cwmp_schedule_rpc(&cwmp_main, heartbeat_session);
-			CWMP_LOG(INFO, "End HEARTBEAT session");
-			cwmp_uci_exit();
-
-			if (thread_end) {
-				event_remove_all_event_container(heartbeat_session, RPC_SEND);
-				run_session_end_func();
-				cwmp_session_destructor(heartbeat_session);
-				pthread_mutex_unlock(&(cwmp_main.mutex_session_send));
-				pthread_mutex_unlock(&mutex_heartbeat);
-				// Exiting to avoid race conditions
-				exit(0);
-			}
-
-			if (error || heartbeat_session->error == CWMP_RETRY_SESSION) {
-				cwmp_config_load(&cwmp_main);
-				heart_beat_retry_count_session++;
-				run_session_end_func();
-				CWMP_LOG(INFO, "Retry HEARTBEAT session, retry count = %d, retry in %ds", cwmp_main.retry_count_session, cwmp_get_retry_interval(&cwmp_main, 1));
-				heart_beat_session_status.last_end_time = time(NULL);
-				heart_beat_session_status.last_status = SESSION_FAILURE;
-				heart_beat_session_status.next_retry = time(NULL) + cwmp_get_retry_interval(&cwmp_main, 1);
-				heartbeat_interval.tv_sec = time(NULL) + cwmp_get_retry_interval(&cwmp_main, 1);
-				heart_beat_session_status.failure_session++;
-				pthread_mutex_unlock(&mutex_heartbeat_session);
-				pthread_mutex_unlock(&mutex_heartbeat);
-				continue;
-			}
-			event_remove_all_event_container(heartbeat_session, RPC_SEND);
-			run_session_end_func();
-			cwmp_session_destructor(heartbeat_session);
-			heart_beat_retry_count_session = 0;
-			heart_beat_session_status.last_end_time = time(NULL);
-			heart_beat_session_status.last_status = SESSION_SUCCESS;
-			heart_beat_session_status.next_retry = 0;
-			heart_beat_session_status.success_session++;
-			heartbeat_interval.tv_sec = time(NULL) + cwmp_main.conf.heartbeat_interval;
-			pthread_mutex_unlock(&mutex_heartbeat_session);
-			pthread_mutex_unlock(&mutex_heartbeat);
-		} else {
-			pthread_mutex_lock(&mutex_heartbeat);
-			pthread_cond_wait(&threshold_heartbeat_session, &mutex_heartbeat);
-			pthread_mutex_unlock(&mutex_heartbeat);
+	if (cwmp_main->conf.heart_beat_enable) {
+		//HEARTBEAT event must wait a Non-HEARTBEAT Inform is being retried to be completed
+		if (cwmp_main->session->session_status.last_status == SESSION_FAILURE) {
+			cwmp_main->session->session_status.next_heartbeat = true;
+			cwmp_main->session->session_status.is_heartbeat = false;
+			return;
 		}
+
+		//struct session_timer_event *heartbeat_inform_event = calloc(1, sizeof(struct session_timer_event));
+
+
+		uloop_timeout_set(&heartbeat_session_timer, cwmp_main->conf.heartbeat_interval * 1000);
+
+		cwmp_main->session->session_status.next_heartbeat = false;
+		cwmp_main->session->session_status.is_heartbeat = true;
+		cwmp_add_event_container(EVENT_IDX_14HEARTBEAT, "");
+		start_cwmp_session();
 	}
-	return NULL;
+}
+
+void intiate_heartbeat_procedures()
+{
+	uloop_timeout_cancel(&heartbeat_session_timer);
+	if (cwmp_main->conf.heart_beat_enable) {
+		if (cwmp_main->conf.heart_time == 0) {
+			uloop_timeout_set(&heartbeat_session_timer, cwmp_main->conf.heartbeat_interval * 1000);
+		} else {
+			time_t hearttime_interval = cwmp_main->conf.heart_time - time(NULL);
+			if (hearttime_interval >= 0) {
+				uloop_timeout_set(&heartbeat_session_timer, hearttime_interval * 1000);
+			} else {
+				uloop_timeout_set(&heartbeat_session_timer, cwmp_heartbeat_session_time() * 1000);
+			}
+		}
+
+	}
+}
+
+void reinit_heartbeat_procedures()
+{
+	if (cwmp_main->conf.heart_beat_enable) {
+		if (!cwmp_main->prev_heartbeat_enable || (cwmp_main->prev_heartbeat_interval != cwmp_main->conf.heartbeat_interval) || (cwmp_main->prev_heartbeat_time != cwmp_main->conf.heart_time)) {
+			cwmp_main->heart_session = true;
+			if ((cwmp_main->prev_heartbeat_time != cwmp_main->conf.heart_time) && cwmp_main->conf.heart_time != 0) {
+				time_t hearttime_interval = cwmp_main->conf.heart_time - time(NULL);
+				if (hearttime_interval >= 0)
+					cwmp_main->heart_session_interval = hearttime_interval;
+				else
+					cwmp_main->heart_session_interval = cwmp_heartbeat_session_time();
+			} else
+				cwmp_main->heart_session_interval = cwmp_main->conf.heartbeat_interval;
+		}
+	} else
+		uloop_timeout_cancel(&heartbeat_session_timer);
+
+	cwmp_main->prev_heartbeat_enable = cwmp_main->conf.heart_beat_enable;
+	cwmp_main->prev_heartbeat_interval = cwmp_main->conf.heartbeat_interval;
+	cwmp_main->prev_heartbeat_time = cwmp_main->conf.heart_time;
 }

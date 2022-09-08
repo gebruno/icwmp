@@ -10,7 +10,6 @@
  */
 #ifndef CWMP_DOWNLOAD_H
 #define CWMP_DOWNLOAD_H
-
 #include "common.h"
 
 #define DOWNLOAD_PROTOCOL_HTTP "http://"
@@ -32,26 +31,17 @@
 
 extern struct list_head list_download;
 extern struct list_head list_schedule_download;
-extern struct list_head list_apply_schedule_download;
-
-extern pthread_mutex_t mutex_download;
-extern pthread_cond_t threshold_download;
-extern pthread_mutex_t mutex_schedule_download;
-extern pthread_cond_t threshold_schedule_download;
-extern pthread_mutex_t mutex_apply_schedule_download;
-extern pthread_cond_t threshold_apply_schedule_download;
 
 extern int count_download_queue;
 
 int cwmp_free_download_request(struct download *download);
 int cwmp_free_schedule_download_request(struct download *schedule_download);
-int cwmp_free_apply_schedule_download_request(struct apply_schedule_download *apply_schedule_download);
 int cwmp_scheduledDownload_remove_all();
 int cwmp_scheduled_Download_remove_all();
-int cwmp_apply_scheduled_Download_remove_all();
-int cwmp_rpc_acs_destroy_data_transfer_complete(struct session *session, struct rpc *rpc);
-void *thread_cwmp_rpc_cpe_download(void *v);
-void *thread_cwmp_rpc_cpe_schedule_download(void *v);
-void *thread_cwmp_rpc_cpe_apply_schedule_download(void *v);
+int cwmp_rpc_acs_destroy_data_transfer_complete(struct rpc *rpc);
 int cwmp_launch_download(struct download *pdownload, char *download_file_name, enum load_type ltype, struct transfer_complete **ptransfer_complete);
+void cwmp_start_download(struct uloop_timeout *timeout);
+void apply_downloads();
+void apply_schedule_downloads();
+void cwmp_start_schedule_download(struct uloop_timeout *timeout);
 #endif

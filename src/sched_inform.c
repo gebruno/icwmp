@@ -13,101 +13,59 @@
 #include "backupSession.h"
 #include "event.h"
 #include "log.h"
+#include "cwmp_event.h"
+#include "session.h"
 
 LIST_HEAD(list_schedule_inform);
-pthread_mutex_t mutex_schedule_inform = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t threshold_schedule_inform;
 
 int count_schedule_inform_queue = 0;
 
-void *thread_cwmp_rpc_cpe_scheduleInform(void *v)
+int remove_schedule_inform(struct schedule_inform *schedule_inform)
 {
-	struct cwmp *cwmp = (struct cwmp *)v;
-	struct event_container *event_container;
-	struct schedule_inform *schedule_inform;
-	struct timespec si_timeout = { 0, 0 };
-	time_t current_time, stime;
-	bool add_event_same_time = false;
-
-	for (;;) {
-
-		if (thread_end)
-			break;
-
-		if (list_schedule_inform.next != &(list_schedule_inform)) {
-			schedule_inform = list_entry(list_schedule_inform.next, struct schedule_inform, list);
-			stime = schedule_inform->scheduled_time;
-			current_time = time(NULL);
-			if (current_time >= schedule_inform->scheduled_time) {
-				if (add_event_same_time) {
-					pthread_mutex_lock(&mutex_schedule_inform);
-					list_del(&(schedule_inform->list));
-					if (schedule_inform->commandKey != NULL) {
-						bkp_session_delete_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey);
-						free(schedule_inform->commandKey);
-					}
-					free(schedule_inform);
-					pthread_mutex_unlock(&mutex_schedule_inform);
-					continue;
-				}
-				pthread_mutex_lock(&(cwmp->mutex_session_queue));
-				CWMP_LOG(INFO, "Schedule Inform thread: add ScheduleInform event in the queue");
-				event_container = cwmp_add_event_container(cwmp, EVENT_IDX_3SCHEDULED, "");
-				if (event_container != NULL) {
-					cwmp_save_event_container(event_container);
-				}
-				event_container = cwmp_add_event_container(cwmp, EVENT_IDX_M_ScheduleInform, schedule_inform->commandKey);
-				if (event_container != NULL) {
-					cwmp_save_event_container(event_container);
-				}
-				pthread_mutex_unlock(&(cwmp->mutex_session_queue));
-				pthread_cond_signal(&(cwmp->threshold_session_send));
-				pthread_mutex_lock(&mutex_schedule_inform);
-				list_del(&(schedule_inform->list));
-				if (schedule_inform->commandKey != NULL) {
-					bkp_session_delete_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey);
-					free(schedule_inform->commandKey);
-				}
-				free(schedule_inform);
-				count_schedule_inform_queue--;
-				pthread_mutex_unlock(&mutex_schedule_inform);
-				add_event_same_time = true;
-				continue;
-			}
-			bkp_session_save();
-			add_event_same_time = false;
-			pthread_mutex_lock(&mutex_schedule_inform);
-			si_timeout.tv_sec = stime;
-			pthread_cond_timedwait(&threshold_schedule_inform, &mutex_schedule_inform, &si_timeout);
-			pthread_mutex_unlock(&mutex_schedule_inform);
-		} else {
-			bkp_session_save();
-			add_event_same_time = false;
-			pthread_mutex_lock(&mutex_schedule_inform);
-			pthread_cond_wait(&threshold_schedule_inform, &mutex_schedule_inform);
-			pthread_mutex_unlock(&mutex_schedule_inform);
-		}
+	if (schedule_inform != NULL) {
+		list_del(&(schedule_inform->list));
+		bkp_session_delete_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey ? schedule_inform->commandKey : "");
+		FREE(schedule_inform->commandKey);
+		free(schedule_inform);
 	}
-
-	return NULL;
+	return CWMP_OK;
 }
 
 int cwmp_scheduleInform_remove_all()
 {
-	pthread_mutex_lock(&mutex_schedule_inform);
 	while (list_schedule_inform.next != &(list_schedule_inform)) {
 		struct schedule_inform *schedule_inform;
 		schedule_inform = list_entry(list_schedule_inform.next, struct schedule_inform, list);
 
-		list_del(&(schedule_inform->list));
-		if (schedule_inform->commandKey != NULL) {
-			bkp_session_delete_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey);
-			free(schedule_inform->commandKey);
-		}
-		free(schedule_inform);
+		remove_schedule_inform(schedule_inform);
 	}
 	bkp_session_save();
-	pthread_mutex_unlock(&mutex_schedule_inform);
 
 	return CWMP_OK;
+}
+
+void cwmp_start_schedule_inform(struct uloop_timeout *timeout)
+{
+	struct schedule_inform *schedule_inform = container_of(timeout, struct schedule_inform, handler_timer);;
+
+	struct session_timer_event *schedinform_inform_event = calloc(1, sizeof(struct session_timer_event));
+
+	schedinform_inform_event->extra_data = schedule_inform;
+	schedinform_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;
+	schedinform_inform_event->event = Schedule_Inform_Evt;
+	trigger_cwmp_session_timer_with_event(&schedinform_inform_event->session_timer_evt);
+
+}
+
+void apply_schedule_inform()
+{
+	struct list_head *ilist;
+	list_for_each (ilist, &(list_schedule_inform)) {
+		struct schedule_inform *sched_inform = list_entry(ilist, struct schedule_inform, list);
+		int sched_inform_delay = 0;
+		if (sched_inform->scheduled_time > time(NULL)) {
+			sched_inform_delay = sched_inform->scheduled_time - time(NULL);
+		}
+		uloop_timeout_set(&sched_inform->handler_timer, 1000 * sched_inform_delay);
+	}
 }

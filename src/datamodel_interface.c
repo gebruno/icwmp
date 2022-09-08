@@ -325,14 +325,13 @@ void ubus_get_single_parameter_callback(struct ubus_request *req, int type __att
 char *cwmp_get_single_parameter_value(char *parameter_name, struct cwmp_dm_parameter *dm_parameter)
 {
 	int e;
-	struct cwmp *cwmp = &cwmp_main;
 	struct blob_buf b = { 0 };
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 	bb_add_string(&b, "path", !parameter_name || parameter_name[0] == '\0' ? DM_ROOT_OBJ : parameter_name);
 	bb_add_string(&b, "proto", "cwmp");
-	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "get", b.head, ubus_get_single_parameter_callback, dm_parameter);
 	blob_buf_free(&b);
@@ -411,7 +410,6 @@ void ubus_get_parameter_callback(struct ubus_request *req, int type __attribute_
 char *cwmp_get_parameter_values(char *parameter_name, struct list_head *parameters_list)
 {
 	int e;
-	struct cwmp *cwmp = &cwmp_main;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
 	struct blob_buf b = { 0 };
 	char *param = CWMP_STRLEN(parameter_name) ? parameter_name : DM_ROOT_OBJ;
@@ -420,7 +418,7 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 	blob_buf_init(&b, 0);
 	bb_add_string(&b, "path", param);
 	bb_add_string(&b, "proto", "cwmp");
-	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "get", b.head, ubus_get_parameter_callback, &get_result);
 	blob_buf_free(&b);
@@ -440,7 +438,6 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 char *cwmp_get_multiple_parameters_values(struct list_head *arg_params_list, struct list_head *parameters_list)
 {
 	int e;
-	struct cwmp *cwmp = &cwmp_main;
 	struct cwmp_dm_parameter *param_value = NULL;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
 	struct blob_buf b = { 0 };
@@ -454,7 +451,7 @@ char *cwmp_get_multiple_parameters_values(struct list_head *arg_params_list, str
 		blobmsg_add_string(&b, NULL, param_value->name);
 	}
 	blobmsg_close_array(&b, arr);
-	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "getm_values", b.head, ubus_get_parameter_callback, &get_result );
 	blob_buf_free(&b);
@@ -475,7 +472,6 @@ char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_h
 {
 	int e;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
-	struct cwmp *cwmp = &cwmp_main;
 	struct blob_buf b = { 0 };
 
 	memset(&b, 0, sizeof(struct blob_buf));
@@ -483,7 +479,7 @@ char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_h
 	bb_add_string(&b, "path", object_name);
 	blobmsg_add_u8(&b, "next-level", next_level);
 	bb_add_string(&b, "proto", "cwmp");
-	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "object_names", b.head, ubus_get_parameter_callback, &get_result);
 	blob_buf_free(&b);
@@ -539,7 +535,6 @@ int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list
 	int e;
 	struct cwmp_dm_parameter *param_value = NULL;
 	struct setm_values_res set_result = { .flag = flag, .faults_list = faults_list };
-	struct cwmp *cwmp = &cwmp_main;
 	struct blob_buf b = { 0 };
 
 	memset(&b, 0, sizeof(struct blob_buf));
@@ -557,7 +552,7 @@ int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list
 	bb_add_string(&b, "key", parameter_key);
 	blobmsg_add_u32(&b, "transaction_id", transaction_id);
 	bb_add_string(&b, "proto", "cwmp");
-	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
+	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "setm_values", b.head, ubus_setm_values_callback, &set_result);
 	blob_buf_free(&b);
@@ -615,7 +610,7 @@ static void prepare_add_delete_blobmsg(struct blob_buf *b, char *object_name, ch
 	bb_add_string(b, "key", key);
 	blobmsg_add_u32(b, "transaction_id", transaction_id);
 	bb_add_string(b, "proto", "cwmp");
-	blobmsg_add_u32(b, "instance_mode", cwmp_main.conf.instance_mode);
+	blobmsg_add_u32(b, "instance_mode", cwmp_main->conf.instance_mode);
 }
 
 char *cwmp_add_object(char *object_name, char *key, char **instance)

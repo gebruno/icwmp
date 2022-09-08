@@ -14,8 +14,12 @@
 #include "sched_inform.h"
 #include "event.h"
 #include "cwmp_uci.h"
+#include "session.h"
+#include "cwmp_event.h"
 
 typedef int (*callback)(struct blob_buf *b);
+
+static struct ubus_context *ubus_ctx = NULL;
 
 struct command_cb {
 	char *str;
@@ -33,16 +37,14 @@ static const char *arr_session_status[] = {
 static int reload_cmd(struct blob_buf *b)
 {
 	CWMP_LOG(INFO, "triggered ubus reload");
-	if (cwmp_main.session_status.last_status == SESSION_RUNNING) {
+	if (cwmp_main->session->session_status.last_status == SESSION_RUNNING) {
 		cwmp_set_end_session(END_SESSION_RELOAD);
 		blobmsg_add_u32(b, "status", 0);
 		blobmsg_add_string(b, "info", "Session running, reload at the end of the session");
 	} else {
 		int error = CWMP_OK;
-		pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 		cwmp_uci_reinit();
 		error = cwmp_apply_acs_changes();
-		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 		if (error != CWMP_OK) {
 			// Failed to load cwmp config
 			CWMP_LOG(ERROR, "cwmp failed to reload the configuration");
@@ -102,7 +104,7 @@ static const struct blobmsg_policy icwmp_cmd_policy[] = {
 
 static int icwmp_command_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
-	if (cwmp_main.init_complete == false) {
+	if (cwmp_main->init_complete == false) {
 		CWMP_LOG(INFO, "Request can't be handled since icwmpd is still in init state");
 		return 0;
 	}
@@ -168,7 +170,7 @@ static time_t get_next_session_time()
 		sched_time = schedule_inform->scheduled_time;
 	}
 
-	time_t next_time = get_nonzero_min_time(sched_time, cwmp_main.session_status.next_retry, cwmp_main.session_status.next_periodic);
+	time_t next_time = get_nonzero_min_time(sched_time, cwmp_main->session->session_status.next_retry, cwmp_main->session->session_status.next_periodic);
 
 	return next_time;
 }
@@ -176,20 +178,20 @@ static time_t get_next_session_time()
 static void bb_add_icwmp_status(struct blob_buf *bb)
 {
 	void *tbl = blobmsg_open_table(bb, "cwmp");
-	bb_add_string(bb, "status", cwmp_main.init_complete ? "up" : "init");
-	bb_add_string(bb, "start_time", get_time(cwmp_main.start_time));
-	bb_add_string(bb, "acs_url", cwmp_main.conf.acsurl);
+	bb_add_string(bb, "status", cwmp_main->init_complete ? "up" : "init");
+	bb_add_string(bb, "start_time", get_time(cwmp_main->start_time));
+	bb_add_string(bb, "acs_url", cwmp_main->conf.acsurl);
 	blobmsg_close_table(bb, tbl);
 }
 
 static void bb_add_icwmp_last_session(struct blob_buf *bb)
 {
 	void *tbl = blobmsg_open_table(bb, "last_session");
-	const char *status = cwmp_main.session_status.last_start_time ? arr_session_status[cwmp_main.session_status.last_status] : "N/A";
+	const char *status = cwmp_main->session->session_status.last_start_time ? arr_session_status[cwmp_main->session->session_status.last_status] : "N/A";
 	bb_add_string(bb, "status", status);
-	char *start_time = cwmp_main.session_status.last_start_time ? get_time(cwmp_main.session_status.last_start_time) : "N/A";
+	char *start_time = cwmp_main->session->session_status.last_start_time ? get_time(cwmp_main->session->session_status.last_start_time) : "N/A";
 	bb_add_string(bb, "start_time", start_time);
-	char *end_time = cwmp_main.session_status.last_end_time ? get_time(cwmp_main.session_status.last_end_time) : "N/A";
+	char *end_time = cwmp_main->session->session_status.last_end_time ? get_time(cwmp_main->session->session_status.last_end_time) : "N/A";
 	bb_add_string(bb, "end_time", end_time);
 	blobmsg_close_table(bb, tbl);
 }
@@ -208,9 +210,9 @@ static void bb_add_icwmp_next_session(struct blob_buf *bb)
 static void bb_add_icwmp_statistics(struct blob_buf *bb)
 {
 	void *tbl = blobmsg_open_table(bb, "statistics");
-	blobmsg_add_u32(bb, "success_sessions", cwmp_main.session_status.success_session);
-	blobmsg_add_u32(bb, "failure_sessions", cwmp_main.session_status.failure_session);
-	blobmsg_add_u32(bb, "total_sessions", cwmp_main.session_status.success_session + cwmp_main.session_status.failure_session);
+	blobmsg_add_u32(bb, "success_sessions", cwmp_main->session->session_status.success_session);
+	blobmsg_add_u32(bb, "failure_sessions", cwmp_main->session->session_status.failure_session);
+	blobmsg_add_u32(bb, "total_sessions", cwmp_main->session->session_status.success_session + cwmp_main->session->session_status.failure_session);
 	blobmsg_close_table(bb, tbl);
 
 }
@@ -245,81 +247,51 @@ static const struct blobmsg_policy icwmp_inform_policy[] = {
 	[INFORM_EVENT] = {.name = "event", .type = BLOBMSG_TYPE_STRING },
 };
 
-static void icwmp_inform_get_rpc_method(struct ubus_context *ctx, struct ubus_request_data *req)
+static int icwmp_inform_get_rpc_method(struct blob_buf *bb)
 {
-	struct event_container *event_container;
-	struct session *session;
-	struct blob_buf bb;
+	if (cwmp_add_session_rpc_acs(RPC_ACS_GET_RPC_METHODS) == NULL)
+		return -1;
 
-	if (ctx == NULL)
-		return;
+	blobmsg_add_u32(bb, "status", 1);
+	blobmsg_add_string(bb, "info", "Session with GetRPCMethods will start");
 
-	memset(&bb, 0, sizeof(struct blob_buf));
-	blob_buf_init(&bb, 0);
-
-	pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
-	event_container = cwmp_add_event_container(&cwmp_main, EVENT_IDX_2PERIODIC, "");
-	if (event_container == NULL) {
-		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
-		return;
-	}
-
-	cwmp_save_event_container(event_container);
-	session = list_entry(cwmp_main.head_event_container, struct session, head_event_container);
-	if (cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
-		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
-		return;
-	}
-
-	pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
-	pthread_cond_signal(&(cwmp_main.threshold_session_send));
-	blobmsg_add_u32(&bb, "status", 1);
-	blobmsg_add_string(&bb, "info", "Session with GetRPCMethods will start");
-
-	ubus_send_reply(ctx, req, bb.head);
-	blob_buf_free(&bb);
+	return EVENT_IDX_2PERIODIC;
 }
 
-static void icwmp_inform_event(struct ubus_context *ctx, struct ubus_request_data *req, char *event)
+static int icwmp_inform_event(struct blob_buf *bb, char *event)
 {
-	struct blob_buf bb;
-
-	if (ctx == NULL || event == NULL)
-		return;
-
-	memset(&bb, 0, sizeof(struct blob_buf));
-	blob_buf_init(&bb, 0);
-
 	int event_code = cwmp_get_int_event_code(event);
-	pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
-	cwmp_add_event_container(&cwmp_main, event_code, "");
-	pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 	if (event_code != EVENT_IDX_14HEARTBEAT) {
-		pthread_cond_signal(&(cwmp_main.threshold_session_send));
-		if (cwmp_main.session_status.last_status == SESSION_RUNNING) {
-			blobmsg_add_u32(&bb, "status", -1);
-			blobmsg_add_string(&bb, "info", "Session already running, event will be sent at the end of the session");
+		if (cwmp_main->session->session_status.last_status == SESSION_RUNNING) {
+			blobmsg_add_u32(bb, "status", -1);
+			blobmsg_add_string(bb, "info", "Session already running, event will be sent at the end of the session");
 		} else {
-			blobmsg_add_u32(&bb, "status", 1);
-			blobmsg_add_string(&bb, "info", "Session started");
+			blobmsg_add_u32(bb, "status", 1);
+			blobmsg_add_string(bb, "info", "Session started");
 		}
 	}
-
-	ubus_send_reply(ctx, req, bb.head);
-	blob_buf_free(&bb);
+	return event_code;
 }
 
 static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
-	if (cwmp_main.init_complete == false) {
-		CWMP_LOG(INFO, "Inform can't be sent since icwmpd is still in init state");
-		return 0;
+	struct blob_buf bb;
+	memset(&bb, 0, sizeof(struct blob_buf));
+	blob_buf_init(&bb, 0);
+
+	if (cwmp_main->init_complete == false) {
+		CWMP_LOG(WARNING, "Inform can't be sent since icwmpd is still in init state");
+		blobmsg_add_u32(&bb, "status", -1);
+		blobmsg_add_string(&bb, "info", "icwmpd is still in init state");
+		goto end;
 	}
+
 
 	struct blob_attr *tb[__INFORM_MAX] = {0};
 	bool is_get_rpc = false;
 	char *event = "";
 	int ret = -1;
+	int event_code = -1;
 
 	ret = blobmsg_parse(icwmp_inform_policy, ARRAY_SIZE(icwmp_inform_policy), tb, blob_data(msg), blob_len(msg));
 
@@ -332,11 +304,26 @@ static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *ob
 	}
 
 	if (is_get_rpc) {
-		icwmp_inform_get_rpc_method(ctx, req);
+		event_code = icwmp_inform_get_rpc_method(&bb);
 	} else {
-		icwmp_inform_event(ctx, req, event);
+		event_code = icwmp_inform_event(&bb, event);
+	}
+	if (event_code == -1) {
+		CWMP_LOG(WARNING, "tr069 ubus: ubus inform method not able to get the event code");
+		blobmsg_add_u32(&bb, "status", -1);
+		blobmsg_add_string(&bb, "info", "not able to get the event code");
+		goto end;
 	}
 
+	struct session_timer_event *ubus_inform_event = calloc(1, sizeof(struct session_timer_event));
+
+	ubus_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;
+	ubus_inform_event->event = event_code;
+	trigger_cwmp_session_timer_with_event(&ubus_inform_event->session_timer_evt);
+
+end:
+	ubus_send_reply(ctx, req, bb.head);
+	blob_buf_free(&bb);
 	return 0;
 }
 
@@ -376,25 +363,48 @@ void bb_add_string(struct blob_buf *bb, const char *name, const char *value)
 		blobmsg_add_string(bb, name, "");
 }
 
+int icwmp_uloop_ubus_init()
+{
+	ubus_ctx = ubus_connect(cwmp_main->conf.ubus_socket);
+	if (!ubus_ctx)
+		return -1;
+
+	ubus_add_uloop(ubus_ctx);
+
+	if (icwmp_register_object(ubus_ctx))
+		return -1;
+
+	return 0;
+}
+
+void icwmp_uloop_ubus_exit()
+{
+	if (ubus_ctx) {
+		ubus_remove_object(ubus_ctx, &tr069_object);
+		ubus_free(ubus_ctx);
+		ubus_ctx = NULL;
+	}
+}
+
 int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg, icwmp_ubus_cb icwmp_callback, void *callback_arg)
 {
 	uint32_t id;
 	int rc = 0;
 
-	struct ubus_context *ubus_ctx = NULL;
+	struct ubus_context *ctx = NULL;
 
-	ubus_ctx = ubus_connect(NULL);
-	if (ubus_ctx == NULL)
+	ctx = ubus_connect(NULL);
+	if (ctx == NULL)
 		return -1;
 
-	if (!ubus_lookup_id(ubus_ctx, obj, &id))
-		rc = ubus_invoke(ubus_ctx, id, method, msg, icwmp_callback, callback_arg, 20000);
+	if (!ubus_lookup_id(ctx, obj, &id))
+		rc = ubus_invoke(ctx, id, method, msg, icwmp_callback, callback_arg, 20000);
 	else
 		rc = -1;
 
-	if (ubus_ctx) {
-		ubus_free(ubus_ctx);
-		ubus_ctx = NULL;
+	if (ctx) {
+		ubus_free(ctx);
+		ctx = NULL;
 	}
 
 	return rc;

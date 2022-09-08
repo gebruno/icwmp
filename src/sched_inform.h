@@ -11,15 +11,12 @@
 
 #ifndef CWMP_SCHED_INFORM_H
 #define CWMP_SCHED_INFORM_H
-
 #include "common.h"
-
 extern struct list_head list_schedule_inform;
-extern pthread_mutex_t mutex_schedule_inform;
-extern pthread_cond_t threshold_schedule_inform;
 extern int count_schedule_inform_queue;
 
-void *thread_cwmp_rpc_cpe_scheduleInform(void *v);
+void cwmp_start_schedule_inform(struct uloop_timeout *timeout);
 int cwmp_scheduleInform_remove_all();
-
+void apply_schedule_inform();
+int remove_schedule_inform(struct schedule_inform *schedule_inform);
 #endif
