@@ -935,6 +935,7 @@ int xml_recreate_namespace(mxml_node_t *tree)
 	FREE(ns.xsd);
 	FREE(ns.xsi);
 	FREE(ns.cwmp);
+
 	if (tree) {
 		do {
 			char *c;
@@ -966,6 +967,7 @@ int xml_recreate_namespace(mxml_node_t *tree)
 			int i;
 			for (i = 0; cwmp_urls[i] != NULL; i++) {
 				const char *cwmp_urn = cwmp_urls[i];
+
 				c = (char *)xml__get_attribute_name_by_value(b, cwmp_urn);
 				if (c && *(c + 5) == ':') {
 					FREE(ns.cwmp);
@@ -974,9 +976,8 @@ int xml_recreate_namespace(mxml_node_t *tree)
 				}
 			}
 
-			if (ns.cwmp && ns.soap_env && ns.xsd && ns.soap_enc && ns.xsi)
-				return 0;
 		} while ((b = mxmlWalkNext(b, tree, MXML_DESCEND)));
+		return 0;
 	}
 	return -1;
 }
