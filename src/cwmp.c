@@ -201,10 +201,6 @@ static int cwmp_init()
 
 	openlog("cwmp", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	CWMP_LOG(INFO, "STARTING ICWMP with PID :%d", getpid());
-	/* This is to initialize the global context in mxml,
-	 *  with out init mxml sometimes segfaults, when calling the destructor.
-	 */
-	mxml_error(NULL);
 
 	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	cwmp_main->init_complete = false;
@@ -343,11 +339,11 @@ int main(int argc, char **argv)
 	if (error)
 		return error;
 
-	if ((error = cwmp_init()))
-		return error;
-
 	memset(&env, 0, sizeof(struct env));
 	if ((error = global_env_init(argc, argv, &env)))
+		return error;
+
+	if ((error = cwmp_init()))
 		return error;
 
 	memcpy(&(cwmp_main->env), &env, sizeof(struct env));

@@ -16,6 +16,7 @@
 #include <getopt.h>
 #include <stdarg.h>
 #include <regex.h>
+#include <mxml.h>
 
 #include "common.h"
 #include "cwmp_cli.h"
@@ -96,6 +97,11 @@ int global_env_init(int argc, char **argv, struct env *env)
 {
 	int c, option_index = 0;
 
+	/* This is to initialize the global context in mxml,
+	 *  with out init mxml sometimes segfaults, when calling the destructor.
+	 */
+	mxml_error(NULL);
+
 	while ((c = getopt_long(argc, argv, "bgchv", cwmp_long_options, &option_index)) != -1) {
 		switch (c) {
 		case 'b':
@@ -105,7 +111,9 @@ int global_env_init(int argc, char **argv, struct env *env)
 			env->periodic = CWMP_START_PERIODIC;
 			break;
 		case 'c':
+			cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 			execute_cwmp_cli_command(argv[2], argv + 3);
+			FREE(cwmp_main);
 			exit(0);
 		case 'h':
 			show_help();
