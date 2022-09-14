@@ -286,7 +286,7 @@ void check_firewall_restart_state()
 			break;
 		}
 
-		usleep(500 * 1000);
+		sleep(1);
 		FREE(state);
 		count++;
 	} while(count < 10);

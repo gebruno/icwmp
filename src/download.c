@@ -288,7 +288,7 @@ void wait_firmware_to_be_applied(int bank_id)
 		if (bank_id_status == 1)
 			break;
 
-		usleep(1000 * 1000);
+		sleep(1);
 		count++;
 	} while(count < 15);
 }
