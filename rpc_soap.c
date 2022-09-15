@@ -74,7 +74,7 @@ char *forced_inform_parameters[] = {
 int xml_handle_message(struct session *session)
 {
 	struct rpc *rpc_cpe;
-	char *c;
+	char *c = NULL;
 	int i;
 	mxml_node_t *b;
 	struct cwmp *cwmp = &cwmp_main;
@@ -106,7 +106,7 @@ int xml_handle_message(struct session *session)
 
 	c = (char *)mxmlGetElement(b);
 	/* convert QName to localPart, check that ns is the expected one */
-	if (strchr(c, ':')) {
+	if (c && strchr(c, ':')) {
 		char *tmp = strchr(c, ':');
 		size_t ns_len = tmp - c;
 
@@ -658,7 +658,7 @@ int cwmp_rpc_acs_destroy_data_inform(struct session *session __attribute__((unus
 
 int cwmp_rpc_acs_prepare_get_rpc_methods(struct cwmp *cwmp, struct session *session, struct rpc *rpc __attribute__((unused)))
 {
-	mxml_node_t *tree, *n;
+	mxml_node_t *tree = NULL, *n;
 
 	load_response_xml_schema(&tree);
 	if (!tree)
@@ -687,7 +687,7 @@ int cwmp_rpc_acs_prepare_get_rpc_methods(struct cwmp *cwmp, struct session *sess
 
 int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *session, struct rpc *rpc)
 {
-	mxml_node_t *tree, *n;
+	mxml_node_t *tree = NULL, *n;
 	struct transfer_complete *p;
 
 	p = (struct transfer_complete *)rpc->extra_data;
@@ -728,7 +728,6 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *se
 	if (!n)
 		goto error;
 
-	//n = n->parent->parent;
 	n = mxmlGetParent(n);
 	if (n)
 		n = mxmlGetParent(n);
@@ -740,7 +739,6 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *se
 	if (!n)
 		goto error;
 
-	// n = n->parent->parent;
 	n = mxmlGetParent(n);
 	if (n)
 		n = mxmlGetParent(n);
@@ -756,7 +754,6 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *se
 	if (!n)
 		goto error;
 
-	// n = n->parent->parent;
 	n = mxmlGetParent(n);
 	if (n)
 		n = mxmlGetParent(n);
@@ -782,7 +779,7 @@ error:
 
 int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct session *session, struct rpc *rpc)
 {
-	mxml_node_t *tree, *n, *b, *t;
+	mxml_node_t *tree = NULL, *n, *b, *t;
 	struct du_state_change_complete *p;
 	struct opresult *q;
 	char *c;
@@ -812,13 +809,15 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 	n = mxmlNewOpaque(n, p->command_key);
 	if (!n)
 		goto error;
-	// n = n->parent->parent;
+
 	n = mxmlGetParent(n);
 	if (n)
 		n = mxmlGetParent(n);
+
 	n = mxmlGetParent(n);
 	if (n)
 		n = mxmlGetParent(n);
+
 	n = mxmlNewElement(n, "Results");
 	if (!n)
 		goto error;
@@ -900,7 +899,6 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 		if (!b)
 			goto error;
 
-		// b = b->parent->parent;
 		b = mxmlGetParent(b);
 		if (b)
 			b = mxmlGetParent(b);
@@ -948,6 +946,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 	parameter_list = mxmlNewElement(n, "ParameterList");
 	if (!parameter_list)
 		goto fault;
+
 #ifdef ACS_MULTI
 	mxmlElementSetAttr(parameter_list, "xsi:type", "soap_enc:Array");
 #endif
@@ -1740,7 +1739,6 @@ error:
 /*
  * [RPC CPE]: FactoryReset
  */
-
 int cwmp_handle_rpc_cpe_factory_reset(struct session *session, struct rpc *rpc)
 {
 	mxml_node_t *b;
@@ -1862,7 +1860,7 @@ int cancel_transfer(char *key)
 	if (list_upload.next != &(list_upload)) {
 		list_for_each_safe (ilist, q, &(list_upload)) {
 			struct upload *pupload = list_entry(ilist, struct upload, list);
-			if (strcmp(pupload->command_key, key) == 0) {
+			if (pupload->command_key && strcmp(pupload->command_key, key) == 0) {
 				pthread_mutex_lock(&mutex_upload);
 				bkp_session_delete_upload(pupload);
 				bkp_session_save();
@@ -2275,21 +2273,21 @@ int cwmp_handle_rpc_cpe_download(struct session *session, struct rpc *rpc)
 			}
 		}
 		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "URL")) {
-			download->url = strdup(node_opaque);
+			download->url = strdup(node_opaque ? node_opaque : "");
 		}
 		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Username")) {
-			download->username = strdup(node_opaque);
+			download->username = strdup(node_opaque ? node_opaque : "");
 		}
 		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Password")) {
-			download->password = strdup(node_opaque);
+			download->password = strdup(node_opaque ? node_opaque : "");
 		}
 		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "FileSize")) {
 			str_file_size = strdup(node_opaque ? node_opaque: "0");
-			download->file_size = atoi(node_opaque);
+			download->file_size = atoi(node_opaque ? node_opaque : "0");
 		}
 		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "DelaySeconds")) {
 			str_download_delay = strdup(node_opaque ? node_opaque: "0");
-			download_delay = atol(node_opaque);
+			download_delay = atol(node_opaque ? node_opaque : "0");
 		}
 		b = mxmlWalkNext(b, n, MXML_DESCEND);
 	}
@@ -2414,17 +2412,17 @@ int cwmp_handle_rpc_cpe_schedule_download(struct session *session, struct rpc *r
 		mxml_type_t node_type = mxmlGetType(b);
 		t = b;
 		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "CommandKey")) {
-			schedule_download->command_key = strdup(node_opaque);
+			schedule_download->command_key = strdup(node_opaque ? node_opaque : "");
 		}
 		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "FileType")) {
 			if (schedule_download->file_type != NULL) {
 				tmp = file_type;
-				if (cwmp_asprintf(&file_type, "%s %s", tmp, node_opaque) == -1) {
+				if (cwmp_asprintf(&file_type, "%s %s", tmp, node_opaque ? node_opaque : "") == -1) {
 					error = FAULT_CPE_INTERNAL_ERROR;
 					goto fault;
 				}
 			} else {
-				schedule_download->file_type = strdup(node_opaque);
+				schedule_download->file_type = strdup(node_opaque ? node_opaque : "");
 				file_type = icwmp_strdup(node_opaque);
 			}
 		}

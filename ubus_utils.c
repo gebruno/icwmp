@@ -32,6 +32,8 @@ static const char *arr_session_status[] = {
 
 static int reload_cmd(struct blob_buf *b)
 {
+	if (b == NULL)
+		return -1;
 	CWMP_LOG(INFO, "triggered ubus reload");
 	if (cwmp_main.session_status.last_status == SESSION_RUNNING) {
 		cwmp_set_end_session(END_SESSION_RELOAD);
@@ -57,7 +59,7 @@ static int reload_cmd(struct blob_buf *b)
 	return 0;
 }
 
-static struct command_cb cmd_cb[] ={
+static struct command_cb cmd_cb[] = {
 	{ "reload", reload_cmd, "Reload icwmpd with new configuration" }
 };
 
@@ -175,6 +177,10 @@ static time_t get_next_session_time()
 
 static void bb_add_icwmp_status(struct blob_buf *bb)
 {
+	if (bb == NULL) {
+		CWMP_LOG(ERROR, "icwmp status blob is null");
+		return;
+	}
 	void *tbl = blobmsg_open_table(bb, "cwmp");
 	bb_add_string(bb, "status", cwmp_main.init_complete ? "up" : "init");
 	bb_add_string(bb, "start_time", get_time(cwmp_main.start_time));
@@ -196,6 +202,10 @@ static void bb_add_icwmp_last_session(struct blob_buf *bb)
 
 static void bb_add_icwmp_next_session(struct blob_buf *bb)
 {
+	if (bb == NULL) {
+		CWMP_LOG(ERROR, "icwmp status blob is null");
+		return;
+	}
 	void *tbl = blobmsg_open_table(bb, "next_session");
 	bb_add_string(bb, "status", arr_session_status[SESSION_WAITING]);
 	time_t ntime = get_next_session_time();
@@ -207,6 +217,10 @@ static void bb_add_icwmp_next_session(struct blob_buf *bb)
 
 static void bb_add_icwmp_statistics(struct blob_buf *bb)
 {
+	if (bb == NULL) {
+		CWMP_LOG(ERROR, "icwmp status blob is null");
+		return;
+	}
 	void *tbl = blobmsg_open_table(bb, "statistics");
 	blobmsg_add_u32(bb, "success_sessions", cwmp_main.session_status.success_session);
 	blobmsg_add_u32(bb, "failure_sessions", cwmp_main.session_status.failure_session);
@@ -367,7 +381,7 @@ int icwmp_delete_object(struct ubus_context *ctx)
 
 void bb_add_string(struct blob_buf *bb, const char *name, const char *value)
 {
-	if (bb == NULL)
+	if (bb == NULL || name == NULL)
 		return;
 
 	if (value)

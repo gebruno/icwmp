@@ -50,12 +50,14 @@ mxmlFindElementOpaque(mxml_node_t *node, /* I - Current node */
 
 char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value)
 {
+	if (value == NULL)
+		return NULL;
 	int attributes_nbre = mxmlElementGetAttrCount(node);
 	int i;
 	for (i = 0; i < attributes_nbre; i++) {
 		char *attr_name = NULL;
 		const char *attr_value = mxmlElementGetAttrByIndex(node, i, (const char **)&attr_name);
-		if (strcmp(attr_value, value) == 0)
+		if (attr_value && strcmp(attr_value, value) == 0)
 			return attr_name;
 	}
 	return NULL;
@@ -148,7 +150,7 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 			FREE(msg_out);
 			msg_out = (char *)zmsg_out;
 		} else {
-			msg_out_len = strlen(msg_out);
+			msg_out_len = msg_out ? strlen(msg_out) : 0;
 		}
 	}
 	while (1) {
