@@ -129,6 +129,8 @@ void load_specific_backup_attributes(mxml_node_t *tree, struct backup_attributes
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			idx = get_bkp_attribute_index_type(mxmlGetElement(b));
+			if (idx == -1)
+				continue;
 			c = mxmlWalkNext(b, b, MXML_DESCEND);
 			if (c && mxmlGetType(c) == MXML_OPAQUE) {
 				const char *opaque = mxmlGetOpaque(c);
@@ -188,9 +190,9 @@ mxml_node_t *bkp_session_insert(mxml_node_t *tree, char *name, char *value)
 
 	b = mxmlNewElement(tree, name);
 
-	if (value != NULL) {
+	if (value != NULL)
 		mxmlNewOpaque(b, value);
-	}
+
 	return b;
 }
 /*
@@ -218,9 +220,9 @@ mxml_node_t *bkp_session_node_found(mxml_node_t *tree, char *name, struct search
 				c = mxmlWalkNext(c, b, MXML_NO_DESCEND);
 			}
 		}
-		if (i == size) {
+		if (i == size)
 			break;
-		}
+
 		b = mxmlWalkNext(b, tree, MXML_NO_DESCEND);
 	}
 	return b;

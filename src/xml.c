@@ -183,65 +183,63 @@ void cwmp_free_all_xml_data_list(struct list_head *list)
 
 int load_upload_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 {
+	if (b == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
 	mxml_node_t *t = mxmlWalkNext(b, b, MXML_DESCEND);
+	if (t == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
 	const char *node_opaque = mxmlGetOpaque(t);
-	int error = FAULT_CPE_NO_FAULT;
 	char log_config[16]={0};
 	int ftype, instance = 0;
 
 	sscanf(node_opaque, "%1d Vendor %15s File %8d", &ftype, log_config, &instance);
-	if (strcmp(log_config, "Configuration") != 0 && strcmp(log_config, "Log") != 0) {
-		error = FAULT_CPE_INVALID_ARGUMENTS;
-		return error;
-	} else if (strcmp(log_config, "Configuration") == 0 && ftype != 1 && ftype != 3) {
-		error = FAULT_CPE_INVALID_ARGUMENTS;
-		return error;
-	} else if (strcmp(log_config, "Log") == 0 && ftype != 2 && ftype != 4) {
-		error = FAULT_CPE_INVALID_ARGUMENTS;
-		return error;
-	}
-	if ((ftype == 3 || ftype == 4) && (instance == 0)) {
-		error = FAULT_CPE_INVALID_ARGUMENTS;
-		return error;
-	}
-	if (ftype !=1 && ftype != 2 && ftype != 3 && ftype != 4) {
-		error = FAULT_CPE_INVALID_ARGUMENTS;
-		return error;
-	}
+	if (strcmp(log_config, "Configuration") != 0 && strcmp(log_config, "Log") != 0)
+		return FAULT_CPE_INVALID_ARGUMENTS;
+	else if (strcmp(log_config, "Configuration") == 0 && ftype != 1 && ftype != 3)
+		return FAULT_CPE_INVALID_ARGUMENTS;
+	else if (strcmp(log_config, "Log") == 0 && ftype != 2 && ftype != 4)
+		return FAULT_CPE_INVALID_ARGUMENTS;
+	if ((ftype == 3 || ftype == 4) && (instance == 0))
+		return FAULT_CPE_INVALID_ARGUMENTS;
+	if (ftype !=1 && ftype != 2 && ftype != 3 && ftype != 4)
+		return FAULT_CPE_INVALID_ARGUMENTS;
 	*xml_attrs->file_type = strdup(node_opaque);
 	*xml_attrs->instance = instance;
-	return error;
+	return FAULT_CPE_NO_FAULT;
 }
 
 int load_download_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 {
-	int error = FAULT_CPE_NO_FAULT;
 	mxml_node_t *t = mxmlWalkNext(b, b, MXML_DESCEND);
+	if (t == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
 	const char *node_opaque = mxmlGetOpaque(t);
+	if (node_opaque == NULL)
+		return FAULT_CPE_INVALID_ARGUMENTS;
 	if (*(xml_attrs->file_type) == NULL) {
 		*(xml_attrs->file_type) = strdup(node_opaque);
 	} else {
 		char tmp[128];
 		snprintf(tmp, sizeof(tmp), "%s", *(xml_attrs->file_type));
 		FREE(*(xml_attrs->file_type));
-		if (cwmp_asprintf(xml_attrs->file_type, "%s %s", tmp, node_opaque) == -1) {
-			error = FAULT_CPE_INTERNAL_ERROR;
-			return error;
-		}
+		if (cwmp_asprintf(xml_attrs->file_type, "%s %s", tmp, node_opaque) == -1)
+			return FAULT_CPE_INTERNAL_ERROR;
 	}
-	return error;
+	return FAULT_CPE_NO_FAULT;
 }
 
 int load_sched_download_window_mode(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 {
 	mxml_node_t *t = mxmlWalkNext(b, b, MXML_DESCEND);
+	if (t == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
 	const char *node_opaque = mxmlGetOpaque(t);
 	if (*(xml_attrs->window_mode) == NULL)
-		*(xml_attrs->window_mode) = strdup(node_opaque);
+		*(xml_attrs->window_mode) = strdup(node_opaque ? node_opaque : "");
 	else {
 		static char *tmp = NULL;
 		tmp = *(xml_attrs->window_mode);
-		if (cwmp_asprintf(xml_attrs->window_mode, "%s %s", tmp, node_opaque) == -1)
+		if (cwmp_asprintf(xml_attrs->window_mode, "%s %s", tmp, node_opaque ? node_opaque : "") == -1)
 			return FAULT_CPE_INTERNAL_ERROR;
 	}
 	return FAULT_CPE_NO_FAULT;
@@ -252,6 +250,9 @@ int load_change_du_state_operation(mxml_node_t *b, struct xml_data_struct *xml_a
 	char *operation = (char *)mxmlElementGetAttr(b, "xsi:type");
 	int cdu_ref = 0;
 	int type = 0;
+
+	if (operation == NULL)
+		return FAULT_CPE_INVALID_ARGUMENTS;
 
 	if (xml_attrs->cdu_type == NULL) {
 		CWMP_LOG(ERROR, "Not able to load CDU operation");
@@ -283,9 +284,9 @@ int load_change_du_state_operation(mxml_node_t *b, struct xml_data_struct *xml_a
 	return FAULT_CPE_NO_FAULT;
 }
 
-int build_inform_env_header(mxml_node_t *b __attribute__((unused)), struct xml_data_struct *xml_attrs)
+int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 {
-	if (b == NULL)
+	if (b == NULL || xml_attrs == NULL)
 		return FAULT_CPE_INTERNAL_ERROR;
 	int amd_version = xml_attrs->amd_version ? *(xml_attrs->amd_version) : 2;
 	mxml_node_t **envelope = xml_attrs->xml_env;
@@ -381,7 +382,7 @@ int build_inform_events(mxml_node_t *event, struct xml_data_struct *xml_attrs)
 	return 0;
 
 error:
-	return -1;
+	return FAULT_CPE_INTERNAL_ERROR;
 }
 
 int get_xml_type(int node_ref, int soap_idx)
@@ -467,6 +468,10 @@ int load_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_str
 bool validate_xml_node_opaque_value(char *node_name, char *opaque, struct xml_tag_validation *validations, int nbre_validations)
 {
 	int i;
+	if (node_name == NULL) {
+		CWMP_LOG(ERROR, "Node Validation ERROR: node name is null");
+		return false;
+	}
 	for (i = 0; i < nbre_validations; i++) {
 		if (strcmp(node_name, validations[i].tag_name) == 0) {
 			if (validations[i].validation_type == VALIDATE_STR_SIZE) {
@@ -583,7 +588,7 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 
 int load_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
-	if (node_ref >= SOAP_MAX)
+	if (!node || node_ref >= SOAP_MAX)
 		return CWMP_XML_ERR;
 	if (xml_nodes_data[node_ref].node_ms == XML_LIST) {
 		return load_xml_list_node_data(node_ref, node, xml_attrs);
@@ -773,7 +778,9 @@ int build_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_
 
 		if (xml_nodes_data[node_ref].xml_tags[i].tag_type == XML_FUNC) {
 			if (xml_nodes_data[node_ref].xml_tags[i].xml_func) {
-				xml_nodes_data[node_ref].xml_tags[i].xml_func(n, xml_attrs);
+				int err = xml_nodes_data[node_ref].xml_tags[i].xml_func(n, xml_attrs);
+				if (err)
+					return CWMP_XML_ERR;
 			}
 			continue;
 		}
@@ -915,6 +922,8 @@ mxmlFindElementOpaque(mxml_node_t *node, /* I - Current node */
 
 char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value)
 {
+	if (node == NULL || value == NULL)
+		return NULL;
 	int attributes_nbre = mxmlElementGetAttrCount(node);
 	int i;
 	for (i = 0; i < attributes_nbre; i++) {

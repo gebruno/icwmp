@@ -109,6 +109,8 @@ static int icwmp_command_handler(struct ubus_context *ctx, struct ubus_object *o
 		return 0;
 	}
 
+	if (ctx == NULL)
+		return -1;
 	struct blob_attr *tb[__COMMAND_MAX] = {0};
 	struct blob_buf blob_command;
 	int ret = -1;
@@ -177,6 +179,10 @@ static time_t get_next_session_time()
 
 static void bb_add_icwmp_status(struct blob_buf *bb)
 {
+	if (bb == NULL) {
+		CWMP_LOG(ERROR, "icwmp status blob is null");
+		return;
+	}
 	void *tbl = blobmsg_open_table(bb, "cwmp");
 	bb_add_string(bb, "status", cwmp_main->init_complete ? "up" : "init");
 	bb_add_string(bb, "start_time", get_time(cwmp_main->start_time));
