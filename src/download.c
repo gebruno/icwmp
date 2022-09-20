@@ -25,6 +25,11 @@
 LIST_HEAD(list_download);
 LIST_HEAD(list_schedule_download);
 
+struct fwbank_dump {
+	int bank_id;
+	int status;
+};
+
 int count_download_queue = 0;
 
 /*
@@ -201,8 +206,7 @@ int get_available_bank_id()
  */
 void ubus_get_bank_status_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
-	int *bank_id = (int *)req->priv;
-	int *status = bank_id;
+	struct fwbank_dump *bank = (struct fwbank_dump *)req->priv;
 	bool bank_found = false;
 	struct blob_attr *banks = NULL;
 	struct blob_attr *cur;
@@ -226,26 +230,26 @@ void ubus_get_bank_status_callback(struct ubus_request *req, int type __attribut
 		if (!tb[0])
 			continue;
 
-		if (blobmsg_get_u32(tb[1]) == (uint32_t)*bank_id) {
+		if (blobmsg_get_u32(tb[1]) == (uint32_t)bank->bank_id) {
 			bank_found = true;
 			if (strcmp(blobmsg_get_string(tb[7]), "Available") == 0 || strcmp(blobmsg_get_string(tb[7]), "Active"))
-				*status = 1;
+				bank->status = 1;
 			else
-				*status = 0;
+				bank->status = 0;
 		}
 	}
 	if (bank_found == false)
-		*status = 0;
+		bank->status = 0;
 }
 
-int get_applied_firmware_status(int *bank_id_status)
+int get_applied_firmware_status(struct fwbank_dump *bank)
 {
 	int e;
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
-	e = icwmp_ubus_invoke("fwbank", "dump", b.head, ubus_get_available_bank_callback, &bank_id_status);
+	e = icwmp_ubus_invoke("fwbank", "dump", b.head, ubus_get_available_bank_callback, &bank);
 
 	if (e != 0) {
 		CWMP_LOG(INFO, "fwbank dump ubus method failed: Ubus err code: %d", e);
@@ -280,17 +284,16 @@ void wait_firmware_to_be_applied(int bank_id)
 	int count = 0;
 
 	do {
-		int bank_id_status = bank_id;
+		struct fwbank_dump bank = {.bank_id = bank_id, .status = 0};
+		if (get_applied_firmware_status(&bank) != CWMP_OK)
+			continue;
 
-		if (get_applied_firmware_status(&bank_id_status) != CWMP_OK)
+		if (bank.status == 1)
 			break;
 
-		if (bank_id_status == 1)
-			break;
-
-		sleep(1);
+		sleep(2);
 		count++;
-	} while(count < 15);
+	} while(count < 20);
 }
 
 int cwmp_apply_multiple_firmware()
