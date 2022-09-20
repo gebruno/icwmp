@@ -117,8 +117,17 @@ static size_t http_get_response(void *buffer, size_t size, size_t rxed, char **m
 {
 	char *c;
 
-	if (*msg_in == NULL)
+	CWMP_LOG(INFO, "HTTP CURL handler function");
+
+	if (*msg_in == NULL) {
+		CWMP_LOG(ERROR, "msg_in is null");
 		return 0;
+	}
+
+	if (buffer == NULL) {
+		CWMP_LOG(ERROR, "Buffer is null");
+		return 0;
+	}
 
 	if (cwmp_asprintf(&c, "%s%.*s", *msg_in, (int)(size * rxed), (char *)buffer) == -1) {
 		FREE(*msg_in);
@@ -302,6 +311,10 @@ static void http_cr_new_client(int client, bool service_available)
 
 	pthread_mutex_lock(&mutex_config_load);
 	fp = fdopen(client, "r+");
+	if (fp == NULL) {
+		service_available = false;
+		goto http_end;
+	}
 	char *username = cwmp_main.conf.cpe_userid;
 	char *password = cwmp_main.conf.cpe_passwd;
 

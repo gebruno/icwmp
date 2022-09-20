@@ -142,6 +142,8 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	struct cwmp_dm_parameter *dm_parameter;
 	struct list_head *ilist;
 
+	if (head == NULL || param_name == NULL)
+		return;
 	list_for_each (ilist, head) {
 		int cmp;
 		dm_parameter = list_entry(ilist, struct cwmp_dm_parameter, list);
@@ -171,6 +173,8 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 
 void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter)
 {
+	if (dm_parameter == NULL)
+		return;
 	list_del(&dm_parameter->list);
 	free(dm_parameter->name);
 	free(dm_parameter->value);
@@ -204,6 +208,8 @@ void cwmp_add_list_fault_param(char *param, int fault, struct list_head *list_se
 
 void cwmp_del_list_fault_param(struct cwmp_param_fault *param_fault)
 {
+	if (param_fault == NULL)
+		return;
 	list_del(&param_fault->list);
 	free(param_fault->name);
 	free(param_fault);
@@ -246,7 +252,8 @@ int cwmp_asprintf(char **s, const char *format, ...)
 bool folder_exists(const char *path)
 {
 	struct stat folder_stat;
-
+	if (path == NULL)
+		return false;
 	return (stat(path, &folder_stat) == 0 && S_ISDIR(folder_stat.st_mode));
 }
 
@@ -261,9 +268,13 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 	struct uci_section *s;
 	char *network = NULL;
 
+	if (if_wan == NULL)
+		if_wan = "wan";
 	cwmp_uci_foreach_sections("firewall", "zone", UCI_STANDARD_CONFIG, s)
 	{
 		cwmp_uci_get_value_by_section_string(s, "network", &network);
+		if (network == NULL)
+			continue;
 		char *net = strtok(network, " ");
 		while (net != NULL) {
 			if (strcmp(net, if_wan) == 0) {
@@ -282,7 +293,7 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
  */
 void cwmp_reboot(char *command_key)
 {
-	cwmp_uci_set_varstate_value("cwmp", "cpe", "ParameterKey", command_key);
+	cwmp_uci_set_varstate_value("cwmp", "cpe", "ParameterKey", command_key ? command_key : "");
 	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 
 	struct blob_buf b = { 0 };
@@ -310,6 +321,8 @@ void cwmp_factory_reset() //use the ubus rpc-sys factory
 
 long int get_file_size(char *file_name)
 {
+	if (file_name == NULL)
+		return 0;
 	FILE *fp = fopen(file_name, "r");
 
 	if (fp == NULL) {
@@ -333,12 +346,16 @@ int opkg_install_package(char *package_path)
 
 	CWMP_LOG(INFO, "Apply downloaded config ...");
 
+	if (package_path == NULL) {
+		CWMP_LOG(ERROR, "Package path to be installed is null");
+		return -1;
+	}
 	int ret = snprintf(cmd, sizeof(cmd), "opkg --force-depends --force-maintainer install %s", package_path);
 	if (ret < 0 || ret > 512)
 		return -1;
 	fp = popen(cmd, "r");
 	if (fp == NULL) {
-		CWMP_LOG(INFO, "Failed to run command");
+		CWMP_LOG(INFO, "Failed to run opkg install command");
 		return -1;
 	}
 
@@ -360,6 +377,10 @@ int copy(const char *from, const char *to)
 	ssize_t nread;
 	int saved_errno;
 
+	if (from == NULL || to == NULL) {
+		CWMP_LOG(ERROR, "from file path or to file path is NULL: %p %p", from, to);
+		return -1;
+	}
 	fd_from = open(from, O_RDONLY);
 	if (fd_from < 0)
 		return -1;
@@ -409,7 +430,8 @@ out_error:
 bool file_exists(const char *path)
 {
 	struct stat buffer;
-
+	if (path == NULL)
+		return false;
 	return stat(path, &buffer) == 0;
 }
 
@@ -431,7 +453,10 @@ int cwmp_get_fault_code(int fault_code)
 int cwmp_get_fault_code_by_string(char *fault_code)
 {
 	int i;
-
+	if (fault_code == NULL) {
+		CWMP_LOG(WARNING, "fault_code is null");
+		return FAULT_CPE_NO_FAULT;
+	}
 	for (i = 1; i < __FAULT_CPE_MAX; i++) {
 		if (strcmp(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0)
 			break;
@@ -484,6 +509,8 @@ void *icwmp_realloc(void *n, size_t size)
 
 char *icwmp_strdup(const char *s)
 {
+	if (s == NULL)
+		return NULL;
 	size_t len = strlen(s) + 1;
 	void *new = icwmp_malloc(len);
 	if (new == NULL)
@@ -551,6 +578,8 @@ void icwmp_init_list_services()
 
 int icwmp_add_service(char *service)
 {
+	if (service == NULL)
+		return -1;
 	if (nbre_services >= MAX_NBRE_SERVICES)
 		return -1;
 	list_services[nbre_services++] = strdup(service);
@@ -650,6 +679,8 @@ char *string_to_hex(const unsigned char *str, size_t size)
 {
 	size_t i;
 
+	if (str == NULL)
+		return NULL;
 	char *hex = (char*) calloc(size * 2 + 1, sizeof(char));
 
 	if (!hex) {
@@ -657,9 +688,8 @@ char *string_to_hex(const unsigned char *str, size_t size)
 		return NULL;
 	}
 
-	if (size == 0) {
+	if (size == 0)
 		return hex;
-	}
 
 	for (i = 0; i < size; i++)
 		snprintf(hex + (i * 2), 3, "%02X", str[i]);
@@ -671,6 +701,10 @@ int copy_file(char *source_file, char *target_file)
 {
 	char ch;
 	FILE *source, *target;
+	if (source_file == NULL || target_file == NULL) {
+		CWMP_LOG(ERROR, "source file or target file is null: %p %p", source_file, target_file);
+		return -1;
+	}
 	source = fopen(source_file, "r");
 	if (source == NULL) {
 		CWMP_LOG(ERROR, "Not able to open the source file: %s\n", source_file);
@@ -715,8 +749,10 @@ void ubus_network_interface_callback(struct ubus_request *req __attribute__((unu
 
 int get_connection_interface(char *iface)
 {
-	if (iface == NULL)
+	if (iface == NULL) {
+		CWMP_LOG(ERROR, "iface argument is null: %s", iface);
 		return -1;
+	}
 
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
@@ -763,6 +799,8 @@ bool is_obj_excluded(const char *object_name)
 {
 	unsigned int i = 0;
 
+	if (object_name == NULL)
+		return false;
 	for (i = 0; i < ARRAY_SIZE(Obj_Excluded); i++) {
 		if (strncmp(Obj_Excluded[i], object_name, strlen(Obj_Excluded[i])) == 0)
 			return true;
@@ -775,6 +813,10 @@ time_t convert_datetime_to_timestamp(char *value)
 	struct tm tm = { 0 };
 	int year = 0, month = 0, day = 0, hour = 0, min = 0, sec = 0;
 
+	if (value == NULL) {
+		CWMP_LOG(ERROR, "entered time string is null");
+		return 0;
+	}
 	sscanf(value, "%4d-%2d-%2dT%2d:%2d:%2d", &year, &month, &day, &hour, &min, &sec);
 	tm.tm_year = year - 1900; /* years since 1900 */
 	tm.tm_mon = month - 1;

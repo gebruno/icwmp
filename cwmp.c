@@ -58,8 +58,10 @@ struct list_head intf_reset_list;
 
 static void cwmp_invoke_intf_reset(char *path)
 {
-	if (path == NULL)
+	if (path == NULL) {
+		CWMP_LOG(ERROR, "iface path is null");
 		return;
+	}
 
 	CWMP_LOG(INFO, "Reset interface: %s", path);
 	struct blob_buf b = { 0 };
@@ -76,8 +78,10 @@ static void cwmp_invoke_intf_reset(char *path)
 
 static bool interface_reset_req(char *param_name, char *value)
 {
-	if (param_name == NULL || value == NULL)
+	if (param_name == NULL || value == NULL) {
+		CWMP_LOG(ERROR, "param_name or value is null: %p %p", param_name, value);
 		return false;
+	}
 
 	char reg_exp[60] = {0};
 	snprintf(reg_exp, sizeof(reg_exp), "^(%s|%s)[0-9]+.Reset$", DM_IP_INTERFACE_PATH, DM_PPP_INTERFACE_PATH);
@@ -99,12 +103,13 @@ static bool interface_reset_req(char *param_name, char *value)
 
 void set_interface_reset_request(char *param_name, char *value)
 {
-	if (param_name == NULL || value == NULL)
-		return;
-
-	if (interface_reset_req(param_name, value) == false) {
+	if (param_name == NULL || value == NULL){
+		CWMP_LOG(ERROR, "param_name or value is null: %p %p", param_name, value);
 		return;
 	}
+
+	if (interface_reset_req(param_name, value) == false)
+		return;
 
 	// Store the interface path to handle after session end
 	int len = 0;
