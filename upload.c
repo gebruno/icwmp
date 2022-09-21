@@ -70,7 +70,13 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 	CURLcode res;
 	FILE *fd_upload;
 	struct stat file_info;
-
+	if (url == NULL) {
+		CWMP_LOG(ERROR, "upload %s: url is null", __FUNCTION__);
+		return -1;
+	}
+	if (file_path == NULL) {
+		file_path = "/tmp/upload_file";
+	}
 	stat(file_path, &file_info);
 	fd_upload = fopen(file_path, "rb");
 	if (fd_upload == NULL) {
@@ -81,10 +87,11 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 	curl = curl_easy_init();
 
 	if (curl) {
-		char userpass[256];
-
-		snprintf(userpass, sizeof(userpass), "%s:%s", username, password);
-		curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
+		if (username != NULL && strlen(username) > 0) {
+			char userpass[256];
+			snprintf(userpass, sizeof(userpass), "%s:%s", username, password ? password : "");
+			curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
+		}
 		if (strncmp(url, "https://", 8) == 0)
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT);
@@ -116,9 +123,18 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	char *name = NULL;
 	upload_startTime = get_time(time(NULL));
 	char file_path[128] = {'\0'};
+
+	if (pupload == NULL) {
+		CWMP_LOG(ERROR, "upload %s: url is null", __FUNCTION__);
+		return -1;
+	}
 	bkp_session_delete_upload(pupload);
 	bkp_session_save();
 
+	if (pupload->file_type == NULL) {
+		CWMP_LOG(ERROR, "upload %s: url is null", __FUNCTION__);
+		return -1;
+	}
 	if (pupload->file_type[0] == '1') {
 		snprintf(file_path, sizeof(file_path), "/tmp/all_configs");
 		cwmp_uci_init();
@@ -130,7 +146,6 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	} else if (pupload->file_type[0] == '3') {
 		lookup_vcf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
-			// cppcheck-suppress uninitvar
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
 			cwmp_uci_init();
 			cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);

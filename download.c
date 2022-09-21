@@ -37,6 +37,10 @@ int count_download_queue = 0;
  */
 int download_file(const char *file_path, const char *url, const char *username, const char *password)
 {
+	if (url == NULL) {
+		CWMP_LOG(ERROR, "download %s: no url specified", __FUNCTION__);
+		return -1;
+	}
 	int res_code = 0;
 	CURL *curl = curl_easy_init();
 	if (curl) {
@@ -45,7 +49,7 @@ int download_file(const char *file_path, const char *url, const char *username, 
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 		if (username != NULL && strlen(username) > 0) {
 			char userpass[1024];
-			snprintf(userpass, sizeof(userpass), "%s:%s", username, password);
+			snprintf(userpass, sizeof(userpass), "%s:%s", username, password ? password : "");
 			curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 		}
 		if (strncmp(url, "https://", 8) == 0)
@@ -55,6 +59,9 @@ int download_file(const char *file_path, const char *url, const char *username, 
 		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 10000L);
 		curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
 		curl_easy_setopt(curl, CURLOPT_FTP_SKIP_PASV_IP, 1L);
+		if (file_path == NULL) {
+			file_path = "/tmp/download_file";
+		}
 		FILE *fp = fopen(file_path, "wb");
 		if (fp) {
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
@@ -74,6 +81,10 @@ int download_file(const char *file_path, const char *url, const char *username, 
  */
 void ubus_check_image_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "download %s: msg is null", __FUNCTION__);
+		return;
+	}
 	int *code = (int *)req->priv;
 	const struct blobmsg_policy p[2] = { { "code", BLOBMSG_TYPE_INT32 }, { "stdout", BLOBMSG_TYPE_STRING } };
 	struct blob_attr *tb[2] = { NULL, NULL };
@@ -104,7 +115,15 @@ int cwmp_check_image()
  */
 void ubus_get_available_bank_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "download %s: msg is null", __FUNCTION__);
+		return;
+	}
 	int *bank_id = (int *)req->priv;
+	if (bank_id == NULL) {
+		CWMP_LOG(ERROR, "download %s: bank_id is null", __FUNCTION__);
+		return;
+	}
 	struct blob_attr *banks = NULL;
 	struct blob_attr *cur;
 	int rem;
@@ -117,6 +136,10 @@ void ubus_get_available_bank_callback(struct ubus_request *req, int type __attri
 		}
 	}
 
+	if (banks == NULL) {
+		CWMP_LOG(ERROR, "download %s: banks is null", __FUNCTION__);
+		return;
+	}
 	const struct blobmsg_policy p[8] = { { "name", BLOBMSG_TYPE_STRING },  { "id", BLOBMSG_TYPE_INT32 },	 { "active", BLOBMSG_TYPE_BOOL },  { "upgrade", BLOBMSG_TYPE_BOOL },
 					     { "fwver", BLOBMSG_TYPE_STRING }, { "swver", BLOBMSG_TYPE_STRING }, { "fwver", BLOBMSG_TYPE_STRING }, { "status", BLOBMSG_TYPE_STRING } };
 
@@ -203,6 +226,11 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 
 	download_startTime = get_time(time(NULL));
 
+	if (pdownload == NULL) {
+		CWMP_LOG(ERROR, "download %s: pdownload is null", __FUNCTION__);
+		error = FAULT_CPE_INTERNAL_ERROR;
+		goto end_download;
+	}
 	ltype == TYPE_DOWNLOAD ? bkp_session_delete_download(pdownload) : bkp_session_delete_schedule_download(pdownload);
 	bkp_session_save();
 
@@ -223,6 +251,11 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 	if (error != FAULT_CPE_NO_FAULT)
 		goto end_download;
 
+	if (pdownload->file_type == NULL) {
+		CWMP_LOG(ERROR, "download %s: pdownload.file_type is null", __FUNCTION__);
+		error = FAULT_CPE_INTERNAL_ERROR;
+		goto end_download;
+	}
 	if (strcmp(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0 || strcmp(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
 		rename(ICWMP_DOWNLOAD_FILE, FIRMWARE_UPGRADE_IMAGE);
 		if (cwmp_check_image() == 0) {
@@ -284,14 +317,31 @@ end_download:
 
 char *get_file_name_by_download_url(char *url)
 {
-        char *slash = strrchr(url, '/');
-        if (slash == NULL)
-                return NULL;
-        return slash+1;
+	if (url == NULL) {
+		CWMP_LOG(ERROR, "download %s: url is null", __FUNCTION__);
+		return NULL;
+	}
+	char *slash = strrchr(url, '/');
+	if (slash == NULL)
+			return NULL;
+	return slash+1;
 }
 
 int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *download_file_name, struct transfer_complete *ptransfer_complete)
 {
+	if (pdownload == NULL) {
+		CWMP_LOG(ERROR, "download %s: pdownload is null", __FUNCTION__);
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
+	if (pdownload->file_type == NULL) {
+		CWMP_LOG(ERROR, "download %s: pdownload filetype is null", __FUNCTION__);
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
+
+	if (ptransfer_complete== NULL) {
+		CWMP_LOG(ERROR, "download %s: ptransfer_complete is null", __FUNCTION__);
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
 	int error = FAULT_CPE_NO_FAULT;
 	if (pdownload->file_type[0] == '1') {
 		ptransfer_complete->old_software_version = cwmp->deviceid.softwareversion;
@@ -370,6 +420,10 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 
 struct transfer_complete *set_download_error_transfer_complete(struct cwmp *cwmp, struct download *pdownload, enum load_type ltype)
 {
+	if (pdownload == NULL) {
+		CWMP_LOG(ERROR, "download %s: pdownload is null", __FUNCTION__);
+		return NULL;
+	}
 	struct transfer_complete *ptransfer_complete;
 	ptransfer_complete = calloc(1, sizeof(struct transfer_complete));
 	if (ptransfer_complete != NULL) {
@@ -465,8 +519,12 @@ int cwmp_add_apply_schedule_download(struct download *schedule_download, char *s
 {
 	int i = 0;
 	int error = FAULT_CPE_NO_FAULT;
-	struct apply_schedule_download *apply_schedule_download;
-
+	struct apply_schedule_download *apply_schedule_download = NULL;
+	if (schedule_download == NULL) {
+		CWMP_LOG(ERROR, "download %s: pdownload is null", __FUNCTION__);
+		error = FAULT_CPE_INTERNAL_ERROR;
+		goto end;
+	}
 	apply_schedule_download = calloc(1, sizeof(struct apply_schedule_download));
 	if (apply_schedule_download == NULL) {
 		error = FAULT_CPE_INTERNAL_ERROR;

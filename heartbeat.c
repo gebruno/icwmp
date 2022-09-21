@@ -31,6 +31,7 @@ int add_heart_beat_event(struct session *heartbeat_session)
 	struct event_container *event_container;
 	event_container = calloc(1, sizeof(struct event_container));
 	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "heartbeat %s: event_container is null", __FUNCTION__);
 		return -1;
 	}
 	INIT_LIST_HEAD(&(event_container->head_dm_parameter));
