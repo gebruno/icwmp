@@ -326,11 +326,17 @@ static void http_cr_new_client(int client, bool service_available)
 	}
 	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", cwmp_main.conf.connection_request_path);
 	while (fgets(buffer, sizeof(buffer), fp)) {
+		if (buffer[0] == '\r' || buffer[0] == '\n') {
+			/* end of http request (empty line) */
+			break;
+		}
+
 		if (strstr(buffer, "GET ") != NULL && strstr(buffer, "HTTP/1.1") != NULL) {
 			// check if extra url parameter then ignore extra params
-			char rec_http_get_head[HTTP_GET_HDR_LEN];
 			int j = 0;
 			bool ignore = false;
+			char rec_http_get_head[HTTP_GET_HDR_LEN] = {0};
+
 			memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
 			for (size_t i = 0; i < strlen(buffer) && j < (HTTP_GET_HDR_LEN - 1); i++) {
 				if (buffer[i] == '?')
@@ -347,14 +353,12 @@ static void http_cr_new_client(int client, bool service_available)
 				method_is_get = true;
 		}
 
+		strip_lead_trail_char(buffer, '\n');
+		strip_lead_trail_char(buffer, '\r');
+
 		if (!strncasecmp(buffer, "Authorization: Digest ", strlen("Authorization: Digest "))) {
 			auth_digest_checked = true;
 			CWMP_STRNCPY(auth_digest_buffer, buffer, BUFSIZ);
-		}
-
-		if (buffer[0] == '\r' || buffer[0] == '\n') {
-			/* end of http request (empty line) */
-			break;
 		}
 	}
 	if (!service_available || !method_is_get) {

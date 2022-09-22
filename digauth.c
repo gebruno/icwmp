@@ -98,7 +98,7 @@ static int get_param_index(char *key)
 	return -1;
 }
 
-static void strip_lead_trail_char(char *str, char ch)
+void strip_lead_trail_char(char *str, char ch)
 {
 	/* First remove leading strip-char */
 	const char* first_valid = str;
@@ -427,8 +427,10 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 		return 0;
 	}
 
-	if ((strcmp(param[E_QOP].value, "auth") != 0) && (strcmp(param[E_QOP].value, "") != 0))
+	if ((strcmp(param[E_QOP].value, "auth") != 0) && (strcmp(param[E_QOP].value, "") != 0)) {
+		CWMP_LOG(ERROR, "Authentication failed, due to qop value: (%s)", param[E_QOP].value);
 		return 0;
+	}
 
 	char *tmp;
 	unsigned long int nc_int = strtoul(param[E_NC].value, &tmp, 16);
@@ -446,8 +448,13 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	get_digest_response(ha1, param[E_NONCE].value, param[E_NC].value, param[E_CNONCE].value,
 			    param[E_QOP].value, ha2, resp, sizeof(resp));
 
-	if (strcmp(resp, param[E_RESPONSE].value) != 0)
+	if (strcmp(resp, param[E_RESPONSE].value) != 0) {
+		CWMP_LOG(ERROR, "Authentication failed due to response, rec(%s) calc(%s)", param[E_RESPONSE].value, resp);
+		CWMP_LOG(ERROR, "## received nonce:(%s) nc:(%s) usr:(%s)", param[E_NONCE].value, param[E_NC].value, usr);
+		CWMP_LOG(ERROR, "## rlm:(%s) psw:(%s) meth:(%s)", rlm, psw, http_meth);
+		CWMP_LOG(ERROR, "## cnonce:(%s)", param[E_CNONCE].value);
 		return 0;
+	}
 
 	return 1;
 }

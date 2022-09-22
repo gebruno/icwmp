@@ -11,5 +11,6 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 			      unsigned int timeout);
 int http_authentication_failure_resp(FILE *fp, const char *http_meth, const char *uri,
 				     const char *rlm, const char *opq);
+void strip_lead_trail_char(char *str, char ch);
 
 #endif /* DIGAUTH_H_ */
