@@ -801,7 +801,10 @@ void load_queue_event(mxml_node_t *tree, struct cwmp *cwmp)
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			const char *element = mxmlGetElement(b);
-
+			if (element == NULL) {
+				b = mxmlWalkNext(b, tree, MXML_NO_DESCEND);
+				continue;
+			}
 			if (strcmp(element, "command_key") == 0) {
 				if (idx != -1) {
 					if (EVENT_CONST[idx].RETRY & EVENT_RETRY_AFTER_REBOOT) {

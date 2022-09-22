@@ -229,7 +229,7 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 		}
 	}
 
-	if (!strlen(*msg_in))
+	if (*msg_in && !strlen(*msg_in))
 		FREE(*msg_in);
 
 	curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);

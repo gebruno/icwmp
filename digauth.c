@@ -89,7 +89,10 @@ static void clear_param_values(void)
 static int get_param_index(char *key)
 {
 	unsigned int i;
-
+	if (key == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: key is null", __FUNCTION__);
+		return -1;
+	}
 	for (i = 0; i < (sizeof(param)/sizeof(param[0])); i++) {
 		if (strncmp(key, param[i].key, strlen(param[i].key)) == 0)
 			return i;
@@ -100,6 +103,10 @@ static int get_param_index(char *key)
 
 void strip_lead_trail_char(char *str, char ch)
 {
+	if (str == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: str is null", __FUNCTION__);
+		return;
+	}
 	/* First remove leading strip-char */
 	const char* first_valid = str;
 
@@ -124,8 +131,10 @@ static void get_hexstring(unsigned const char *hash, int len, char *hexstr, int 
 {
 	int i;
 
-	if (hash == NULL || hexstr == NULL)
+	if (hash == NULL || hexstr == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: hash or hexstr is null: %p %p", __FUNCTION__, hash, hexstr);
 		return;
+	}
 
 	if (buflen <= len * 2)
 		return;
@@ -144,8 +153,10 @@ static void get_hexstring(unsigned const char *hash, int len, char *hexstr, int 
 
 static void get_value_from_header(const char *data)
 {
-	if (data == NULL)
+	if (data == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: data is null", __FUNCTION__);
 		return;
+	}
 
 	int header_len = strlen(data) + 1;
 	char header[header_len];
@@ -191,13 +202,17 @@ static void get_digest_ha1(const char *algo, const char *uname, const char *rlm,
 	MD5_CTX context;
 
 	if (algo == NULL || uname == NULL || rlm == NULL ||
-	    psw == NULL || nonce == NULL || cnonce == NULL || skey == NULL)
+	    psw == NULL || nonce == NULL || cnonce == NULL || skey == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication an argument of the function %s is null: %p %p %p %p %p %p %p", __FUNCTION__, algo, uname, rlm, psw, nonce, cnonce, skey);
 		return;
+	}
 
 	int len = strlen(uname) + strlen(rlm) + strlen(psw) + 3;
 	char *a = (char *)calloc(sizeof(char), len);
-	if (a == NULL)
+	if (a == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: a is null", __FUNCTION__);
 		return;
+	}
 
 	snprintf(a, len, "%s:%s:%s", uname, rlm, psw);
 
@@ -211,8 +226,10 @@ static void get_digest_ha1(const char *algo, const char *uname, const char *rlm,
 	if (0 == strcasecmp(algo, "md5-sess")) {
 		len = strlen(nonce) + strlen(cnonce) + 3;
 		a = (char *)calloc(sizeof(char), len);
-		if (a == NULL)
+		if (a == NULL) {
+			CWMP_LOG(ERROR, "digest_authentication %s: a is null", __FUNCTION__);
 			return;
+		}
 
 		snprintf(a, len, ":%s:%s", nonce, cnonce);
 
@@ -232,13 +249,17 @@ static void get_digest_ha2(const char *method, const char *uri, char *ha2, int h
 	unsigned char digest[MD5_DIGEST_SIZE];
 	MD5_CTX context;
 
-	if (method == NULL || uri == NULL || ha2 == NULL)
+	if (method == NULL || uri == NULL || ha2 == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication an argument of the function %s is null: %p %p %p", __FUNCTION__, method, uri, ha2);
 		return;
+	}
 
 	int len = strlen(method) + strlen(uri) + 2;
 	char *a = (char *)calloc(sizeof(char), len);
-	if (a == NULL)
+	if (a == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: a is null", __FUNCTION__);
 		return;
+	}
 
 	snprintf(a, len, "%s:%s", method, uri);
 
@@ -259,13 +280,17 @@ static void get_digest_response(const char *ha1, const char *nonce, const char *
 	unsigned char digest[MD5_DIGEST_SIZE];
 
 	if (ha1 == NULL || nonce == NULL || nonce_cnt == NULL || cnonce == NULL ||
-	    qop == NULL || ha2 == NULL || resp == NULL)
+	    qop == NULL || ha2 == NULL || resp == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication an argument of the function %s is null: %p %p %p %p %p %p %p", __FUNCTION__, ha1, nonce, nonce_cnt, cnonce, qop, ha2, resp);
 		return;
+	}
 
 	int len = strlen(nonce) + 3;
 	char *a = (char *)calloc(sizeof(char), len);
-	if (a == NULL)
+	if (a == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: a is null", __FUNCTION__);
 		return;
+	}
 
 	snprintf(a, len, ":%s:", nonce);
 
@@ -273,6 +298,7 @@ static void get_digest_response(const char *ha1, const char *nonce, const char *
 		len = len + strlen(nonce_cnt) + strlen(cnonce) + strlen(qop) + 3;
 		char *b = (char *)calloc(sizeof(char), len);
 		if (b == NULL) {
+			CWMP_LOG(ERROR, "digest_authentication %s: b is null", __FUNCTION__);
 			free(a);
 			return;
 		}
@@ -299,8 +325,10 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 {
 	unsigned char ts[4];
 
-	if (method == NULL || uri == NULL || rlm == NULL || nonce == NULL)
+	if (method == NULL || uri == NULL || rlm == NULL || nonce == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication an argument of the function %s is null: %p %p %p %p", __FUNCTION__, method, uri, rlm, nonce);
 		return;
+	}
 
 	int i;
 	for (i = 3; i >= 0; i--) {
@@ -312,14 +340,17 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 
 	unsigned int len = strlen(method) + 3;
 	char *meth = (char *)calloc(sizeof(char), len);
-	if (meth == NULL)
+	if (meth == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: meth is null", __FUNCTION__);
 		return;
+	}
 
 	snprintf(meth, len, ":%s:", method);
 
 	len = strlen(uri) + strlen(rlm) + 3;
 	char *uri_realm = (char *)calloc(sizeof(char), len);
 	if (uri_realm == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication %s: uri_realm is null", __FUNCTION__);
 		free(meth);
 		return;
 	}
@@ -348,8 +379,11 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 int http_authentication_failure_resp(FILE *fp, const char *http_meth, const char *uri,
 				     const char *rlm, const char *opq)
 {
-	if (fp == NULL || http_meth == NULL || uri == NULL || rlm == NULL || opq == NULL)
+	if (fp == NULL || http_meth == NULL || uri == NULL || rlm == NULL || opq == NULL) {
+		CWMP_LOG(ERROR, "digest_authentication an argument of the function %s is null: %p %p %p %p %p", __FUNCTION__, fp, http_meth, uri, rlm, opq);
 		return 0;
+	}
+
 
 	int len;
 	char nonce[MD5_HASH_HEX_LEN + 9];
@@ -407,8 +441,10 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	}
 
 	if (nonce_key ==NULL) {
-		if (get_nonce_key() != CWMP_OK)
+		if (get_nonce_key() != CWMP_OK) {
+			CWMP_LOG(ERROR, "digest_authentication %s: fail to get nonce key", __FUNCTION__);
 			return -1;
+		}
 	}
 
 	char nonce[MD5_HASH_HEX_LEN + 9];

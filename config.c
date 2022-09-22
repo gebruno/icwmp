@@ -53,6 +53,8 @@ void get_dhcp_vend_info_cb(struct ubus_request *req, int type __attribute__((unu
 
 			if (tb[E_VENDOR_INFO]) {
 				char *info = blobmsg_get_string(tb[E_VENDOR_INFO]);
+				if (info == NULL)
+					info = "";
 				int len = strlen(info) + 1;
 				*v_info = (char *)malloc(len);
 				if (*v_info == NULL)

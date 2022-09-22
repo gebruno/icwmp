@@ -48,6 +48,10 @@ struct blob_attr *get_parameters_array(struct blob_attr *msg)
 	struct blob_attr *cur;
 	int rem;
 
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "get_parameters_array: msg is null");
+		return NULL;
+	}
 	blobmsg_for_each_attr(cur, msg, rem)
 	{
 		if (blobmsg_type(cur) == BLOBMSG_TYPE_ARRAY) {
@@ -60,6 +64,10 @@ struct blob_attr *get_parameters_array(struct blob_attr *msg)
 
 char *get_status(struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "get_status: msg is null");
+		return NULL;
+	}
 	char *status = NULL;
 	const struct blobmsg_policy p[1] = { { "status", BLOBMSG_TYPE_STRING } };
 	struct blob_attr *tb[1] = { NULL };
@@ -71,6 +79,10 @@ char *get_status(struct blob_attr *msg)
 
 int get_fault(struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "get_fault: msg is null");
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
 	int fault = FAULT_CPE_NO_FAULT;
 	const struct blobmsg_policy p[1] = { { "fault", BLOBMSG_TYPE_INT32 } };
 	struct blob_attr *tb[1] = { NULL };
@@ -134,6 +146,10 @@ int get_single_fault_from_blob_attr(struct blob_attr *msg)
  */
 void ubus_transaction_commit_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		return;
+	}
 	bool *status = (bool *)req->priv;
 	const struct blobmsg_policy p[1] = { { "status", BLOBMSG_TYPE_BOOL } };
 	struct blob_attr *updated_services = NULL;
@@ -173,7 +189,12 @@ void ubus_transaction_commit_callback(struct ubus_request *req __attribute__((un
 
 void ubus_transaction_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		return;
+	}
 	bool *status = (bool *)req->priv;
+
 	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_BOOL }, { "transaction_id", BLOBMSG_TYPE_INT32 } };
 	struct blob_attr *tb[2] = { NULL, NULL };
 	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
@@ -184,7 +205,12 @@ void ubus_transaction_callback(struct ubus_request *req __attribute__((unused)),
 
 void ubus_transaction_status_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		return;
+	}
 	bool *status = (bool *)req->priv;
+
 	char *status_str = NULL;
 	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_STRING } };
 	struct blob_attr *tb[2] = { NULL, NULL };
@@ -296,10 +322,16 @@ bool cwmp_transaction_status()
 
 void ubus_get_single_parameter_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		return;
+	}
 	struct blob_attr *parameters = get_parameters_array(msg);
 	struct cwmp_dm_parameter *result = (struct cwmp_dm_parameter *)req->priv;
+
 	if (parameters == NULL) {
 		int fault_code = get_fault(msg);
+		CWMP_LOG(ERROR, "dm_iface %s: returned parameters is null fault: %d", __FUNCTION__, fault_code);
 		result->name = NULL;
 		result->type = NULL;
 		icwmp_asprintf(&result->value, "%d", fault_code);
@@ -390,11 +422,17 @@ int cwmp_get_leaf_value(char *leaf, char **value)
  */
 void ubus_get_parameter_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		return;
+	}
 	struct blob_attr *parameters = get_parameters_array(msg);
 	struct list_params_result *result = (struct list_params_result *)req->priv;
+
 	int fault_code = FAULT_CPE_NO_FAULT;
 	if (parameters == NULL) {
 		fault_code = get_fault(msg);
+		CWMP_LOG(ERROR, "dm_iface %s: parameters is null fault: %d", __FUNCTION__, fault_code);
 		snprintf(result->fault, 5, "%d", fault_code);
 		result->type = FAULT;
 		return;
@@ -477,9 +515,10 @@ char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_h
 	struct cwmp *cwmp = &cwmp_main;
 	struct blob_buf b = { 0 };
 
+	char *object = object_name ? object_name : "";
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "path", object_name);
+	bb_add_string(&b, "path", object);
 	blobmsg_add_u8(&b, "next-level", next_level);
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
@@ -506,6 +545,10 @@ char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_h
 
 void ubus_setm_values_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		return;
+	}
 	struct setm_values_res *set_result = (struct setm_values_res *)req->priv;
 	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_BOOL }, { "flag", BLOBMSG_TYPE_INT64 } };
 	struct blob_attr *tb[2] = { NULL, NULL };
@@ -520,6 +563,10 @@ void ubus_setm_values_callback(struct ubus_request *req, int type __attribute__(
 	}
 	set_result->status = false;
 	struct blob_attr *faults_params = get_parameters_array(msg);
+	if (faults_params == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: faults_param is null", __FUNCTION__);
+		return;
+	}
 	const struct blobmsg_policy pfault[3] = { { "path", BLOBMSG_TYPE_STRING }, { "fault", BLOBMSG_TYPE_INT32 }, { "status", BLOBMSG_TYPE_BOOL } };
 	struct blob_attr *cur;
 	int rem;
@@ -553,7 +600,7 @@ int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list
 		blobmsg_close_table(&b, tbl);
 	}
 	blobmsg_close_array(&b, arr);
-	bb_add_string(&b, "key", parameter_key);
+	bb_add_string(&b, "key", parameter_key ? parameter_key : "");
 	blobmsg_add_u32(&b, "transaction_id", transaction_id);
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp->conf.instance_mode);
@@ -579,8 +626,16 @@ int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list
 
 void ubus_objects_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		return;
+	}
 	int fault_code = get_single_fault_from_blob_attr(msg);
 	struct object_result *result = (struct object_result *)req->priv;
+	if (result == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: result is null", __FUNCTION__);
+		return;
+	}
 	if (fault_code != FAULT_CPE_NO_FAULT) {
 		snprintf(result->fault, 5, "%d", fault_code);
 		result->status = false;
@@ -610,8 +665,9 @@ static void prepare_add_delete_blobmsg(struct blob_buf *b, char *object_name, ch
 	if (b == NULL)
 		return;
 
-	bb_add_string(b, "path", object_name);
-	bb_add_string(b, "key", key);
+	char *object = CWMP_STRLEN(object_name) ? object_name : DM_ROOT_OBJ;
+	bb_add_string(b, "path", object);
+	bb_add_string(b, "key", key ? key : "");
 	blobmsg_add_u32(b, "transaction_id", transaction_id);
 	bb_add_string(b, "proto", "cwmp");
 	blobmsg_add_u32(b, "instance_mode", cwmp_main.conf.instance_mode);

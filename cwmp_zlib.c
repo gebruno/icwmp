@@ -63,7 +63,7 @@ int zlib_compress(char *message, unsigned char **zmsg, int *zlen, int type)
 	if (strm_init(&strm, type))
 		return -1;
 	strm.next_in = (unsigned char *)message;
-	strm.avail_in = strlen(message);
+	strm.avail_in = strlen(message ? message : "");
 	do {
 		int have;
 		strm.avail_out = CHUNK;

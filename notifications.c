@@ -713,6 +713,10 @@ static void send_udp_message(struct addrinfo *servaddr, char *msg)
 {
 	int fd;
 
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "notifications %s: msg is null", __FUNCTION__);
+		return;
+	}
 	fd = socket(servaddr->ai_family, SOCK_DGRAM, 0);
 
 	if (fd >= 0) {
@@ -741,7 +745,7 @@ static void free_all_list_lw_notify()
 
 void cwmp_lwnotification()
 {
-	char msg[1024], *msg_out;
+	char msg[1024], *msg_out = NULL;
 	char signature[41];
 	struct addrinfo *servaddr;
 	struct cwmp *cwmp = &cwmp_main;
@@ -750,6 +754,10 @@ void cwmp_lwnotification()
 
 	udplw_server_param(&servaddr);
 	xml_prepare_lwnotification_message(&msg_out);
+	if (msg_out == NULL) {
+		CWMP_LOG(ERROR, "notifications %s: msg_out is null", __FUNCTION__);
+		return;
+	}
 	message_compute_signature(msg_out, signature, sizeof(signature));
 	snprintf(msg, sizeof(msg), "%s \n %s: %s \n %s: %s \n %s: %zu\n %s: %s\n\n%s", "POST /HTTPS/1.1", "HOST", conf->lw_notification_hostname, "Content-Type", "test/xml; charset=utf-8", "Content-Lenght", strlen(msg_out), "Signature", signature, msg_out);
 

@@ -40,6 +40,10 @@ const struct EVENT_CONST_STRUCT EVENT_CONST[] = {[EVENT_IDX_0BOOTSTRAP] = { "0 B
 
 void cwmp_save_event_container(struct event_container *event_container) //to be moved to backupsession
 {
+	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
+		return;
+	}
 	if (EVENT_CONST[event_container->code].RETRY & EVENT_RETRY_AFTER_REBOOT) {
 		struct list_head *ilist;
 		mxml_node_t *b;
@@ -64,6 +68,7 @@ struct event_container *cwmp_add_event_container(struct cwmp *cwmp, int event_co
 		struct session *session;
 		session = cwmp_add_queue_session(cwmp);
 		if (session == NULL) {
+			CWMP_LOG(ERROR, "event %s: session is null", __FUNCTION__);
 			return NULL;
 		}
 		cwmp->head_event_container = &(session->head_event_container);
@@ -80,15 +85,16 @@ struct event_container *cwmp_add_event_container(struct cwmp *cwmp, int event_co
 	}
 	event_container = calloc(1, sizeof(struct event_container));
 	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		return NULL;
 	}
 	INIT_LIST_HEAD(&(event_container->head_dm_parameter));
 	list_add(&(event_container->list), ilist->prev);
 	event_container->code = event_code;
 	event_container->command_key = command_key ? strdup(command_key) : strdup("");
-	if ((cwmp->event_id < 0) || (cwmp->event_id >= MAX_INT_ID)) {
+	if ((cwmp->event_id < 0) || (cwmp->event_id >= MAX_INT_ID))
 		cwmp->event_id = 0;
-	}
+
 	cwmp->event_id++;
 	event_container->id = cwmp->event_id;
 	return event_container;
@@ -102,6 +108,7 @@ void cwmp_root_cause_event_ipdiagnostic(void)
 	pthread_mutex_lock(&(cwmp->mutex_session_queue));
 	event_container = cwmp_add_event_container(cwmp, EVENT_IDX_8DIAGNOSTICS_COMPLETE, "");
 	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 		return;
 	}
@@ -119,6 +126,7 @@ int cwmp_root_cause_event_boot(struct cwmp *cwmp)
 		cwmp->env.boot = 0;
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_1BOOT, "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}
@@ -186,6 +194,7 @@ int cwmp_root_cause_event_bootstrap(struct cwmp *cwmp)
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_0BOOTSTRAP, "");
 		FREE(acsurl);
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}
@@ -204,6 +213,7 @@ int cwmp_root_cause_event_bootstrap(struct cwmp *cwmp)
 		pthread_mutex_lock(&(cwmp->mutex_session_queue));
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_4VALUE_CHANGE, "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}
@@ -232,6 +242,7 @@ int cwmp_root_cause_transfer_complete(struct cwmp *cwmp, struct transfer_complet
 	pthread_mutex_lock(&(cwmp->mutex_session_queue));
 	event_container = cwmp_add_event_container(cwmp, EVENT_IDX_7TRANSFER_COMPLETE, "");
 	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 		return CWMP_MEM_ERR;
 	}
@@ -239,6 +250,7 @@ int cwmp_root_cause_transfer_complete(struct cwmp *cwmp, struct transfer_complet
 	case TYPE_DOWNLOAD:
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_M_Download, p->command_key ? p->command_key : "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}
@@ -246,6 +258,7 @@ int cwmp_root_cause_transfer_complete(struct cwmp *cwmp, struct transfer_complet
 	case TYPE_UPLOAD:
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_M_Upload, p->command_key ? p->command_key : "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}
@@ -253,6 +266,7 @@ int cwmp_root_cause_transfer_complete(struct cwmp *cwmp, struct transfer_complet
 	case TYPE_SCHEDULE_DOWNLOAD:
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_M_Schedule_Download, p->command_key ? p->command_key : "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}
@@ -277,12 +291,14 @@ int cwmp_root_cause_changedustate_complete(struct cwmp *cwmp, struct du_state_ch
 	pthread_mutex_lock(&(cwmp->mutex_session_queue));
 	event_container = cwmp_add_event_container(cwmp, EVENT_IDX_11DU_STATE_CHANGE_COMPLETE, "");
 	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 		return CWMP_MEM_ERR;
 	}
 
 	event_container = cwmp_add_event_container(cwmp, EVENT_IDX_M_ChangeDUState, p->command_key ? p->command_key : "");
 	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 		return CWMP_MEM_ERR;
 	}
@@ -306,6 +322,7 @@ int cwmp_root_cause_get_rpc_method(struct cwmp *cwmp)
 		cwmp->env.periodic = 0;
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_2PERIODIC, "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}
@@ -441,6 +458,7 @@ void connection_request_ip_value_change(struct cwmp *cwmp, int version)
 		cwmp_load_saved_session(cwmp, &bip, CR_IP);
 
 	if (bip == NULL) {
+		CWMP_LOG(ERROR, "event %s: bip is null", __FUNCTION__);
 		bkp_session_simple_insert_in_parent("connection_request", ip_version, ip_value);
 		bkp_session_save();
 		return;
@@ -450,6 +468,7 @@ void connection_request_ip_value_change(struct cwmp *cwmp, int version)
 		pthread_mutex_lock(&(cwmp->mutex_session_queue));
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_4VALUE_CHANGE, "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			FREE(bip);
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return;
@@ -473,6 +492,7 @@ void connection_request_port_value_change(struct cwmp *cwmp, int port)
 	cwmp_load_saved_session(cwmp, &bport, CR_PORT);
 
 	if (bport == NULL) {
+		CWMP_LOG(ERROR, "event %s: bport is null", __FUNCTION__);
 		bkp_session_simple_insert_in_parent("connection_request", "port", bufport);
 		bkp_session_save();
 		return;
@@ -481,6 +501,7 @@ void connection_request_port_value_change(struct cwmp *cwmp, int port)
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_4VALUE_CHANGE, "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			FREE(bport);
 			return;
 		}
