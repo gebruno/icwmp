@@ -228,7 +228,8 @@ static void config_get_cpe_elements(struct config *conf, struct uci_section *s)
 	conf->supported_amd_version = conf->amd_version;
 	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", conf->amd_version);
 	if (cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]) {
-		conf->default_wan_iface = strdup(get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]));
+		char *default_wan_iface = get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]);
+		conf->default_wan_iface = strdup(default_wan_iface ? default_wan_iface : "wan");
 	} else {
 		conf->default_wan_iface = strdup("wan");
 	}
@@ -286,6 +287,8 @@ int get_preinit_config(struct config *conf)
 
 	uci_foreach_element(&pkg->sections, e) {
 		struct uci_section *s = uci_to_section(e);
+		if (s == NULL || s->type == NULL)
+			continue;
 		if (strcmp(s->type, "acs") == 0) {
 			config_get_acs_elements(conf, s);
 		} else if (strcmp(s->type, "cpe") == 0) {

@@ -232,7 +232,7 @@ int get_parameter_leaf_notification_from_childs_list(char *parameter_name, struc
 	if (parameter_name == NULL)
 		parameter_name = "Device.";
 	list_for_each_entry (param_value, childs_list, list) {
-		if (strcmp(param_value->name, parameter_name) == 0) {
+		if (param_value->name && strcmp(param_value->name, parameter_name) == 0) {
 			ret_notif = param_value->notification;
 			break;
 		}
@@ -306,7 +306,7 @@ bool parameter_is_other_notif_object_child(char *parent, char *parameter)
 		list_ptr = list_iter.prev;
 		list_iter.prev = list_ptr->prev;
 		list_iter.next = list_ptr->next;
-		if (strcmp(parent, dm_parameter->name) == 0)
+		if (dm_parameter->name && strcmp(parent, dm_parameter->name) == 0)
 			continue;
 		if (strncmp(parent, dm_parameter->name, strlen(parent)) == 0 && strncmp(parameter, dm_parameter->name, strlen(dm_parameter->name)) == 0)
 			return true;
@@ -506,7 +506,7 @@ void get_parameter_value_from_parameters_list(struct list_head *params_list, cha
 		if (strcmp(parameter_name, param_value->name) != 0)
 			continue;
 		*value = strdup(param_value->value ? param_value->value : "");
-		*type = strdup(param_value->type ? param_value->type : "");
+		*type = strdup(param_value->type ? param_value->type : "xsd:string");
 	}
 }
 
@@ -555,7 +555,7 @@ int check_value_change(void)
 			value = NULL;
 			continue;
 		}
-		if ((notification >= 1) && (dm_value != NULL) && (strcmp(dm_value, value) != 0)) {
+		if ((notification >= 1) && (dm_value != NULL) && value && (strcmp(dm_value, value) != 0)) {
 			if (notification == 1 || notification == 2)
 				add_list_value_change(parameter, dm_value, dm_type);
 			if (notification >= 3)

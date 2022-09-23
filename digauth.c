@@ -406,28 +406,28 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 {
 	get_value_from_header(hdr);
 
-	if (strcmp(param[E_USERNAME].value, usr) != 0)
+	if (usr && param[E_USERNAME].value &&strcmp(param[E_USERNAME].value, usr) != 0)
 		return 0;
 
-	if (strlen(param[E_REALM].value) == 0)
+	if (param[E_REALM].value == NULL || strlen(param[E_REALM].value) == 0)
 		return 0;
 
-	if (strcmp(param[E_REALM].value, rlm) != 0)
+	if (rlm && strcmp(param[E_REALM].value, rlm) != 0)
 		return 0;
 
-	if (strlen(param[E_CNONCE].value) == 0)
+	if (param[E_CNONCE].value == NULL || strlen(param[E_CNONCE].value) == 0)
 		return 0;
 
-	if (strlen(param[E_QOP].value) == 0)
+	if (param[E_QOP].value == NULL || strlen(param[E_QOP].value) == 0)
 		return 0;
 
-	if (strlen(param[E_NC].value) == 0)
+	if (param[E_NC].value == NULL || strlen(param[E_NC].value) == 0)
 		return 0;
 
-	if (strlen(param[E_RESPONSE].value) == 0)
+	if (param[E_RESPONSE].value == NULL || strlen(param[E_RESPONSE].value) == 0)
 		return 0;
 
-	int len = strlen(param[E_NONCE].value);
+	int len = param[E_NONCE].value ? strlen(param[E_NONCE].value) : 0;
 	if (len == 0)
 		return 0;
 
@@ -450,27 +450,26 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	char nonce[MD5_HASH_HEX_LEN + 9];
 	get_nonce(tm, http_meth, nonce_key, strlen(nonce_key), uri, rlm, nonce, sizeof(nonce));
 
-	if (strcmp(param[E_NONCE].value, nonce) != 0) {
+	if (param[E_NONCE].value && strcmp(param[E_NONCE].value, nonce) != 0) {
 		CWMP_LOG(ERROR, "Nonce value is probably fabricated");
 		return 0;
 	}
 
-	if (strlen(param[E_URI].value) == 0)
+	if (param[E_URI].value == NULL || strlen(param[E_URI].value) == 0)
 		return 0;
 
-	if (strncmp(param[E_URI].value, uri, strlen(uri)) != 0) {
+	if (uri && strncmp(param[E_URI].value, uri, strlen(uri)) != 0) {
 		CWMP_LOG(ERROR, "Authentication failed, URI is not matched");
 		return 0;
 	}
 
-	if ((strcmp(param[E_QOP].value, "auth") != 0) && (strcmp(param[E_QOP].value, "") != 0)) {
-		CWMP_LOG(ERROR, "Authentication failed, due to qop value: (%s)", param[E_QOP].value);
+	if (param[E_QOP].value && (strcmp(param[E_QOP].value, "auth") != 0) && (strcmp(param[E_QOP].value, "") != 0)) {
+		CWMP_LOG(ERROR, "Authentication failed, due to qop value: (%s)", param[E_QOP].value);	
 		return 0;
 	}
-
 	char *tmp;
 	unsigned long int nc_int = strtoul(param[E_NC].value, &tmp, 16);
-	if ((*tmp != '\0') || (nc_int == LONG_MAX && errno == ERANGE)) {
+	if ((tmp && *tmp != '\0') || (nc_int == LONG_MAX && errno == ERANGE)) {
 		CWMP_LOG(ERROR, "Authentication failed due to invalid format");
 		return 0;
 	}

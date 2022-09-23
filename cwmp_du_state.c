@@ -130,10 +130,10 @@ static char *get_software_module_object_eq(char *param1, char *val1, char *param
 	}
 
 	list_for_each_entry (param_value, sw_parameters, list) {
-		if (regexec(&regex1, param_value->name, 0, NULL, 0) == 0 && strcmp(param_value->value, val1) == 0)
+		if (regexec(&regex1, param_value->name, 0, NULL, 0) == 0 && param_value->value && strcmp(param_value->value, val1) == 0)
 			softwaremodule_filter_param = true;
 
-		if (param2 && regexec(&regex2, param_value->name, 0, NULL, 0) == 0 && strcmp(param_value->value, val2) == 0)
+		if (param2 && regexec(&regex2, param_value->name, 0, NULL, 0) == 0 && param_value->value && strcmp(param_value->value, val2) == 0)
 			softwaremodule_filter_param = true;
 
 		if (softwaremodule_filter_param == false)
@@ -158,16 +158,16 @@ static int get_deployment_unit_name_version(char *uuid, char **name, char **vers
 	snprintf(environment_param, sizeof(environment_param), "Device.SoftwareModules.DeploymentUnit.%s.ExecutionEnvRef", sw_by_uuid_instance);
 	struct cwmp_dm_parameter *param_value;
 	list_for_each_entry (param_value, &sw_parameters, list) {
-		if (strcmp(param_value->name, name_param) == 0) {
-			*name = strdup(param_value->value);
+		if (param_value->name && strcmp(param_value->name, name_param) == 0) {
+			*name = strdup(param_value->value ? param_value->value : "");
 			continue;
 		}
-		if (strcmp(param_value->name, version_param) == 0) {
-			*version = strdup(param_value->value);
+		if (param_value->name && strcmp(param_value->name, version_param) == 0) {
+			*version = strdup(param_value->value ? param_value->value : "");
 			continue;
 		}
-		if (strcmp(param_value->name, environment_param) == 0) {
-			*env = strdup(param_value->value);
+		if (param_value->name && strcmp(param_value->name, environment_param) == 0) {
+			*env = strdup(param_value->value ? param_value->value : "");
 			continue;
 		}
 	}
@@ -221,8 +221,8 @@ static char *get_exec_env_name(char *environment_path)
 	struct cwmp_dm_parameter *param_value;
 	snprintf(env_param, sizeof(env_param), "%sName", environment_path);
 	list_for_each_entry (param_value, &environment_list, list) {
-		if (strcmp(param_value->name, env_param) == 0) {
-			env_name = strdup(param_value->value);
+		if (param_value->name && strcmp(param_value->name, env_param) == 0) {
+			env_name = strdup(param_value->value ? param_value->value : "");
 			break;
 		}
 	}
@@ -356,11 +356,11 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 					list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
 						res = calloc(1, sizeof(struct opresult));
 						list_add_tail(&(res->list), &(pdu_state_change_complete->list_opresult));
-						res->uuid = strdup(p->uuid);
-						res->version = strdup(p->version);
+						res->uuid = strdup(p->uuid ? p->uuid : "");
+						res->version = strdup(p->version ? p->version : "");
 						res->current_state = strdup("Failed");
 						res->start_time = strdup(get_time(time(NULL)));
-						res->complete_time = strdup(res->start_time);
+						res->complete_time = strdup(res->start_time ? res->start_time : "");
 						res->fault = error;
 					}
 					bkp_session_insert_du_state_change_complete(pdu_state_change_complete);
@@ -379,7 +379,7 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 				if (pdu_state_change_complete != NULL) {
 					error = FAULT_CPE_NO_FAULT;
 					INIT_LIST_HEAD(&(pdu_state_change_complete->list_opresult));
-					pdu_state_change_complete->command_key = strdup(pchange_du_state->command_key);
+					pdu_state_change_complete->command_key = strdup(pchange_du_state->command_key ? pchange_du_state->command_key : "");
 					pdu_state_change_complete->timeout = pchange_du_state->timeout;
 
 					list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
@@ -472,7 +472,7 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 							}
 
 							res->du_ref = strdup(du_ref ? du_ref : "");
-							res->uuid = strdup(p->uuid);
+							res->uuid = strdup(p->uuid ? p->uuid : "");
 							res->version = strdup(package_version);
 							res->complete_time = strdup(get_time(time(NULL)));
 							res->fault = error;

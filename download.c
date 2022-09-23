@@ -253,7 +253,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 
 	if (pdownload->file_type == NULL) {
 		CWMP_LOG(ERROR, "download %s: pdownload.file_type is null", __FUNCTION__);
-		error = FAULT_CPE_INTERNAL_ERROR;
+		error = FAULT_CPE_INVALID_ARGUMENTS;
 		goto end_download;
 	}
 	if (strcmp(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0 || strcmp(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
@@ -304,7 +304,7 @@ end_download:
 	}
 
 	p->command_key = pdownload->command_key ? strdup(pdownload->command_key) : strdup("");
-	p->start_time = strdup(download_startTime);
+	p->start_time = strdup(download_startTime ? download_startTime : "");
 	p->complete_time = strdup(get_time(time(NULL)));
 	p->type = ltype;
 	if (error != FAULT_CPE_NO_FAULT) {
@@ -427,9 +427,9 @@ struct transfer_complete *set_download_error_transfer_complete(struct cwmp *cwmp
 	struct transfer_complete *ptransfer_complete;
 	ptransfer_complete = calloc(1, sizeof(struct transfer_complete));
 	if (ptransfer_complete != NULL) {
-		ptransfer_complete->command_key = strdup(pdownload->command_key);
+		ptransfer_complete->command_key = strdup(pdownload->command_key ? pdownload->command_key : "");
 		ptransfer_complete->start_time = strdup(get_time(time(NULL)));
-		ptransfer_complete->complete_time = strdup(ptransfer_complete->start_time);
+		ptransfer_complete->complete_time = strdup(ptransfer_complete->start_time ? ptransfer_complete->start_time : "");
 		ptransfer_complete->fault_code = ltype == TYPE_DOWNLOAD ? FAULT_CPE_DOWNLOAD_FAILURE : FAULT_CPE_DOWNLOAD_FAIL_WITHIN_TIME_WINDOW;
 		ptransfer_complete->type = ltype;
 		bkp_session_insert_transfer_complete(ptransfer_complete);
@@ -532,9 +532,9 @@ int cwmp_add_apply_schedule_download(struct download *schedule_download, char *s
 	}
 	if (error == FAULT_CPE_NO_FAULT) {
 		pthread_mutex_lock(&mutex_apply_schedule_download);
-		apply_schedule_download->command_key = strdup(schedule_download->command_key);
-		apply_schedule_download->file_type = strdup(schedule_download->file_type);
-		apply_schedule_download->start_time = strdup(start_time);
+		apply_schedule_download->command_key = strdup(schedule_download->command_key ? schedule_download->command_key : "");
+		apply_schedule_download->file_type = strdup(schedule_download->file_type ? schedule_download->file_type  : "");
+		apply_schedule_download->start_time = strdup(start_time ? start_time : "");
 		for (i = 0; i < 2; i++) {
 			apply_schedule_download->timeintervals[i].windowstart = schedule_download->timewindowstruct[i].windowstart;
 			apply_schedule_download->timeintervals[i].windowend = schedule_download->timewindowstruct[i].windowend;

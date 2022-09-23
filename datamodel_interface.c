@@ -216,7 +216,7 @@ void ubus_transaction_status_callback(struct ubus_request *req __attribute__((un
 	struct blob_attr *tb[2] = { NULL, NULL };
 	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
 	status_str = blobmsg_get_string(tb[0]);
-	if (strcmp(status_str, "on-going") == 0)
+	if (status_str && strcmp(status_str, "on-going") == 0)
 		*status = true;
 	else
 		*status = false;
@@ -408,7 +408,7 @@ int cwmp_get_leaf_value(char *leaf, char **value)
 	}
 
 	if (strncmp(leaf, dm_param.name, llen) == 0) {
-		*value = (dm_param.value) ? strdup(dm_param.value) : strdup("");
+		*value = dm_param.value ? strdup(dm_param.value) : strdup("");
 	} else {
 		CWMP_LOG(WARNING, "Param %s, does not return a value", leaf);
 		return FAULT_CPE_INTERNAL_ERROR;

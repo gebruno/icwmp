@@ -762,7 +762,7 @@ static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 	struct blob_attr *attr;
 	const char *path;
 
-	if (strcmp(type, "ubus.object.add") != 0)
+	if (type && strcmp(type, "ubus.object.add") != 0)
 		return;
 
 	blobmsg_parse(&policy, 1, &attr, blob_data(msg), blob_len(msg));
@@ -770,7 +770,7 @@ static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 		return;
 
 	path = blobmsg_data(attr);
-	if (strcmp(path, USP_OBJECT_NAME) == 0) {
+	if (path && strcmp(path, USP_OBJECT_NAME) == 0) {
 		g_usp_object_available = true;
 		uloop_end();
 	}

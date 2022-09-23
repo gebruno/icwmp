@@ -313,7 +313,8 @@ void bkp_session_move_inform_to_inform_send()
 	pthread_mutex_lock(&mutex_backup_session);
 	while (b) {
 		mxml_node_t *p = mxmlGetParent(b);
-		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "queue_event") && mxmlGetType(p) == MXML_ELEMENT && !strcmp(mxmlGetElement(p), "cwmp"))
+		const char *name = mxmlGetElement(b);
+		if (mxmlGetType(b) == MXML_ELEMENT && name && !strcmp(name, "queue_event") && p && mxmlGetType(p) == MXML_ELEMENT && !strcmp(mxmlGetElement(p), "cwmp"))
 			mxmlSetElement(b, "send_event");
 
 		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
@@ -328,7 +329,8 @@ void bkp_session_move_inform_to_inform_queue()
 	pthread_mutex_lock(&mutex_backup_session);
 	while (b) {
 		mxml_node_t *p = mxmlGetParent(b);
-		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "send_event") && mxmlGetType(p) == MXML_ELEMENT && !strcmp(mxmlGetElement(p), "cwmp"))
+		const char *name = mxmlGetElement(b);
+		if (mxmlGetType(b) == MXML_ELEMENT && name && !strcmp(name, "send_event") && p && mxmlGetType(p) == MXML_ELEMENT && !strcmp(mxmlGetElement(p), "cwmp"))
 			mxmlSetElement(b, "queue_event");
 
 		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
@@ -985,6 +987,10 @@ void load_change_du_state(mxml_node_t *tree)
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			const char *element = mxmlGetElement(b);
+			if (element == NULL) {
+				b = mxmlWalkNext(b, tree, MXML_NO_DESCEND);
+				continue;
+			}
 			if (strcmp(element, "update") == 0) {
 				elem = (operations *)calloc(1, sizeof(operations));
 				elem->type = DU_UPDATE;
@@ -1027,7 +1033,8 @@ void load_du_state_change_complete(mxml_node_t *tree, struct cwmp *cwmp)
 
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
-			if (strcmp(mxmlGetElement(b), "opresult") == 0) {
+			const char *name = mxmlGetElement(b);
+			if (name && strcmp(name, "opresult") == 0) {
 				elem = (opresult *)calloc(1, sizeof(opresult));
 				list_add_tail(&(elem->list), &(du_state_change_complete_request->list_opresult));
 
@@ -1127,47 +1134,47 @@ int cwmp_load_saved_session(struct cwmp *cwmp, char **ret, enum backup_loading l
 		mxml_type_t ntype = mxmlGetType(b);
 		const char *elem_name = mxmlGetElement(b);
 		if (load == ACS) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "acs") == 0) {
+			if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "acs") == 0) {
 				*ret = load_child_value(b, "url");
 				break;
 			}
 		}
 		if (load == CR_IP) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "ip");
 				break;
 			}
 		}
 		if (load == CR_IPv6) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "ipv6");
 				break;
 			}
 		}
 		if (load == CR_PORT) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "port");
 				break;
 			}
 		}
 		if (load == ALL) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "queue_event") == 0) {
+			if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "queue_event") == 0) {
 				load_queue_event(b, cwmp);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "download") == 0) {
+			} else if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "download") == 0) {
 				load_download(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "upload") == 0) {
+			} else if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "upload") == 0) {
 				load_upload(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "transfer_complete") == 0) {
+			} else if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "transfer_complete") == 0) {
 				load_transfer_complete(b, cwmp);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "schedule_inform") == 0) {
+			} else if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "schedule_inform") == 0) {
 				load_schedule_inform(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "change_du_state") == 0) {
+			} else if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "change_du_state") == 0) {
 				load_change_du_state(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "du_state_change_complete") == 0) {
+			} else if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "du_state_change_complete") == 0) {
 				load_du_state_change_complete(b, cwmp);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "schedule_download") == 0) {
+			} else if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "schedule_download") == 0) {
 				load_schedule_download(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "apply_schedule_download") == 0) {
+			} else if (ntype == MXML_ELEMENT && elem_name && strcmp(elem_name, "apply_schedule_download") == 0) {
 				load_apply_schedule_download(b);
 			}
 		}

@@ -463,7 +463,7 @@ void connection_request_ip_value_change(struct cwmp *cwmp, int version)
 		bkp_session_save();
 		return;
 	}
-	if (strcmp(bip, ip_value) != 0) {
+	if (ip_value && strcmp(bip, ip_value) != 0) {
 		struct event_container *event_container;
 		pthread_mutex_lock(&(cwmp->mutex_session_queue));
 		event_container = cwmp_add_event_container(cwmp, EVENT_IDX_4VALUE_CHANGE, "");

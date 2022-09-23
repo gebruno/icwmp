@@ -147,6 +147,8 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	list_for_each (ilist, head) {
 		int cmp;
 		dm_parameter = list_entry(ilist, struct cwmp_dm_parameter, list);
+		if (dm_parameter->name == NULL)
+			continue;
 		cmp = strcmp(dm_parameter->name, param_name);
 		if (cmp == 0) {
 			if (param_val && strcmp(dm_parameter->value, param_val) != 0) {
@@ -197,12 +199,10 @@ void cwmp_free_all_dm_parameter_list(struct list_head *list)
 void cwmp_add_list_fault_param(char *param, int fault, struct list_head *list_set_value_fault)
 {
 	struct cwmp_param_fault *param_fault;
-	if (param == NULL)
-		param = "";
 
 	param_fault = calloc(1, sizeof(struct cwmp_param_fault));
 	list_add_tail(&param_fault->list, list_set_value_fault);
-	param_fault->name = strdup(param);
+	param_fault->name = strdup(param ? param : "");
 	param_fault->fault = fault;
 }
 
@@ -239,6 +239,8 @@ int cwmp_asprintf(char **s, const char *format, ...)
 	}
 	va_end(argcopy);
 	str = (char *)calloc(sizeof(char), size + 1);
+	if (str == NULL)
+		return -1;
 	vsnprintf(str, size + 1, format, arg);
 	va_end(arg);
 	*s = strdup(str);
