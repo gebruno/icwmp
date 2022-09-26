@@ -40,6 +40,13 @@ struct cwmp_dm_parameter forced_notifications_parameters[] = {
  */
 static bool parameter_is_subobject_of_parameter(char *parent, char *child)
 {
+	if (child == NULL) {
+		CWMP_LOG(WARNING, "notifications %s: child is null", __FUNCTION__);
+		return false;
+	}
+	if (parent == NULL)
+		parent = "Device.";
+
 	if (strcmp(parent, child) == 0)
 		return false;
 	if (strncmp(parent, child, strlen(parent)) == 0)
@@ -50,6 +57,11 @@ static bool parameter_is_subobject_of_parameter(char *parent, char *child)
 int check_parameter_forced_notification(const char *parameter)
 {
 	int i;
+
+	if (parameter == NULL) {
+		CWMP_LOG(WARNING, "notifications %s: parameter is null", __FUNCTION__);
+		return 0;
+	}
 
 	for (i = 0; i < (int)ARRAY_SIZE(forced_notifications_parameters); i++) {
 		if (strcmp(forced_notifications_parameters[i].name, parameter) == 0)
@@ -100,7 +112,7 @@ int add_uci_option_notification(char *parameter_name, int notification)
 
 bool check_parent_with_different_notification(char *parameter_name, int notification)
 {
-	struct uci_list *list_notif;
+	struct uci_list *list_notif = NULL;
 	struct uci_element *e = NULL;
 	int i;
 	for (i = 0; i < 7; i++) {
@@ -129,6 +141,8 @@ bool update_notifications_list(char *parameter_name, int notification)
 	char *ename = NULL;
 	bool update_ret = true;
 
+	if (parameter_name == NULL)
+		parameter_name = "Device.";
 	for (i = 0; i < 7; i++) {
 		int option_type;
 		option_type = cwmp_uci_get_cwmp_varstate_option_value_list("cwmp", "@notifications[0]", notifications[i], &list_notif);
@@ -158,6 +172,8 @@ char *cwmp_set_parameter_attributes(char *parameter_name, int notification)
 {
 	char *error = NULL;
 
+	if (parameter_name == NULL)
+		parameter_name = "Device.";
 	error = check_valid_parameter_path(parameter_name);
 
 	if (error != NULL)
@@ -182,6 +198,8 @@ int get_parameter_family_notifications(char *parameter_name, struct list_head *c
 	int i, notif_ret = 0;
 	char *parent_param = NULL;
 
+	if (parameter_name == NULL)
+		parameter_name = "Device.";
 	for (i = 0; i < 7; i++) {
 		int option_type;
 
@@ -229,6 +247,10 @@ char *cwmp_get_parameter_attributes(char *parameter_name, struct list_head *para
 {
 	char *error = NULL;
 
+	if (parameters_list == NULL) {
+		CWMP_LOG(ERROR, "notifications %s: childs_list is null", __FUNCTION__);
+		return NULL;
+	}
 	error = check_valid_parameter_path(parameter_name);
 
 	if (error != NULL)
@@ -270,6 +292,11 @@ bool parameter_is_other_notif_object_child(char *parent, char *parameter)
 	struct list_head list_iter, *list_ptr;
 	list_iter.next = list_param_obj_notify.next;
 	list_iter.prev = list_param_obj_notify.prev;
+
+	if (parent == NULL)
+		parent = "Device.";
+	if (parameter == NULL)
+		parameter = "Device.";
 	while (list_iter.prev != &list_param_obj_notify) {
 		struct cwmp_dm_parameter *dm_parameter;
 		if (list_iter.prev == NULL)
@@ -289,7 +316,7 @@ bool parameter_is_other_notif_object_child(char *parent, char *parameter)
 
 void create_list_param_obj_notify()
 {
-	struct uci_list *list_notif;
+	struct uci_list *list_notif = NULL;
 	struct uci_element *e = NULL;
 	int i;
 
@@ -301,13 +328,13 @@ void create_list_param_obj_notify()
 			uci_foreach_element(list_notif, e) {
 				add_dm_parameter_to_list(&list_param_obj_notify, e->name, "", "", i, false);
 			}
+			if (option_type == UCI_TYPE_STRING)
+				cwmp_free_uci_list(list_notif);
 		}
-		if (option_type == UCI_TYPE_STRING)
-			cwmp_free_uci_list(list_notif);
 	}
 }
 
-char* updated_list_param_leaf_notify_with_sub_parameter_list(struct list_head *list_param_leaf_notify, struct cwmp_dm_parameter parent_parameter, void (*update_notify_file_line_arg)(FILE *notify_file, char *param_name, char *param_type, char *param_value, int notification), FILE* notify_file_arg)
+char* update_list_param_leaf_notify_with_sub_parameter_list(struct list_head *list_param_leaf_notify, struct cwmp_dm_parameter parent_parameter, void (*update_notify_file_line_arg)(FILE *notify_file, char *param_name, char *param_type, char *param_value, int notification), FILE* notify_file_arg)
 {
 	struct cwmp_dm_parameter *param_iter = NULL;
 	LIST_HEAD(params_list);
@@ -332,13 +359,13 @@ void create_list_param_leaf_notify(struct list_head *list_param_leaf_notify, voi
 	int i;
 
 	for (i = 0; i < (int)ARRAY_SIZE(forced_notifications_parameters); i++)
-		updated_list_param_leaf_notify_with_sub_parameter_list(list_param_leaf_notify, forced_notifications_parameters[i], update_notify_file_line_arg, notify_file_arg);
+		update_list_param_leaf_notify_with_sub_parameter_list(list_param_leaf_notify, forced_notifications_parameters[i], update_notify_file_line_arg, notify_file_arg);
 
 	list_for_each_entry (param_iter, &list_param_obj_notify, list) {
 		if (param_iter->notification == 0)
 			continue;
 		param_iter->forced_notification_param = false;
-		updated_list_param_leaf_notify_with_sub_parameter_list(list_param_leaf_notify, *param_iter, update_notify_file_line_arg, notify_file_arg);
+		update_list_param_leaf_notify_with_sub_parameter_list(list_param_leaf_notify, *param_iter, update_notify_file_line_arg, notify_file_arg);
 	}
 }
 
@@ -362,13 +389,15 @@ void update_notify_file_line(FILE *notify_file, char *param_name, char *param_ty
 {
 	if (notify_file == NULL)
 		return;
+	if (param_name == NULL)
+		return;
 	struct blob_buf bbuf;
 	memset(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 	blobmsg_add_string(&bbuf, "parameter", param_name);
 	blobmsg_add_u32(&bbuf, "notification", notification);
-	blobmsg_add_string(&bbuf, "type", param_type);
-	blobmsg_add_string(&bbuf, "value", param_value);
+	blobmsg_add_string(&bbuf, "type", param_type ? param_type : "xsd:string");
+	blobmsg_add_string(&bbuf, "value", param_value ? param_value : "");
 	char *notification_line = blobmsg_format_json(bbuf.head, true);
 	if (notification_line != NULL) {
 		fprintf(notify_file, "%s\n", notification_line);
@@ -465,6 +494,14 @@ void load_custom_notify_json()
 void get_parameter_value_from_parameters_list(struct list_head *params_list, char *parameter_name, char **value, char **type)
 {
 	struct cwmp_dm_parameter *param_value = NULL;
+
+	if (params_list == NULL) {
+		CWMP_LOG(ERROR, "notifications %s: params_list is null", __FUNCTION__);
+		return;
+	}
+	if (parameter_name == NULL)
+		parameter_name = "Device.";
+
 	list_for_each_entry (param_value, params_list, list) {
 		if (param_value->name == NULL)
 			continue;
@@ -563,6 +600,10 @@ void sotfware_version_value_change(struct transfer_complete *p)
 {
 	char *current_software_version = NULL;
 
+	if (p == NULL) {
+		CWMP_LOG(ERROR, "notifications %s: p is null", __FUNCTION__);
+		return;
+	}
 	if (!p->old_software_version || p->old_software_version[0] == 0)
 		return;
 

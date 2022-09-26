@@ -55,9 +55,7 @@ void cwmp_heartbeat_session_timer(struct uloop_timeout *timeout  __attribute__((
 			cwmp_main->session->session_status.is_heartbeat = false;
 			return;
 		}
-
 		//struct session_timer_event *heartbeat_inform_event = calloc(1, sizeof(struct session_timer_event));
-
 
 		uloop_timeout_set(&heartbeat_session_timer, cwmp_main->conf.heartbeat_interval * 1000);
 
@@ -82,7 +80,6 @@ void intiate_heartbeat_procedures()
 				uloop_timeout_set(&heartbeat_session_timer, cwmp_heartbeat_session_time() * 1000);
 			}
 		}
-
 	}
 }
 
