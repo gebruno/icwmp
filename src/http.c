@@ -117,9 +117,11 @@ static size_t http_get_response(void *buffer, size_t size, size_t rxed, char **m
 {
 	char *c;
 
-	if (*msg_in == NULL)
+	if (msg_in == NULL)
 		return 0;
 
+	if (buffer == NULL)
+		return 0;
 	if (cwmp_asprintf(&c, "%s%.*s", *msg_in, (int)(size * rxed), (char *)buffer) == -1) {
 		FREE(*msg_in);
 		return -1;
@@ -240,7 +242,7 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 		}
 	}
 
-	if (!strlen(*msg_in))
+	if (*msg_in && !strlen(*msg_in))
 		FREE(*msg_in);
 
 	curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);

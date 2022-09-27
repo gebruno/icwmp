@@ -187,8 +187,13 @@ void bkp_session_save()
 mxml_node_t *bkp_session_insert(mxml_node_t *tree, char *name, char *value)
 {
 	mxml_node_t *b;
-
+	if (tree == NULL || name == NULL) {
+		CWMP_LOG(ERROR, "backup %s: tree or name is null: %p %p", __FUNCTION__, tree, name);
+		return NULL;
+	}
 	b = mxmlNewElement(tree, name);
+	if (b == NULL)
+		return NULL;
 
 	if (value != NULL)
 		mxmlNewOpaque(b, value);
@@ -236,7 +241,7 @@ mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id, char
 	char event_idx[32];
 	mxml_node_t *b;
 
-	snprintf(parent_name, sizeof(parent_name), "%s_event", status);
+	snprintf(parent_name, sizeof(parent_name), "%s_event", status ? status : "");
 	snprintf(event_id, sizeof(event_id), "%d", id);
 	snprintf(event_idx, sizeof(event_idx), "%d", index);
 	keys[0].name = "id";
@@ -246,7 +251,7 @@ mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id, char
 		b = bkp_session_insert(bkp_tree, parent_name, NULL);
 		bkp_session_insert(b, "index", event_idx);
 		bkp_session_insert(b, "id", event_id);
-		bkp_session_insert(b, "command_key", command_key);
+		bkp_session_insert(b, "command_key", command_key ? command_key : "");
 	}
 	return b;
 }
@@ -258,7 +263,7 @@ void bkp_session_delete_event(int id, char *status)
 	char event_id[32];
 	mxml_node_t *b;
 
-	snprintf(parent_name, sizeof(parent_name), "%s_event", status);
+	snprintf(parent_name, sizeof(parent_name), "%s_event", status ? status : "");
 	snprintf(event_id, sizeof(event_id), "%d", id);
 	keys[0].name = "id";
 	keys[0].value = event_id;
@@ -276,6 +281,10 @@ void bkp_session_simple_insert(char *parent, char *child, char *value)
 {
 	mxml_node_t *b = bkp_tree;
 
+	if (parent == NULL || child == NULL) {
+		CWMP_LOG(ERROR, "backup %s: parent or child is null %p %p", __FUNCTION__, parent, child);
+		return;
+	}
 	b = mxmlFindElement(b, b, parent, NULL, NULL, MXML_DESCEND);
 	if (b)
 		mxmlDelete(b);
@@ -287,6 +296,10 @@ void bkp_session_simple_insert_in_parent(char *parent, char *child, char *value)
 {
 	mxml_node_t *n, *b = bkp_tree;
 
+	if (parent == NULL || child == NULL) {
+		CWMP_LOG(ERROR, "backup %s: parent or child is null %p %p", __FUNCTION__, parent, child);
+		return;
+	}
 	n = mxmlFindElement(b, b, parent, NULL, NULL, MXML_DESCEND);
 	if (!n)
 		n = bkp_session_insert(bkp_tree, parent, NULL);
@@ -302,7 +315,8 @@ void bkp_session_move_inform_to_inform_send()
 
 	while (b) {
 		mxml_node_t *p = mxmlGetParent(b);
-		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "queue_event") && mxmlGetType(p) == MXML_ELEMENT && !strcmp(mxmlGetElement(p), "cwmp"))
+		const char *parent_name = p ? mxmlGetElement(p) : NULL;
+		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "queue_event") && mxmlGetType(p) == MXML_ELEMENT && parent_name && !strcmp(parent_name, "cwmp"))
 			mxmlSetElement(b, "send_event");
 
 		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
@@ -315,7 +329,8 @@ void bkp_session_move_inform_to_inform_queue()
 
 	while (b) {
 		mxml_node_t *p = mxmlGetParent(b);
-		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "send_event") && mxmlGetType(p) == MXML_ELEMENT && !strcmp(mxmlGetElement(p), "cwmp"))
+		const char *parent_name = p ? mxmlGetElement(p) : NULL;
+		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "send_event") && mxmlGetType(p) == MXML_ELEMENT && parent_name && !strcmp(parent_name, "cwmp"))
 			mxmlSetElement(b, "queue_event");
 
 		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
@@ -332,7 +347,7 @@ void bkp_session_insert_schedule_inform(time_t time, char *command_key)
 	b = bkp_session_node_found(bkp_tree, "schedule_inform", sched_inf_insert_keys, 2);
 	if (!b) {
 		b = bkp_session_insert(bkp_tree, "schedule_inform", NULL);
-		bkp_session_insert(b, "command_key", command_key);
+		bkp_session_insert(b, "command_key", command_key ? command_key : "");
 		bkp_session_insert(b, "time", schedule_time);
 	}
 }
@@ -362,11 +377,11 @@ void bkp_session_insert_download(struct download *pdownload)
 	b = bkp_session_node_found(bkp_tree, "download", download_insert_keys, 7);
 	if (!b) {
 		b = bkp_session_insert(bkp_tree, "download", NULL);
-		bkp_session_insert(b, "url", pdownload->url);
-		bkp_session_insert(b, "command_key", pdownload->command_key);
-		bkp_session_insert(b, "file_type", pdownload->file_type);
-		bkp_session_insert(b, "username", pdownload->username);
-		bkp_session_insert(b, "password", pdownload->password);
+		bkp_session_insert(b, "url", pdownload->url ? pdownload->url : "");
+		bkp_session_insert(b, "command_key", pdownload->command_key ? pdownload->command_key : "");
+		bkp_session_insert(b, "file_type", pdownload->file_type ? pdownload->file_type : "");
+		bkp_session_insert(b, "username", pdownload->username ? pdownload->username : "");
+		bkp_session_insert(b, "password", pdownload->password ? pdownload->password : "");
 		bkp_session_insert(b, "file_size", file_size);
 		bkp_session_insert(b, "time", schedule_time);
 	}
@@ -686,7 +701,10 @@ void load_queue_event(mxml_node_t *tree)
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			const char *element = mxmlGetElement(b);
-
+			if (element == NULL) {
+				b = mxmlWalkNext(b, tree, MXML_NO_DESCEND);
+				continue;
+			}
 			if (strcmp(element, "command_key") == 0) {
 				// cppcheck-suppress knownConditionTrueFalse
 				/*
@@ -747,8 +765,15 @@ void load_download(mxml_node_t *tree)
 	struct list_head *ilist = NULL;
 	struct download *idownload_request = NULL;
 
+	if (tree == NULL) {
+		CWMP_LOG(ERROR, "backup %s: tree is null", __FUNCTION__);
+		return;
+	}
 	download_request = calloc(1, sizeof(struct download));
-
+	if (download_request == NULL) {
+		CWMP_LOG(ERROR, "backup %s: download_request is null", __FUNCTION__);
+		return;
+	}
 	struct backup_attributes bkp_attrs = { .url = &download_request->url,
 					       .command_key = &download_request->command_key,
 					       .file_type = &download_request->file_type,
@@ -777,7 +802,15 @@ void load_schedule_download(mxml_node_t *tree)
 	struct list_head *ilist = NULL;
 	struct download *idownload_request = NULL;
 
+	if (tree == NULL) {
+		CWMP_LOG(ERROR, "backup %s: tree is null", __FUNCTION__);
+		return;
+	}
 	download_request = calloc(1, sizeof(struct download));
+	if (download_request == NULL) {
+		CWMP_LOG(ERROR, "backup %s: download_request is null", __FUNCTION__);
+		return;
+	}
 
 	struct backup_attributes bkp_attrs = {
 		.url = &download_request->url,
@@ -816,7 +849,15 @@ void load_upload(mxml_node_t *tree)
 	struct list_head *ilist = NULL;
 	struct upload *iupload_request = NULL;
 
+	if (tree == NULL) {
+		CWMP_LOG(ERROR, "backup %s: tree is null", __FUNCTION__);
+		return;
+	}
 	upload_request = calloc(1, sizeof(struct upload));
+	if (upload_request == NULL) {
+		CWMP_LOG(ERROR, "backup %s: download_request is null", __FUNCTION__);
+		return;
+	}
 
 	struct backup_attributes bkp_attrs = { .url = &upload_request->url, .command_key = &upload_request->command_key, .file_type = &upload_request->file_type, .username = &upload_request->username, .password = &upload_request->password, .time = &upload_request->scheduled_time };
 	load_specific_backup_attributes(tree, &bkp_attrs);
@@ -834,6 +875,10 @@ void load_upload(mxml_node_t *tree)
 
 void load_change_du_state(mxml_node_t *tree)
 {
+	if (tree == NULL) {
+		CWMP_LOG(ERROR, "backup %s: tree is null", __FUNCTION__);
+		return;
+	}
 	mxml_node_t *b = tree;
 	struct change_du_state *change_du_state_request = NULL;
 	struct operations *elem;

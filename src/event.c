@@ -43,7 +43,11 @@ const struct EVENT_CONST_STRUCT EVENT_CONST[] = {[EVENT_IDX_0BOOTSTRAP] = { "0 B
 
 void cwmp_save_event_container(struct event_container *event_container) //to be moved to backupsession
 {
-	if (event_container && EVENT_CONST[event_container->code].RETRY & EVENT_RETRY_AFTER_REBOOT) {
+	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
+		return;
+	}
+	if (EVENT_CONST[event_container->code].RETRY & EVENT_RETRY_AFTER_REBOOT) {
 		struct list_head *ilist;
 		mxml_node_t *b;
 
@@ -64,8 +68,10 @@ int cwmp_root_cause_event_boot()
 		struct event_container *event_container;
 		cwmp_main->env.boot = 0;
 		event_container = cwmp_add_event_container(EVENT_IDX_1BOOT, "");
-		if (event_container == NULL)
+		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			return CWMP_MEM_ERR;
+		}
 
 		cwmp_save_event_container(event_container);
 	}
@@ -96,7 +102,8 @@ int remove_single_event(int event_code)
 		event_container = list_entry(cwmp_main->session->events.next, struct event_container, list);
 		if (event_container->code == event_code) {
 			bkp_session_delete_event(event_container->id, "send");
-			free(event_container->command_key);
+			if (event_container->command_key)
+				free(event_container->command_key);
 			cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));
 			list_del(&(event_container->list));
 			free(event_container);
@@ -104,7 +111,8 @@ int remove_single_event(int event_code)
 			break;
 		}
 		if (event_container) {
-			free(event_container->command_key);
+			if (event_container->command_key)
+				free(event_container->command_key);
 			cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));
 			list_del(&(event_container->list));
 			free(event_container);
@@ -125,7 +133,8 @@ int event_remove_noretry_event_container()
 			cwmp_main->cwmp_cr_event = 1;
 
 		if (EVENT_CONST[event_container->code].RETRY == 0) {
-			free(event_container->command_key);
+			if (event_container->command_key)
+				free(event_container->command_key);
 			cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));
 			list_del(&(event_container->list));
 			free(event_container);
@@ -149,8 +158,10 @@ int cwmp_root_cause_event_bootstrap()
 	if (acsurl == NULL || ((cmp = strcmp(cwmp_main->conf.acsurl, acsurl)) != 0)) {
 		event_container = cwmp_add_event_container(EVENT_IDX_0BOOTSTRAP, "");
 		FREE(acsurl);
-		if (event_container == NULL)
+		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			return CWMP_MEM_ERR;
+		}
 
 		cwmp_save_event_container(event_container);
 		cwmp_scheduleInform_remove_all();
@@ -184,27 +195,37 @@ int cwmp_root_cause_transfer_complete(struct transfer_complete *p)
 	struct rpc *rpc_acs;
 
 	event_container = cwmp_add_event_container(EVENT_IDX_7TRANSFER_COMPLETE, "");
-	if (event_container == NULL)
+	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		return CWMP_MEM_ERR;
+	}
 
-	if ((rpc_acs = cwmp_add_session_rpc_acs(RPC_ACS_TRANSFER_COMPLETE)) == NULL)
+	if ((rpc_acs = cwmp_add_session_rpc_acs(RPC_ACS_TRANSFER_COMPLETE)) == NULL) {
+		CWMP_LOG(ERROR, "event %s: rpc_acs is null", __FUNCTION__);
 		return CWMP_MEM_ERR;
+	}
 
 	switch (p->type) {
 	case TYPE_DOWNLOAD:
 		event_container = cwmp_add_event_container(EVENT_IDX_M_Download, p->command_key ? p->command_key : "");
-		if (event_container == NULL)
+		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			return CWMP_MEM_ERR;
+		}
 		break;
 	case TYPE_UPLOAD:
 		event_container = cwmp_add_event_container(EVENT_IDX_M_Upload, p->command_key ? p->command_key : "");
-		if (event_container == NULL)
+		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			return CWMP_MEM_ERR;
+		}
 		break;
 	case TYPE_SCHEDULE_DOWNLOAD:
 		event_container = cwmp_add_event_container(EVENT_IDX_M_Schedule_Download, p->command_key ? p->command_key : "");
-		if (event_container == NULL)
+		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			return CWMP_MEM_ERR;
+		}
 		break;
 	}
 	rpc_acs->extra_data = (void *)p;
@@ -217,15 +238,21 @@ int cwmp_root_cause_changedustate_complete(struct du_state_change_complete *p)
 	struct rpc *rpc_acs;
 
 	event_container = cwmp_add_event_container(EVENT_IDX_11DU_STATE_CHANGE_COMPLETE, "");
-	if (event_container == NULL)
+	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		return CWMP_MEM_ERR;
+	}
 
 	event_container = cwmp_add_event_container(EVENT_IDX_M_ChangeDUState, p->command_key ? p->command_key : "");
-	if (event_container == NULL)
+	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		return CWMP_MEM_ERR;
+	}
 
-	if ((rpc_acs = cwmp_add_session_rpc_acs(RPC_ACS_DU_STATE_CHANGE_COMPLETE)) == NULL)
+	if ((rpc_acs = cwmp_add_session_rpc_acs(RPC_ACS_DU_STATE_CHANGE_COMPLETE)) == NULL) {
+		CWMP_LOG(ERROR, "event %s: rpc_acs is null", __FUNCTION__);
 		return CWMP_MEM_ERR;
+	}
 
 	rpc_acs->extra_data = (void *)p;
 	return CWMP_OK;
@@ -317,6 +344,7 @@ void connection_request_ip_value_change(int version)
 		cwmp_load_saved_session(&bip, CR_IP);
 
 	if (bip == NULL) {
+		CWMP_LOG(ERROR, "event %s: bip is null", __FUNCTION__);
 		bkp_session_simple_insert_in_parent("connection_request", ip_version, ip_value);
 		bkp_session_save();
 		return;
@@ -325,6 +353,7 @@ void connection_request_ip_value_change(int version)
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(EVENT_IDX_4VALUE_CHANGE, "");
 		if (event_container == NULL) {
+			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			FREE(bip);
 			return;
 		}
@@ -345,6 +374,7 @@ void connection_request_port_value_change(int port)
 	cwmp_load_saved_session(&bport, CR_PORT);
 
 	if (bport == NULL) {
+		CWMP_LOG(ERROR, "bport %s: bip is null", __FUNCTION__);
 		bkp_session_simple_insert_in_parent("connection_request", "port", bufport);
 		bkp_session_save();
 		return;
