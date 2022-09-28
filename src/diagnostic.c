@@ -125,6 +125,8 @@ struct diagnostic_input nslookup_diagnostics_array[NSLKUP_NUMBER_INPUTS] = { //
 static bool set_specific_diagnostic_object_parameter_structure_value(struct diagnostic_input (*diagnostics_array)[], int number_inputs, char *parameter, char *value)
 {
 	int i;
+	if (parameter == NULL)
+		return false;
 	for (i = 0; i < number_inputs; i++) {
 		if (strcmp((*diagnostics_array)[i].parameter_name, parameter) == 0) {
 			FREE((*diagnostics_array)[i].value);

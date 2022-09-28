@@ -24,7 +24,7 @@ bool check_task_name(char *task, char *name)
 {
 	struct blob_buf bbuf;
 
-	if (strcmp(task, "{}") == 0)
+	if (task && strcmp(task, "{}") == 0)
 		return false;
 
 	memset(&bbuf, 0, sizeof(struct blob_buf));

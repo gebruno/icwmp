@@ -50,6 +50,10 @@ static int strm_init(z_stream *strm, int type)
 /* Example text to print out. */
 int zlib_compress(char *message, unsigned char **zmsg, int *zlen, int type)
 {
+	if (message == NULL) {
+		CWMP_LOG(ERROR, "cwmp_zlib %s: message is null", __FUNCTION__);
+		return -1;
+	}
 #if 0 /*test*/
     static int testi = 1;
     char tests[50];

@@ -430,13 +430,13 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 {
 	get_value_from_header(hdr);
 
-	if (strcmp(param[E_USERNAME].value, usr) != 0)
+	if (usr && strcmp(param[E_USERNAME].value, usr) != 0)
 		return 0;
 
 	if (strlen(param[E_REALM].value) == 0)
 		return 0;
 
-	if (strcmp(param[E_REALM].value, rlm) != 0)
+	if (rlm && strcmp(param[E_REALM].value, rlm) != 0)
 		return 0;
 
 	if (strlen(param[E_CNONCE].value) == 0)

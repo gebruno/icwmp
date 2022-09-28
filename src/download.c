@@ -258,7 +258,8 @@ void ubus_get_bank_status_callback(struct ubus_request *req, int type __attribut
 
 		if (blobmsg_get_u32(tb[1]) == (uint32_t)bank->bank_id) {
 			bank_found = true;
-			if (strcmp(blobmsg_get_string(tb[7]), "Available") == 0 || strcmp(blobmsg_get_string(tb[7]), "Active"))
+			char *status = blobmsg_get_string(tb[7]);
+			if (status && (strcmp(status, "Available") == 0 || strcmp(status, "Active") == 0))
 				bank->status = 1;
 			else
 				bank->status = 0;

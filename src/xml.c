@@ -189,6 +189,8 @@ int load_upload_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 	if (t == NULL)
 		return FAULT_CPE_INTERNAL_ERROR;
 	const char *node_opaque = mxmlGetOpaque(t);
+	if (node_opaque == NULL)
+		return FAULT_CPE_INVALID_ARGUMENTS;
 	char log_config[16]={0};
 	int ftype, instance = 0;
 
@@ -425,7 +427,8 @@ int load_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_str
 	b = mxmlWalkNext(node, node, MXML_DESCEND);
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
-			if (strcmp(xml_nodes_data[node_ref].tag_list_name, mxmlGetElement(b)) == 0) {
+			const char *b_name = b ? mxmlGetElement(b) : NULL;
+			if (b_name && strcmp(xml_nodes_data[node_ref].tag_list_name, b_name) == 0) {
 				struct xml_list_data *xml_data = calloc(1, sizeof(struct xml_list_data));
 
 				struct xml_data_struct xml_attrs_args = {0};
@@ -540,11 +543,10 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 			}
 
 			char *opaque = NULL;
-			if (firstchild) {
+			if (firstchild)
 				opaque = (char*) mxmlGetOpaque(firstchild);
-			}
 
-			if (!validate_xml_node_opaque_value((char*)mxmlGetElement(b), opaque, xml_attrs->validations, xml_attrs->nbre_validations))
+			if (opaque != NULL && !validate_xml_node_opaque_value(b ? (char*)mxmlGetElement(b) : NULL, opaque, xml_attrs->validations, xml_attrs->nbre_validations))
 				return FAULT_CPE_INVALID_ARGUMENTS;
 
 			if ((xml_type != XML_FUNC) && (xml_type != XML_REC))
@@ -618,13 +620,14 @@ void cwmp_param_fault_list_to_xml_data_list(struct list_head *param_fault_list, 
 
 void dm_parameter_list_to_xml_data_list(struct list_head *dm_parameter_list, struct list_head *xml_data_list)
 {
-	struct cwmp_dm_parameter *param_value;
+	struct cwmp_dm_parameter *param_value = NULL;
 	list_for_each_entry (param_value, dm_parameter_list, list) {
+		if (!param_value->name)
+			continue;
 		struct xml_list_data *xml_data;
-
 		xml_data = calloc(1, sizeof(struct xml_list_data));
 		list_add_tail(&xml_data->list, xml_data_list);
-		xml_data->param_name = strdup(param_value->name ? param_value->name : "");
+		xml_data->param_name = strdup(param_value->name);
 		xml_data->param_value = strdup(param_value->value ? param_value->value : "");
 		xml_data->param_type = strdup(param_value->type ? param_value->type : "");
 		xml_data->access_list = strdup(param_value->access_list ? param_value->access_list : "");
@@ -909,7 +912,7 @@ mxmlFindElementOpaque(mxml_node_t *node, /* I - Current node */
 	while (node != NULL) {
 		const char *op = mxmlGetOpaque(node);
 		if (mxmlGetType(node) == MXML_OPAQUE && op && (!strcmp(op, text))) {
-			return (node);
+			return node;
 		}
 
 		if (descend == MXML_DESCEND)
@@ -929,7 +932,7 @@ char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value)
 	for (i = 0; i < attributes_nbre; i++) {
 		char *attr_name = NULL;
 		const char *attr_value = mxmlElementGetAttrByIndex(node, i, (const char **)&attr_name);
-		if (strcmp(attr_value, value) == 0)
+		if (attr_value && strcmp(attr_value, value) == 0)
 			return attr_name;
 	}
 	return NULL;
@@ -1018,7 +1021,7 @@ int xml_send_message(struct rpc *rpc)
 			FREE(msg_out);
 			msg_out = (char *)zmsg_out;
 		} else {
-			msg_out_len = strlen(msg_out);
+			msg_out_len = msg_out ? strlen(msg_out) : 0;
 		}
 	}
 	while (1) {
@@ -1066,17 +1069,19 @@ int xml_send_message(struct rpc *rpc)
 	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
 	if (b) {
 		b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
-		if (b && mxmlGetType(b) == MXML_OPAQUE && mxmlGetOpaque(b))
-			cwmp_main->session->hold_request = atoi(mxmlGetOpaque(b));
+		const char *bname = b ? mxmlGetOpaque(b) : NULL;
+		if (b && mxmlGetType(b) == MXML_OPAQUE && bname)
+			cwmp_main->session->hold_request = atoi(bname);
 	} else {
 		if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "HoldRequests") == -1)
 			goto error;
 
 		b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+		const char *bname = b ? mxmlGetOpaque(b) : NULL;
 		if (b) {
 			b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
-			if (b && mxmlGetType(b) == MXML_OPAQUE && mxmlGetOpaque(b))
-				cwmp_main->session->hold_request = atoi(mxmlGetOpaque(b));
+			if (b && mxmlGetType(b) == MXML_OPAQUE && bname)
+				cwmp_main->session->hold_request = atoi(bname);
 		}
 	}
 

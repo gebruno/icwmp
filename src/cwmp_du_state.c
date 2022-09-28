@@ -130,10 +130,10 @@ static char *get_software_module_object_eq(char *param1, char *val1, char *param
 	}
 
 	list_for_each_entry (param_value, sw_parameters, list) {
-		if (regexec(&regex1, param_value->name, 0, NULL, 0) == 0 && strcmp(param_value->value, val1) == 0)
+		if (regexec(&regex1, param_value->name, 0, NULL, 0) == 0 && param_value->value && strcmp(param_value->value, val1) == 0)
 			softwaremodule_filter_param = true;
 
-		if (param2 && regexec(&regex2, param_value->name, 0, NULL, 0) == 0 && strcmp(param_value->value, val2) == 0)
+		if (param2 && regexec(&regex2, param_value->name, 0, NULL, 0) == 0 && param_value->value && strcmp(param_value->value, val2) == 0)
 			softwaremodule_filter_param = true;
 
 		if (softwaremodule_filter_param == false)
@@ -158,16 +158,18 @@ static int get_deployment_unit_name_version(char *uuid, char **name, char **vers
 	snprintf(environment_param, sizeof(environment_param), "Device.SoftwareModules.DeploymentUnit.%s.ExecutionEnvRef", sw_by_uuid_instance);
 	struct cwmp_dm_parameter *param_value = NULL;
 	list_for_each_entry (param_value, &sw_parameters, list) {
+		if (param_value->name == NULL)
+			continue;
 		if (strcmp(param_value->name, name_param) == 0) {
-			*name = strdup(param_value->value);
+			*name = strdup(param_value->value) ? param_value->value : "";
 			continue;
 		}
 		if (strcmp(param_value->name, version_param) == 0) {
-			*version = strdup(param_value->value);
+			*version = strdup(param_value->value ? param_value->value : "");
 			continue;
 		}
 		if (strcmp(param_value->name, environment_param) == 0) {
-			*env = strdup(param_value->value);
+			*env = strdup(param_value->value ? param_value->value : "");
 			continue;
 		}
 	}
@@ -221,7 +223,7 @@ static char *get_exec_env_name(char *environment_path)
 	struct cwmp_dm_parameter *param_value = NULL;
 	snprintf(env_param, sizeof(env_param), "%sName", environment_path);
 	list_for_each_entry (param_value, &environment_list, list) {
-		if (strcmp(param_value->name, env_param) == 0) {
+		if (param_value->name && strcmp(param_value->name, env_param) == 0) {
 			env_name = strdup(param_value->value);
 			break;
 		}
@@ -233,7 +235,7 @@ static char *get_exec_env_name(char *environment_path)
 static int cwmp_launch_du_install(char *url, char *uuid, char *user, char *pass, char *env_name, int env_id, struct opresult **pchange_du_state_complete)
 {
 	int error = FAULT_CPE_NO_FAULT;
-	char *fault_code;
+	char *fault_code = NULL;
 
 	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 	cwmp_du_install(url, uuid, user, pass, env_name, env_id, &fault_code);

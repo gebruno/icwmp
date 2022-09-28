@@ -135,6 +135,8 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	list_for_each (ilist, head) {
 		int cmp;
 		dm_parameter = list_entry(ilist, struct cwmp_dm_parameter, list);
+		if (dm_parameter->name == NULL)
+			continue;
 		cmp = strcmp(dm_parameter->name, param_name);
 		if (cmp == 0) {
 			if (param_val && strcmp(dm_parameter->value, param_val) != 0) {
@@ -163,11 +165,11 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter)
 {
 	list_del(&dm_parameter->list);
-	free(dm_parameter->name);
-	free(dm_parameter->value);
-	free(dm_parameter->type);
-	free(dm_parameter->access_list);
-	free(dm_parameter);
+	FREE(dm_parameter->name);
+	FREE(dm_parameter->value);
+	FREE(dm_parameter->type);
+	FREE(dm_parameter->access_list);
+	FREE(dm_parameter);
 }
 
 void cwmp_free_all_dm_parameter_list(struct list_head *list)
@@ -253,6 +255,10 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 	struct uci_section *s;
 	char *network = NULL;
 
+	if (zone_name == NULL)
+		return;
+	if (if_wan == NULL)
+		if_wan = "wan";
 	cwmp_uci_foreach_sections("firewall", "zone", UCI_STANDARD_CONFIG, s)
 	{
 		cwmp_uci_get_value_by_section_string(s, "network", &network);
@@ -463,6 +469,8 @@ int cwmp_get_fault_code_by_string(char *fault_code)
 {
 	int i;
 
+	if (fault_code == NULL)
+		return FAULT_CPE_NO_FAULT;
 	for (i = 1; i < __FAULT_CPE_MAX; i++) {
 		if (strcmp(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0)
 			break;
@@ -515,6 +523,8 @@ void *icwmp_realloc(void *n, size_t size)
 
 char *icwmp_strdup(const char *s)
 {
+	if (s == NULL)
+		return NULL;
 	size_t len = strlen(s) + 1;
 	void *new = icwmp_malloc(len);
 	if (new == NULL)
@@ -614,7 +624,7 @@ void icwmp_restart_services()
 
 		blob_buf_free(&b);
 
-		if (strcmp(list_services[i], "firewall") == 0) {
+		if (list_services[i] && strcmp(list_services[i], "firewall") == 0) {
 			g_firewall_restart = true;
 		}
 	}
@@ -793,6 +803,8 @@ bool is_obj_excluded(const char *object_name)
 {
 	unsigned int i = 0;
 
+	if (object_name == NULL)
+		return false;
 	for (i = 0; i < ARRAY_SIZE(Obj_Excluded); i++) {
 		if (strncmp(Obj_Excluded[i], object_name, strlen(Obj_Excluded[i])) == 0)
 			return true;

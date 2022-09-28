@@ -225,7 +225,7 @@ void ubus_transaction_status_callback(struct ubus_request *req __attribute__((un
 	struct blob_attr *tb[2] = { NULL, NULL };
 	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
 	status_str = blobmsg_get_string(tb[0]);
-	if (strcmp(status_str, "on-going") == 0)
+	if (status_str && strcmp(status_str, "on-going") == 0)
 		*status = true;
 	else
 		*status = false;

@@ -55,10 +55,16 @@ void get_dhcp_vend_info_cb(struct ubus_request *req, int type __attribute__((unu
 
 			if (tb[E_VENDOR_INFO]) {
 				char *info = blobmsg_get_string(tb[E_VENDOR_INFO]);
+				if (info == NULL) {
+					CWMP_LOG(WARNING, "config %s: info is null", __FUNCTION__);
+					continue;
+				}
 				int len = strlen(info) + 1;
 				*v_info = (char *)malloc(len);
-				if (*v_info == NULL)
-					return;
+				if (*v_info == NULL) {
+					CWMP_LOG(WARNING, "config %s: v_info is null", __FUNCTION__);
+					continue;
+				}
 
 				memset(*v_info, 0, len);
 				snprintf(*v_info, len, "%s", info);
@@ -286,6 +292,8 @@ int get_preinit_config()
 
 	uci_foreach_element(&pkg->sections, e) {
 		struct uci_section *s = uci_to_section(e);
+		if (s== NULL || s->type == NULL)
+			continue;
 		if (strcmp(s->type, "acs") == 0) {
 			config_get_acs_elements(s);
 		} else if (strcmp(s->type, "cpe") == 0) {

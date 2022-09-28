@@ -231,7 +231,7 @@ int get_parameter_leaf_notification_from_childs_list(char *parameter_name, struc
 	if (childs_list == NULL)
 		return -1;
 	list_for_each_entry (param_value, childs_list, list) {
-		if (strcmp(param_value->name, parameter_name) == 0) {
+		if (param_value->name && strcmp(param_value->name, parameter_name) == 0) {
 			ret_notif = param_value->notification;
 			break;
 		}
@@ -306,6 +306,8 @@ bool parameter_is_other_notif_object_child(char *parent, char *parameter)
 		list_ptr = list_iter.prev;
 		list_iter.prev = list_ptr->prev;
 		list_iter.next = list_ptr->next;
+		if (dm_parameter->name == NULL)
+			continue;
 		if (strcmp(parent, dm_parameter->name) == 0)
 			continue;
 		if (strncmp(parent, dm_parameter->name, strlen(parent)) == 0 && strncmp(parameter, dm_parameter->name, strlen(dm_parameter->name)) == 0)
@@ -557,7 +559,7 @@ int check_value_change(void)
 			value = NULL;
 			continue;
 		}
-		if ((notification >= 1) && (dm_value != NULL) && (strcmp(dm_value, value) != 0)) {
+		if ((notification >= 1) && (dm_value != NULL) && value && (strcmp(dm_value, value) != 0)) {
 			if (notification == 1 || notification == 2)
 				add_list_value_change(parameter, dm_value, dm_type);
 			if (notification >= 3)

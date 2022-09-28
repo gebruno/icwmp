@@ -71,7 +71,7 @@ char *forced_inform_parameters[] = {
 int xml_handle_message()
 {
 	struct rpc *rpc_cpe;
-	char *c;
+	char *c = NULL;
 	int i;
 	mxml_node_t *b;
 	struct config *conf = &(cwmp_main->conf);
@@ -79,6 +79,10 @@ int xml_handle_message()
 	/* get method */
 	if (icwmp_asprintf(&c, "%s:%s", ns.soap_env, "Body") == -1) {
 		CWMP_LOG(INFO, "Internal error");
+		cwmp_main->session->fault_code = FAULT_CPE_INTERNAL_ERROR;
+		goto fault;
+	}
+	if (c == NULL) {
 		cwmp_main->session->fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
@@ -133,7 +137,7 @@ int xml_handle_message()
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
 	rpc_cpe = NULL;
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
-		if (i != RPC_CPE_FAULT && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
+		if (i != RPC_CPE_FAULT && c && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
 			rpc_cpe = cwmp_add_session_rpc_cpe(i);
 			if (rpc_cpe == NULL)
@@ -169,7 +173,8 @@ static int xml_prepare_parameters_inform(struct cwmp_dm_parameter *dm_parameter,
 		if (!b)
 			return 0;
 		mxml_node_t *c = mxmlGetFirstChild(b);
-		if (c && strcmp(dm_parameter->value, mxmlGetOpaque(c)) == 0)
+		const char *c_opaque = c ? mxmlGetOpaque(c) : NULL;
+		if (c && c_opaque && strcmp(dm_parameter->value, c_opaque) == 0)
 			return 0;
 		mxmlDelete(b);
 		(*size)--;
@@ -178,6 +183,8 @@ static int xml_prepare_parameters_inform(struct cwmp_dm_parameter *dm_parameter,
 
 	char *type = (dm_parameter->type && dm_parameter->type[0] != '\0') ? dm_parameter->type : "xsd:string";
 	if (node == NULL) {
+		if (dm_parameter->name == NULL)
+			return -1;
 		struct xml_data_struct inform_params_xml_attrs = {0};
 		struct xml_list_data *xml_data = calloc(1, sizeof(struct xml_list_data));
 		xml_data->param_name = strdup(dm_parameter->name);
@@ -209,6 +216,8 @@ bool event_in_session_event_list(char *event, struct list_head *list_evts)
 {
 	struct event_container *event_container = NULL;
 
+	if (event == NULL)
+		return false;
 	list_for_each_entry (event_container, list_evts, list) {
 		if (strcmp(event, EVENT_CONST[event_container->code].CODE) == 0)
 			return true;
@@ -508,6 +517,8 @@ int set_rpc_acs_to_supported(char *rpc_name)
 {
 	int i;
 
+	if (rpc_name == NULL)
+		return -1;
 	for (i=1; i < __RPC_ACS_MAX; i++) {
 		if (strcmp(rpc_acs_methods[i].name, rpc_name) == 0) {
 			rpc_acs_methods[i].acs_support = RPC_ACS_SUPPORT;
@@ -530,6 +541,7 @@ int cwmp_rpc_acs_parse_response_get_rpc_methods(struct rpc *this __attribute__((
 {
 	mxml_node_t *tree, *b;
 	tree = cwmp_main->session->tree_in;
+
 	b = mxmlFindElement(tree, tree, "cwmp:GetRPCMethodsResponse", NULL, NULL, MXML_DESCEND);
 	if (!b)
 		goto error;
@@ -538,8 +550,9 @@ int cwmp_rpc_acs_parse_response_get_rpc_methods(struct rpc *this __attribute__((
 			const char *node_opaque = mxmlGetOpaque(b);
 			mxml_node_t *parent_node = mxmlGetParent(b);
 			mxml_type_t node_type = mxmlGetType(b);
+			const char *parent_name = parent_node ? mxmlGetElement(parent_node) : NULL;
 
-			if (node_type == MXML_OPAQUE && mxmlGetType(parent_node) == MXML_ELEMENT && node_opaque && strcmp((char *) mxmlGetElement(parent_node), "string") == 0)
+			if (node_type == MXML_OPAQUE && mxmlGetType(parent_node) == MXML_ELEMENT && node_opaque && parent_name && strcmp((char *) mxmlGetElement(parent_node), "string") == 0)
 				set_rpc_acs_to_supported((char*)node_opaque);
 
 			b = mxmlWalkNext(b, cwmp_main->session->body_in, MXML_DESCEND);
@@ -925,12 +938,14 @@ fault:
 int is_duplicated_parameter(mxml_node_t *param_node)
 {
 	mxml_node_t *b = param_node;
+	const char *node_name = param_node ? mxmlGetElement(param_node) : NULL;
 	while ((b = mxmlWalkNext(b, cwmp_main->session->body_in, MXML_DESCEND))) {
 		const char *node_opaque = mxmlGetOpaque(b);
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
+		const char *parent_name = parent ? mxmlGetElement(parent) : NULL;
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && !strcmp(mxmlGetElement(parent), "Name")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && node_name && parent_name && !strcmp(parent_name, "Name")) {
 			if (strcmp(node_opaque, mxmlGetOpaque(param_node)) == 0)
 				return -1;
 		}
@@ -1406,7 +1421,7 @@ int cancel_transfer(char *key)
 	if (list_download.next != &(list_download)) {
 		list_for_each_safe (ilist, q, &(list_download)) {
 			struct download *pdownload = list_entry(ilist, struct download, list);
-			if (strcmp(pdownload->command_key, key) == 0) {
+			if (key && pdownload->command_key && strcmp(pdownload->command_key, key) == 0) {
 				bkp_session_delete_download(pdownload);
 				bkp_session_save();
 				list_del(&(pdownload->list));
@@ -1419,7 +1434,7 @@ int cancel_transfer(char *key)
 	if (list_upload.next != &(list_upload)) {
 		list_for_each_safe (ilist, q, &(list_upload)) {
 			struct upload *pupload = list_entry(ilist, struct upload, list);
-			if (strcmp(pupload->command_key, key) == 0) {
+			if (key && pupload->command_key &&  strcmp(pupload->command_key, key) == 0) {
 				bkp_session_delete_upload(pupload);
 				bkp_session_save();
 				list_del(&(pupload->list));
@@ -1455,9 +1470,9 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 	if (fault_code)
 		goto fault;
 
-	commandKey = icwmp_strdup(command_key);
+	commandKey = icwmp_strdup(command_key ? command_key : "");
 
-	event_container = cwmp_add_event_container(EVENT_IDX_M_Reboot, command_key);
+	event_container = cwmp_add_event_container(EVENT_IDX_M_Reboot, command_key ? command_key : "");
 	if (event_container == NULL)
 		goto fault;
 
@@ -2010,6 +2025,8 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 		struct xml_data_struct spv_fault_xml_attrs = {0};
 		spv_fault_xml_attrs.data_list = &spv_fault_xml_data_list;
 		body = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "cwmp:Fault", NULL, NULL, MXML_DESCEND);
+		if (body == NULL)
+			return -1;
 		fault = build_xml_node_data(SOAP_SPV_FAULT, body, &spv_fault_xml_attrs);
 		if (fault)
 			return -1;
