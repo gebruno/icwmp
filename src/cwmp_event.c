@@ -14,7 +14,7 @@
 
 pthread_mutex_t add_event_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-struct event_container *__cwmp_add_event_container(int event_code, char *command_key)
+static struct event_container *__cwmp_add_event_container(int event_code, char *command_key)
 {
 	struct event_container *event_container = NULL;
 	list_for_each_entry(event_container, &cwmp_main->session->events, list) {

@@ -33,6 +33,8 @@
 #include "sched_inform.h"
 #include "cwmp_du_state.h"
 
+pthread_mutex_t cwmp_session_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 static void cwmp_periodic_session_timer(struct uloop_timeout *timeout);
 struct uloop_timeout session_timer = { .cb = cwmp_schedule_session };
 struct uloop_timeout periodic_session_timer = { .cb = cwmp_periodic_session_timer };
@@ -86,6 +88,8 @@ int clean_cwmp_session_structure()
 
 int cwmp_session_rpc_destructor(struct rpc *rpc)
 {
+	if (rpc == NULL)
+		return CWMP_GEN_ERR;
 	list_del(&(rpc->list));
 	free(rpc);
 	return CWMP_OK;
@@ -392,7 +396,9 @@ void trigger_cwmp_session_timer()
 
 void cwmp_schedule_session(struct uloop_timeout *timeout  __attribute__((unused)))
 {
+	pthread_mutex_lock(&cwmp_session_mutex);
 	start_cwmp_session();
+	pthread_mutex_unlock(&cwmp_session_mutex);
 }
 
 void trigger_cwmp_session_timer_with_event(struct uloop_timeout *timeout)
@@ -404,7 +410,13 @@ void trigger_cwmp_session_timer_with_event(struct uloop_timeout *timeout)
 
 void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 {
+	pthread_mutex_lock(&cwmp_session_mutex);
 	struct session_timer_event *session_event = container_of(timeout, struct session_timer_event, session_timer_evt);
+	if (session_event == NULL) {
+		CWMP_LOG(ERROR, "session %s: session_event is null", __FUNCTION__);
+		pthread_mutex_unlock(&cwmp_session_mutex);
+		return;
+	}
 	FREE(global_session_event);
 	global_session_event = session_event;
 	if (session_event->event == TransferClt_Evt) {
@@ -431,6 +443,7 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 	}
 
 	start_cwmp_session();
+	pthread_mutex_unlock(&cwmp_session_mutex);
 }
 
 static void cwmp_periodic_session_timer(struct uloop_timeout *timeout  __attribute__((unused)))

@@ -618,7 +618,7 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct rpc *rpc)
 		transfer_complete_xml_attrs.complete_time = &p->complete_time;
 	}
 
-	int faultcode = (p && p->fault_code) ? atoi(FAULT_CPE_ARRAY[p->fault_code].CODE) : 0;
+	int faultcode = (p && p->fault_code && (p->fault_code < __FAULT_CPE_MAX)) ? atoi(FAULT_CPE_ARRAY[p->fault_code].CODE) : 0;
 	transfer_complete_xml_attrs.fault_code = &faultcode;
 	char *faultstring = strdup((p && p->fault_code) ? FAULT_CPE_ARRAY[p->fault_code].DESCRIPTION : "");
 	transfer_complete_xml_attrs.fault_string = &faultstring;
@@ -1439,7 +1439,7 @@ int cancel_transfer(char *key)
 				bkp_session_save();
 				list_del(&(pupload->list));
 				if (pupload->scheduled_time != 0)
-					count_download_queue--;
+					count_upload_queue--;
 				cwmp_free_upload_request(pupload);
 			}
 		}
@@ -1933,7 +1933,7 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 	if (error)
 		goto fault;
 
-	if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
+	if (count_upload_queue >= MAX_UPLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
 	} else if (upload->url == NULL || (strcmp(upload->url, "") == 0)) {
 		error = FAULT_CPE_REQUEST_DENIED;
@@ -1973,7 +1973,7 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 		}
 		list_add(&(upload->list), ilist->prev);
 		if (upload_delay != 0) {
-			count_download_queue++;
+			count_upload_queue++;
 			upload->scheduled_time = scheduled_time;
 		}
 		bkp_session_insert_upload(upload);

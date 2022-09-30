@@ -699,7 +699,7 @@ void event_container_list_to_xml_data_list(struct list_head *event_container_lis
 		struct xml_list_data *xml_data =  calloc(1, sizeof(struct xml_list_data));
 		list_add_tail(&xml_data->list, xml_data_list);
 		xml_data->event_code = event_container->code;
-		xml_data->command_key = strdup(event_container->command_key);
+		xml_data->command_key = strdup(event_container->command_key ? event_container->command_key : "");
 	}
 }
 

@@ -14,7 +14,10 @@
 
 #include "common.h"
 
+#define MAX_UPLOAD_QUEUE 10
+
 extern struct list_head list_upload;
+extern int count_upload_queue;
 
 int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptransfer_complete);
 void *thread_cwmp_rpc_cpe_upload(void *v);

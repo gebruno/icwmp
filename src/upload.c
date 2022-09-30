@@ -14,7 +14,6 @@
 #include <sys/stat.h>
 
 #include "upload.h"
-#include "download.h"
 #include "datamodel_interface.h"
 #include "log.h"
 #include "backupSession.h"
@@ -24,6 +23,8 @@
 #include "session.h"
 
 #define CURL_TIMEOUT 20
+
+int count_upload_queue = 0;
 
 LIST_HEAD(list_upload);
 
@@ -101,6 +102,7 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+		//curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)CURLAUTH_ANY);
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_READDATA, fd_upload);
@@ -284,7 +286,7 @@ int cwmp_scheduledUpload_remove_all()
 		list_del(&(upload->list));
 		bkp_session_delete_upload(upload);
 		if (upload->scheduled_time != 0)
-			count_download_queue--;
+			count_upload_queue--;
 		cwmp_free_upload_request(upload);
 	}
 	return CWMP_OK;
@@ -298,7 +300,7 @@ void cwmp_start_upload(struct uloop_timeout *timeout)
 
 	pupload = container_of(timeout, struct upload, handler_timer);
 
-	CWMP_LOG(INFO, "Launch download file %s", pupload->url);
+	CWMP_LOG(INFO, "Launch upload file %s", pupload->url);
 	error = cwmp_launch_upload(pupload, &ptransfer_complete);
 	sleep(3);
 	if (error != FAULT_CPE_NO_FAULT) {
@@ -307,10 +309,9 @@ void cwmp_start_upload(struct uloop_timeout *timeout)
 
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
-	cwmp_root_cause_transfer_complete(ptransfer_complete);
 	list_del(&(pupload->list));
 	if (pupload->scheduled_time != 0)
-		count_download_queue--;
+		count_upload_queue--;
 	cwmp_free_upload_request(pupload);
 
 	struct session_timer_event *upload_inform_event = calloc(1, sizeof(struct session_timer_event));
@@ -325,7 +326,7 @@ void apply_upload()
 {
 	struct list_head *ilist;
 	list_for_each (ilist, &(list_upload)) {
-		struct download *upload = list_entry(ilist, struct download, list);
+		struct upload *upload = list_entry(ilist, struct upload, list);
 		int upload_delay = 0;
 		if (upload->scheduled_time > time(NULL)) {
 			upload_delay = upload->scheduled_time - time(NULL);

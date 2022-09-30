@@ -870,7 +870,7 @@ void load_upload(mxml_node_t *tree)
 	}
 	list_add(&(upload_request->list), ilist->prev);
 	if (upload_request->scheduled_time != 0)
-		count_download_queue++;
+		count_upload_queue++;
 }
 
 void load_change_du_state(mxml_node_t *tree)
