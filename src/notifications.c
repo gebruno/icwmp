@@ -29,10 +29,18 @@ struct uloop_timeout check_notify_timer = { .cb = periodic_check_notifiy };
 
 char *notifications[7] = {"disabled" , "passive", "active", "passive_lw", "passive_passive_lw", "active_lw", "passive_active_lw"};
 
-struct cwmp_dm_parameter forced_notifications_parameters[] = {
-	{.name = "Device.DeviceInfo.SoftwareVersion", .notification = 2, .forced_notification_param = true},
-	{.name = "Device.DeviceInfo.ProvisioningCode", .notification = 2, .forced_notification_param = true},
-	{.name = "Device.ManagementServer.ConnectionRequestURL", .notification = 2, .forced_notification_param = true}
+char *default_active_notifications_parameters[] = {
+	"Device.ManagementServer.ConnectionRequestURL",
+	"Device.ManagementServer.ConnReqJabberID",
+	"Device.GatewayInfo.ManufacturerOUI",
+	"Device.GatewayInfo.ProductClass",
+	"Device.GatewayInfo.SerialNumber",
+	"Device.SoftwareModules.ExecutionUnit.*.Status",
+};
+
+char *forced_notifications_parameters[] = {
+		"Device.DeviceInfo.SoftwareVersion",
+		"Device.DeviceInfo.ProvisioningCode"
 };
 
 /*
@@ -64,8 +72,8 @@ int check_parameter_forced_notification(const char *parameter)
 	}
 
 	for (i = 0; i < (int)ARRAY_SIZE(forced_notifications_parameters); i++) {
-		if (strcmp(forced_notifications_parameters[i].name, parameter) == 0)
-			return forced_notifications_parameters[i].notification;
+		if (strcmp(forced_notifications_parameters[i], parameter) == 0)
+			return 2;
 	}
 
 	return 0;
@@ -336,19 +344,19 @@ void create_list_param_obj_notify()
 	}
 }
 
-char* update_list_param_leaf_notify_with_sub_parameter_list(struct list_head *list_param_leaf_notify, struct cwmp_dm_parameter parent_parameter, void (*update_notify_file_line_arg)(FILE *notify_file, char *param_name, char *param_type, char *param_value, int notification), FILE* notify_file_arg)
+char* update_list_param_leaf_notify_with_sub_parameter_list(struct list_head *list_param_leaf_notify, char* parent_parameter, int parent_notification, bool parent_forced_notif, void (*update_notify_file_line_arg)(FILE *notify_file, char *param_name, char *param_type, char *param_value, int notification), FILE* notify_file_arg)
 {
 	struct cwmp_dm_parameter *param_iter = NULL;
 	LIST_HEAD(params_list);
-	char *err = cwmp_get_parameter_values(parent_parameter.name, &params_list);
+	char *err = cwmp_get_parameter_values(parent_parameter, &params_list);
 	if (err)
 		return err;
 	list_for_each_entry (param_iter, &params_list, list) {
-		if (parent_parameter.forced_notification_param || (!parameter_is_other_notif_object_child(parent_parameter.name, param_iter->name) && !check_parameter_forced_notification(param_iter->name))) {
+		if (parent_forced_notif || (!parameter_is_other_notif_object_child(parent_parameter, param_iter->name) && !check_parameter_forced_notification(param_iter->name))) {
 			if (list_param_leaf_notify != NULL)
-				add_dm_parameter_to_list(list_param_leaf_notify, param_iter->name, param_iter->value, "", parent_parameter.notification, false);
+				add_dm_parameter_to_list(list_param_leaf_notify, param_iter->name, param_iter->value, "", parent_notification, false);
 			if (notify_file_arg != NULL && update_notify_file_line_arg != NULL)
-				update_notify_file_line_arg(notify_file_arg, param_iter->name, param_iter->type, param_iter->value, parent_parameter.notification);
+				update_notify_file_line_arg(notify_file_arg, param_iter->name, param_iter->type, param_iter->value, parent_notification);
 		}
 	}
 	cwmp_free_all_dm_parameter_list(&params_list);
@@ -361,13 +369,12 @@ void create_list_param_leaf_notify(struct list_head *list_param_leaf_notify, voi
 	int i;
 
 	for (i = 0; i < (int)ARRAY_SIZE(forced_notifications_parameters); i++)
-		update_list_param_leaf_notify_with_sub_parameter_list(list_param_leaf_notify, forced_notifications_parameters[i], update_notify_file_line_arg, notify_file_arg);
+		update_list_param_leaf_notify_with_sub_parameter_list(list_param_leaf_notify, forced_notifications_parameters[i], 2, true, update_notify_file_line_arg, notify_file_arg);
 
 	list_for_each_entry (param_iter, &list_param_obj_notify, list) {
 		if (param_iter->notification == 0)
 			continue;
-		param_iter->forced_notification_param = false;
-		update_list_param_leaf_notify_with_sub_parameter_list(list_param_leaf_notify, *param_iter, update_notify_file_line_arg, notify_file_arg);
+		update_list_param_leaf_notify_with_sub_parameter_list(list_param_leaf_notify, param_iter->name, param_iter->notification, false, update_notify_file_line_arg, notify_file_arg);
 	}
 }
 
@@ -488,6 +495,25 @@ void load_custom_notify_json()
 	blob_buf_free(&bbuf);
 	creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	cwmp_main->custom_notify_active = true;
+}
+
+void set_default_forced_active_parameters_notifications()
+{
+	int i;
+	int nbre_default_active_parameters = (int)ARRAY_SIZE(default_active_notifications_parameters);
+	for (i = 0; i < nbre_default_active_parameters; i++) {
+		char *fault = cwmp_set_parameter_attributes(default_active_notifications_parameters[i], 2);
+		if (fault == NULL)
+			continue;
+		if (strcmp(fault, "9005") == 0) {
+			CWMP_LOG(WARNING, "The parameter %s is wrong path", default_active_notifications_parameters[i]);
+			continue;
+		}
+		if (strcmp(fault, "9009") == 0) {
+			CWMP_LOG(WARNING, "This parameter %s is forced notification parameter, can't be changed", default_active_notifications_parameters[i]);
+			continue;
+		}
+	}
 }
 
 /*

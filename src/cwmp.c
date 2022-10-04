@@ -247,6 +247,7 @@ static int cwmp_init()
 	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
 	cwmp_get_deviceid();
 	load_custom_notify_json();
+	set_default_forced_active_parameters_notifications();
 	init_list_param_notify();
 	create_cwmp_session_structure();
 	get_nonce_key();

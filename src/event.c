@@ -19,6 +19,8 @@
 #include "log.h"
 #include "session.h"
 #include "cwmp_event.h"
+#include "notifications.h"
+
 //#include <libubox/list.h>
 
 const struct EVENT_CONST_STRUCT EVENT_CONST[] = {[EVENT_IDX_0BOOTSTRAP] = { "0 BOOTSTRAP", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
