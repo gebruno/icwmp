@@ -27,7 +27,7 @@ enum NOTIFICATION_STATUS
 	NOTIF_LW_ACTIVE = 1 << 4
 };
 
-extern struct cwmp_dm_parameter forced_notifications_parameters[];
+extern char *forced_notifications_parameters[];
 extern struct list_head list_lw_value_change;
 extern struct list_head list_value_change;
 extern pthread_mutex_t mutex_value_change;
@@ -61,6 +61,7 @@ void clean_list_value_change();
 char *cwmp_set_parameter_attributes(char *parameter_name, int notification);
 char *cwmp_get_parameter_attributes(char *parameter_name, struct list_head *parameters_list);
 void load_custom_notify_json(struct cwmp *cwmp);
+void set_default_forced_active_parameters_notifications();
 void add_lw_list_value_change(char *param_name, char *param_data, char *param_type);
 char *calculate_lwnotification_cnonce();
 void cwmp_lwnotification();

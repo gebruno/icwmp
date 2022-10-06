@@ -877,6 +877,7 @@ static int cwmp_init(struct cwmp *cwmp)
 	load_forced_inform_json_file(cwmp);
 	load_boot_inform_json_file(cwmp);
 	load_custom_notify_json(cwmp);
+	set_default_forced_active_parameters_notifications();
 	init_list_param_notify();
 	get_nonce_key();
 	memset(&intf_reset_list, 0, sizeof(struct list_head));

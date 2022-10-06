@@ -135,7 +135,7 @@ static void cwmp_update_notify_file_unit_test_default(void **state)
 	cwmp_update_enabled_notify_file();
 	int notification = 0, nbre_iter = 0;
 	nbre_iter = check_notify_file("Device.DeviceInfo.ProvisioningCode", &notification);
-	assert_int_equal(nbre_iter, 3);
+	assert_int_equal(nbre_iter, 2);
 	assert_int_equal(notification, 2);
 }
 
