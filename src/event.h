@@ -50,6 +50,7 @@ enum event_idx_enum
 	EVENT_IDX_9REQUEST_DOWNLOAD,
 	EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE,
 	EVENT_IDX_11DU_STATE_CHANGE_COMPLETE,
+	EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE,
 	EVENT_IDX_M_Reboot,
 	EVENT_IDX_M_ScheduleInform,
 	EVENT_IDX_M_Download,
@@ -77,4 +78,6 @@ int cwmp_root_cause_events();
 int cwmp_root_cause_transfer_complete(struct transfer_complete *p);
 int cwmp_root_cause_changedustate_complete(struct du_state_change_complete *p);
 int cwmp_root_cause_schedule_inform(struct schedule_inform *schedule_inform);
+int cwmp_root_cause_autonomous_cdu_complete(auto_du_state_change_compl *p);
+
 #endif /* SRC_INC_EVENT_H_ */

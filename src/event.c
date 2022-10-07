@@ -35,6 +35,7 @@ const struct EVENT_CONST_STRUCT EVENT_CONST[] = {[EVENT_IDX_0BOOTSTRAP] = { "0 B
 						 [EVENT_IDX_9REQUEST_DOWNLOAD] = { "9 REQUEST DOWNLOAD", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE] = { "10 AUTONOMOUS TRANSFER COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_11DU_STATE_CHANGE_COMPLETE] = { "11 DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+						 [EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "12 AUTONOMOUS DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_Reboot] = { "M Reboot", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_ScheduleInform] = { "M ScheduleInform", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_Download] = { "M Download", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
@@ -229,6 +230,25 @@ int cwmp_root_cause_transfer_complete(struct transfer_complete *p)
 			return CWMP_MEM_ERR;
 		}
 		break;
+	}
+	rpc_acs->extra_data = (void *)p;
+	return CWMP_OK;
+}
+
+int cwmp_root_cause_autonomous_cdu_complete(auto_du_state_change_compl *p)
+{
+	struct event_container *event_container;
+	struct rpc *rpc_acs;
+
+	event_container = cwmp_add_event_container(EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE, "");
+	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
+		return CWMP_MEM_ERR;
+	}
+
+	if ((rpc_acs = cwmp_add_session_rpc_acs(RPC_ACS_AUTONOMOUS_DU_STATE_CHANGE_COMPLETE)) == NULL) {
+		CWMP_LOG(ERROR, "event %s: rpc_acs is null", __FUNCTION__);
+		return CWMP_MEM_ERR;
 	}
 	rpc_acs->extra_data = (void *)p;
 	return CWMP_OK;

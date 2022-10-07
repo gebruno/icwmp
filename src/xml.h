@@ -68,7 +68,9 @@ enum soap_methods {
 	SOAP_INFORM_CWMP,
 	SOAP_DEVID,
 	SOAP_DU_CHANGE_COMPLETE,
+	SOAP_AUTONOMOUS_DU_CHANGE_COMPLETE,
 	SOAP_CDU_RESULTS_REF,
+	SOAP_ACDU_OPTS_REF,
 	SOAP_CDU_OPTS_REF,
 	ATTR_PARAM_STRUCT,
 	ATTR_SOAP_ENV,
@@ -125,6 +127,8 @@ struct xml_data_struct {
 	char **du_ref;
 	char **current_state;
 	char **version;
+	char **operation;
+	bool *resolved;
 	char **window_mode;
 	char **user_message;
 	char **start_time;

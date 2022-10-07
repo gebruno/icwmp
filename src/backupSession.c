@@ -67,6 +67,8 @@ struct backup_attributes_name_type bkp_attrs_names[] = { { "command_key", BKP_ST
 							 { "fault_code", BKP_INTEGER },
 							 { "resolved", BKP_BOOL },
 							 { "time", BKP_TIME },
+							 { "fault_string", BKP_STRING },
+							 { "operation", BKP_STRING },
 							 { "windowstart1", BKP_TIME },
 							 { "windowend1", BKP_TIME },
 							 { "windowstart2", BKP_TIME },
@@ -100,6 +102,8 @@ struct backup_attributes {
 	int *fault_code;
 	bool *resolved;
 	time_t *time;
+	char **fault_string;
+	char **operation;
 	time_t *windowstart1;
 	time_t *windowend1;
 	time_t *windowstart2;
@@ -568,6 +572,73 @@ void bkp_session_delete_upload(struct upload *pupload)
 		mxmlDelete(b);
 }
 
+void bkp_session_insert_autonomous_du_state_change(auto_du_state_change_compl *data)
+{
+	char resolved[8], fault_code[8];
+	mxml_node_t *b;
+
+	if (data == NULL)
+		return;
+
+	snprintf(resolved, sizeof(resolved), "%d", data->resolved);
+	snprintf(fault_code, sizeof(fault_code), "%d", data->fault_code);
+
+	struct search_keywords keys[9] = {
+					   { "uuid", data->uuid },
+					   { "version", data->ver ? data->ver : "" },
+					   { "current_state", data->current_state ? data->current_state : "" },
+					   { "resolved", resolved },
+					   { "start_time", data->start_time ? data->start_time : "" },
+					   { "complete_time", data->complete_time ? data->complete_time : "" },
+					   { "fault_code", fault_code },
+					   { "fault_string", data->fault_string ? data->fault_string : "" },
+					   { "operation", data->operation ? data->operation : "" }
+					 };
+
+	b = bkp_session_node_found(bkp_tree, "autonomous_du_state_change_complete", keys, 9);
+	if (!b) {
+		b = bkp_session_insert(bkp_tree, "autonomous_du_state_change_complete", NULL);
+		bkp_session_insert(b, "uuid", data->uuid);
+		bkp_session_insert(b, "version", data->ver ? data->ver : "");
+		bkp_session_insert(b, "current_state", data->current_state ? data->current_state : "");
+		bkp_session_insert(b, "resolved", resolved);
+		bkp_session_insert(b, "start_time", data->start_time ? data->start_time : "");
+		bkp_session_insert(b, "complete_time", data->complete_time ? data->complete_time : "");
+		bkp_session_insert(b, "fault_code", fault_code);
+		bkp_session_insert(b, "fault_string", data->fault_string ? data->fault_string : "");
+		bkp_session_insert(b, "operation", data->operation ? data->operation : "");
+	}
+}
+
+void bkp_session_delete_autonomous_du_state_change(auto_du_state_change_compl *data)
+{
+	char resolved[8], fault_code[8];
+	mxml_node_t *b;
+
+	if (data == NULL)
+		return;
+
+	snprintf(resolved, sizeof(resolved), "%d", data->resolved);
+	snprintf(fault_code, sizeof(fault_code), "%d", data->fault_code);
+
+	struct search_keywords keys[9] = {
+					   { "uuid", data->uuid },
+					   { "version", data->ver ? data->ver : "" },
+					   { "current_state", data->current_state ? data->current_state : "" },
+					   { "resolved", resolved },
+					   { "start_time", data->start_time ? data->start_time : "" },
+					   { "complete_time", data->complete_time ? data->complete_time : "" },
+					   { "fault_code", fault_code },
+					   { "fault_string", data->fault_string ? data->fault_string : "" },
+					   { "operation", data->operation ? data->operation : "" }
+					 };
+
+	b = bkp_session_node_found(bkp_tree, "autonomous_du_state_change_complete", keys, 9);
+	if (!b) {
+		mxmlDelete(b);
+	}
+}
+
 void bkp_session_insert_du_state_change_complete(struct du_state_change_complete *pdu_state_change_complete)
 {
 	char schedule_time[128], resolved[8], fault_code[8];
@@ -975,6 +1046,26 @@ void load_transfer_complete(mxml_node_t *tree)
 	sotfware_version_value_change(ptransfer_complete);
 }
 
+void load_autonomous_du_state_change_complete(mxml_node_t *tree)
+{
+	auto_du_state_change_compl *p;
+
+	p = calloc(1, sizeof(auto_du_state_change_compl));
+
+	struct backup_attributes bkp_attrs = { .uuid = &p->uuid,
+					       .version = &p->ver,
+					       .current_state = &p->current_state,
+					       .resolved = &p->resolved, 
+					       .start_time = &p->start_time,
+					       .complete_time = &p->complete_time,
+					       .fault_code = &p->fault_code,
+					       .fault_string = &p->fault_string,
+					       .operation = &p->operation };
+	load_specific_backup_attributes(tree, &bkp_attrs);
+
+	cwmp_root_cause_autonomous_cdu_complete(p);
+}
+
 void bkp_session_create_file()
 {
 	FILE *pFile;
@@ -1073,6 +1164,8 @@ int cwmp_load_saved_session(char **ret, enum backup_loading load)
 				load_du_state_change_complete(b);
 			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "schedule_download") == 0) {
 				load_schedule_download(b);
+			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "autonomous_du_state_change_complete") == 0) {
+				load_autonomous_du_state_change_complete(b);
 			}
 		}
 		b = mxmlWalkNext(b, bkp_tree, MXML_NO_DESCEND);

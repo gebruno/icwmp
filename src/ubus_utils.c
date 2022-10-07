@@ -16,6 +16,7 @@
 #include "cwmp_uci.h"
 #include "session.h"
 #include "cwmp_event.h"
+#include "autonomous_complpolicy.h"
 
 typedef int (*callback)(struct blob_buf *b);
 
@@ -414,4 +415,29 @@ int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg
 	}
 
 	return rc;
+}
+
+int initiate_autonomous_complpolicy(void)
+{
+	cwmp_main->ev = (struct ubus_event_handler *)malloc(sizeof(struct ubus_event_handler));
+	if (cwmp_main->ev == NULL)
+		return -1;
+
+	memset(cwmp_main->ev, 0, sizeof(struct ubus_event_handler));
+	cwmp_main->ev->cb = autonomous_notification_handler;
+
+	int ret = ubus_register_event_handler(ubus_ctx, cwmp_main->ev, "usp.event");
+	if (ret) {
+		return -1;
+	}
+
+	return 0;
+}
+
+void clean_autonomous_complpolicy(void)
+{
+	if (cwmp_main->ev == NULL)
+		return;
+
+	ubus_unregister_event_handler(ubus_ctx, cwmp_main->ev);
 }

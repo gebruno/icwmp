@@ -129,8 +129,10 @@ int cwmp_schedule_rpc()
 			rpc_acs = list_entry(ilist, struct rpc, list);
 			if (rpc_acs_methods[rpc_acs->type].acs_support == RPC_ACS_NOT_SUPPORT) {
 				CWMP_LOG(WARNING, "The RPC method %s is not included in the RPCs list supported by the ACS", rpc_acs_methods[rpc_acs->type].name);
+				cwmp_session_rpc_destructor(rpc_acs);
 				continue;
 			}
+
 			if (!rpc_acs->type || cwmp_stop)
 				goto retry;
 
@@ -432,6 +434,9 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 		cwmp_main->session->session_status.next_heartbeat = false;
 		cwmp_main->session->session_status.is_heartbeat = true;
 		cwmp_add_event_container(EVENT_IDX_14HEARTBEAT, "");
+	} else if (session_event->event == EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE) {
+		auto_du_state_change_compl *data = (auto_du_state_change_compl *)session_event->extra_data;
+		cwmp_root_cause_autonomous_cdu_complete(data);
 	} else if (session_event->event >= 0) {
 		struct event_container *event_container = NULL;
 		event_container = cwmp_add_event_container(session_event->event, "");

@@ -27,6 +27,7 @@
 #include "diagnostic.h"
 #include "cwmp_uci.h"
 #include "cwmp_event.h"
+#include "autonomous_complpolicy.h"
 
 #define PROCESSING_DELAY (1) // In download/upload the message enqueued before sending the response, which cause the download/upload
 			     // to start just before the time. This delay is to compensate the time lapsed during the message enqueue and response
@@ -55,7 +56,8 @@ const struct rpc_cpe_method rpc_cpe_methods[] = { [RPC_CPE_GET_RPC_METHODS] = { 
 struct rpc_acs_method rpc_acs_methods[] = { [RPC_ACS_INFORM] = { "Inform", cwmp_rpc_acs_prepare_message_inform, cwmp_rpc_acs_parse_response_inform, NULL, NOT_KNOWN },
 						  [RPC_ACS_GET_RPC_METHODS] = { "GetRPCMethods", cwmp_rpc_acs_prepare_get_rpc_methods, cwmp_rpc_acs_parse_response_get_rpc_methods, NULL, NOT_KNOWN },
 						  [RPC_ACS_TRANSFER_COMPLETE] = { "TransferComplete", cwmp_rpc_acs_prepare_transfer_complete, NULL, cwmp_rpc_acs_destroy_data_transfer_complete, NOT_KNOWN },
-						  [RPC_ACS_DU_STATE_CHANGE_COMPLETE] = { "DUStateChangeComplete", cwmp_rpc_acs_prepare_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_du_state_change_complete, NOT_KNOWN }
+						  [RPC_ACS_DU_STATE_CHANGE_COMPLETE] = { "DUStateChangeComplete", cwmp_rpc_acs_prepare_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_du_state_change_complete, NOT_KNOWN },
+						  [RPC_ACS_AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "AutonomousDUStateChangeComplete", cwmp_rpc_acs_prepare_autonomous_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete, NOT_KNOWN }
 };
 
 char *forced_inform_parameters[] = {
@@ -674,6 +676,56 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct rpc *rpc)
 	}
 
 	cwmp_free_all_xml_data_list(&opt_result_list);
+	cwmp_main->session->tree_out = tree;
+	return 0;
+
+error:
+	return -1;
+}
+
+/*
+ * [RPC ACS]: AutonomousDUStateChangeComplete
+ */
+int cwmp_rpc_acs_prepare_autonomous_du_state_change_complete(struct rpc *rpc)
+{
+	mxml_node_t *tree = NULL, *n;
+	auto_du_state_change_compl *p;
+
+	p = (auto_du_state_change_compl *)rpc->extra_data;
+	load_response_xml_schema(&tree);
+	if (!tree)
+		goto error;
+
+	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	if (!n)
+		goto error;
+
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_main->conf.amd_version) - 1]);
+
+	n = build_top_body_soap_request(tree, "AutonomousDUStateChangeComplete");
+	if (!n)
+		goto error;
+
+	struct xml_data_struct acdu_complete_xml_attrs = {0};
+
+	acdu_complete_xml_attrs.command_key = NULL;
+	if (p) {
+		acdu_complete_xml_attrs.start_time = &p->start_time;
+		acdu_complete_xml_attrs.complete_time = &p->complete_time;
+		acdu_complete_xml_attrs.fault_code = &p->fault_code;
+		acdu_complete_xml_attrs.fault_string = &p->fault_string;
+		acdu_complete_xml_attrs.version = &p->ver;
+		acdu_complete_xml_attrs.uuid = &p->uuid;
+		acdu_complete_xml_attrs.current_state = &p->current_state;
+		acdu_complete_xml_attrs.operation = &p->operation;
+		acdu_complete_xml_attrs.resolved = &p->resolved;
+	}
+
+	int fault = build_xml_node_data(SOAP_AUTONOMOUS_DU_CHANGE_COMPLETE, n, &acdu_complete_xml_attrs);
+	if (fault != CWMP_OK) {
+		goto error;
+	}
+
 	cwmp_main->session->tree_out = tree;
 	return 0;
 

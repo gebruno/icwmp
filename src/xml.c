@@ -88,8 +88,10 @@ struct xml_node_data xml_nodes_data[] = {
 		[SOAP_INFORM_CWMP] = {XML_SINGLE, 0, NULL, {{"DeviceId", XML_REC, SOAP_DEVID, NULL}, {"Event", XML_FUNC, 0, build_inform_events}, {"MaxEnvelopes", XML_INTEGER, 0, NULL}, {"CurrentTime", XML_STRING, 0, NULL}, {"RetryCount", XML_INTEGER, 0, NULL}}},
 		[SOAP_DEVID] = {XML_SINGLE, 0, NULL, {{"Manufacturer", XML_STRING, 0, NULL}, {"OUI", XML_STRING, 0, NULL}, {"ProductClass", XML_STRING, 0, NULL}, {"SerialNumber", XML_STRING, 0, NULL}}},
 		[SOAP_DU_CHANGE_COMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, 0, NULL}, {"Results", XML_REC, SOAP_CDU_RESULTS_REF, NULL}}},
+		[SOAP_AUTONOMOUS_DU_CHANGE_COMPLETE] = {XML_SINGLE, 0, NULL, {{"Results", XML_REC, SOAP_ACDU_OPTS_REF, NULL}}},
 		[SOAP_CDU_RESULTS_REF] = {XML_LIST, SOAP_CDU_OPTS_REF, "OpResultStruct", {}},
 		[SOAP_CDU_OPTS_REF] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, 0, NULL}, {"DeploymentUnitRef", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}, {"CurrentState", XML_STRING, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}}},
+		[SOAP_ACDU_OPTS_REF] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}, {"CurrentState", XML_STRING, 0, NULL}, {"Resolved", XML_BOOL, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}, {"OperationPerformed", XML_STRING, 0, NULL}}},
 		[ATTR_PARAM_STRUCT] = {XML_SINGLE, 0, NULL, {{"xsi:type", XML_STRING, 0, NULL}}},
 		[ATTR_SOAP_ENV] = {XML_SINGLE, 0, NULL, {{"xmlns:soap_env", XML_STRING, 0, NULL}, {"xmlns:soap_enc", XML_STRING, 0, NULL}, {"xmlns:xsd", XML_STRING, 0, NULL}, {"xmlns:xsi", XML_STRING, 0, NULL}}}
 };
@@ -113,6 +115,8 @@ char* xml_tags_names[] = {
 		"DeploymentUnitRef",
 		"CurrentState",
 		"Version",
+		"OperationPerformed",
+		"Resolved",
 		"WindowMode",
 		"UserMessage",
 		"StartTime",

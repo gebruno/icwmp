@@ -14,6 +14,7 @@
 #define __CWMPUCI_H
 
 #include <uci.h>
+#include <libubox/list.h>
 
 
 //struct uci_context *cwmp_uci_ctx = ((void *)0);
@@ -50,7 +51,9 @@
 #define UCI_DHCP_CPE_PROV_CODE "cwmp.cpe.dhcp_provisioning_code"
 #define UCI_DHCP_ACS_RETRY_MIN_WAIT_INTERVAL "cwmp.acs.dhcp_retry_min_wait_interval"
 #define UCI_DHCP_ACS_RETRY_INTERVAL_MULTIPLIER "cwmp.acs.dhcp_retry_interval_multiplier"
-
+#define UCI_AUTONOMOUS_DU_STATE_ENABLE "cwmp.du_state_change.enable"
+#define UCI_AUTONOMOUS_DU_STATE_OPERATION "cwmp.du_state_change.operation_type"
+#define UCI_AUTONOMOUS_DU_STATE_RESULT "cwmp.du_state_change.result_type"
 #define UCI_CPE_FIREWALL_RESTART_STATE "cwmp.cpe.firewall_restart"
 
 #define UCI_CONFIG_DIR "/etc/config/"

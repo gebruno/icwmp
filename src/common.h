@@ -163,6 +163,7 @@ typedef struct cwmp {
 	time_t cwmp_periodic_time;
 	bool cwmp_periodic_enable;
 	bool custom_notify_active;
+	struct ubus_event_handler *ev;
 } cwmp;
 
 enum action {
@@ -274,6 +275,7 @@ enum rpc_acs_methods_idx {
 	RPC_ACS_GET_RPC_METHODS,
 	RPC_ACS_TRANSFER_COMPLETE,
 	RPC_ACS_DU_STATE_CHANGE_COMPLETE,
+	RPC_ACS_AUTONOMOUS_DU_STATE_CHANGE_COMPLETE,
 	__RPC_ACS_MAX
 };
 
@@ -291,7 +293,9 @@ enum load_type {
 
 enum dustate_type {
 	DU_INSTALL = 1,
-	DU_UPDATE, DU_UNINSTALL
+	DU_UPDATE,
+	DU_UNINSTALL,
+	__MAX_DU_STATE
 };
 
 enum fault_cpe_idx {
@@ -432,6 +436,12 @@ typedef struct change_du_state {
 	struct list_head list_operation;
 } change_du_state;
 
+typedef struct du_operational_uuid {
+	struct list_head list;
+	char uuid[37];
+	char operation[10];
+} du_op_uuid;
+
 typedef struct operations {
 	struct list_head list;
 	int type;
@@ -463,6 +473,18 @@ typedef struct transfer_complete {
 	char *old_software_version;
 	int type;
 } transfer_complete;
+
+typedef struct autonomous_du_state_change_complete {
+	char *uuid;
+	char *ver;
+	char *current_state;
+	bool resolved;
+	char *start_time;
+	char *complete_time;
+	int fault_code;
+	char *fault_string;
+	char *operation;
+} auto_du_state_change_compl;
 
 typedef struct du_state_change_complete {
 	char *command_key;

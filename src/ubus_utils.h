@@ -23,4 +23,6 @@ int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg
 		      icwmp_ubus_cb icwmp_callback, void *callback_arg);
 int icwmp_uloop_ubus_init();
 void icwmp_uloop_ubus_exit();
+int initiate_autonomous_complpolicy(void);
+void clean_autonomous_complpolicy(void);
 #endif /* __ICWMP_UBUS_UTILS_H__ */

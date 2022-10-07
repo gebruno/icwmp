@@ -37,7 +37,7 @@ ENDIF(WITH_MBEDTLS)
 
 ADD_EXECUTABLE(icwmpd ${ICWMP_SOURCES})
 
-TARGET_LINK_LIBRARIES(icwmpd pthread z m json-c uci ubox ubus blobmsg_json curl mxml ${SSL_LIBS} ${CRYPTO_LIBS})
+TARGET_LINK_LIBRARIES(icwmpd pthread z m json-c uci ubox ubus blobmsg_json curl mxml uuid ${SSL_LIBS} ${CRYPTO_LIBS})
 	
 INSTALL(FILES icwmpd DESTINATION usr/sbin)
 

@@ -43,6 +43,7 @@
 
 bool g_firewall_restart = false;
 struct list_head intf_reset_list;
+struct list_head du_uuid_list;
 
 static bool interface_reset_req(char *param_name, char *value)
 {
@@ -253,6 +254,8 @@ static int cwmp_init()
 	get_nonce_key();
 	memset(&intf_reset_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&intf_reset_list);
+	memset(&du_uuid_list, 0, sizeof(struct list_head));
+	INIT_LIST_HEAD(&du_uuid_list);
 	cwmp_main->start_time = time(NULL);
 	cwmp_main->event_id = 0;
 	cwmp_main->cwmp_period = 0;
@@ -306,6 +309,9 @@ void cwmp_exit()
 	uloop_timeout_cancel(&periodic_session_timer);
 	uloop_timeout_cancel(&session_timer);
 	uloop_timeout_cancel(&heartbeat_session_timer);
+	clean_autonomous_complpolicy();
+	clean_du_uuid_list();
+	FREE(cwmp_main->ev);
 	uloop_end();
 	shutdown(cwmp_main->cr_socket_desc, SHUT_RDWR);
 	FREE(global_session_event);
@@ -361,6 +367,9 @@ int main(int argc, char **argv)
 	uloop_init();
 
 	icwmp_uloop_ubus_init();
+
+	if (0 != initiate_autonomous_complpolicy())
+		return error;
 
 	trigger_cwmp_session_timer();
 
