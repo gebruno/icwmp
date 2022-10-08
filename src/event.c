@@ -36,13 +36,14 @@ const struct EVENT_CONST_STRUCT EVENT_CONST[] = {[EVENT_IDX_0BOOTSTRAP] = { "0 B
 						 [EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE] = { "10 AUTONOMOUS TRANSFER COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_11DU_STATE_CHANGE_COMPLETE] = { "11 DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "12 AUTONOMOUS DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+						 [EVENT_IDX_13WAKEUP] = { "13 WAKEUP", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+						 [EVENT_IDX_14HEARTBEAT] = { "14 HEARTBEAT", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_Reboot] = { "M Reboot", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_ScheduleInform] = { "M ScheduleInform", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_Download] = { "M Download", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_Schedule_Download] = { "M ScheduleDownload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_Upload] = { "M Upload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_M_ChangeDUState] = { "M ChangeDUState", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_14HEARTBEAT] = { "14 HEARTBEAT", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT } };
+						 [EVENT_IDX_M_ChangeDUState] = { "M ChangeDUState", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT } };
 
 void cwmp_save_event_container(struct event_container *event_container) //to be moved to backupsession
 {
@@ -54,7 +55,7 @@ void cwmp_save_event_container(struct event_container *event_container) //to be 
 		struct list_head *ilist;
 		mxml_node_t *b;
 
-		b = bkp_session_insert_event(event_container->code, event_container->command_key, event_container->id, "queue");
+		b = bkp_session_insert_event(event_container->code, event_container->command_key, event_container->id);
 
 		list_for_each (ilist, &(event_container->head_dm_parameter)) {
 			struct cwmp_dm_parameter *dm_parameter;
@@ -77,49 +78,6 @@ int cwmp_root_cause_event_boot()
 		}
 
 		cwmp_save_event_container(event_container);
-	}
-	return CWMP_OK;
-}
-
-int event_remove_all_event_container(int rem_from)
-{
-	while (cwmp_main->session->events.next != &cwmp_main->session->events) {
-		struct event_container *event_container;
-		event_container = list_entry(cwmp_main->session->events.next, struct event_container, list);
-		if (event_container->code == EVENT_IDX_14HEARTBEAT)
-			continue;
-		bkp_session_delete_event(event_container->id, rem_from ? "send" : "queue");
-		free(event_container->command_key);
-		cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));
-		list_del(&(event_container->list));
-		free(event_container);
-	}
-	bkp_session_save();
-	return CWMP_OK;
-}
-
-int remove_single_event(int event_code)
-{
-	while (cwmp_main->session->events.next != &cwmp_main->session->events) {
-		struct event_container *event_container;
-		event_container = list_entry(cwmp_main->session->events.next, struct event_container, list);
-		if (event_container->code == event_code) {
-			bkp_session_delete_event(event_container->id, "send");
-			if (event_container->command_key)
-				free(event_container->command_key);
-			cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));
-			list_del(&(event_container->list));
-			free(event_container);
-			bkp_session_save();
-			break;
-		}
-		if (event_container) {
-			if (event_container->command_key)
-				free(event_container->command_key);
-			cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));
-			list_del(&(event_container->list));
-			free(event_container);
-		}
 	}
 	return CWMP_OK;
 }
@@ -434,25 +392,53 @@ int cwmp_root_cause_events()
 	return CWMP_OK;
 }
 
+bool event_code_is_valid(const char *code)
+{
+	int i;
+	if (code == NULL || strlen(code) == 0)
+		return true;
+	for (i=0; i < __EVENT_IDX_MAX; i++) {
+		if (EVENT_CONST[i].CODE && strcmp(code, EVENT_CONST[i].CODE) == 0)
+			return true;
+	}
+	return false;
+}
+
 int cwmp_get_int_event_code(const char *code)
 {
-	if (code && code[0] == '1')
+
+	if (!event_code_is_valid(code))
+		return -1;
+
+	if (code && strncmp(code, "1 ", 2) == 0)
 		return EVENT_IDX_1BOOT;
 
-	else if (code && code[0] == '2')
+	else if (code && strncmp(code, "2 ", 2) == 0)
 		return EVENT_IDX_2PERIODIC;
 
-	else if (code && code[0] == '3')
+	else if (code && strncmp(code, "3 ", 2) == 0)
 		return EVENT_IDX_3SCHEDULED;
 
-	else if (code && code[0] == '4')
+	else if (code && strncmp(code, "4 ", 2) == 0)
 		return EVENT_IDX_4VALUE_CHANGE;
 
-	else if (code && code[0] == '6')
+	else if (code && strncmp(code, "6 ", 2) == 0)
 		return EVENT_IDX_6CONNECTION_REQUEST;
 
-	else if (code && code[0] == '8')
+	else if (code && strncmp(code, "8 ", 2) == 0)
 		return EVENT_IDX_8DIAGNOSTICS_COMPLETE;
+
+
+	else if (code && strncmp(code, "9 ", 2) == 0)
+		return EVENT_IDX_9REQUEST_DOWNLOAD;
+
+
+	else if (code && strncmp(code, "13", 2) == 0)
+		return EVENT_IDX_13WAKEUP;
+
+
+	else if (code && strncmp(code, "14", 2) == 0)
+		return EVENT_IDX_14HEARTBEAT;
 
 	else
 		return EVENT_IDX_6CONNECTION_REQUEST;

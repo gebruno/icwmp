@@ -346,8 +346,7 @@ void start_cwmp_session()
 	CWMP_LOG(INFO, "End session");
 
 	if (cwmp_stop) {
-		event_remove_all_event_container(RPC_SEND);
-		event_remove_all_event_container(RPC_QUEUE);
+		cwmp_remove_all_session_events();
 		run_session_end_func();
 		cwmp_session_exit();
 		rpc_exit();
@@ -368,10 +367,9 @@ void start_cwmp_session()
 		}
 	} else {
 		if (!cwmp_main->session->session_status.is_heartbeat)
-			event_remove_all_event_container(RPC_SEND);
+			cwmp_remove_all_session_events();
 		else
 			remove_single_event(EVENT_IDX_14HEARTBEAT);
-		//event_remove_all_event_container(RPC_QUEUE);
 		cwmp_main->retry_count_session = 0;
 		set_cwmp_session_status(SESSION_SUCCESS, 0);
 		rpc_exit();

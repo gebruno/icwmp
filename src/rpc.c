@@ -301,6 +301,7 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		MXML_DELETE(xml);
 		return;
 	}
+	move_next_session_events_to_actual_session();
 	cwmp_free_all_xml_data_list(&xml_events_list);
 	mxml_node_t *param_list = mxmlNewElement(inform, "ParameterList");
 	if (param_list == NULL) {

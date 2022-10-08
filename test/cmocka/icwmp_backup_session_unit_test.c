@@ -61,61 +61,61 @@ static void cwmp_backup_session_unit_test(void **state)
 	/*
 	 * Insert Event
 	 */
-	mxml_node_t *bkp_event1 = NULL, *bkp_event2 = NULL, *queue_tree1 = NULL, *queue_tree2 = NULL;
+	mxml_node_t *bkp_event1 = NULL, *bkp_event2 = NULL, *event_tree1 = NULL, *event_tree2;
 
 	// Case of one event
-	bkp_event1 = bkp_session_insert_event(EVENT_IDX_4VALUE_CHANGE, "4 VALUE CHANGE", 0, "queue");
+	bkp_event1 = bkp_session_insert_event(EVENT_IDX_4VALUE_CHANGE, "4 VALUE CHANGE", 0);
 	bkp_session_save();
 	pFile = fopen(CWMP_BKP_FILE, "r");
 	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
 	fclose(pFile);
 	assert_non_null(bkp_event1);
-	queue_tree1 = mxmlFindElement(backup_tree, backup_tree, "queue_event", NULL, NULL, MXML_DESCEND);
-	assert_non_null(queue_tree1);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "index", NULL, NULL, MXML_DESCEND);
+	event_tree1 = mxmlFindElement(backup_tree, backup_tree, "cwmp_event", NULL, NULL, MXML_DESCEND);
+	assert_non_null(event_tree1);
+	n = mxmlFindElement(event_tree1, event_tree1, "index", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_4VALUE_CHANGE);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "id", NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(event_tree1, event_tree1, "id", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "command_key", NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(event_tree1, event_tree1, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "4 VALUE CHANGE");
 	MXML_DELETE(bkp_event1);
 	bkp_session_save();
 	MXML_DELETE(backup_tree);
 
-	//case of two events with different ids under the same queue
-	bkp_event1 = bkp_session_insert_event(EVENT_IDX_1BOOT, "1 BOOT", 0, "queue");
-	bkp_event2 = bkp_session_insert_event(EVENT_IDX_4VALUE_CHANGE, "4 VALUE CHANGE", 1, "queue");
+	//case of two events with different ids
+	bkp_event1 = bkp_session_insert_event(EVENT_IDX_1BOOT, "1 BOOT", 0);
+	bkp_event2 = bkp_session_insert_event(EVENT_IDX_4VALUE_CHANGE, "4 VALUE CHANGE", 1);
 	bkp_session_save();
 	pFile = fopen(CWMP_BKP_FILE, "r");
 	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
 	fclose(pFile);
 	assert_non_null(bkp_event1);
 	assert_non_null(bkp_event2);
-	queue_tree1 = mxmlFindElement(backup_tree, backup_tree, "queue_event", NULL, NULL, MXML_DESCEND);
-	queue_tree2 = mxmlFindElement(queue_tree1, backup_tree, "queue_event", NULL, NULL, MXML_DESCEND);
+	event_tree1 = mxmlFindElement(backup_tree, backup_tree, "cwmp_event", NULL, NULL, MXML_DESCEND);
+	event_tree2 = mxmlFindElement(event_tree1, backup_tree, "cwmp_event", NULL, NULL, MXML_DESCEND);
 
-	assert_non_null(queue_tree1);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "index", NULL, NULL, MXML_DESCEND);
+	assert_non_null(event_tree1);
+	n = mxmlFindElement(event_tree1, event_tree1, "index", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_1BOOT);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "id", NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(event_tree1, event_tree1, "id", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "command_key", NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(event_tree1, event_tree1, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1 BOOT");
 
-	assert_non_null(queue_tree2);
-	n = mxmlFindElement(queue_tree2, queue_tree2, "index", NULL, NULL, MXML_DESCEND);
+	assert_non_null(event_tree2);
+	n = mxmlFindElement(event_tree2, event_tree2, "index", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_4VALUE_CHANGE);
-	n = mxmlFindElement(queue_tree2, queue_tree2, "id", NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(event_tree2, event_tree2, "id", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 1);
-	n = mxmlFindElement(queue_tree2, queue_tree2, "command_key", NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(event_tree2, event_tree2, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "4 VALUE CHANGE");
 
@@ -125,46 +125,6 @@ static void cwmp_backup_session_unit_test(void **state)
 	MXML_DELETE(backup_tree);
 	bkp_event1 = NULL;
 	bkp_event2 = NULL;
-
-	//case of two events with same id under different queues
-	bkp_event1 = bkp_session_insert_event(EVENT_IDX_1BOOT, "1 BOOT", 0, "queue1");
-	bkp_event2 = bkp_session_insert_event(EVENT_IDX_4VALUE_CHANGE, "4 VALUE CHANGE", 0, "queue2");
-	bkp_session_save();
-	pFile = fopen(CWMP_BKP_FILE, "r");
-	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
-	fclose(pFile);
-	assert_non_null(bkp_event1);
-	assert_non_null(bkp_event2);
-	queue_tree1 = mxmlFindElement(backup_tree, backup_tree, "queue1_event", NULL, NULL, MXML_DESCEND);
-	queue_tree2 = mxmlFindElement(queue_tree1, backup_tree, "queue2_event", NULL, NULL, MXML_DESCEND);
-
-	assert_non_null(queue_tree1);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "index", NULL, NULL, MXML_DESCEND);
-	assert_non_null(n);
-	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_1BOOT);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "id", NULL, NULL, MXML_DESCEND);
-	assert_non_null(n);
-	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
-	n = mxmlFindElement(queue_tree1, queue_tree1, "command_key", NULL, NULL, MXML_DESCEND);
-	assert_non_null(n);
-	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1 BOOT");
-
-	assert_non_null(queue_tree2);
-	n = mxmlFindElement(queue_tree2, queue_tree2, "index", NULL, NULL, MXML_DESCEND);
-	assert_non_null(n);
-	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), EVENT_IDX_4VALUE_CHANGE);
-	n = mxmlFindElement(queue_tree2, queue_tree2, "id", NULL, NULL, MXML_DESCEND);
-	assert_non_null(n);
-	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
-	n = mxmlFindElement(queue_tree2, queue_tree2, "command_key", NULL, NULL, MXML_DESCEND);
-	assert_non_null(n);
-	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "4 VALUE CHANGE");
-
-	MXML_DELETE(bkp_event1);
-	MXML_DELETE(bkp_event2);
-	bkp_session_save();
-	MXML_DELETE(backup_tree);
-
 
 	/*
 	 * Insert Download

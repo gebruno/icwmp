@@ -18,6 +18,7 @@
 typedef struct event_container {
 	struct list_head list;
 	int code; /* required element of type xsd:string */
+	bool next_session;
 	char *command_key;
 	struct list_head head_dm_parameter;
 	int id;
@@ -51,13 +52,14 @@ enum event_idx_enum
 	EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE,
 	EVENT_IDX_11DU_STATE_CHANGE_COMPLETE,
 	EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE,
+	EVENT_IDX_13WAKEUP,
+	EVENT_IDX_14HEARTBEAT,
 	EVENT_IDX_M_Reboot,
 	EVENT_IDX_M_ScheduleInform,
 	EVENT_IDX_M_Download,
 	EVENT_IDX_M_Schedule_Download,
 	EVENT_IDX_M_Upload,
 	EVENT_IDX_M_ChangeDUState,
-	EVENT_IDX_14HEARTBEAT,
 	TransferClt_Evt,
 	Schedule_Inform_Evt,
 	CDU_Evt,
@@ -66,8 +68,6 @@ enum event_idx_enum
 
 extern const struct EVENT_CONST_STRUCT EVENT_CONST[__EVENT_IDX_MAX];
 
-int event_remove_all_event_container(int rem_from);
-int remove_single_event(int event_code);
 int event_remove_noretry_event_container();
 void cwmp_save_event_container(struct event_container *event_container);
 void connection_request_ip_value_change( int version);

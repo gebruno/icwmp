@@ -40,13 +40,11 @@ struct search_keywords {
 int cwmp_init_backup_session(char **ret, enum backup_loading load);
 void bkp_session_save();
 int cwmp_load_saved_session(char **acsurl, enum backup_loading load);
-mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id, char *status);
-void bkp_session_delete_event(int id, char *status);
+mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id);
+void bkp_session_delete_event(int id);
 void bkp_session_simple_insert_in_parent(char *parent, char *child, char *value);
 void bkp_session_insert_parameter(mxml_node_t *b, char *name);
 void bkp_session_simple_insert(char *parent, char *child, char *value);
-void bkp_session_move_inform_to_inform_send();
-void bkp_session_move_inform_to_inform_queue();
 void bkp_session_insert_schedule_inform(time_t schedule_time, char *command_key);
 void bkp_session_delete_schedule_inform(time_t schedule_time, char *command_key);
 void bkp_session_insert_download(struct download *pdownload);

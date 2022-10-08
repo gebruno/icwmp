@@ -237,22 +237,20 @@ mxml_node_t *bkp_session_node_found(mxml_node_t *tree, char *name, struct search
 	return b;
 }
 
-mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id, char *status)
+mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id)
 {
 	struct search_keywords keys[1];
-	char parent_name[32];
 	char event_id[32];
 	char event_idx[32];
 	mxml_node_t *b;
 
-	snprintf(parent_name, sizeof(parent_name), "%s_event", status ? status : "");
 	snprintf(event_id, sizeof(event_id), "%d", id);
 	snprintf(event_idx, sizeof(event_idx), "%d", index);
 	keys[0].name = "id";
 	keys[0].value = event_id;
-	b = bkp_session_node_found(bkp_tree, parent_name, keys, 1);
+	b = bkp_session_node_found(bkp_tree, "cwmp_event", keys, 1);
 	if (!b) {
-		b = bkp_session_insert(bkp_tree, parent_name, NULL);
+		b = bkp_session_insert(bkp_tree, "cwmp_event", NULL);
 		bkp_session_insert(b, "index", event_idx);
 		bkp_session_insert(b, "id", event_id);
 		bkp_session_insert(b, "command_key", command_key ? command_key : "");
@@ -260,18 +258,16 @@ mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id, char
 	return b;
 }
 
-void bkp_session_delete_event(int id, char *status)
+void bkp_session_delete_event(int id)
 {
 	struct search_keywords keys[1];
-	char parent_name[32];
 	char event_id[32];
 	mxml_node_t *b;
 
-	snprintf(parent_name, sizeof(parent_name), "%s_event", status ? status : "");
 	snprintf(event_id, sizeof(event_id), "%d", id);
 	keys[0].name = "id";
 	keys[0].value = event_id;
-	b = bkp_session_node_found(bkp_tree, parent_name, keys, 1);
+	b = bkp_session_node_found(bkp_tree, "cwmp_event", keys, 1);
 	if (b)
 		mxmlDelete(b);
 }
@@ -311,34 +307,6 @@ void bkp_session_simple_insert_in_parent(char *parent, char *child, char *value)
 	if (b)
 		mxmlDelete(b);
 	bkp_session_insert(n, child, value);
-}
-
-void bkp_session_move_inform_to_inform_send()
-{
-	mxml_node_t *b = bkp_tree;
-
-	while (b) {
-		mxml_node_t *p = mxmlGetParent(b);
-		const char *parent_name = p ? mxmlGetElement(p) : NULL;
-		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "queue_event") && mxmlGetType(p) == MXML_ELEMENT && parent_name && !strcmp(parent_name, "cwmp"))
-			mxmlSetElement(b, "send_event");
-
-		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
-	}
-}
-
-void bkp_session_move_inform_to_inform_queue()
-{
-	mxml_node_t *b = bkp_tree;
-
-	while (b) {
-		mxml_node_t *p = mxmlGetParent(b);
-		const char *parent_name = p ? mxmlGetElement(p) : NULL;
-		if (mxmlGetType(b) == MXML_ELEMENT && !strcmp(mxmlGetElement(b), "send_event") && mxmlGetType(p) == MXML_ELEMENT && parent_name && !strcmp(parent_name, "cwmp"))
-			mxmlSetElement(b, "queue_event");
-
-		b = mxmlWalkNext(b, bkp_tree, MXML_DESCEND);
-	}
 }
 
 void bkp_session_insert_schedule_inform(time_t time, char *command_key)
@@ -1100,7 +1068,6 @@ int bkp_session_check_file()
 		bkp_session_create_file();
 		return -1;
 	}
-	bkp_session_move_inform_to_inform_queue();
 	bkp_session_save();
 	return 0;
 }
@@ -1148,7 +1115,7 @@ int cwmp_load_saved_session(char **ret, enum backup_loading load)
 			}
 		}
 		if (load == ALL) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "queue_event") == 0) {
+			if (ntype == MXML_ELEMENT && strcmp(elem_name, "cwmp_event") == 0) {
 				load_queue_event(b);
 			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "download") == 0) {
 				load_download(b);
