@@ -5,17 +5,6 @@ AC_CONFIG_SRCDIR([cwmp.c])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # additional options
-
-AC_ARG_ENABLE(acs, [AS_HELP_STRING([--enable-acs],
-	[specify which ACS is going to be used; there are some optimizations available for HDM and Fusion ACS (default --enable-acs=multi]))],,
-	[AC_DEFINE(ACS_MULTI)])
-
-AS_IF([test "x$enable_acs" = "xhdm"], [AC_DEFINE(ACS_HDM)])
-AS_IF([test "x$enable_acs" = "xfusion"], [AC_DEFINE(ACS_FUSION)])
-AS_IF([test "x$enable_acs" = "xmulti"], [AC_DEFINE(ACS_MULTI)])
-AS_IF([test "x$enable_acs" = "xyes"], [AC_DEFINE(ACS_MULTI)])
-AS_IF([test "x$enable_acs" = "xno"], [AC_DEFINE(ACS_MULTI)])
-
 AC_ARG_ENABLE(libopenssl, [AS_HELP_STRING([--enable-libopenssl], [enable libopenssl feature])], AC_DEFINE(LOPENSSL))
 AM_CONDITIONAL([LOPENSSL],[test "x$enable_libopenssl" = "xyes"])
 

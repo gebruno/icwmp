@@ -242,9 +242,7 @@ create_value:
 	if (!b)
 		return -1;
 
-#ifdef ACS_MULTI
 	mxmlElementSetAttr(b, "xsi:type", (dm_parameter->type && dm_parameter->type[0] != '\0') ? dm_parameter->type : "xsd:string");
-#endif
 	b = mxmlNewOpaque(b, dm_parameter->value);
 	if (!b)
 		return -1;
@@ -927,9 +925,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 	mxml_node_t *n, *parameter_list, *b;
 	char *parameter_name = NULL;
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
-#ifdef ACS_MULTI
 	char c[256] = {0};
-#endif
 	LIST_HEAD(parameters_list);
 
 	b = session->body_in;
@@ -948,9 +944,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 	if (!parameter_list)
 		goto fault;
 
-#ifdef ACS_MULTI
 	mxmlElementSetAttr(parameter_list, "xsi:type", "soap_enc:Array");
-#endif
 	while (b) {
 		const char *node_value = mxmlGetOpaque(b);
 		const char *node_name = (char *) mxmlGetElement(b);
@@ -999,10 +993,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 				if (!n)
 					goto fault;
 
-#ifdef ACS_MULTI
 				mxmlElementSetAttr(n, "xsi:type", param_value->type ? param_value->type : "");
-#endif
-
 				n = mxmlNewOpaque(n, param_value->value ? param_value->value : "");
 				if (!n)
 					goto fault;
@@ -1015,7 +1006,6 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 		b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
 	}
 
-#ifdef ACS_MULTI
 	b = mxmlFindElement(session->tree_out, session->tree_out, "ParameterList", NULL, NULL, MXML_DESCEND);
 	if (!b)
 		goto fault;
@@ -1024,8 +1014,6 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct session *session, struct rpc
 		goto fault;
 
 	mxmlElementSetAttr(b, "soap_enc:arrayType", c);
-#endif
-
 	return 0;
 
 fault:
@@ -1045,9 +1033,8 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 	char *NextLevel = NULL;
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
 	LIST_HEAD(parameters_list);
-#ifdef ACS_MULTI
 	char c[256] = {0};
-#endif
+
 	if (session->tree_out == NULL)
 		goto fault;
 
@@ -1063,9 +1050,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 	if (!parameter_list)
 		goto fault;
 
-#ifdef ACS_MULTI
 	mxmlElementSetAttr(parameter_list, "xsi:type", "soap_enc:Array");
-#endif
 
 	while (b) {
 		const char *node_value = mxmlGetOpaque(b);
@@ -1135,7 +1120,6 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 		counter++;
 	}
 	cwmp_free_all_dm_parameter_list(&parameters_list);
-#ifdef ACS_MULTI
 	b = mxmlFindElement(session->tree_out, session->tree_out, "ParameterList", NULL, NULL, MXML_DESCEND);
 	if (!b)
 		goto fault;
@@ -1144,7 +1128,6 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct session *session, struct rpc 
 		goto fault;
 
 	mxmlElementSetAttr(b, "soap_enc:arrayType", c);
-#endif
 	return 0;
 
 fault:
@@ -1164,9 +1147,8 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct session *session, struct
 	char *parameter_name = NULL;
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
 	LIST_HEAD(parameters_list);
-#ifdef ACS_MULTI
 	char c[256];
-#endif
+
 	b = session->body_in;
 	n = mxmlFindElement(session->tree_out, session->tree_out, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	if (!n)
@@ -1180,9 +1162,7 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct session *session, struct
 	if (!parameter_list)
 		goto fault;
 
-#ifdef ACS_MULTI
 	mxmlElementSetAttr(parameter_list, "xsi:type", "soap_enc:Array");
-#endif
 
 	while (b) {
 		const char *node_opaque = mxmlGetOpaque(b);
@@ -1250,7 +1230,6 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct session *session, struct
 		}
 		b = mxmlWalkNext(b, session->body_in, MXML_DESCEND);
 	}
-#ifdef ACS_MULTI
 	b = mxmlFindElement(session->tree_out, session->tree_out, "ParameterList", NULL, NULL, MXML_DESCEND);
 	if (!b)
 		goto fault;
@@ -1259,7 +1238,6 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct session *session, struct
 		goto fault;
 
 	mxmlElementSetAttr(b, "soap_enc:arrayType", c);
-#endif
 	return 0;
 
 fault:
@@ -1700,10 +1678,8 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct session *session, struct rpc *rpc
 {
 	mxml_node_t *n, *method_list;
 	int i, counter = 0;
-#ifdef ACS_MULTI
 	mxml_node_t *b = session->body_in;
 	char c[128];
-#endif
 
 	n = mxmlFindElement(session->tree_out, session->tree_out, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	if (!n)
@@ -1730,7 +1706,7 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct session *session, struct rpc *rpc
 			counter++;
 		}
 	}
-#ifdef ACS_MULTI
+
 	b = mxmlFindElement(session->tree_out, session->tree_out, "MethodList", NULL, NULL, MXML_DESCEND);
 	if (!b)
 		goto fault;
@@ -1740,7 +1716,6 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct session *session, struct rpc *rpc
 		goto fault;
 
 	mxmlElementSetAttr(b, "soap_enc:arrayType", c);
-#endif
 
 	return 0;
 

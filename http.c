@@ -157,11 +157,7 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 	http_c.header_list = curl_slist_append(http_c.header_list, "Content-Type: text/xml");
 	if (!http_c.header_list)
 		return -1;
-#ifdef ACS_FUSION
-	http_c.header_list = curl_slist_append(http_c.header_list, "Expect:");
-	if (!http_c.header_list)
-		return -1;
-#endif /* ACS_FUSION */
+
 	if (cwmp->conf.http_disable_100continue) {
 		http_c.header_list = curl_slist_append(http_c.header_list, "Expect:");
 		if (!http_c.header_list)

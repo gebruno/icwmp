@@ -381,9 +381,8 @@ static int xml_prepare_lwnotifications(mxml_node_t *parameter_list)
 		b = mxmlNewElement(n, "Value");
 		if (!b)
 			goto error;
-#ifdef ACS_MULTI
+
 		mxmlElementSetAttr(b, "xsi:type", lw_notification->type);
-#endif
 		b = mxmlNewOpaque(b, lw_notification->value);
 		if (!b)
 			goto error;
