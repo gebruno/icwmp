@@ -10,6 +10,7 @@
  */
 
 #include <stdlib.h>
+#include <fcntl.h>
 #include <mxml.h>
 
 #include "common.h"
@@ -25,7 +26,6 @@
 #include "xml.h"
 #include "log.h"
 #include "notifications.h"
-#include "config.h"
 #include "ssl_utils.h"
 #include "cwmp_event.h"
 #include "diagnostic.h"
@@ -251,9 +251,40 @@ int cwmp_get_retry_interval(bool heart_beat)
 	return (retry_count);
 }
 
+static void set_cwmp_session_status_state(int status)
+{
+	char *state = NULL;
+
+	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
+		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+	cwmp_uci_reinit();
+	cwmp_uci_add_section_with_specific_name("cwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
+
+	switch (status) {
+	case SESSION_WAITING:
+		state = "waiting";
+		break;
+	case SESSION_RUNNING:
+		state = "running";
+		break;
+	case SESSION_FAILURE:
+		state = "failure";
+		break;
+	case SESSION_SUCCESS:
+		state = "success";
+		break;
+	}
+
+	cwmp_uci_set_varstate_value("cwmp", "sess_status", "current_status", state ? state : "N/A");
+
+	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+}
+
 void set_cwmp_session_status(int status, int retry_time)
 {
 	cwmp_main->session->session_status.last_status = status;
+	set_cwmp_session_status_state(status);
 	if (status == SESSION_SUCCESS) {
 		cwmp_main->session->session_status.last_end_time = time(NULL);
 		cwmp_main->session->session_status.next_retry = 0;
