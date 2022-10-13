@@ -56,6 +56,36 @@ bool g_firewall_restart = false;
 static struct ubus_context *ctx = NULL;
 struct list_head intf_reset_list;
 
+static void set_cwmp_session_status_state(int status)
+{
+	char *state = NULL;
+
+	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
+		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+	cwmp_uci_reinit();
+	cwmp_uci_add_section_with_specific_name("cwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
+
+	switch (status) {
+	case SESSION_WAITING:
+		state = "waiting";
+		break;
+	case SESSION_RUNNING:
+		state = "running";
+		break;
+	case SESSION_FAILURE:
+		state = "failure";
+		break;
+	case SESSION_SUCCESS:
+		state = "success";
+		break;
+	}
+
+	cwmp_uci_set_varstate_value("cwmp", "sess_status", "current_status", state ? state : "N/A");
+
+	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+}
+
 static void cwmp_invoke_intf_reset(char *path)
 {
 	if (path == NULL) {
@@ -499,6 +529,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		cwmp->session_status.last_start_time = time(NULL);
 		cwmp->session_status.last_status = SESSION_RUNNING;
 		cwmp->session_status.next_retry = 0;
+		set_cwmp_session_status_state(SESSION_RUNNING);
 
 		if (file_exists(fc_cookies))
 			remove(fc_cookies);
@@ -544,6 +575,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 			cwmp->session_status.last_status = SESSION_FAILURE;
 			cwmp->session_status.next_retry = time(NULL) + cwmp_get_retry_interval(cwmp, 0);
 			cwmp->session_status.failure_session++;
+			set_cwmp_session_status_state(SESSION_FAILURE);
 			pthread_mutex_unlock(&mutex_heartbeat_session);
 			pthread_mutex_unlock(&(cwmp->mutex_session_send));
 			continue;
@@ -555,6 +587,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		cwmp->retry_count_session = 0;
 		cwmp->session_status.last_end_time = time(NULL);
 		cwmp->session_status.last_status = SESSION_SUCCESS;
+		set_cwmp_session_status_state(SESSION_SUCCESS);
 		cwmp->session_status.next_retry = 0;
 		cwmp->session_status.success_session++;
 		pthread_cond_signal(&threasheld_retry_session);
