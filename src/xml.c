@@ -18,6 +18,7 @@
 #include "cwmp_zlib.h"
 #include "common.h"
 #include "event.h"
+#include "datamodel_interface.h"
 
 static const char *soap_env_url = "http://schemas.xmlsoap.org/soap/envelope/";
 static const char *soap_enc_url = "http://schemas.xmlsoap.org/soap/encoding/";
@@ -60,30 +61,39 @@ struct xml_node_data xml_nodes_data[] = {
 		 /*
 		 * SOAP Responses
 		 */
-		[SOAP_RESP_GPV] = {XML_SINGLE, 0, NULL, {{"ParameterList", XML_NODE, ATTR_PARAM_STRUCT, NULL}}},
+		[SOAP_RESP_GET] = {XML_SINGLE, 0, NULL, {{"ParameterList", XML_REC, SOAP_RESP_GET_LIST, NULL}}},
+		[SOAP_RESP_GET_LIST] = {XML_LIST, SOAP_RESP_GET_LIST_REF, NULL, {{NULL, XML_REC, SOAP_RESP_GET_LIST_ATTRS, NULL}}},
+		[SOAP_RESP_GET_LIST_REF] = {XML_SINGLE, 0, NULL, {{NULL, XML_FUNC, 0, build_parameter_structure}}},
+		[SOAP_RESP_GET_LIST_ATTRS] = {XML_SINGLE, 0, NULL, {{NULL, XML_REC, GET_RPC_ATTR, NULL}}},
 		[SOAP_PARAM_STRUCT] = {XML_LIST, SOAP_PARAM_STRUCT_REF, "ParameterValueStruct", {}},
 		[SOAP_PARAM_STRUCT_REF] = {XML_SINGLE, 0, NULL, {{"Name", XML_STRING, 0, NULL}, {"Value", XML_STRING, ATTR_PARAM_STRUCT, NULL}}},
 		[SOAP_VALUE_STRUCT] = {XML_SINGLE, 0, NULL, {{"Value", XML_STRING, ATTR_PARAM_STRUCT, NULL}}},
 		[SOAP_RESP_SPV] = {XML_SINGLE, 0, NULL, {{"Status", XML_INTEGER, 0, NULL}}},
-		[SOAP_RESP_GPN] = {XML_LIST, SOAP_RESP_GPN_REF, "ParameterInfoStruct", {}},
+		[SOAP_RESP_GPN] = {XML_SINGLE, 0, NULL, {{"ParameterList", XML_REC, SOAP_RESP_GPN_LIST, NULL}}},
+		[SOAP_RESP_GPN_LIST] = {XML_LIST, SOAP_RESP_GPN_REF, "ParameterInfoStruct", {{NULL, XML_REC, SOAP_RESP_GET_LIST_ATTRS, NULL}}},
 		[SOAP_RESP_GPN_REF] = {XML_SINGLE, 0, NULL, {{"Name", XML_STRING, 0, NULL}, {"Writable", XML_BOOL, 0, NULL}}},
-		[SOAP_RESP_GPA] = {XML_LIST, SOAP_RESP_GPA_REF, "ParameterAttributeStruct", {}},
-		[SOAP_RESP_GPA_REF] = {XML_SINGLE, 0, NULL, {{"Name", XML_STRING, 0, NULL}, {"Notification", XML_INTEGER, 0, NULL}, {"AccessList", XML_STRING, 0, NULL}}},
+		[SOAP_GPA_STRUCT] = {XML_LIST, SOAP_GPA_STRUCT_REF, "ParameterAttributeStruct", {}},
+		[SOAP_GPA_STRUCT_REF] = {XML_SINGLE, 0, NULL, {{"Name", XML_STRING, 0, NULL}, {"Notification", XML_INTEGER, 0, NULL}, {"AccessList", XML_STRING, 0, NULL}}},
 		[SOAP_RESP_ADDOBJ] = {XML_SINGLE, 0, NULL, {{"InstanceNumber", XML_INTEGER, 0, NULL}, {"Status", XML_INTEGER, 0, NULL}}},
 		[SOAP_RESP_DELOBJ] = {XML_SINGLE, 0, NULL, {{"Status", XML_INTEGER, 0, NULL}}},
 		[SOAP_RESP_DOWNLOAD] = {XML_SINGLE, 0, NULL, {{"Status", XML_INTEGER, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}}},
 		[SOAP_RESP_UPLOAD] = {XML_SINGLE, 0, NULL, {{"Status", XML_INTEGER, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}}},
-		[SOAP_RESP_GETRPC] = {XML_LIST, SOAP_RESP_GETRPC_REF, NULL, {}},
+		[SOAP_RESP_GETRPC] = {XML_SINGLE, 0, NULL, {{"MethodList", XML_REC, SOAP_RESP_GETRPC_LIST, NULL}}},
+		[SOAP_RESP_GETRPC_LIST] = {XML_LIST, SOAP_RESP_GETRPC_REF, NULL, {{NULL, XML_REC, SOAP_RESP_GET_LIST_ATTRS, NULL}}},
 		[SOAP_RESP_GETRPC_REF] = {XML_SINGLE, 0, NULL, {{"string", XML_STRING, 0, NULL}}},
-		[SOAP_ACS_TRANSCOMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_FAULT_STRCT_REF, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}}},
+		[SOAP_RESP_ACS_GETRPC] = {XML_LIST, SOAP_RESP_ACS_GETRPC_REF, "string", {}},
+		[SOAP_RESP_ACS_GETRPC_REF] = {XML_SINGLE, 0, NULL, {{"string", XML_FUNC, 0, load_get_rpc_method_acs_resp_string}}},
+		[SOAP_ACS_TRANSCOMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}}},
 		[SOAP_ROOT_FAULT] = {XML_SINGLE, 0, NULL, {{"soap_env:Fault", XML_REC, SOAP_RPC_FAULT, NULL}}},
 		[SOAP_RPC_FAULT] = {XML_SINGLE, 0, NULL, {{"faultcode", XML_STRING, 0, NULL}, {"faultstring", XML_STRING, 0, NULL}, {"detail", XML_REC, SOAP_FAULT_DETAIL, NULL}}},
 		[SOAP_FAULT_DETAIL] = {XML_SINGLE, 0, NULL, {{"cwmp:Fault", XML_REC, SOAP_CWMP_FAULT, NULL}}},
 		[SOAP_CWMP_FAULT] = {XML_SINGLE, 0, NULL, {{"FaultCode", XML_INTEGER, 0, NULL}, {"FaultString", XML_STRING, 0, NULL}}},
 		[SOAP_SPV_FAULT] = {XML_LIST, SOAP_SPV_FAULT_REF, "SetParameterValuesFault", {}},
 		[SOAP_SPV_FAULT_REF] = {XML_SINGLE, 0, NULL, {{"ParameterName", XML_STRING, 0, NULL}, {"FaultCode", XML_INTEGER, 0, NULL}, {"FaultString", XML_STRING, 0, NULL}}},
-		[SOAP_FAULT_STRCT_REF] = {XML_SINGLE, 0, NULL, {{"FaultCode", XML_INTEGER, 0, NULL}, {"FaultString", XML_STRING, 0, NULL}}},
 
+		/*
+		 * SOAP RPC ACS
+		 */
 		[SOAP_ENV] = {XML_SINGLE, 0, NULL, {{"soap_env:Envelope", XML_FUNC, 0, build_inform_env_header}}},
 		[SOAP_INFORM_CWMP] = {XML_SINGLE, 0, NULL, {{"DeviceId", XML_REC, SOAP_DEVID, NULL}, {"Event", XML_FUNC, 0, build_inform_events}, {"MaxEnvelopes", XML_INTEGER, 0, NULL}, {"CurrentTime", XML_STRING, 0, NULL}, {"RetryCount", XML_INTEGER, 0, NULL}}},
 		[SOAP_DEVID] = {XML_SINGLE, 0, NULL, {{"Manufacturer", XML_STRING, 0, NULL}, {"OUI", XML_STRING, 0, NULL}, {"ProductClass", XML_STRING, 0, NULL}, {"SerialNumber", XML_STRING, 0, NULL}}},
@@ -92,8 +102,13 @@ struct xml_node_data xml_nodes_data[] = {
 		[SOAP_CDU_RESULTS_REF] = {XML_LIST, SOAP_CDU_OPTS_REF, "OpResultStruct", {}},
 		[SOAP_CDU_OPTS_REF] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, 0, NULL}, {"DeploymentUnitRef", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}, {"CurrentState", XML_STRING, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}}},
 		[SOAP_ACDU_OPTS_REF] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}, {"CurrentState", XML_STRING, 0, NULL}, {"Resolved", XML_BOOL, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}, {"OperationPerformed", XML_STRING, 0, NULL}}},
+
+		/*
+		 * XML node attributes
+		 */
 		[ATTR_PARAM_STRUCT] = {XML_SINGLE, 0, NULL, {{"xsi:type", XML_STRING, 0, NULL}}},
-		[ATTR_SOAP_ENV] = {XML_SINGLE, 0, NULL, {{"xmlns:soap_env", XML_STRING, 0, NULL}, {"xmlns:soap_enc", XML_STRING, 0, NULL}, {"xmlns:xsd", XML_STRING, 0, NULL}, {"xmlns:xsi", XML_STRING, 0, NULL}}}
+		[ATTR_SOAP_ENV] = {XML_SINGLE, 0, NULL, {{"xmlns:soap_env", XML_STRING, 0, NULL}, {"xmlns:soap_enc", XML_STRING, 0, NULL}, {"xmlns:xsd", XML_STRING, 0, NULL}, {"xmlns:xsi", XML_STRING, 0, NULL}}},
+		[GET_RPC_ATTR] = {XML_SINGLE, 0, NULL, {{"xsi:type", XML_STRING, 0, NULL}, {"soap_enc:arrayType", XML_FUNC, 0, get_soap_enc_array_type}}}
 };
 
 char* xml_tags_names[] = {
@@ -131,6 +146,7 @@ char* xml_tags_names[] = {
 		"CurrentTime",
 		"ProductClass",
 		"xsi:type",
+		"soap_enc:arrayType",
 		"FileSize",
 		"Notification",
 		"MaxRetries",
@@ -146,6 +162,16 @@ char* xml_tags_names[] = {
 		"NotificationChange",
 		"Writable",
 };
+
+int get_xml_tags_array_total_size(int tag_ref)
+{
+	int i;
+	for (i = 0; i < 10; i++) {
+		if (xml_nodes_data[tag_ref].xml_tags[i].rec_ref == 0 && xml_nodes_data[tag_ref].xml_tags[i].tag_name == NULL && xml_nodes_data[tag_ref].xml_tags[i].tag_type == 0)
+			return i;
+	}
+	return 0;
+}
 
 void add_xml_data_list(struct list_head *data_list, struct xml_list_data *xml_data)
 {
@@ -211,6 +237,23 @@ int load_upload_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	*xml_attrs->file_type = strdup(node_opaque);
 	*xml_attrs->instance = instance;
+	return FAULT_CPE_NO_FAULT;
+}
+
+int load_get_rpc_method_acs_resp_string(mxml_node_t *b, struct xml_data_struct *xml_attrs __attribute__((unused)))
+{
+	if (b == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
+
+	mxml_node_t *t = mxmlWalkNext(b, b, MXML_DESCEND);
+	if (t == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
+	const char *node_opaque = mxmlGetOpaque(t);
+	if (node_opaque == NULL)
+		return FAULT_CPE_INVALID_ARGUMENTS;
+
+	if (set_rpc_acs_to_supported(node_opaque) == -1)
+		return FAULT_CPE_INTERNAL_ERROR;
 	return FAULT_CPE_NO_FAULT;
 }
 
@@ -391,6 +434,66 @@ error:
 	return FAULT_CPE_INTERNAL_ERROR;
 }
 
+
+int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *xml_attrs)
+{
+	LIST_HEAD(parameters_list);
+
+	char *err = NULL;
+	if (xml_attrs->parameter_name == NULL)
+		return CWMP_OK;
+	if (xml_attrs->rpc_enum == SOAP_PARAM_STRUCT)
+		err = cwmp_get_parameter_values(*(xml_attrs->parameter_name), &parameters_list);
+	else if (xml_attrs->rpc_enum == SOAP_GPA_STRUCT)
+		err = cwmp_get_parameter_attributes(*(xml_attrs->parameter_name), &parameters_list);
+	else
+		return FAULT_CPE_INTERNAL_ERROR;
+	if (err && !is_obj_excluded(*(xml_attrs->parameter_name))) {
+		int fault_code = cwmp_get_fault_code_by_string(err);
+		cwmp_free_all_dm_parameter_list(&parameters_list);
+		return fault_code;
+	}
+	LIST_HEAD(prameters_xml_list);
+	dm_parameter_list_to_xml_data_list(&parameters_list, &prameters_xml_list);
+
+	struct xml_data_struct prmvalstrct_resp_xml_attrs = {0};
+	prmvalstrct_resp_xml_attrs.data_list = &prameters_xml_list;
+	prmvalstrct_resp_xml_attrs.counter = xml_attrs->counter;
+	prmvalstrct_resp_xml_attrs.inc_counter = true;
+	int fault = build_xml_node_data(xml_attrs->rpc_enum, param_list, &prmvalstrct_resp_xml_attrs);
+	if (fault != CWMP_OK)
+		return fault;
+
+	cwmp_free_all_dm_parameter_list(&parameters_list);
+	cwmp_free_all_xml_data_list(&prameters_xml_list);
+	return FAULT_CPE_NO_FAULT;
+}
+
+int get_soap_enc_array_type(mxml_node_t *node __attribute__((unused)), struct xml_data_struct *xml_attrs)
+{
+	if (xml_attrs->soap_enc_array_type == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
+	if (xml_attrs->rpc_enum == SOAP_PARAM_STRUCT) {
+		if (icwmp_asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterValueStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
+			return FAULT_CPE_INTERNAL_ERROR;
+		return FAULT_CPE_NO_FAULT;
+	} else if (xml_attrs->rpc_enum == SOAP_GPA_STRUCT) {
+		if (icwmp_asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterAttributeStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
+			return FAULT_CPE_INTERNAL_ERROR;
+		return FAULT_CPE_NO_FAULT;
+	} else if (xml_attrs->rpc_enum == SOAP_RESP_GETRPC) {
+		if (icwmp_asprintf(xml_attrs->soap_enc_array_type, "xsd:string[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
+			return FAULT_CPE_INTERNAL_ERROR;
+		return FAULT_CPE_NO_FAULT;
+	} else if (xml_attrs->rpc_enum == SOAP_RESP_GPN) {
+		if (icwmp_asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterInfoStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
+			return FAULT_CPE_INTERNAL_ERROR;
+		return FAULT_CPE_NO_FAULT;
+	}
+	else
+		return FAULT_CPE_INTERNAL_ERROR;
+}
+
 int get_xml_type(int node_ref, int soap_idx)
 {
 	return xml_nodes_data[node_ref].xml_tags[soap_idx].tag_type;
@@ -432,7 +535,7 @@ int load_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_str
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			const char *b_name = b ? mxmlGetElement(b) : NULL;
-			if (b_name && strcmp(xml_nodes_data[node_ref].tag_list_name, b_name) == 0) {
+			if (b_name && xml_nodes_data[node_ref].tag_list_name && strcmp(xml_nodes_data[node_ref].tag_list_name, b_name) == 0) {
 				struct xml_list_data *xml_data = calloc(1, sizeof(struct xml_list_data));
 
 				struct xml_data_struct xml_attrs_args = {0};
@@ -460,7 +563,10 @@ int load_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_str
 				xml_attrs_args.validations = xml_attrs->validations;
 				xml_attrs_args.nbre_validations = xml_attrs->nbre_validations;
 				xml_attrs_args.data_list = xml_attrs->data_list;
-
+				if (xml_attrs->data_list == NULL) {
+					CWMP_LOG(WARNING, "the data list attribute of the corresponding node is null");
+					return FAULT_CPE_INTERNAL_ERROR;
+				}
 				list_add(&(xml_data->list), xml_attrs->data_list);
 				int fault = load_xml_node_data(xml_nodes_data[node_ref].tag_node_ref, b, &xml_attrs_args);
 				if (fault)
@@ -595,7 +701,7 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 int load_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
 	if (!node || node_ref >= SOAP_MAX)
-		return CWMP_XML_ERR;
+		return FAULT_CPE_INTERNAL_ERROR;
 	if (xml_nodes_data[node_ref].node_ms == XML_LIST) {
 		return load_xml_list_node_data(node_ref, node, xml_attrs);
 	} else {
@@ -746,15 +852,20 @@ void get_xml_data_value_by_name(int type, int idx, struct xml_data_struct *xml_a
 
 void set_node_attributes(int attr_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
-	unsigned int i = 0;
-	size_t total_size = sizeof(xml_nodes_data[attr_ref].xml_tags) / sizeof(struct xml_tag);
+	int i = 0;
+	int total_size = get_xml_tags_array_total_size(attr_ref);
 
 	for(i =0; i < total_size; i++) {
 		char *attr_value = NULL;
 		int idx = get_xml_tag_index(xml_nodes_data[attr_ref].xml_tags[i].tag_name);
 		if (idx == -1)
 			continue;
-		get_xml_data_value_by_name(xml_nodes_data[attr_ref].xml_tags[i].tag_type, idx, xml_attrs, &attr_value);
+		int tag_type = xml_nodes_data[attr_ref].xml_tags[i].tag_type;
+		if (xml_nodes_data[attr_ref].xml_tags[i].tag_type == XML_FUNC) {
+			xml_nodes_data[attr_ref].xml_tags[i].xml_func(node, xml_attrs);
+			tag_type = XML_STRING;
+		}
+		get_xml_data_value_by_name(tag_type, idx, xml_attrs, &attr_value);
 		if (!attr_value)
 			continue;
 		mxmlElementSetAttr(node, xml_nodes_data[attr_ref].xml_tags[i].tag_name, attr_value);
@@ -764,22 +875,27 @@ void set_node_attributes(int attr_ref, mxml_node_t *node, struct xml_data_struct
 int build_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
 	int i = 0, idx = 0;
-	mxml_node_t *n;
-	size_t total_size = sizeof(xml_nodes_data[node_ref].xml_tags) / sizeof(struct xml_tag);
-	for(i =0; i < (int)total_size; i++) {
-		if (xml_nodes_data[node_ref].xml_tags[i].tag_name == NULL)
-			continue;
+	mxml_node_t *n = node;
+	int total_size = get_xml_tags_array_total_size(node_ref);
+	for(i =0; i < total_size; i++) {
+		if (xml_nodes_data[node_ref].xml_tags[i].tag_name != NULL) {
+			n = mxmlNewElement(node, xml_nodes_data[node_ref].xml_tags[i].tag_name);
+			if (!n)
+				return FAULT_CPE_INTERNAL_ERROR;
+		}
 
-		n = mxmlNewElement(node, xml_nodes_data[node_ref].xml_tags[i].tag_name);
-		if (!n)
-			return CWMP_XML_ERR;
-
-		if (xml_nodes_data[node_ref].xml_tags[i].rec_ref >= ATTR_PARAM_STRUCT)
+		if (xml_nodes_data[node_ref].xml_tags[i].rec_ref >= ATTR_PARAM_STRUCT) {
 			set_node_attributes(xml_nodes_data[node_ref].xml_tags[i].rec_ref, n, xml_attrs);
+			if (xml_nodes_data[node_ref].xml_tags[i].tag_type == XML_REC)
+				continue;
+		}
 
 		if (xml_nodes_data[node_ref].xml_tags[i].tag_type == XML_REC) {
-			if (xml_nodes_data[node_ref].xml_tags[i].rec_ref > 0)
-				build_xml_node_data(xml_nodes_data[node_ref].xml_tags[i].rec_ref, n, xml_attrs);
+			if (xml_nodes_data[node_ref].xml_tags[i].rec_ref > 0){
+				int error = build_xml_node_data(xml_nodes_data[node_ref].xml_tags[i].rec_ref, n, xml_attrs);
+				if (error)
+					return error;
+			}
 			continue;
 		}
 
@@ -787,7 +903,7 @@ int build_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_
 			if (xml_nodes_data[node_ref].xml_tags[i].xml_func) {
 				int err = xml_nodes_data[node_ref].xml_tags[i].xml_func(n, xml_attrs);
 				if (err)
-					return CWMP_XML_ERR;
+					return err;
 			}
 			continue;
 		}
@@ -809,23 +925,22 @@ int build_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_
 
 		n = mxmlNewOpaque(n, opaque ? opaque : "");
 		if (!n)
-			return CWMP_XML_ERR;
+			return FAULT_CPE_INTERNAL_ERROR;
 	}
 	return CWMP_OK;
 }
 
 int build_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
-	mxml_node_t *n;
+	mxml_node_t *n = node;
 	struct xml_list_data *xml_data;
 	list_for_each_entry (xml_data, xml_attrs->data_list, list) {
 		if (xml_nodes_data[node_ref].tag_list_name) {
 			n = mxmlNewElement(node, xml_nodes_data[node_ref].tag_list_name);
 			if (!n)
-				return CWMP_XML_ERR;
-		} else {
+				return FAULT_CPE_INTERNAL_ERROR;
+		} else
 			n = node;
-		}
 		if (xml_nodes_data[node_ref].tag_node_ref > 0) {
 			struct xml_data_struct xml_ref_data = {0};
 			xml_ref_data.name = &xml_data->param_name;
@@ -844,14 +959,25 @@ int build_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_st
 			xml_ref_data.version = &xml_data->version;
 			xml_ref_data.start_time = &xml_data->start_time;
 			xml_ref_data.complete_time = &xml_data->complete_time;
+			xml_ref_data.rpc_enum = xml_attrs->rpc_enum;
+			xml_ref_data.counter = xml_attrs->counter;
 
 			int fault = build_xml_node_data(xml_nodes_data[node_ref].tag_node_ref, n, &xml_ref_data);
-
 			if (fault != CWMP_OK)
 				return fault;
 		}
-		if (xml_attrs->counter != NULL)
+		if (xml_attrs->counter != NULL && xml_attrs->inc_counter)
 			*(xml_attrs->counter)+=1;
+	}
+
+	int i;
+	int nbre_refs = get_xml_tags_array_total_size(node_ref);
+	for (i = 0; i < nbre_refs; i++) {
+		if (xml_nodes_data[node_ref].xml_tags[i].rec_ref > 0) {
+			int fault = build_xml_node_data(xml_nodes_data[node_ref].xml_tags[i].rec_ref, node, xml_attrs);
+			if (fault != CWMP_OK)
+				return fault;
+		}
 	}
 	return 0;
 }
@@ -859,11 +985,11 @@ int build_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_st
 int build_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
 	if (node_ref >= SOAP_MAX)
-		return CWMP_XML_ERR;
+		return FAULT_CPE_INTERNAL_ERROR;
 
-	if (xml_nodes_data[node_ref].node_ms == XML_LIST ) {
+	if (xml_nodes_data[node_ref].node_ms == XML_LIST )
 		return build_xml_list_node_data(node_ref, node, xml_attrs);
-	} else
+	else
 		return build_single_xml_node_data(node_ref, node, xml_attrs);
 	return CWMP_OK;
 }

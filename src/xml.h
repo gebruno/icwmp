@@ -39,21 +39,30 @@ enum soap_methods {
 	SOAP_REQ_DU_UPDATE,
 	SOAP_REQ_DU_UNINSTALL,
 
-	SOAP_RESP_GPV,
+	SOAP_RESP_GET,
+	SOAP_RESP_GET_LIST,
+	SOAP_RESP_GET_LIST_REF,
+	SOAP_RESP_GET_LIST_ATTRS,
+	SOAP_RESP_GET_LIST_REF2,
+	SOAP_RESP_GPV_PARAM,
 	SOAP_PARAM_STRUCT,
 	SOAP_PARAM_STRUCT_REF,
 	SOAP_VALUE_STRUCT,
 	SOAP_RESP_SPV,
 	SOAP_RESP_GPN,
+	SOAP_RESP_GPN_LIST,
 	SOAP_RESP_GPN_REF,
-	SOAP_RESP_GPA,
-	SOAP_RESP_GPA_REF,
+	SOAP_GPA_STRUCT,
+	SOAP_GPA_STRUCT_REF,
 	SOAP_RESP_ADDOBJ,
 	SOAP_RESP_DELOBJ,
 	SOAP_RESP_DOWNLOAD,
 	SOAP_RESP_UPLOAD,
 	SOAP_RESP_GETRPC,
+	SOAP_RESP_GETRPC_LIST,
 	SOAP_RESP_GETRPC_REF,
+	SOAP_RESP_ACS_GETRPC,
+	SOAP_RESP_ACS_GETRPC_REF,
 	SOAP_ACS_TRANSCOMPLETE,
 	SOAP_ROOT_FAULT,
 	SOAP_RPC_FAULT,
@@ -61,7 +70,6 @@ enum soap_methods {
 	SOAP_CWMP_FAULT,
 	SOAP_SPV_FAULT,
 	SOAP_SPV_FAULT_REF,
-	SOAP_FAULT_STRCT_REF,
 	SOAP_ENV,
 	SOAP_HEAD,
 	SOAP_BODY,
@@ -74,6 +82,7 @@ enum soap_methods {
 	SOAP_CDU_OPTS_REF,
 	ATTR_PARAM_STRUCT,
 	ATTR_SOAP_ENV,
+	GET_RPC_ATTR,
 	SOAP_MAX
 };
 
@@ -143,6 +152,7 @@ struct xml_data_struct {
 	char **current_time;
 	char **product_class;
 	char **xsi_type;
+	char **soap_enc_array_type;
 	int *file_size;
 	int *notification;
 	int *scheddown_max_retries;
@@ -167,6 +177,8 @@ struct xml_data_struct {
 	int *counter;
 	struct xml_tag_validation *validations;
 	int nbre_validations;
+	int rpc_enum;
+	bool inc_counter;
 };
 
 struct xml_list_data {
@@ -251,9 +263,12 @@ void event_container_list_to_xml_data_list(struct list_head *event_container, st
 void cwmp_param_fault_list_to_xml_data_list(struct list_head *param_fault_list, struct list_head *xml_data_list);
 void cwmp_free_all_xml_data_list(struct list_head *list);
 int load_upload_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+int load_get_rpc_method_acs_resp_string(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int load_download_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int load_sched_download_window_mode(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int load_change_du_state_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int build_inform_events(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *xml_attrs);
+int get_soap_enc_array_type(mxml_node_t *node, struct xml_data_struct *xml_attrs);
 #endif

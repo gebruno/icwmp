@@ -184,11 +184,9 @@ enum cwmp_start {
 };
 
 enum cwmp_ret_err {
-	CWMP_XML_ERR = -1,
 	CWMP_OK = 0, /* No Error */
 	CWMP_GEN_ERR, /* General Error */
 	CWMP_MEM_ERR, /* Memory Error */
-	CWMP_MUTEX_ERR,
 	CWMP_RETRY_SESSION
 };
 
@@ -570,4 +568,5 @@ bool match_reg_exp(char *reg_exp, char *param_name);
 void cwmp_invoke_intf_reset(char *path);
 void check_firewall_restart_state();
 void add_day_to_time(struct tm *time);
+int set_rpc_acs_to_supported(const char *rpc_name);
 #endif
