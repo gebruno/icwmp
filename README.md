@@ -175,13 +175,13 @@ root@iopsys:~#
 - To trigger a new session to ACS with the event `'6 CONNECTION REQUEST'` or `'8 DIAGNOSTICS COMPLETE'`, etc.., use the `inform` ubus method with the appropriate `event` argument:
 
 ```bash
-root@iopsys:~# ubus call tr069 inform '{"event":"6 connection request"}'
+root@iopsys:~# ubus call tr069 inform '{"event":"6 CONNECTION REQUEST"}'
 {
 	"status": 1,
 	"info": "Session started"
 }
 root@iopsys:~#
-root@iopsys:~# ubus call tr069 inform '{"event":"8 diagnostics complete"}'
+root@iopsys:~# ubus call tr069 inform '{"event":"8 DIAGNOSTICS COMPLETE"}'
 {
 	"status": 1,
 	"info": "Session started"

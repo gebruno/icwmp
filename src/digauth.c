@@ -482,13 +482,13 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	if (strlen(param[E_URI].value) == 0)
 		return 0;
 
-	CWMP_LOG(INFO, "Requested URI: (%s)", param[E_URI].value);
+	CWMP_LOG(DEBUG, "Requested URI: (%s)", param[E_URI].value);
 	char req_path[2049] = {0};
 	get_relative_path(param[E_URI].value, req_host, req_path, sizeof(req_path));
 	if (strlen(req_path) == 0)
 		return 0;
 
-	CWMP_LOG(INFO, "Abs path: (%s)", req_path);
+	CWMP_LOG(DEBUG, "Abs path: (%s)", req_path);
 	if (strncmp(req_path, uri, strlen(uri)) != 0) {
 		CWMP_LOG(ERROR, "Authentication failed, configured uri(%s), req path(%s) not matched", uri, req_path);
 		return 0;

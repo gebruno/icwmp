@@ -267,7 +267,7 @@ bool cwmp_transaction_commit()
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 	blobmsg_add_u32(&b, "transaction_id", transaction_id);
-	blobmsg_add_u8(&b, "restart_service", false);
+	blobmsg_add_u8(&b, "restart_services", false);
 
 	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_commit", b.head, ubus_transaction_commit_callback, &status);
 	if (e != 0) {
@@ -442,7 +442,7 @@ void ubus_get_parameter_callback(struct ubus_request *req, int type __attribute_
 	int fault_code = FAULT_CPE_NO_FAULT;
 	if (parameters == NULL) {
 		fault_code = get_fault(msg);
-		CWMP_LOG(ERROR, "dm_iface %s: parameters is null fault: %d", __FUNCTION__, fault_code);
+		CWMP_LOG(INFO, "dm_iface %s: parameters is null fault: %d", __FUNCTION__, fault_code);
 		snprintf(result->fault, 5, "%d", fault_code);
 		result->type = FAULT;
 		return;

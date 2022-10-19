@@ -384,7 +384,7 @@ static void http_cr_new_client(int client, bool service_available)
 		goto http_end;
 	}
 
-	CWMP_LOG(INFO, "Received host: (%s)", request_host);
+	CWMP_LOG(DEBUG, "Received host: (%s)", request_host);
 	int auth_check = validate_http_digest_auth("GET", cwmp_main->conf.connection_request_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, cwmp_main->conf.session_timeout, request_host);
 
 	if (auth_check == -1) { /* invalid nonce */
