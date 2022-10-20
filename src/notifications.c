@@ -648,8 +648,11 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 	is_notify = check_value_change();
 	if (is_notify > 0)
 		cwmp_update_enabled_notify_file();
-	if (is_notify & NOTIF_ACTIVE)
+	if (is_notify & NOTIF_ACTIVE) {
 		send_active_value_change();
+		trigger_cwmp_session_timer();
+	}
+
 	if (is_notify & NOTIF_LW_ACTIVE)
 		cwmp_lwnotification();
 
