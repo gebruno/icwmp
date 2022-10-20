@@ -256,7 +256,7 @@ static const struct blobmsg_policy icwmp_inform_policy[] = {
 
 static int icwmp_inform_get_rpc_method(struct blob_buf *bb)
 {
-	if (cwmp_add_session_rpc_acs(RPC_ACS_GET_RPC_METHODS) == NULL)
+	if (cwmp_main->conf.acs_getrpc && cwmp_add_session_rpc_acs(RPC_ACS_GET_RPC_METHODS) == NULL)
 		return -1;
 
 	blobmsg_add_u32(bb, "status", 1);

@@ -66,9 +66,11 @@ int cwmp_session_init()
 	/*
 	 * Set Required methods as initial value of
 	 */
-	rpc_acs = cwmp_add_session_rpc_acs_head(RPC_ACS_GET_RPC_METHODS);
-	if (rpc_acs == NULL)
-		return CWMP_GEN_ERR;
+	if (cwmp_main->conf.acs_getrpc) {
+		rpc_acs = cwmp_add_session_rpc_acs_head(RPC_ACS_GET_RPC_METHODS);
+		if (rpc_acs == NULL)
+			return CWMP_GEN_ERR;
+	}
 
 	rpc_acs = cwmp_add_session_rpc_acs_head(RPC_ACS_INFORM);
 	if (rpc_acs == NULL)
@@ -132,7 +134,6 @@ int cwmp_schedule_rpc()
 				cwmp_session_rpc_destructor(rpc_acs);
 				continue;
 			}
-
 			if (!rpc_acs->type || cwmp_stop)
 				goto retry;
 

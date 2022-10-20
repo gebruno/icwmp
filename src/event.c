@@ -266,7 +266,7 @@ int cwmp_root_cause_get_rpc_method()
 			return CWMP_MEM_ERR;
 
 		cwmp_save_event_container(event_container);
-		if (cwmp_add_session_rpc_acs(RPC_ACS_GET_RPC_METHODS) == NULL)
+		if (cwmp_main->conf.acs_getrpc && cwmp_add_session_rpc_acs(RPC_ACS_GET_RPC_METHODS) == NULL)
 			return CWMP_MEM_ERR;
 	}
 

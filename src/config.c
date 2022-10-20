@@ -430,6 +430,13 @@ int get_global_config()
 	FREE(value2);
 	FREE(value3);
 
+	if ((error = uci_get_value(UCI_ACS_GETRPC, &value)) == CWMP_OK) {
+		cwmp_main->conf.acs_getrpc = uci_str_to_bool(value);
+		FREE(value);
+	} else {
+		return error;
+	}
+
 	if ((error = uci_get_value(UCI_CPE_USERID_PATH, &value)) == CWMP_OK) {
 		FREE(cwmp_main->conf.cpe_userid);
 		if (value != NULL) {

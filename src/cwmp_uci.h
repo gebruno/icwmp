@@ -28,6 +28,7 @@
 #define UCI_ACS_COMPRESSION "cwmp.acs.compression"
 #define UCI_ACS_RETRY_MIN_WAIT_INTERVAL "cwmp.acs.retry_min_wait_interval"
 #define UCI_ACS_RETRY_INTERVAL_MULTIPLIER "cwmp.acs.retry_interval_multiplier"
+#define UCI_ACS_GETRPC "cwmp.acs.get_rpc_methods"
 #define UCI_CPE_USERID_PATH "cwmp.cpe.userid"
 #define UCI_CPE_PASSWD_PATH "cwmp.cpe.passwd"
 #define UCI_CPE_CWMP_ENABLE "cwmp.cpe.enable"
