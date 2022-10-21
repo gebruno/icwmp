@@ -104,6 +104,7 @@ typedef struct config {
 	bool insecure_enable;
 	bool ipv6_enable;
 	bool heart_beat_enable;
+	bool acs_getrpc;
 	int retry_min_wait_interval;
 	int retry_interval_multiplier;
 	bool lw_notification_enable;

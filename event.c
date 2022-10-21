@@ -329,7 +329,7 @@ int cwmp_root_cause_get_rpc_method(struct cwmp *cwmp)
 		}
 		cwmp_save_event_container(event_container);
 		session = list_entry(cwmp->head_event_container, struct session, head_event_container);
-		if (cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
+		if (cwmp->conf.acs_getrpc && cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}

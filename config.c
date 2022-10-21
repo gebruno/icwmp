@@ -356,6 +356,13 @@ int get_global_config(struct config *conf)
 		return CWMP_GEN_ERR;
 	}
 
+	if ((error = uci_get_value(UCI_ACS_GETRPC, &value)) == CWMP_OK) {
+		conf->acs_getrpc = uci_str_to_bool(value);
+		FREE(value);
+	} else {
+		return error;
+	}
+
 	if ((error = uci_get_value(UCI_ACS_USERID_PATH, &value)) == CWMP_OK) {
 		if (value != NULL) {
 			FREE(conf->acs_userid);

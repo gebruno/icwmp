@@ -112,11 +112,14 @@ struct session *cwmp_add_queue_session(struct cwmp *cwmp)
 	/*
 	 * Set Required methods as initial value of
 	 */
-	rpc_acs = cwmp_add_session_rpc_acs_head(session, RPC_ACS_GET_RPC_METHODS);
-	if (rpc_acs == NULL) {
-		FREE(session);
-		return NULL;
+	if (cwmp->conf.acs_getrpc) {
+		rpc_acs = cwmp_add_session_rpc_acs_head(session, RPC_ACS_GET_RPC_METHODS);
+		if (rpc_acs == NULL) {
+			FREE(session);
+			return NULL;
+		}
 	}
+
 	rpc_acs = cwmp_add_session_rpc_acs_head(session, RPC_ACS_INFORM);
 	if (rpc_acs == NULL) {
 		FREE(session);
@@ -176,7 +179,7 @@ int cwmp_move_session_to_session_queue(struct cwmp *cwmp, struct session *sessio
 		if (session->head_rpc_acs.next != &(session->head_rpc_acs)) {
 			rpc_acs = list_entry(session->head_rpc_acs.next, struct rpc, list);
 			if (rpc_acs->type != RPC_ACS_INFORM) {
-				if (cwmp_add_session_rpc_acs_head(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
+				if (cwmp->conf.acs_getrpc && cwmp_add_session_rpc_acs_head(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
 					pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 					return CWMP_MEM_ERR;
 				}
@@ -186,7 +189,7 @@ int cwmp_move_session_to_session_queue(struct cwmp *cwmp, struct session *sessio
 				}
 			}
 		} else {
-			if (cwmp_add_session_rpc_acs_head(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
+			if (cwmp->conf.acs_getrpc && cwmp_add_session_rpc_acs_head(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
 				pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 				return CWMP_MEM_ERR;
 			}

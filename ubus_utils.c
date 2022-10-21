@@ -280,7 +280,7 @@ static void icwmp_inform_get_rpc_method(struct ubus_context *ctx, struct ubus_re
 
 	cwmp_save_event_container(event_container);
 	session = list_entry(cwmp_main.head_event_container, struct session, head_event_container);
-	if (cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
+	if (cwmp_main.conf.acs_getrpc && cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
 		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 		return;
 	}
