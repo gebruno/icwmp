@@ -63,5 +63,7 @@ void bkp_session_delete_schedule_download(struct download *pschedule_download);
 void bkp_session_insert_du_state_change_complete(struct du_state_change_complete *pdu_state_change_complete);
 void bkp_session_insert_autonomous_du_state_change(auto_du_state_change_compl *data);
 void bkp_session_delete_autonomous_du_state_change(auto_du_state_change_compl *data);
+void bkp_session_insert_autonomous_transfer_complete(auto_transfer_complete *data);
+void bkp_session_delete_autonomous_transfer_complete(auto_transfer_complete *data);
 void bkp_tree_clean(void);
 #endif /* _BACKUPSESSION_H__ */

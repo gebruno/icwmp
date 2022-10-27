@@ -76,6 +76,10 @@ static bool filters_qualified(int type, void *data)
 
 static void send_du_state_change_notif(struct blob_attr *msg)
 {
+	if (!cwmp_main->conf.auto_cdu_enable) {
+		CWMP_LOG(INFO, "Autonomous Change DU State is disabled");
+		return;
+	}
 	(void)msg;
 	CWMP_LOG(INFO, "Received DU STATE CHANGE EVENT");
 	const struct blobmsg_policy p[2] = {
@@ -179,8 +183,93 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 	}
 }
 
+static void send_transfer_complete_notif(struct blob_attr *msg)
+{
+	if (!cwmp_main->conf.auto_tc_enable) {
+		CWMP_LOG(INFO, "Autonomous TransferComplete is disabled");
+		return;
+	}
+	(void)msg;
+	CWMP_LOG(INFO, "Received TRANSFER COMPLETE EVENT");
+	const struct blobmsg_policy p[2] = {
+		{ "name", BLOBMSG_TYPE_STRING },
+		{ "input", BLOBMSG_TYPE_TABLE }
+	};
+
+	const struct blobmsg_policy p1[10] = {
+		{ "AnnounceURL", BLOBMSG_TYPE_STRING },
+		{ "TransferURL", BLOBMSG_TYPE_STRING },
+		{ "TransferType", BLOBMSG_TYPE_STRING },
+		{ "FileType", BLOBMSG_TYPE_STRING },
+		{ "FileSize", BLOBMSG_TYPE_INT32 },
+		{ "TargetFileName", BLOBMSG_TYPE_STRING },
+		{ "StartTime", BLOBMSG_TYPE_STRING },
+		{ "CompleteTime", BLOBMSG_TYPE_STRING },
+		{ "Fault.FaultCode", BLOBMSG_TYPE_INT32 },
+		{ "Fault.FaultString", BLOBMSG_TYPE_STRING }
+	};
+
+	struct blob_attr *tb[2] = {NULL, NULL};
+	blobmsg_parse(p, 2, tb, blob_data(msg), blob_len(msg));
+
+	if (tb[1]) {
+		char *file_type = NULL;
+
+		CWMP_LOG(INFO, "%s\n", blobmsg_format_json_indent(tb[1], true, -1));
+		struct blob_attr *tb1[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+		blobmsg_parse(p1, 10, tb1, blobmsg_data(tb[1]), blobmsg_len(tb[1]));
+
+		if (tb1[3]) {
+			file_type = blobmsg_get_string(tb1[3]);
+		}
+
+		CWMP_LOG(INFO, "file_type: %s\n", file_type);
+		if (file_type == NULL)
+			return;
+
+		auto_transfer_complete *data = calloc(1, sizeof(auto_transfer_complete));
+		if (data == NULL)
+			return;
+
+		data->file_type = strdup(file_type);
+		data->announce_url = strdup(tb1[0] ? blobmsg_get_string(tb1[0]) : "");
+		data->transfer_url = strdup(tb1[1] ? blobmsg_get_string(tb1[1]) : "");
+		data->is_download = (tb1[2] && strcmp(blobmsg_get_string(tb1[2]), "Download") == 0) ? true : false;
+		data->file_size = tb1[4] ? blobmsg_get_u32(tb1[4]) : 0;
+		data->target_file_name = strdup(tb1[5] ? blobmsg_get_string(tb1[5]) : "");
+
+		if (tb1[6]) {
+			data->start_time = strdup(blobmsg_get_string(tb1[6]));
+		}
+
+		if (tb1[7]) {
+			data->complete_time = strdup(blobmsg_get_string(tb1[7]));
+		}
+
+		if (tb1[8]) {
+			data->fault_code = tb1[8] ? blobmsg_get_u32(tb1[8]) : 0;
+		}
+
+		if (tb1[9]) {
+			data->fault_string = strdup(blobmsg_get_string(tb1[8]));
+		}
+
+		bkp_session_insert_autonomous_transfer_complete(data);
+		bkp_session_save();
+
+		CWMP_LOG(INFO, "autonomous transfer complete event added");
+		struct session_timer_event *ubus_inform_event = calloc(1, sizeof(struct session_timer_event));
+
+		ubus_inform_event->extra_data = data;
+		ubus_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;
+		ubus_inform_event->event = EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE;
+		trigger_cwmp_session_timer_with_event(&ubus_inform_event->session_timer_evt);
+	}
+}
+
 static struct autonomous_event event_info[] = {
-	{ "Device.SoftwareModules.DUStateChange!", send_du_state_change_notif }
+	{ "Device.SoftwareModules.DUStateChange!", send_du_state_change_notif },
+	{ "Device.LocalAgent.TransferComplete!", send_transfer_complete_notif }
 };
 
 static void send_autonomous_notification(char *ev_name, struct blob_attr *msg)
@@ -231,6 +320,24 @@ int cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete(struct rpc *rp
 		FREE(p->complete_time);
 		FREE(p->fault_string);
 		FREE(p->operation);
+		FREE(p);
+	}
+
+	return 0;
+}
+
+int cwmp_rpc_acs_destroy_data_autonomous_transfer_complete(struct rpc *rpc)
+{
+	auto_transfer_complete *p = (auto_transfer_complete *)rpc->extra_data;
+	if (p) {
+		bkp_session_delete_autonomous_transfer_complete(p);
+		FREE(p->announce_url);
+		FREE(p->transfer_url);
+		FREE(p->file_type);
+		FREE(p->start_time);
+		FREE(p->complete_time);
+		FREE(p->fault_string);
+		FREE(p->target_file_name);
 		FREE(p);
 	}
 

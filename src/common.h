@@ -117,6 +117,8 @@ typedef struct config {
 	bool ipv6_enable;
 	bool heart_beat_enable;
 	bool acs_getrpc;
+	bool auto_tc_enable;
+	bool auto_cdu_enable;
 	int retry_min_wait_interval;
 	int retry_interval_multiplier;
 	bool lw_notification_enable;
@@ -273,6 +275,7 @@ enum rpc_acs_methods_idx {
 	RPC_ACS_INFORM = 1,
 	RPC_ACS_GET_RPC_METHODS,
 	RPC_ACS_TRANSFER_COMPLETE,
+	RPC_ACS_AUTONOMOUS_TRANSFER_COMPLETE,
 	RPC_ACS_DU_STATE_CHANGE_COMPLETE,
 	RPC_ACS_AUTONOMOUS_DU_STATE_CHANGE_COMPLETE,
 	__RPC_ACS_MAX
@@ -484,6 +487,20 @@ typedef struct autonomous_du_state_change_complete {
 	char *fault_string;
 	char *operation;
 } auto_du_state_change_compl;
+
+typedef struct autonomous_transfer_complete {
+	char *announce_url;
+	char *transfer_url;
+	char *file_type;
+	char *target_file_name;
+	char *start_time;
+	char *complete_time;
+	char *fault_string;
+	int fault_code;
+	bool is_download;
+	int file_size;
+
+} auto_transfer_complete;
 
 typedef struct du_state_change_complete {
 	char *command_key;

@@ -59,6 +59,7 @@ struct rpc_acs_method rpc_acs_methods[] = {
 		[RPC_ACS_INFORM] = { "Inform", cwmp_rpc_acs_prepare_message_inform, cwmp_rpc_acs_parse_response_inform, NULL, NOT_KNOWN },
 		[RPC_ACS_GET_RPC_METHODS] = { "GetRPCMethods", cwmp_rpc_acs_prepare_get_rpc_methods, cwmp_rpc_acs_parse_response_get_rpc_methods, NULL, NOT_KNOWN },
 		[RPC_ACS_TRANSFER_COMPLETE] = { "TransferComplete", cwmp_rpc_acs_prepare_transfer_complete, NULL, cwmp_rpc_acs_destroy_data_transfer_complete, NOT_KNOWN },
+		[RPC_ACS_AUTONOMOUS_TRANSFER_COMPLETE] = { "AutonomousTransferComplete", cwmp_rpc_acs_prepare_autonomous_transfer_complete, NULL, cwmp_rpc_acs_destroy_data_autonomous_transfer_complete, NOT_KNOWN },
 		[RPC_ACS_DU_STATE_CHANGE_COMPLETE] = { "DUStateChangeComplete", cwmp_rpc_acs_prepare_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_du_state_change_complete, NOT_KNOWN },
 		[RPC_ACS_AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "AutonomousDUStateChangeComplete", cwmp_rpc_acs_prepare_autonomous_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete, NOT_KNOWN }
 };
@@ -643,6 +644,52 @@ error:
 	return -1;
 }
 
+int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc)
+{
+	mxml_node_t *tree = NULL, *n;
+	auto_transfer_complete *p;
+
+	p = (auto_transfer_complete *)rpc->extra_data;
+	load_response_xml_schema(&tree);
+	if (!tree)
+		goto error;
+
+	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	if (!n)
+		goto error;
+
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_main->conf.amd_version) - 1]);
+
+	n = build_top_body_soap_request(tree, "AutonomousTransferComplete");
+	if (!n)
+		goto error;
+
+	struct xml_data_struct auto_trsfr_complete_xml_attrs = {0};
+
+	if (p) {
+		auto_trsfr_complete_xml_attrs.start_time = &p->start_time;
+		auto_trsfr_complete_xml_attrs.complete_time = &p->complete_time;
+		auto_trsfr_complete_xml_attrs.fault_code = &p->fault_code;
+		auto_trsfr_complete_xml_attrs.fault_string = &p->fault_string;
+		auto_trsfr_complete_xml_attrs.announce_url = &p->announce_url;
+		auto_trsfr_complete_xml_attrs.transfer_url = &p->transfer_url;
+		auto_trsfr_complete_xml_attrs.file_size = &p->file_size;
+		auto_trsfr_complete_xml_attrs.file_type = &p->file_type;
+		auto_trsfr_complete_xml_attrs.target_file_name = &p->target_file_name;
+		auto_trsfr_complete_xml_attrs.is_download = &p->is_download;
+	}
+
+	int fault = build_xml_node_data(SOAP_AUTONOMOUS_TRANSFER_COMPLETE, n, &auto_trsfr_complete_xml_attrs);
+	if (fault != CWMP_OK) {
+		goto error;
+	}
+
+	cwmp_main->session->tree_out = tree;
+	return 0;
+
+error:
+	return -1;
+}
 /*
  * [RPC ACS]: DUStateChangeComplete
  */

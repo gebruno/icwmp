@@ -79,5 +79,5 @@ int cwmp_root_cause_transfer_complete(struct transfer_complete *p);
 int cwmp_root_cause_changedustate_complete(struct du_state_change_complete *p);
 int cwmp_root_cause_schedule_inform(struct schedule_inform *schedule_inform);
 int cwmp_root_cause_autonomous_cdu_complete(auto_du_state_change_compl *p);
-
+int cwmp_root_cause_autonomous_transfer_complete(auto_transfer_complete *p);
 #endif /* SRC_INC_EVENT_H_ */

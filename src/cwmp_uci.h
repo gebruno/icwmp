@@ -57,6 +57,9 @@
 #define UCI_AUTONOMOUS_DU_STATE_RESULT "cwmp.du_state_change.result_type"
 #define UCI_CPE_FIREWALL_RESTART_STATE "cwmp.cpe.firewall_restart"
 
+#define UCI_AUTONOMOUS_TC_ENABLE "cwmp.transfer_complete.enable"
+#define UCI_AUTONOMOUS_CDU_ENABLE "cwmp.du_state_change.enable"
+
 #define UCI_CONFIG_DIR "/etc/config/"
 #define LIB_DB_CONFIG "/lib/db/config"
 #define ETC_DB_CONFIG "/etc/board-db/config"

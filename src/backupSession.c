@@ -590,18 +590,85 @@ void bkp_session_delete_autonomous_du_state_change(auto_du_state_change_compl *d
 	snprintf(fault_code, sizeof(fault_code), "%d", data->fault_code);
 
 	struct search_keywords keys[9] = {
-					   { "uuid", data->uuid },
-					   { "version", data->ver ? data->ver : "" },
-					   { "current_state", data->current_state ? data->current_state : "" },
-					   { "resolved", resolved },
+	   { "uuid", data->uuid },
+	   { "version", data->ver ? data->ver : "" },
+	   { "current_state", data->current_state ? data->current_state : "" },
+	   { "resolved", resolved },
+	   { "start_time", data->start_time ? data->start_time : "" },
+	   { "complete_time", data->complete_time ? data->complete_time : "" },
+	   { "fault_code", fault_code },
+	   { "fault_string", data->fault_string ? data->fault_string : "" },
+	   { "operation", data->operation ? data->operation : "" }
+	};
+
+	b = bkp_session_node_found(bkp_tree, "autonomous_du_state_change_complete", keys, 9);
+	if (!b) {
+		mxmlDelete(b);
+	}
+}
+
+void bkp_session_insert_autonomous_transfer_complete(auto_transfer_complete *data)
+{
+	char is_download[8], fault_code[8], file_size[8];
+	mxml_node_t *b;
+
+	if (data == NULL)
+		return;
+
+	snprintf(is_download, sizeof(is_download), "%d", data->is_download);
+	snprintf(file_size, sizeof(is_download), "%d", data->file_size);
+	snprintf(fault_code, sizeof(fault_code), "%d", data->fault_code);
+
+	struct search_keywords keys[9] = {
+					   { "announceurl", data->announce_url ? data->announce_url : "" },
+					   { "transferurl", data->transfer_url ? data->transfer_url : "" },
+					   { "isdownload", is_download },
+					   { "filetype", data->file_type },
+					   { "filesize", file_size },
 					   { "start_time", data->start_time ? data->start_time : "" },
 					   { "complete_time", data->complete_time ? data->complete_time : "" },
 					   { "fault_code", fault_code },
-					   { "fault_string", data->fault_string ? data->fault_string : "" },
-					   { "operation", data->operation ? data->operation : "" }
-					 };
+					   { "fault_string", data->fault_string ? data->fault_string : "" }
+	};
 
-	b = bkp_session_node_found(bkp_tree, "autonomous_du_state_change_complete", keys, 9);
+	b = bkp_session_node_found(bkp_tree, "autonomous_transfer_complete", keys, 9);
+	if (!b) {
+		b = bkp_session_insert(bkp_tree, "autonomous_transfer_complete", NULL);
+		bkp_session_insert(b, "announceurl", data->announce_url ? data->announce_url : "");
+		bkp_session_insert(b, "transferurl", data->transfer_url ? data->transfer_url : "");
+		bkp_session_insert(b, "isdownload", is_download);
+		bkp_session_insert(b, "filetype", data->file_type);
+		bkp_session_insert(b, "filesize", file_size);
+		bkp_session_insert(b, "start_time", data->start_time ? data->start_time : "");
+		bkp_session_insert(b, "complete_time", data->complete_time ? data->complete_time : "");
+		bkp_session_insert(b, "fault_code", fault_code);
+		bkp_session_insert(b, "fault_string", data->fault_string ? data->fault_string : "");
+	}
+}
+
+void bkp_session_delete_autonomous_transfer_complete(auto_transfer_complete *data)
+{
+	if (data == NULL)
+		return;
+
+	char is_download[8], fault_code[8], file_size[8];
+	snprintf(is_download, sizeof(is_download), "%d", data->is_download);
+	snprintf(file_size, sizeof(file_size), "%d", data->file_size);
+	snprintf(fault_code, sizeof(fault_code), "%d", data->fault_code);
+
+	struct search_keywords keys[9] = {
+	   { "announceurl", data->announce_url ? data->announce_url : "" },
+	   { "transferurl", data->transfer_url ? data->transfer_url : "" },
+	   { "isdownload", is_download },
+	   { "filetype", data->file_type },
+	   { "filesize", file_size },
+	   { "start_time", data->start_time ? data->start_time : "" },
+	   { "complete_time", data->complete_time ? data->complete_time : "" },
+	   { "fault_code", fault_code },
+	   { "fault_string", data->fault_string ? data->fault_string : "" }
+	};
+
+	mxml_node_t *b = bkp_session_node_found(bkp_tree, "autonomous_transfer_complete", keys, 9);
 	if (!b) {
 		mxmlDelete(b);
 	}

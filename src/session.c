@@ -464,6 +464,9 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 		cwmp_main->session->session_status.next_heartbeat = false;
 		cwmp_main->session->session_status.is_heartbeat = true;
 		cwmp_add_event_container(EVENT_IDX_14HEARTBEAT, "");
+	} else if (session_event->event == EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE) {
+		auto_transfer_complete *auto_trnsfr_complete = (auto_transfer_complete *)session_event->extra_data;
+		cwmp_root_cause_autonomous_transfer_complete(auto_trnsfr_complete);
 	} else if (session_event->event == EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE) {
 		auto_du_state_change_compl *data = (auto_du_state_change_compl *)session_event->extra_data;
 		cwmp_root_cause_autonomous_cdu_complete(data);

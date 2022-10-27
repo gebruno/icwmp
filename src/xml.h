@@ -77,6 +77,7 @@ enum soap_methods {
 	SOAP_DEVID,
 	SOAP_DU_CHANGE_COMPLETE,
 	SOAP_AUTONOMOUS_DU_CHANGE_COMPLETE,
+	SOAP_AUTONOMOUS_TRANSFER_COMPLETE,
 	SOAP_CDU_RESULTS_REF,
 	SOAP_ACDU_OPTS_REF,
 	SOAP_CDU_OPTS_REF,
@@ -129,6 +130,8 @@ struct xml_data_struct {
 	char **command_key;
 	char **file_type;
 	char **url;
+	char **announce_url;
+	char **transfer_url;
 	char **username;
 	char **password;
 	char **uuid;
@@ -153,6 +156,7 @@ struct xml_data_struct {
 	char **product_class;
 	char **xsi_type;
 	char **soap_enc_array_type;
+	char **target_file_name;
 	int *file_size;
 	int *notification;
 	int *scheddown_max_retries;
@@ -167,6 +171,7 @@ struct xml_data_struct {
 	bool *next_level;
 	bool *notification_change;
 	bool *writable;
+	bool *is_download;
 
 	mxml_node_t **xml_env;
 	struct list_head *data_list;

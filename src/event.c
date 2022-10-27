@@ -212,6 +212,25 @@ int cwmp_root_cause_autonomous_cdu_complete(auto_du_state_change_compl *p)
 	return CWMP_OK;
 }
 
+int cwmp_root_cause_autonomous_transfer_complete(auto_transfer_complete *p)
+{
+	struct event_container *event_container;
+	struct rpc *rpc_acs;
+
+	event_container = cwmp_add_event_container(EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE, "");
+	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
+		return CWMP_MEM_ERR;
+	}
+
+	if ((rpc_acs = cwmp_add_session_rpc_acs(RPC_ACS_AUTONOMOUS_TRANSFER_COMPLETE)) == NULL) {
+		CWMP_LOG(ERROR, "event %s: rpc_acs is null", __FUNCTION__);
+		return CWMP_MEM_ERR;
+	}
+	rpc_acs->extra_data = (void *)p;
+	return CWMP_OK;
+}
+
 int cwmp_root_cause_changedustate_complete(struct du_state_change_complete *p)
 {
 	struct event_container *event_container;

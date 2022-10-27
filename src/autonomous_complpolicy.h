@@ -19,5 +19,6 @@ void autonomous_notification_handler(struct ubus_context *ctx __attribute__((unu
 			struct ubus_event_handler *ev __attribute__((unused)),
 			const char *type __attribute__((unused)), struct blob_attr *msg);
 int cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete(struct rpc *rpc);
+int cwmp_rpc_acs_destroy_data_autonomous_transfer_complete(struct rpc *rpc);
 
 #endif

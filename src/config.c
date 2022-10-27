@@ -671,6 +671,20 @@ int get_global_config()
 		cwmp_main->conf.heart_time = 0;
 	}
 
+
+	if (uci_get_state_value(UCI_AUTONOMOUS_TC_ENABLE, &value) == CWMP_OK) {
+		cwmp_main->conf.auto_tc_enable = uci_str_to_bool(value);
+		FREE(value);
+	} else {
+		cwmp_main->conf.auto_tc_enable = 0;
+	}
+
+	if (uci_get_state_value(UCI_AUTONOMOUS_CDU_ENABLE, &value) == CWMP_OK) {
+		cwmp_main->conf.auto_cdu_enable = uci_str_to_bool(value);
+		FREE(value);
+	} else {
+		cwmp_main->conf.auto_cdu_enable = 0;
+	}
 	return CWMP_OK;
 }
 

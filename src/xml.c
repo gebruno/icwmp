@@ -99,6 +99,7 @@ struct xml_node_data xml_nodes_data[] = {
 		[SOAP_DEVID] = {XML_SINGLE, 0, NULL, {{"Manufacturer", XML_STRING, 0, NULL}, {"OUI", XML_STRING, 0, NULL}, {"ProductClass", XML_STRING, 0, NULL}, {"SerialNumber", XML_STRING, 0, NULL}}},
 		[SOAP_DU_CHANGE_COMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, 0, NULL}, {"Results", XML_REC, SOAP_CDU_RESULTS_REF, NULL}}},
 		[SOAP_AUTONOMOUS_DU_CHANGE_COMPLETE] = {XML_SINGLE, 0, NULL, {{"Results", XML_REC, SOAP_ACDU_OPTS_REF, NULL}}},
+		[SOAP_AUTONOMOUS_TRANSFER_COMPLETE] = {XML_SINGLE, 0, NULL, {{"AnnounceURL", XML_STRING, 0, NULL}, {"TransferURL", XML_STRING, 0, NULL}, {"IsDownload", XML_BOOL, 0, NULL}, {"FileType", XML_STRING, 0, NULL}, {"FileSize", XML_INTEGER, 0, NULL}, {"TargetFileName", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT,  NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}}},
 		[SOAP_CDU_RESULTS_REF] = {XML_LIST, SOAP_CDU_OPTS_REF, "OpResultStruct", {}},
 		[SOAP_CDU_OPTS_REF] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, 0, NULL}, {"DeploymentUnitRef", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}, {"CurrentState", XML_STRING, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}}},
 		[SOAP_ACDU_OPTS_REF] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}, {"CurrentState", XML_STRING, 0, NULL}, {"Resolved", XML_BOOL, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}, {"OperationPerformed", XML_STRING, 0, NULL}}},
@@ -123,6 +124,8 @@ char* xml_tags_names[] = {
 		"CommandKey",
 		"FileType",
 		"URL",
+		"AnnounceURL",
+		"TransferURL",
 		"Username",
 		"Password",
 		"UUID",
@@ -147,6 +150,7 @@ char* xml_tags_names[] = {
 		"ProductClass",
 		"xsi:type",
 		"soap_enc:arrayType",
+		"TargetFileName",
 		"FileSize",
 		"Notification",
 		"MaxRetries",
@@ -161,6 +165,7 @@ char* xml_tags_names[] = {
 		"NextLevel",
 		"NotificationChange",
 		"Writable",
+		"IsDownload"
 };
 
 int get_xml_tags_array_total_size(int tag_ref)
