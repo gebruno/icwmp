@@ -434,7 +434,7 @@ int get_global_config()
 		cwmp_main->conf.acs_getrpc = uci_str_to_bool(value);
 		FREE(value);
 	} else {
-		return error;
+		cwmp_main->conf.acs_getrpc = true;
 	}
 
 	if ((error = uci_get_value(UCI_CPE_USERID_PATH, &value)) == CWMP_OK) {
