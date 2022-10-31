@@ -49,7 +49,7 @@
                     <td class="td_row_odd"><div class="td_row_odd">periodic_inform_enable</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">boolean</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd"></div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">1</div></td>
                     <td class="td_row_odd">
                       <div class="td_row_odd">If set to <b>1</b>, the CPE must periodically open session with ACS by sending Inform message to the ACS.</div>
                     </td>
@@ -58,7 +58,7 @@
                     <td class="td_row_even"><div class="td_row_even">periodic_inform_interval</div></td>
                     <td class="td_row_even"><div class="td_row_even">uinteger</div></td>
                     <td class="td_row_even"><div class="td_row_even">no</div></td>
-                    <td class="td_row_even"><div class="td_row_even"></div></td>
+                    <td class="td_row_even"><div class="td_row_even">86400</div></td>
                     <td class="td_row_even"><div class="td_row_even">The duration in seconds of the interval for which the CPE must attempt to connect with the ACS and call the Inform method.</div></td>
                   </tr>
                   <tr>
@@ -90,14 +90,14 @@
                     <td class="td_row_even"><div class="td_row_even">retry_min_wait_interval</div></td>
                     <td class="td_row_even"><div class="td_row_even">uinteger</div></td>
                     <td class="td_row_even"><div class="td_row_even">no</div></td>
-                    <td class="td_row_even"><div class="td_row_even"></div></td>
+                    <td class="td_row_even"><div class="td_row_even">5</div></td>
                     <td class="td_row_even"><div class="td_row_even">The minimum wait interval for session retry (in seconds)</div></td>
                   </tr>
                   <tr>
                     <td class="td_row_odd"><div class="td_row_odd">retry_interval_multiplier</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">uinteger</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd"></div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">2000</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">The retry interval multiplier for session retry session as described in the standard.</div></td>
                   </tr>
                   <tr>
@@ -319,8 +319,15 @@
                     <td class="td_row_odd"><div class="td_row_odd">port</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">uinteger</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd"></div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">7547</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">The port used for connection request.</div></td>
+                  </tr>
+                  <tr>
+                    <td class="td_row_odd"><div class="td_row_odd">path</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">string</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">no</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">/</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">CPE Connection request URI path</div></td>
                   </tr>
                   <tr>
                     <td class="td_row_even"><div class="td_row_even">ubus_socket</div></td>
@@ -396,7 +403,7 @@
                     <td class="td_row_even"><div class="td_row_even">periodic_notify_enable</div></td>
                     <td class="td_row_even"><div class="td_row_even">boolean</div></td>
                     <td class="td_row_even"><div class="td_row_even">no</div></td>
-                    <td class="td_row_even"><div class="td_row_even"></div></td>
+                    <td class="td_row_even"><div class="td_row_even">1</div></td>
                     <td class="td_row_even">
                       <div class="td_row_even">If set to <b>1</b>, icwmp will be able to detect parameter value change at any time.</div>
                     </td>
@@ -444,7 +451,7 @@
                     <td class="td_row_even"><div class="td_row_even">enable</div></td>
                     <td class="td_row_even"><div class="td_row_even">boolean</div></td>
                     <td class="td_row_even"><div class="td_row_even">no</div></td>
-                    <td class="td_row_even"><div class="td_row_even"></div></td>
+                    <td class="td_row_even"><div class="td_row_even">0</div></td>
                     <td class="td_row_even">
                       <div class="td_row_even">if set to <b>1</b>, the Lightweight Notifications will be enabled.</div>
                     </td>
@@ -453,14 +460,14 @@
                     <td class="td_row_odd"><div class="td_row_odd">hostname</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">host</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd"></div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">ACS url</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">The hostname or address to be used when sending the UDP Lightweight Notifications.</div></td>
                   </tr>
                   <tr>
                     <td class="td_row_even"><div class="td_row_even">port</div></td>
                     <td class="td_row_even"><div class="td_row_even">port</div></td>
                     <td class="td_row_even"><div class="td_row_even">no</div></td>
-                    <td class="td_row_even"><div class="td_row_even"></div></td>
+                    <td class="td_row_even"><div class="td_row_even">7547</div></td>
                     <td class="td_row_even"><div class="td_row_even">The port number to be used when sending UDP Lightweight Notifications.</div></td>
                   </tr>
                 </tbody>

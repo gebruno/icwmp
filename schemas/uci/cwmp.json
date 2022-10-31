@@ -30,14 +30,14 @@
           "name": "periodic_inform_enable",
           "type": "boolean",
           "required": "no",
-          "default": "",
+          "default": "1",
           "description": "If set to **1**, the CPE must periodically open session with ACS by sending Inform message to the ACS."
         },
         {
           "name": "periodic_inform_interval",
           "type": "uinteger",
           "required": "no",
-          "default": "",
+          "default": "86400",
           "description": "The duration in seconds of the interval for which the CPE must attempt to connect with the ACS and call the Inform method."
         },
         {
@@ -65,14 +65,14 @@
           "name": "retry_min_wait_interval",
           "type": "uinteger",
           "required": "no",
-          "default": "",
+          "default": "5",
           "description": "The minimum wait interval for session retry (in seconds)"
         },
         {
           "name": "retry_interval_multiplier",
           "type": "uinteger",
           "required": "no",
-          "default": "",
+          "default": "2000",
           "description": "The retry interval multiplier for session retry session as described in the standard."
         },
         {
@@ -254,8 +254,15 @@
           "name": "port",
           "type": "uinteger",
           "required": "no",
-          "default": "",
+          "default": "7547",
           "description": "The port used for connection request."
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": "no",
+          "default": "/",
+          "description": "CPE Connection request URI path"
         },
         {
           "name": "ubus_socket",
@@ -317,7 +324,7 @@
           "name": "periodic_notify_enable",
           "type": "boolean",
           "required": "no",
-          "default": "",
+          "default": "1",
           "description": "If set to **1**, icwmp will be able to detect parameter value change at any time."
         },
         {
@@ -352,21 +359,21 @@
           "name": "enable",
           "type": "boolean",
           "required": "no",
-          "default": "",
+          "default": "0",
           "description": "if set to **1**, the Lightweight Notifications will be enabled. "
         },
         {
           "name": "hostname",
           "type": "host",
           "required": "no",
-          "default": "",
+          "default": "ACS url",
           "description": "The hostname or address to be used when sending the UDP Lightweight Notifications."
         },
         {
           "name": "port",
           "type": "port",
           "required": "no",
-          "default": "",
+          "default": "7547",
           "description": "The port number to be used when sending UDP Lightweight Notifications."
         }
       ]

@@ -48,7 +48,7 @@ static void cwmp_uci_get_tests(void **state)
 	assert_string_equal(value, "iopsys");
 
 	error = uci_get_value(UCI_WRONG_PATH, &value);
-	assert_int_equal(error, UCI_OK);
+	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	assert_null(value);
 
 	error = uci_get_state_value(UCI_DHCP_ACS_URL, &value);
@@ -56,7 +56,7 @@ static void cwmp_uci_get_tests(void **state)
 	assert_string_equal(value, "http://192.168.103.160:8080/openacs/acs");
 
 	error = uci_get_state_value(UCI_WRONG_PATH, &value);
-	assert_int_equal(error, UCI_OK);
+	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	assert_null(value);
 
 	error = cwmp_uci_get_option_value_string("cwmp", "acs", "dhcp_url", UCI_VARSTATE_CONFIG, &value);

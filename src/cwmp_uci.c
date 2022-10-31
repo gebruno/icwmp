@@ -201,8 +201,9 @@ int cwmp_uci_get_value_by_path(char *path, uci_config_paths uci_type, char **val
 			return UCI_OK;
 		}
 		*value = strdup(ptr.o->v.string);
+		return UCI_OK;
 	}
-	return UCI_OK;
+	return UCI_ERR_NOTFOUND;
 }
 
 int uci_get_state_value(char *path, char **value)
