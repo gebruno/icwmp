@@ -148,6 +148,13 @@
                     <td class="td_row_even"><div class="td_row_even"></div></td>
                     <td class="td_row_even"><div class="td_row_even">ip_version of ConnectionRequestURL</div></td>
                   </tr>
+                  <tr>
+                    <td class="td_row_even"><div class="td_row_even">get_rpc_methods</div></td>
+                    <td class="td_row_even"><div class="td_row_even">boolean</div></td>
+                    <td class="td_row_even"><div class="td_row_even">no</div></td>
+                    <td class="td_row_even"><div class="td_row_even">1</div></td>
+                    <td class="td_row_even"><div class="td_row_even">Enable/Disable optional GetRPCMethods to ACS</div></td>
+                  </tr>
                 </tbody>
               </table>
             </td>

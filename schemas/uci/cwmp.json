@@ -116,6 +116,13 @@
           "required": "no",
           "default": "",
           "description": "ip_version of ConnectionRequestURL"
+        },
+        {
+          "name": "get_rpc_methods",
+          "type": "boolean",
+          "required": "no",
+          "default": "1",
+          "description": "Enable/Disable optional GetRPCMethods to ACS"
         }
       ]
     },
