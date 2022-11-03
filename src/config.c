@@ -210,9 +210,8 @@ int get_global_config()
 	FREE(value2);
 	FREE(value3);
 
-	if (cwmp_main->conf.acsurl == NULL) {
+	if (cwmp_main->conf.acsurl == NULL)
 		return CWMP_GEN_ERR;
-	}
 
 	if ((error = uci_get_value(UCI_ACS_USERID_PATH, &value)) == CWMP_OK) {
 		if (value != NULL) {

@@ -40,11 +40,17 @@ void http_set_timeout(void)
 		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 1);
 }
 
-int icwmp_http_client_init()
+int icwmp_http_client_init(char *url_redirect)
 {
 	char *dhcp_dis = NULL;
 	char *acs_var_stat = NULL;
 
+	if (url_redirect) {
+		if (icwmp_asprintf(&http_c.url, "%s", url_redirect) == -1)
+			return -1;
+		CWMP_LOG(INFO, "http session is starting with redirect ACS URL: %s", url_redirect);
+		goto curl_init;
+	}
 	uci_get_value(UCI_DHCP_DISCOVERY_PATH, &dhcp_dis);
 
 	if (dhcp_dis && cwmp_main->retry_count_session > 0 && strcmp(dhcp_dis, "enable") == 0) {
@@ -70,6 +76,8 @@ int icwmp_http_client_init()
 
 	if (dhcp_dis)
 		free(dhcp_dis);
+
+curl_init:
 
 	CWMP_LOG(INFO, "ACS url: %s", http_c.url);
 
@@ -272,6 +280,7 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 	}
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
 	if (http_code == 204) {
 		CWMP_LOG(INFO, "Receive HTTP 204 No Content");
 	}
@@ -280,16 +289,31 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 		cwmp_main->conf.compression = COMP_NONE;
 		goto error;
 	}
+
+	if ((http_code == 302 || http_code == 307 || http_code == 301)) {
+		char *sv = NULL;
+		curl_easy_getinfo(curl, CURLINFO_REDIRECT_URL, &sv);
+		if (sv == NULL)
+			goto error;
+		icwmp_http_client_exit();
+		if (icwmp_http_client_init(sv) != CWMP_OK) {
+			CWMP_LOG(INFO, "receiving http redirect: re-initializing http client failed\n");
+			goto error;
+		}
+		FREE(*msg_in);
+		res = icwmp_http_send_message(msg_out, msg_out_len, msg_in);
+		if (res)
+			goto error;
+		goto end;
+	}
+
 	if (http_code != 200 && http_code != 204)
 		goto error;
-
+end:
 	if (http_c.header_list) {
 		curl_slist_free_all(http_c.header_list);
 		http_c.header_list = NULL;
 	}
-
-	if (res)
-		goto error;
 
 	return 0;
 

@@ -51,6 +51,7 @@ fi
 
 echo "GET NAME METHOD: Correct Path && Wrong level" >> ./funl-test-debug.log
 res=$(./icwmpd -c get_names Device.ATM.Link.1.Alias 1 2>&1)
+echo "res: $res"
 if [[ $res != *"9003"* ]]; then
 	echo "Error: Get Name Method with correct path && wrong level doesn't work correctly" >> ./funl-test-debug.log
 	exit 1

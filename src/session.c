@@ -121,7 +121,7 @@ int cwmp_schedule_rpc()
 	struct list_head *ilist;
 	struct rpc *rpc_acs, *rpc_cpe;
 
-	if (icwmp_http_client_init() || cwmp_stop) {
+	if (icwmp_http_client_init(NULL) || cwmp_stop) {
 		CWMP_LOG(INFO, "Initializing http client failed");
 		goto retry;
 	}

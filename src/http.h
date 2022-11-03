@@ -26,7 +26,7 @@ struct http_client {
 
 void http_set_timeout(void);
 
-int icwmp_http_client_init();
+int icwmp_http_client_init(char *url_redirect);
 void icwmp_http_client_exit(void);
 int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in);
 
