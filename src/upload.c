@@ -79,10 +79,17 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 		CWMP_LOG(ERROR, "upload %s: url is null", __FUNCTION__);
 		return -1;
 	}
+
 	if (file_path == NULL) {
-		file_path = "/tmp/upload_file";
+		CWMP_LOG(ERROR, "upload file name unknown");
+		return -1;
 	}
-	stat(file_path, &file_info);
+
+	if (0 != stat(file_path, &file_info)) {
+		CWMP_LOG(ERROR, "upload file %s not exists", file_path);
+		return -1;
+	}
+
 	fd_upload = fopen(file_path, "rb");
 	if (fd_upload == NULL) {
 		CWMP_LOG(ERROR, "Failed to open url[%s] for upload", file_path);
@@ -199,12 +206,20 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 		cwmp_uci_export(file_path, UCI_STANDARD_CONFIG);
 		cwmp_uci_exit();
 	} else if (pupload->file_type[0] == '2') {
-		snprintf(file_path, sizeof(file_path), "/tmp/syslog");
-		copy("/var/log/syslog", file_path);
+		lookup_vlf_name(1, &name);
+		if (name && strlen(name) > 0) {
+			snprintf(file_path, sizeof(file_path), "/tmp/messages");
+			// cppcheck-suppress uninitvar
+			if (copy(name, file_path) != 0) {
+				error = FAULT_CPE_UPLOAD_FAILURE;
+				FREE(name);
+			}
+			FREE(name);
+		} else
+			error = FAULT_CPE_UPLOAD_FAILURE;
 	} else if (pupload->file_type[0] == '3') {
 		lookup_vcf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
-			// cppcheck-suppress uninitvar
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
 			cwmp_uci_init();
 			cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);
@@ -217,8 +232,11 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	} else { //file_type is 4
 		lookup_vlf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
-			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
-			copy(name, file_path);
+			snprintf(file_path, sizeof(file_path), "/tmp/.cwmp_upload");
+			if (copy(name, file_path) != 0) {
+				error = FAULT_CPE_UPLOAD_FAILURE;
+				FREE(name);
+			}
 			FREE(name);
 		} else
 			error = FAULT_CPE_UPLOAD_FAILURE;

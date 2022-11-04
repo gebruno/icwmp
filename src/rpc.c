@@ -407,8 +407,8 @@ end:
 static int validate_inform_parameter_name(struct list_head *parameters_values_list)
 {
 	struct cwmp_dm_parameter *param_value = NULL;
-	char reg_exp[65] = {0};
-	snprintf(reg_exp, sizeof(reg_exp), "^Device.ManagementServer.InformParameter.[0-9]+.ParameterName$");
+	char reg_exp[100] = {0};
+	snprintf(reg_exp, sizeof(reg_exp), "^Device\\.ManagementServer\\.InformParameter\\.[0-9]+\\.ParameterName$");
 
 	list_for_each_entry(param_value, parameters_values_list, list) {
 		if (param_value->name == NULL || param_value->value == NULL)

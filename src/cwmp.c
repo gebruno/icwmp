@@ -50,8 +50,8 @@ static bool interface_reset_req(char *param_name, char *value)
 	if (param_name == NULL || value == NULL)
 		return false;
 
-	char reg_exp[60] = {0};
-	snprintf(reg_exp, sizeof(reg_exp), "^(%s|%s)[0-9]+.Reset$", DM_IP_INTERFACE_PATH, DM_PPP_INTERFACE_PATH);
+	char reg_exp[100] = {0};
+	snprintf(reg_exp, sizeof(reg_exp), "^(%s|%s)[0-9]+\\.Reset$", DM_IP_INTERFACE_PATH, DM_PPP_INTERFACE_PATH);
 
 	if (match_reg_exp(reg_exp, param_name) == false)
 		return false;

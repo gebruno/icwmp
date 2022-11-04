@@ -63,8 +63,8 @@
 #define MAX_NBRE_SERVICES 256
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
 #define CWMP_VARSTATE_UCI_PACKAGE "/var/state/cwmp"
-#define DM_PPP_INTERFACE_PATH "Device.PPP.Interface."
-#define DM_IP_INTERFACE_PATH "Device.IP.Interface."
+#define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
+#define DM_IP_INTERFACE_PATH "Device\\.IP\\.Interface\\."
 
 #define foreach_elt_in_strlist(elt, str, delim) \
         char *tmpchr; \
