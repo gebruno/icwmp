@@ -101,8 +101,11 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 		cwmp_free_all_list_param_fault(&faults_list);
 		return icwmp_strdup(fault);
 	}
-	if (transaction_id)
+	if (transaction_id) {
 		cwmp_transaction_commit();
+		icwmp_restart_services();
+	}
+
 	return NULL;
 }
 
@@ -135,8 +138,10 @@ char *cmd_add_exec_func(struct cmd_input in, union cmd_result *res)
 			cwmp_transaction_abort();
 		return fault;
 	}
-	if (transaction_id)
+	if (transaction_id) {
 		cwmp_transaction_commit();
+		icwmp_restart_services();
+	}
 	return NULL;
 }
 
@@ -172,8 +177,10 @@ char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 			cwmp_transaction_abort();
 		return fault;
 	}
-	if (transaction_id)
+	if (transaction_id) {
 		cwmp_transaction_commit();
+		icwmp_restart_services();
+	}
 	return NULL;
 }
 
