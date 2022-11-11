@@ -205,8 +205,8 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 		{ "TargetFileName", BLOBMSG_TYPE_STRING },
 		{ "StartTime", BLOBMSG_TYPE_STRING },
 		{ "CompleteTime", BLOBMSG_TYPE_STRING },
-		{ "Fault.FaultCode", BLOBMSG_TYPE_INT32 },
-		{ "Fault.FaultString", BLOBMSG_TYPE_STRING }
+		{ "FaultCode", BLOBMSG_TYPE_INT32 },
+		{ "FaultString", BLOBMSG_TYPE_STRING }
 	};
 
 	struct blob_attr *tb[2] = {NULL, NULL};
@@ -248,10 +248,12 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 
 		if (tb1[8]) {
 			data->fault_code = tb1[8] ? blobmsg_get_u32(tb1[8]) : 0;
+			if (data->fault_code)
+				data->fault_code = 9001;
 		}
 
 		if (tb1[9]) {
-			data->fault_string = strdup(blobmsg_get_string(tb1[8]));
+			data->fault_string = strdup(blobmsg_get_string(tb1[9]));
 		}
 
 		bkp_session_insert_autonomous_transfer_complete(data);
