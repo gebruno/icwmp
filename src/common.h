@@ -101,6 +101,13 @@ typedef struct config {
 	char *ubus_socket;
 	char *default_wan_iface;
 	char *connection_request_path;
+	char *auto_tc_transfer_type;
+	char *auto_tc_result_type;
+	char *auto_tc_file_type;
+
+	char *auto_cdu_oprt_type;
+	char *auto_cdu_result_type;
+	char *auto_cdu_fault_code;
 	int connection_request_port;
 	int period;
 	int periodic_notify_interval;

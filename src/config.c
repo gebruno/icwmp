@@ -672,18 +672,54 @@ int get_global_config()
 	}
 
 
-	if (uci_get_state_value(UCI_AUTONOMOUS_TC_ENABLE, &value) == CWMP_OK) {
+	if (uci_get_value(UCI_AUTONOMOUS_TC_ENABLE, &value) == CWMP_OK) {
 		cwmp_main->conf.auto_tc_enable = uci_str_to_bool(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.auto_tc_enable = 0;
 	}
+	if (uci_get_value(UCI_AUTONOMOUS_TC_TRANSFERTYPE, &value) == CWMP_OK) {
+		cwmp_main->conf.auto_tc_transfer_type = strdup(value);
+		FREE(value);
+	} else {
+		cwmp_main->conf.auto_tc_transfer_type = NULL;
+	}
+	if (uci_get_value(UCI_AUTONOMOUS_TC_RESULTTYPE, &value) == CWMP_OK) {
+		cwmp_main->conf.auto_tc_result_type = strdup(value);
+		FREE(value);
+	} else {
+		cwmp_main->conf.auto_tc_result_type = NULL;
+	}
+	if (uci_get_value(UCI_AUTONOMOUS_TC_FILETYPE, &value) == CWMP_OK) {
+		cwmp_main->conf.auto_tc_file_type = strdup(value);
+		FREE(value);
+	} else {
+		cwmp_main->conf.auto_tc_file_type = NULL;
+	}
 
-	if (uci_get_state_value(UCI_AUTONOMOUS_CDU_ENABLE, &value) == CWMP_OK) {
+	if (uci_get_value(UCI_AUTONOMOUS_CDU_ENABLE, &value) == CWMP_OK) {
 		cwmp_main->conf.auto_cdu_enable = uci_str_to_bool(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.auto_cdu_enable = 0;
+	}
+	if (uci_get_value(UCI_AUTONOMOUS_CDU_OPTYPE, &value) == CWMP_OK) {
+		cwmp_main->conf.auto_cdu_oprt_type = strdup(value);
+		FREE(value);
+	} else {
+		cwmp_main->conf.auto_cdu_oprt_type = NULL;
+	}
+	if (uci_get_value(UCI_AUTONOMOUS_CDU_RESULTYPE, &value) == CWMP_OK) {
+		cwmp_main->conf.auto_cdu_result_type = strdup(value);
+		FREE(value);
+	} else {
+		cwmp_main->conf.auto_cdu_result_type = NULL;
+	}
+	if (uci_get_value(UCI_AUTONOMOUS_CDU_FAULTCODE, &value) == CWMP_OK) {
+		cwmp_main->conf.auto_cdu_fault_code = strdup(value);
+		FREE(value);
+	} else {
+		cwmp_main->conf.auto_cdu_fault_code = NULL;
 	}
 	return CWMP_OK;
 }

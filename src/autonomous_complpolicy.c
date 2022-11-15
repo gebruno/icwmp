@@ -31,45 +31,22 @@ struct autonomous_event {
 	autonomous_event_callback cb;
 };
 
-static bool filters_qualified(int type, void *data)
+static bool validate_du_state_change_data(auto_du_state_change_compl *data)
 {
-	char *enable = NULL, *op_filter = NULL, *res_filter = NULL;
 
-	switch (type) {
-	case DU_STATE_CHANGE:
-		cwmp_uci_reinit();
-		uci_get_state_value(UCI_AUTONOMOUS_DU_STATE_ENABLE, &enable);
-		uci_get_state_value(UCI_AUTONOMOUS_DU_STATE_OPERATION, &op_filter);
-		uci_get_state_value(UCI_AUTONOMOUS_DU_STATE_RESULT, &res_filter);
-
-		auto_du_state_change_compl *p = (auto_du_state_change_compl *)data;
-		if (p == NULL)
-			return false;
-
-		if (enable == NULL || op_filter == NULL)
-			return false;
-
-		if (uci_str_to_bool(enable) == false || strlen(op_filter) == 0)
-			return false;
-
-		if (strstr(op_filter, p->operation) == NULL)
-			return false;
-
-		if (res_filter && strlen(res_filter) != 0 && strcmp(res_filter, "Both") != 0) {
-			if (strcmp(res_filter, "Failure") == 0 && strcmp(p->current_state, "Failed") != 0)
-				return false;
-
-			if (strcmp(res_filter, "Success") == 0 && strcmp(p->current_state, "Failed") == 0)
-				return false;
-		}
-		/* For now falut_code filter is not supported since usp-data-model
-		 * only provides 7002, 7004, 7223, 7225, 7226, 7227 & 7229 but
-		 * cwmp-data-model supports more fault-codes with more specific cause,
-		 * so need to implement a mapping between usp FaultString & cwmp error code */
-		break;
-	default:
+	if (data->fault_code && cwmp_main->conf.auto_cdu_result_type && strcmp(cwmp_main->conf.auto_cdu_result_type, "Failure") != 0 && strcmp(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
 		return false;
-	}
+
+	if (!data->fault_code && cwmp_main->conf.auto_cdu_result_type && strcmp(cwmp_main->conf.auto_cdu_result_type, "Success") != 0 && strcmp(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
+		return false;
+
+	if (data->operation && strstr(cwmp_main->conf.auto_cdu_oprt_type, data->operation) == NULL)
+		return false;
+
+	char fault_code[5] = {0};
+	snprintf(fault_code, 4, "%d", data->fault_code);
+	if (strstr(cwmp_main->conf.auto_cdu_fault_code, fault_code) == NULL)
+		return false;
 
 	return true;
 }
@@ -78,6 +55,10 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 {
 	if (!cwmp_main->conf.auto_cdu_enable) {
 		CWMP_LOG(INFO, "Autonomous Change DU State is disabled");
+		return;
+	}
+	if (cwmp_main->conf.auto_cdu_oprt_type == NULL) {
+		CWMP_LOG(INFO, "Autonomous Change DU State OperationTypeFilter is empty");
 		return;
 	}
 	(void)msg;
@@ -162,10 +143,10 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 				data->fault_string = strdup(blobmsg_get_string(tb1[8]));
 			}
 
-			// Check autonomous_du_state_change_complpolicy filters
-			if (filters_qualified(DU_STATE_CHANGE, data) == false) {
-				CWMP_LOG(INFO, "autonomous du state change filters not matched");
-				FREE(data);
+			// Check autonomous_du_state_change_complpolicy data
+			if (validate_du_state_change_data(data) == false) {
+				CWMP_LOG(INFO, "autonomous du state change data is not valid");
+				free_autonomous_du_state_change_complete_data(data);
 				return;
 			}
 
@@ -183,6 +164,27 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 	}
 }
 
+bool validate_transfer_complete_data(auto_transfer_complete *data)
+{
+	if (data->is_download && cwmp_main->conf.auto_tc_transfer_type && strcmp(cwmp_main->conf.auto_tc_transfer_type, "Download") != 0 && strcmp(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
+		return false;
+
+	if (!data->is_download && cwmp_main->conf.auto_tc_transfer_type && strcmp(cwmp_main->conf.auto_tc_transfer_type, "Upload") != 0 && strcmp(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
+		return false;
+
+	if (data->fault_code && cwmp_main->conf.auto_tc_result_type && strcmp(cwmp_main->conf.auto_tc_result_type, "Failure") != 0 && strcmp(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
+		return false;
+
+	if (!data->fault_code && cwmp_main->conf.auto_tc_result_type && strcmp(cwmp_main->conf.auto_tc_result_type, "Success") != 0 && strcmp(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
+		return false;
+
+	if (strlen(data->file_type) == 0)
+		return false;
+
+	//TODO check if the file_type is among the FileTypeFilter
+	return true;
+}
+
 static void send_transfer_complete_notif(struct blob_attr *msg)
 {
 	if (!cwmp_main->conf.auto_tc_enable) {
@@ -196,13 +198,9 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 		{ "input", BLOBMSG_TYPE_TABLE }
 	};
 
-	const struct blobmsg_policy p1[10] = {
-		{ "AnnounceURL", BLOBMSG_TYPE_STRING },
+	const struct blobmsg_policy p1[6] = {
 		{ "TransferURL", BLOBMSG_TYPE_STRING },
 		{ "TransferType", BLOBMSG_TYPE_STRING },
-		{ "FileType", BLOBMSG_TYPE_STRING },
-		{ "FileSize", BLOBMSG_TYPE_INT32 },
-		{ "TargetFileName", BLOBMSG_TYPE_STRING },
 		{ "StartTime", BLOBMSG_TYPE_STRING },
 		{ "CompleteTime", BLOBMSG_TYPE_STRING },
 		{ "FaultCode", BLOBMSG_TYPE_INT32 },
@@ -213,47 +211,45 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 	blobmsg_parse(p, 2, tb, blob_data(msg), blob_len(msg));
 
 	if (tb[1]) {
-		char *file_type = NULL;
+		char file_type[256] = {0};
 
 		CWMP_LOG(INFO, "%s\n", blobmsg_format_json_indent(tb[1], true, -1));
 		struct blob_attr *tb1[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-		blobmsg_parse(p1, 10, tb1, blobmsg_data(tb[1]), blobmsg_len(tb[1]));
-
-		if (tb1[3]) {
-			file_type = blobmsg_get_string(tb1[3]);
-		}
-
-		CWMP_LOG(INFO, "file_type: %s\n", file_type);
-		if (file_type == NULL)
-			return;
+		blobmsg_parse(p1, 6, tb1, blobmsg_data(tb[1]), blobmsg_len(tb[1]));
 
 		auto_transfer_complete *data = calloc(1, sizeof(auto_transfer_complete));
 		if (data == NULL)
 			return;
 
+		data->announce_url = strdup("");
+		data->transfer_url = strdup(tb1[0] ? blobmsg_get_string(tb1[0]) : "");
+		data->is_download = (tb1[1] && strcmp(blobmsg_get_string(tb1[1]), "Download") == 0) ? true : false;
+		data->file_size = 0;
+		data->target_file_name = strdup("");
+		snprintf(file_type, sizeof(file_type), "X %s %s", cwmp_main->deviceid.oui, data->is_download ? "Download" : "Upload");
 		data->file_type = strdup(file_type);
-		data->announce_url = strdup(tb1[0] ? blobmsg_get_string(tb1[0]) : "");
-		data->transfer_url = strdup(tb1[1] ? blobmsg_get_string(tb1[1]) : "");
-		data->is_download = (tb1[2] && strcmp(blobmsg_get_string(tb1[2]), "Download") == 0) ? true : false;
-		data->file_size = tb1[4] ? blobmsg_get_u32(tb1[4]) : 0;
-		data->target_file_name = strdup(tb1[5] ? blobmsg_get_string(tb1[5]) : "");
 
-		if (tb1[6]) {
-			data->start_time = strdup(blobmsg_get_string(tb1[6]));
+		if (tb1[2]) {
+			data->start_time = strdup(blobmsg_get_string(tb1[2]));
 		}
 
-		if (tb1[7]) {
-			data->complete_time = strdup(blobmsg_get_string(tb1[7]));
+		if (tb1[3]) {
+			data->complete_time = strdup(blobmsg_get_string(tb1[3]));
 		}
 
-		if (tb1[8]) {
-			data->fault_code = tb1[8] ? blobmsg_get_u32(tb1[8]) : 0;
-			if (data->fault_code)
-				data->fault_code = 9001;
+		data->fault_code = tb1[4] ? blobmsg_get_u32(tb1[4]) : 0;
+		if (data->fault_code)
+			data->fault_code = 9001;
+
+		if (tb1[5]) {
+			data->fault_string = strdup(blobmsg_get_string(tb1[5]));
 		}
 
-		if (tb1[9]) {
-			data->fault_string = strdup(blobmsg_get_string(tb1[9]));
+		// Check autonomous_transfer_complete data
+		if (validate_transfer_complete_data(data) == false) {
+			CWMP_LOG(INFO, "autonomous transfer complete data is not valid");
+			free_autonomous_transfer_complete_data(data);
+			return;
 		}
 
 		bkp_session_insert_autonomous_transfer_complete(data);
@@ -310,19 +306,39 @@ void autonomous_notification_handler(struct ubus_context *ctx __attribute__((unu
 	}
 }
 
+void free_autonomous_du_state_change_complete_data(auto_du_state_change_compl *p)
+{
+	if (p == NULL)
+		return;
+	FREE(p->uuid);
+	FREE(p->ver);
+	FREE(p->current_state);
+	FREE(p->start_time);
+	FREE(p->complete_time);
+	FREE(p->fault_string);
+	FREE(p->operation);
+	FREE(p);
+}
+
+void free_autonomous_transfer_complete_data(auto_transfer_complete *p)
+{
+	if (p == NULL)
+		return;
+	FREE(p->announce_url);
+	FREE(p->transfer_url);
+	FREE(p->file_type);
+	FREE(p->start_time);
+	FREE(p->complete_time);
+	FREE(p->fault_string);
+	FREE(p->target_file_name);
+	FREE(p);
+}
 int cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete(struct rpc *rpc)
 {
 	auto_du_state_change_compl *p = (auto_du_state_change_compl *)rpc->extra_data;
 	if (p) {
 		bkp_session_delete_autonomous_du_state_change(p);
-		FREE(p->uuid);
-		FREE(p->ver);
-		FREE(p->current_state);
-		FREE(p->start_time);
-		FREE(p->complete_time);
-		FREE(p->fault_string);
-		FREE(p->operation);
-		FREE(p);
+		free_autonomous_du_state_change_complete_data(p);
 	}
 
 	return 0;
@@ -333,14 +349,7 @@ int cwmp_rpc_acs_destroy_data_autonomous_transfer_complete(struct rpc *rpc)
 	auto_transfer_complete *p = (auto_transfer_complete *)rpc->extra_data;
 	if (p) {
 		bkp_session_delete_autonomous_transfer_complete(p);
-		FREE(p->announce_url);
-		FREE(p->transfer_url);
-		FREE(p->file_type);
-		FREE(p->start_time);
-		FREE(p->complete_time);
-		FREE(p->fault_string);
-		FREE(p->target_file_name);
-		FREE(p);
+		free_autonomous_transfer_complete_data(p);
 	}
 
 	return 0;

@@ -58,7 +58,13 @@
 #define UCI_CPE_FIREWALL_RESTART_STATE "cwmp.cpe.firewall_restart"
 
 #define UCI_AUTONOMOUS_TC_ENABLE "cwmp.transfer_complete.enable"
+#define UCI_AUTONOMOUS_TC_TRANSFERTYPE "cwmp.transfer_complete.transfer_type"
+#define UCI_AUTONOMOUS_TC_RESULTTYPE "cwmp.transfer_complete.result_type"
+#define UCI_AUTONOMOUS_TC_FILETYPE "cwmp.transfer_complete.file_type"
 #define UCI_AUTONOMOUS_CDU_ENABLE "cwmp.du_state_change.enable"
+#define UCI_AUTONOMOUS_CDU_OPTYPE "cwmp.du_state_change.operation_type"
+#define UCI_AUTONOMOUS_CDU_RESULTYPE "cwmp.du_state_change.result_type"
+#define UCI_AUTONOMOUS_CDU_FAULTCODE "cwmp.du_state_change.fault_code"
 
 #define UCI_CONFIG_DIR "/etc/config/"
 #define LIB_DB_CONFIG "/lib/db/config"

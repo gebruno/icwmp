@@ -285,6 +285,12 @@ static void cwmp_free()
 	FREE(cwmp_main->conf.connection_request_path);
 	FREE(cwmp_main->conf.default_wan_iface);
 	FREE(cwmp_main->conf.custom_notify_json);
+	FREE(cwmp_main->conf.auto_cdu_fault_code);
+	FREE(cwmp_main->conf.auto_cdu_oprt_type);
+	FREE(cwmp_main->conf.auto_cdu_result_type);
+	FREE(cwmp_main->conf.auto_tc_file_type);
+	FREE(cwmp_main->conf.auto_tc_result_type);
+	FREE(cwmp_main->conf.auto_tc_transfer_type);
 	FREE(nonce_key);
 	clean_list_param_notify();
 	bkp_tree_clean();
