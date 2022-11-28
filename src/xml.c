@@ -257,8 +257,8 @@ int load_get_rpc_method_acs_resp_string(mxml_node_t *b, struct xml_data_struct *
 	if (node_opaque == NULL)
 		return FAULT_CPE_INVALID_ARGUMENTS;
 
-	if (set_rpc_acs_to_supported(node_opaque) == -1)
-		return FAULT_CPE_INTERNAL_ERROR;
+	set_rpc_acs_to_supported(node_opaque);
+
 	return FAULT_CPE_NO_FAULT;
 }
 

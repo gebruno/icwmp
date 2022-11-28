@@ -213,7 +213,7 @@ int cwmp_schedule_rpc()
 	goto end;
 
 retry:
-	CWMP_LOG(INFO, "Failed");
+	CWMP_LOG(INFO, "RPC Failed");
 	cwmp_main->session->error = CWMP_RETRY_SESSION;
 	event_remove_noretry_event_container();
 

@@ -562,8 +562,10 @@ int cwmp_rpc_acs_parse_response_get_rpc_methods(struct rpc *this __attribute__((
 
 	int err = load_xml_node_data(SOAP_RESP_ACS_GETRPC, b, &getrpcs_xml_attrs);
 	cwmp_free_all_xml_data_list(&getrpcs_acs_list);
-	if (err)
+	if (err) {
+		CWMP_LOG(INFO, "# Failed to load GetRPCMethodsResp");
 		goto error;
+	}
 
 	set_not_known_acs_support();
 	return 0;
