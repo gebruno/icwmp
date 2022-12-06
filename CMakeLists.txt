@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 PROJECT(icwmp C)
 
-ADD_DEFINITIONS(-Wall -Wextra -Werror -Wformat)
+ADD_DEFINITIONS(-Wall -Wextra -Werror -Wformat -g)
 ADD_DEFINITIONS(-D_GNU_SOURCE)
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${PROJECT_SOURCE_DIR}")
