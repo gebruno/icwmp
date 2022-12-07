@@ -49,7 +49,7 @@ struct diagnostic_input download_diagnostics_array[DOWNLOAD_NUMBER_INPUTS] = {
 	{ "EthernetPriority", "Device.IP.Diagnostics.DownloadDiagnostics.EthernetPriority", NULL },
 	{ "ProtocolVersion", "Device.IP.Diagnostics.DownloadDiagnostics.ProtocolVersion", NULL },
 	{ "NumberOfConnections", "Device.IP.Diagnostics.DownloadDiagnostics.NumberOfConnections", NULL },
-	{ "EnablePerConnectionResults", "Device.IP.Diagnostics.DownloadDiagnostics.EnablePerConnection", NULL },
+	{ "EnablePerConnectionResults", "Device.IP.Diagnostics.DownloadDiagnostics.EnablePerConnectionResults", NULL },
 	//{"TimeBasedTestDuration","Device.IP.Diagnostics.DownloadDiagnostics.TimeBasedTestDuration",NULL},
 	//{"TimeBasedTestMeasurementInterval","Device.IP.Diagnostics.DownloadDiagnostics.TimeBasedTestMeasurementInterval",NULL},
 	//{"TimeBasedTestMeasurementOffset","Device.IP.Diagnostics.DownloadDiagnostics.TimeBasedTestMeasurementOffset",NULL}
@@ -63,7 +63,7 @@ struct diagnostic_input upload_diagnostics_array[UPLOAD_NUMBER_INPUTS] = {
 	{ "EthernetPriority", "Device.IP.Diagnostics.UploadDiagnostics.EthernetPriority", NULL },
 	{ "ProtocolVersion", "Device.IP.Diagnostics.UploadDiagnostics.ProtocolVersion", NULL },
 	{ "NumberOfConnections", "Device.IP.Diagnostics.UploadDiagnostics.NumberOfConnections", NULL },
-	{ "EnablePerConnectionResults", "Device.IP.Diagnostics.UploadDiagnostics.EnablePerConnection", NULL },
+	{ "EnablePerConnectionResults", "Device.IP.Diagnostics.UploadDiagnostics.EnablePerConnectionResults", NULL },
 	//{"TimeBasedTestDuration","Device.IP.Diagnostics.UploadDiagnostics.TimeBasedTestDuration",NULL},
 	//{"TimeBasedTestMeasurementInterval","Device.IP.Diagnostics.UploadDiagnostics.TimeBasedTestMeasurementInterval",NULL},
 	//{"TimeBasedTestMeasurementOffset","Device.IP.Diagnostics.UploadDiagnostics.TimeBasedTestMeasurementOffset",NULL}
