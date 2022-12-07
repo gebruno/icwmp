@@ -131,7 +131,7 @@ function install_uspd()
 	# install uspd
 	cd /opt/dev
 	rm -rf uspd
-	exec_cmd git clone https://dev.iopsys.eu/iopsys/uspd.git
+	exec_cmd git clone -b release-6.5 https://dev.iopsys.eu/iopsys/uspd.git
 	cd /opt/dev/uspd
 	exec_cmd ./gitlab-ci/install-dependencies.sh
 	exec_cmd ./gitlab-ci/setup.sh
