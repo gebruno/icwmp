@@ -18,6 +18,20 @@ if [ "$status" != "1" ]; then
 	exit 1
 fi
 
+# Since user object is deleted by init script so, delete the user from uci here
+del_list=$(uci show users | grep -E "^users\.[A-Za-z0-9_]+\.deleted='1'$")
+if [ -n $del_list ]; then
+	for line in $del_list;
+	do
+		sec=$(echo $line | cut -d. -f2)
+		sec_type=$(uci get users.$sec)
+		if [ "${sec_type}" == "user" ]; then
+			uci delete users.${sec}
+			uci commit users
+		fi
+	done
+fi
+
 remove_icwmp_log
 curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.Users.User"] }' >/dev/null 2>&1
 check_ret $?
