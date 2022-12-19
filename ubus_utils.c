@@ -398,13 +398,17 @@ int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg
 	struct ubus_context *ubus_ctx = NULL;
 
 	ubus_ctx = ubus_connect(NULL);
-	if (ubus_ctx == NULL)
+	if (ubus_ctx == NULL) {
+		CWMP_LOG(ERROR, "Failed to connect with ubus");
 		return -1;
+	}
 
-	if (!ubus_lookup_id(ubus_ctx, obj, &id))
-		rc = ubus_invoke(ubus_ctx, id, method, msg, icwmp_callback, callback_arg, 20000);
-	else
+	if (!ubus_lookup_id(ubus_ctx, obj, &id)) {
+		rc = ubus_invoke(ubus_ctx, id, method, msg, icwmp_callback, callback_arg, 60000);
+	} else {
+		CWMP_LOG(ERROR, "Failed to ubus lookup %s", obj);
 		rc = -1;
+	}
 
 	if (ubus_ctx) {
 		ubus_free(ubus_ctx);

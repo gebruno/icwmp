@@ -295,19 +295,18 @@ void http_success_cr(void)
 
 static void http_cr_new_client(int client, bool service_available)
 {
-	FILE *fp;
-	char buffer[BUFSIZ];
-	char auth_digest_buffer[BUFSIZ];
+	FILE *fp = NULL;
+	char buffer[BUFSIZ] = {0};
+	char auth_digest_buffer[BUFSIZ] = {0};
 	int8_t auth_status = 0;
 	bool auth_digest_checked = false;
 	bool method_is_get = false;
 	bool internal_error = false;
+	char cr_http_get_head[HTTP_GET_HDR_LEN] = {0};
 
-	char cr_http_get_head[HTTP_GET_HDR_LEN];
-
-	pthread_mutex_lock(&mutex_config_load);
 	fp = fdopen(client, "r+");
 	if (fp == NULL) {
+		CWMP_LOG(INFO, "Failed to open client socket");
 		service_available = false;
 		goto http_end;
 	}
@@ -317,6 +316,7 @@ static void http_cr_new_client(int client, bool service_available)
 	memset(auth_digest_buffer, 0, BUFSIZ);
 	if (!username || !password) {
 		// if we dont have username or password configured proceed with connecting to ACS
+		CWMP_LOG(INFO, "Failed to get acs username and password");
 		service_available = false;
 		goto http_end;
 	}
@@ -373,32 +373,40 @@ static void http_cr_new_client(int client, bool service_available)
 http_end:
 	if (!service_available || !method_is_get) {
 		CWMP_LOG(INFO, "Receive Connection Request: Return 503 Service Unavailable");
-		fputs("HTTP/1.1 503 Service Unavailable\r\n", fp);
-		fputs("Connection: close\r\n", fp);
-		fputs("Content-Length: 0\r\n", fp);
+		if (fp) {
+			fputs("HTTP/1.1 503 Service Unavailable\r\n", fp);
+			fputs("Connection: close\r\n", fp);
+			fputs("Content-Length: 0\r\n", fp);
+		}
 	} else if (auth_status) {
 		CWMP_LOG(INFO, "Receive Connection Request: success authentication");
-		fputs("HTTP/1.1 200 OK\r\n", fp);
-		fputs("Connection: close\r\n", fp);
-		fputs("Content-Length: 0\r\n", fp);
+		if (fp) {
+			fputs("HTTP/1.1 200 OK\r\n", fp);
+			fputs("Connection: close\r\n", fp);
+			fputs("Content-Length: 0\r\n", fp);
+		}
 		http_success_cr();
 	} else if (internal_error) {
 		CWMP_LOG(INFO, "Receive Connection Request: Return 500 Internal Error");
-		fputs("HTTP/1.1 500 Internal Server Error\r\n", fp);
-		fputs("Connection: close\r\n", fp);
-		fputs("Content-Length: 0\r\n", fp);
+		if (fp) {
+			fputs("HTTP/1.1 500 Internal Server Error\r\n", fp);
+			fputs("Connection: close\r\n", fp);
+			fputs("Content-Length: 0\r\n", fp);
+		}
 	}
 	else {
 		CWMP_LOG(INFO, "Receive Connection Request: Return 401 Unauthorized");
-		fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
-		fputs("Connection: close\r\n", fp);
-		http_authentication_failure_resp(fp, "GET", "/", REALM, OPAQUE);
-		fputs("\r\n", fp);
+		if (fp) {
+			fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
+			fputs("Connection: close\r\n", fp);
+			http_authentication_failure_resp(fp, "GET", "/", REALM, OPAQUE);
+			fputs("\r\n", fp);
+		}
 	}
-	fputs("\r\n", fp);
-
-	fclose(fp);
-	pthread_mutex_unlock(&mutex_config_load);
+	if (fp) {
+		fputs("\r\n", fp);
+		fclose(fp);
+	}
 }
 
 void http_server_init(void)
