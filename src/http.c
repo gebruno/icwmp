@@ -155,6 +155,8 @@ static void http_set_connection_options()
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, HTTP_TIMEOUT);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_UNRESTRICTED_AUTH, 1L);
+	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
 	curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
 	curl_easy_setopt(curl, CURLOPT_NOBODY, 0);
 #ifdef DEVEL
@@ -280,8 +282,6 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 	}
 	if (http_code != 200 && http_code != 204)
 		goto error;
-
-	/* TODO add check for 301, 302 and 307 HTTP Redirect*/
 
 	if (http_c.header_list) {
 		curl_slist_free_all(http_c.header_list);
