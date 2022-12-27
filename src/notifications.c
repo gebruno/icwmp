@@ -21,6 +21,8 @@
 #include "xml.h"
 #include "cwmp_event.h"
 
+#define UPSTREAM_STABILITY_CHECK_TIMESPAN 5  // In seconds
+
 LIST_HEAD(list_value_change);
 LIST_HEAD(list_lw_value_change);
 LIST_HEAD(list_param_obj_notify);
@@ -645,6 +647,33 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 	int is_notify = 0;
 	if (cwmp_stop)
 		return;
+
+	/* If ConnectionRequestURL is empty then reschedule the timer after 5 second for
+	 * maximum of 3 times to check the upstream connection is stable, before enqueing
+	 * for notification. This can be a case of DHCP lease renewal phase for e.g
+	 * renew of old address is NACKED by the server (In this case interface releases its
+	 * current IP and waits for a new IP from server) */
+	// An empty connection url cause CDR test to break
+	static int cr_url_retry = 3;
+
+	if (cr_url_retry) {
+		struct cwmp_dm_parameter cwmp_dm_param = {0};
+		if (NULL != cwmp_get_single_parameter_value("Device.ManagementServer.ConnectionRequestURL", &cwmp_dm_param)) {
+			uloop_timeout_set(&check_notify_timer, UPSTREAM_STABILITY_CHECK_TIMESPAN * 1000);
+			cr_url_retry = cr_url_retry - 1;
+			return;
+		}
+
+		if (CWMP_STRLEN(cwmp_dm_param.value) == 0) {
+			uloop_timeout_set(&check_notify_timer, UPSTREAM_STABILITY_CHECK_TIMESPAN * 1000);
+			cr_url_retry = cr_url_retry - 1;
+			return;
+		}
+	}
+
+	// restore the retry count
+	cr_url_retry = 3;
+
 	is_notify = check_value_change();
 	if (is_notify > 0)
 		cwmp_update_enabled_notify_file();
