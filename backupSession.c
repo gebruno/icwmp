@@ -128,8 +128,10 @@ void load_specific_backup_attributes(mxml_node_t *tree, struct backup_attributes
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			idx = get_bkp_attribute_index_type(mxmlGetElement(b));
-			if (idx == -1)
+			if (idx == -1) {
+				b = mxmlWalkNext(b, tree, MXML_NO_DESCEND);
 				continue;
+			}
 			c = mxmlWalkNext(b, b, MXML_DESCEND);
 			if (c && mxmlGetType(c) == MXML_OPAQUE) {
 				const char *opaque = mxmlGetOpaque(c);
@@ -140,6 +142,10 @@ void load_specific_backup_attributes(mxml_node_t *tree, struct backup_attributes
 					time_t *time;
 
 					ptr = (void **)((char *)bkp_attrs + idx * sizeof(char *));
+					if (ptr == NULL || *ptr == NULL) {
+						b = mxmlWalkNext(b, tree, MXML_NO_DESCEND);
+						continue;
+					}
 					switch (bkp_attrs_names[idx].bkp_type) {
 					case BKP_STRING:
 						str = (char **)(*ptr);
