@@ -24,6 +24,13 @@ supervisorctl status all
 echo "Clean cmocka"
 make clean -C test/cmocka/
 
+echo "icwmp datamodel install"
+make -C test/cmocka libcwmpdm
+mkdir -p /usr/lib/bbfdm
+cp test/cmocka/libcwmpdm.so /usr/lib/bbfdm
+supervisorctl stop uspd 
+supervisorctl start uspd
+
 echo "Running unit test"
 make -C test/cmocka all
 check_ret $?
