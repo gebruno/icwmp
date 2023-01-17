@@ -64,7 +64,7 @@ static void cwmp_backup_session_unit_test(void **state)
 	mxml_node_t *bkp_event1 = NULL, *bkp_event2 = NULL, *event_tree1 = NULL, *event_tree2;
 
 	// Case of one event
-	bkp_event1 = bkp_session_insert_event(EVENT_IDX_4VALUE_CHANGE, "4 VALUE CHANGE", 0);
+	bkp_event1 = bkp_session_insert_event(EVENT_IDX_4VALUE_CHANGE, "VALUE_CHANGE", 0);
 	bkp_session_save();
 	pFile = fopen(CWMP_BKP_FILE, "r");
 	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
@@ -80,7 +80,7 @@ static void cwmp_backup_session_unit_test(void **state)
 	assert_int_equal(atoi(mxmlGetOpaque(mxmlGetFirstChild(n))), 0);
 	n = mxmlFindElement(event_tree1, event_tree1, "command_key", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "4 VALUE CHANGE");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "VALUE_CHANGE");
 	MXML_DELETE(bkp_event1);
 	bkp_session_save();
 	MXML_DELETE(backup_tree);
@@ -137,6 +137,7 @@ static void cwmp_backup_session_unit_test(void **state)
 	download->password = icwmp_strdup("iopsys");
 	download->username = icwmp_strdup("iopsys");
 	download->url = icwmp_strdup("http://192.168.1.160:8080/openacs/acs");
+	download->id = 1;
 	bkp_session_insert_download(download);
 	bkp_session_save();
 	pFile = fopen(CWMP_BKP_FILE, "r");
@@ -161,9 +162,6 @@ static void cwmp_backup_session_unit_test(void **state)
 	n = mxmlFindElement(download_tree, download_tree, "password", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "iopsys");
-	n = mxmlFindElement(download_tree, download_tree, "file_size", NULL, NULL, MXML_DESCEND);
-	assert_non_null(n);
-	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "0");
 	n = mxmlFindElement(download_tree, download_tree, "time", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	MXML_DELETE(backup_tree);
@@ -171,7 +169,7 @@ static void cwmp_backup_session_unit_test(void **state)
 	/*
 	 * Delete download
 	 */
-	bkp_session_delete_download(download);
+	bkp_session_delete_element("download", download->id);
 	bkp_session_save();
 	pFile = fopen(CWMP_BKP_FILE, "r");
 	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
@@ -182,7 +180,7 @@ static void cwmp_backup_session_unit_test(void **state)
 	MXML_DELETE(backup_tree);
 
 	/*
-	 * Insert TransferComplete bkp_session_delete_transfer_complete
+	 * Insert TransferComplete bkp_session_insert_transfer_complete
 	 */
 	struct transfer_complete *p;
 	p = icwmp_calloc(1, sizeof(struct transfer_complete));
@@ -192,6 +190,7 @@ static void cwmp_backup_session_unit_test(void **state)
 	p->old_software_version = icwmp_strdup("iopsys_img_old");
 	p->type = TYPE_DOWNLOAD;
 	p->fault_code = FAULT_CPE_NO_FAULT;
+	p->id = 1;
 	bkp_session_insert_transfer_complete(p);
 	bkp_session_save();
 	pFile = fopen(CWMP_BKP_FILE, "r");
@@ -219,7 +218,7 @@ static void cwmp_backup_session_unit_test(void **state)
 	/*
 	 * Delete TransferComplete
 	 */
-	bkp_session_delete_transfer_complete(p);
+	bkp_session_delete_element_by_key("transfer_complete", "start_time", p->start_time);
 	bkp_session_save();
 	pFile = fopen(CWMP_BKP_FILE, "r");
 	backup_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);

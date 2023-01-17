@@ -72,7 +72,7 @@ int cwmp_remove_all_session_events()
 			events_ptr = events_ptr->next;
 			continue;
 		}
-		bkp_session_delete_event(event_container->id);
+		bkp_session_delete_element("cwmp_event", event_container->id);
 		free(event_container->command_key);
 		cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));
 		list_del(&(event_container->list));
@@ -91,7 +91,7 @@ int remove_single_event(int event_code)
 		if (event_container->next_session)
 			continue;
 		if (event_container->code == event_code) {
-			bkp_session_delete_event(event_container->id);
+			bkp_session_delete_element("cwmp_event",event_container->id);
 			if (event_container->command_key)
 				free(event_container->command_key);
 			cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));

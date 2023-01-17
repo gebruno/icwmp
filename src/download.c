@@ -374,7 +374,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 
 	download_startTime = get_time(time(NULL));
 
-	ltype == TYPE_DOWNLOAD ? bkp_session_delete_download(pdownload) : bkp_session_delete_schedule_download(pdownload);
+	bkp_session_delete_element((ltype == TYPE_DOWNLOAD) ? "download" : "schedule_download", pdownload->id);
 	bkp_session_save();
 
 	if (flashsize < pdownload->file_size) {
@@ -449,6 +449,7 @@ end_download:
 	p->start_time = strdup(download_startTime);
 	p->complete_time = strdup(get_time(time(NULL)));
 	p->type = ltype;
+	p->file_type = strdup(pdownload->file_type);
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;
 	}
@@ -474,6 +475,13 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 	int error = FAULT_CPE_NO_FAULT;
 	if (pdownload->file_type[0] == '1') {
 		ptransfer_complete->old_software_version = cwmp_main->deviceid.softwareversion;
+	}
+	if (ptransfer_complete->id <= 0) {
+		if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
+			cwmp_main->tc_id = 0;
+		}
+		cwmp_main->tc_id++;
+		ptransfer_complete->id = cwmp_main->tc_id;
 	}
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
@@ -534,13 +542,20 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		if (pdownload->file_type[0] == '3') {
 			CWMP_LOG(INFO, "Download and apply new vendor config file is done successfully");
 			//cwmp_root_cause_transfer_complete(ptransfer_complete);
-			bkp_session_delete_transfer_complete(ptransfer_complete);
+			bkp_session_delete_element_by_key("transfer_complete", "start_time", ptransfer_complete->start_time);
 		}
 		return FAULT_CPE_NO_FAULT;
 	}
 	if (error != FAULT_CPE_NO_FAULT) {
-		bkp_session_delete_transfer_complete(ptransfer_complete);
+		bkp_session_delete_element_by_key("transfer_complete", "start_time", ptransfer_complete->start_time);
 		ptransfer_complete->fault_code = error;
+	}
+	if (ptransfer_complete->id <= 0) {
+		if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
+			cwmp_main->tc_id = 0;
+		}
+		cwmp_main->tc_id++;
+		ptransfer_complete->id = cwmp_main->tc_id;
 	}
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
@@ -558,6 +573,13 @@ struct transfer_complete *set_download_error_transfer_complete(struct download *
 		ptransfer_complete->complete_time = strdup(ptransfer_complete->start_time ? ptransfer_complete->start_time  : "");
 		ptransfer_complete->fault_code = ltype == TYPE_DOWNLOAD ? FAULT_CPE_DOWNLOAD_FAILURE : FAULT_CPE_DOWNLOAD_FAIL_WITHIN_TIME_WINDOW;
 		ptransfer_complete->type = ltype;
+		if (ptransfer_complete->id <= 0) {
+			if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
+				cwmp_main->tc_id = 0;
+			}
+			cwmp_main->tc_id++;
+			ptransfer_complete->id = cwmp_main->tc_id;
+		}
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		cwmp_root_cause_transfer_complete(ptransfer_complete);
 	}
@@ -623,7 +645,7 @@ int cwmp_scheduledDownload_remove_all()
 		struct download *download;
 		download = list_entry(list_download.next, struct download, list);
 		list_del(&(download->list));
-		bkp_session_delete_download(download);
+		bkp_session_delete_element("schedule_download", download->id);
 		if (download->scheduled_time != 0)
 			count_download_queue--;
 		cwmp_free_download_request(download);
@@ -638,7 +660,7 @@ int cwmp_scheduled_Download_remove_all()
 		struct download *schedule_download;
 		schedule_download = list_entry(list_schedule_download.next, struct download, list);
 		list_del(&(schedule_download->list));
-		bkp_session_delete_schedule_download(schedule_download);
+		bkp_session_delete_element("schedule_download", schedule_download->id);
 		if (schedule_download->timewindowstruct[0].windowstart != 0)
 			count_download_queue--;
 		cwmp_free_schedule_download_request(schedule_download);
@@ -651,12 +673,14 @@ int cwmp_rpc_acs_destroy_data_transfer_complete(struct rpc *rpc)
 {
 	if (rpc && rpc->extra_data != NULL) {
 		struct transfer_complete *p = (struct transfer_complete *)rpc->extra_data;
-		bkp_session_delete_transfer_complete(p);
+		bkp_session_delete_element_by_key("transfer_complete", "start_time", p->start_time);
+
 		bkp_session_save();
 		FREE(p->command_key);
 		FREE(p->start_time);
 		FREE(p->complete_time);
 		FREE(p->old_software_version);
+		FREE(p->file_type);
 	}
 	if (rpc)
 		FREE(rpc->extra_data);
@@ -676,24 +700,38 @@ void cwmp_start_download(struct uloop_timeout *timeout)
 	sleep(3);
 	if (error != FAULT_CPE_NO_FAULT) {
 		CWMP_LOG(ERROR, "Error while downloading the file: %s", pdownload->url);
+		if (ptransfer_complete->id <= 0) {
+			if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
+				cwmp_main->tc_id = 0;
+			}
+			cwmp_main->tc_id++;
+			ptransfer_complete->id = cwmp_main->tc_id;
+		}
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		bkp_session_save();
 		//cwmp_root_cause_transfer_complete(ptransfer_complete);
-		bkp_session_delete_transfer_complete(ptransfer_complete);
+		//bkp_session_delete_transfer_complete(ptransfer_complete);
 	} else {
 		error = apply_downloaded_file(pdownload, download_file_name, ptransfer_complete);
 		if (error != FAULT_CPE_NO_FAULT) {
 			CWMP_LOG(ERROR, "Error while applying the downloaded file: %s", download_file_name);
+			if (ptransfer_complete->id <= 0) {
+				if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
+					cwmp_main->tc_id = 0;
+				}
+				cwmp_main->tc_id++;
+				ptransfer_complete->id = cwmp_main->tc_id;
+			}
 			bkp_session_insert_transfer_complete(ptransfer_complete);
 			bkp_session_save();
 			//cwmp_root_cause_transfer_complete(ptransfer_complete);
-			bkp_session_delete_transfer_complete(ptransfer_complete);
+			//bkp_session_delete_transfer_complete(ptransfer_complete);
 		}
 	}
 	if (error == FAULT_CPE_NO_FAULT && pdownload->file_type[0] == '3') {
 		//cwmp_root_cause_transfer_complete(ptransfer_complete);
-		bkp_session_delete_download(pdownload);
-		bkp_session_delete_transfer_complete(ptransfer_complete);
+		bkp_session_delete_element_by_key("transfer_complete", "start_time", ptransfer_complete->start_time);
+		bkp_session_delete_element("download", pdownload->id);
 		bkp_session_save();
 	}
 	list_del(&(pdownload->list));
@@ -768,8 +806,8 @@ void cwmp_start_schedule_download(struct uloop_timeout *timeout)
 		}
 		if (error == FAULT_CPE_NO_FAULT && sched_download->file_type[0] == '3') {
 			//cwmp_root_cause_transfer_complete(ptransfer_complete);
-			bkp_session_delete_download(sched_download);
-			bkp_session_delete_transfer_complete(ptransfer_complete);
+			bkp_session_delete_element("schedule_download", sched_download->id);
+			bkp_session_delete_element_by_key("transfer_complete", "start_time", ptransfer_complete->start_time);
 			bkp_session_save();
 		}
 	} else {
@@ -785,10 +823,17 @@ void cwmp_start_schedule_download(struct uloop_timeout *timeout)
 		ptransfer_complete->complete_time = strdup(get_time(now));
 		ptransfer_complete->type = TYPE_DOWNLOAD;
 		ptransfer_complete->fault_code = FAULT_CPE_INTERNAL_ERROR;
+		if (ptransfer_complete->id <= 0) {
+			if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
+				cwmp_main->tc_id = 0;
+			}
+			cwmp_main->tc_id++;
+			ptransfer_complete->id = cwmp_main->tc_id;
+		}
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		bkp_session_save();
 		//cwmp_root_cause_transfer_complete(ptransfer_complete);
-		bkp_session_delete_transfer_complete(ptransfer_complete);
+		bkp_session_delete_element_by_key("transfer_complete", "start_time", ptransfer_complete->start_time);
 	}
 
 	return;
@@ -799,10 +844,17 @@ retry:
 		sched_download->timewindowstruct[window_index].maxretries--;
 		return;
 	} else {
+		if (ptransfer_complete->id <= 0) {
+			if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
+				cwmp_main->tc_id = 0;
+			}
+			cwmp_main->tc_id++;
+			ptransfer_complete->id = cwmp_main->tc_id;
+		}
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		bkp_session_save();
 		//cwmp_root_cause_transfer_complete(ptransfer_complete);
-		bkp_session_delete_transfer_complete(ptransfer_complete);
+		bkp_session_delete_element_by_key("transfer_complete", "start_time", ptransfer_complete->start_time);
 		bkp_session_save();
 	}
 	list_del(&(sched_download->list));

@@ -81,9 +81,44 @@ enum soap_methods {
 	SOAP_CDU_RESULTS_REF,
 	SOAP_ACDU_OPTS_REF,
 	SOAP_CDU_OPTS_REF,
+
+	BKP_EVT_LOAD,
+	BKP_EVT_PARAM_REF,
+	BKP_EVT_SINGLE_PARAM,
+	BKP_EVT_BUILD,
+	BKP_EVT_BUILD_REF,
+	BKP_SCHEDULE_INFORM_BUILD,
+	BKP_SCHEDULE_INFORM,
+	BKP_DOWNLOAD_BUILD,
+	BKP_DOWNLOAD,
+	BKP_SCHED_DOWNLOAD_BUILD,
+	BKP_SCHED_DOWNLOAD,
+	BKP_UPLOAD_BUILD,
+	BKP_UPLOAD,
+	BKP_CDU_BUILD,
+	BKP_CDU_BUILD_REF,
+	BKP_CDU_OPS_REF,
+	BKP_CDU_OPTION,
+	BKP_CDU,
+	BKP_CDU_UPDATE,
+	BKP_CDU_INSTALL,
+	BKP_CDU_UNINSTALL,
+	BKP_CDU_COMPLETE_BUILD,
+	BKP_CDU_COMPLETE,
+	BKP_CDU_COMPLETE_OPRES,
+	BKP_TRANSFER_COMPLETE_BUILD,
+	BKP_TRANSFER_COMPLETE,
+	BKP_AUTO_CDU_BUILD,
+	BKP_AUTO_CDU,
+	BKP_AUTO_TRANSFER_COMPLETE_BUILD,
+	BKP_AUTO_TRANSFER_COMPLETE,
+
 	ATTR_PARAM_STRUCT,
 	ATTR_SOAP_ENV,
 	GET_RPC_ATTR,
+
+	XML_SWITCH,
+
 	SOAP_MAX
 };
 
@@ -109,6 +144,11 @@ enum validation_types {
 	VALIDATE_UNINT,
 	VALIDATE_BOOLEAN,
 	VALIDATE_INT_RANGE
+};
+
+struct xml_switch {
+	char *node_name;
+	char *switch_node_name;
 };
 
 struct xml_tag_validation {
@@ -137,6 +177,7 @@ struct xml_data_struct {
 	char **uuid;
 	char **exec_env_ref;
 	char **du_ref;
+	char **exec_unit_ref;
 	char **current_state;
 	char **version;
 	char **operation;
@@ -154,29 +195,50 @@ struct xml_data_struct {
 	char **serial_number;
 	char **current_time;
 	char **product_class;
+	char **window_mode1;
+	char **window_mode2;
+	char **user_message1;
+	char **user_message2;
+	char **op;
+	char **old_software_version;
+	char **parameter;
 	char **xsi_type;
 	char **soap_enc_array_type;
 	char **target_file_name;
+	int *index;
+	int *id;
+	int *bkp_id;
+	int *time;
 	int *file_size;
 	int *notification;
 	int *scheddown_max_retries;
+	int *max_retries1;
+	int *max_retries2;
 	int *status;
 	int *instance;
 	int *fault_code;
 	int *max_envelopes;
 	int *retry_count;
+	int *type;
 	long int *delay_seconds;
 	long int *window_start;
 	long int *window_end;
+	time_t *window_start1;
+	time_t *window_start2;
+	time_t *window_end1;
+	time_t *window_end2;
 	bool *next_level;
 	bool *notification_change;
 	bool *writable;
 	bool *is_download;
 
+	struct change_du_state *cdu;
+	struct du_state_change_complete *cdu_complete;
 	mxml_node_t **xml_env;
 	struct list_head *data_list;
 	char **xcwmp;
 	int *amd_version;
+	struct event_container *event_save;
 	unsigned int *session_timeout;
 	int *cdu_type;
 	int *counter;
@@ -230,7 +292,7 @@ struct xml_node_data {
 	int node_ms;
 	int tag_node_ref;
 	char *tag_list_name;
-	struct xml_tag xml_tags[10];
+	struct xml_tag xml_tags[20];
 };
 
 #define MXML_DELETE(X)                                                                                                                                                                                                                                                                                     \
@@ -263,17 +325,25 @@ mxml_node_t * build_top_body_soap_request(mxml_node_t *node, char *method);
 void dm_parameter_list_to_xml_data_list(struct list_head *dm_parameter_list, struct list_head *xml_data_list);
 void xml_data_list_to_dm_parameter_list(struct list_head *xml_data_list, struct list_head *dm_parameter_list);
 void xml_data_list_to_cdu_operations_list(struct list_head *xml_data_list, struct list_head *du_op_list);
+void cdu_operations_result_list_to_xml_data_list(struct list_head *du_op_res_list, struct list_head *xml_data_list);
 void cdu_operations_list_to_xml_data_list(struct list_head *du_op_list, struct list_head *xml_data_list);
 void event_container_list_to_xml_data_list(struct list_head *event_container, struct list_head *xml_data_list);
 void cwmp_param_fault_list_to_xml_data_list(struct list_head *param_fault_list, struct list_head *xml_data_list);
 void cwmp_free_all_xml_data_list(struct list_head *list);
 int load_upload_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+int load_backup_event_command_key(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+int load_backup_event_parameter(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int load_get_rpc_method_acs_resp_string(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int load_download_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int load_sched_download_window_mode(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int load_change_du_state_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+int load_cdu_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+int load_cdu_complete_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int build_inform_events(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *xml_attrs);
+int build_backup_cdu_option(mxml_node_t *cdu, struct xml_data_struct *xml_attrs);
 int get_soap_enc_array_type(mxml_node_t *node, struct xml_data_struct *xml_attrs);
+char *get_xml_node_name_switch(char *node_name);
+char *get_xml_node_name_by_switch_name(char *switch_node_name);
 #endif

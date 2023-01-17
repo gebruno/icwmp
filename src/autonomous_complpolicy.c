@@ -149,7 +149,11 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 				free_autonomous_du_state_change_complete_data(data);
 				return;
 			}
-
+			if ((cwmp_main->auto_cdu_id < 0) || (cwmp_main->auto_cdu_id >= MAX_INT_ID)) {
+				cwmp_main->auto_cdu_id = 0;
+			}
+			cwmp_main->auto_cdu_id++;
+			data->id = cwmp_main->auto_cdu_id;
 			bkp_session_insert_autonomous_du_state_change(data);
 			bkp_session_save();
 
@@ -251,7 +255,11 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 			free_autonomous_transfer_complete_data(data);
 			return;
 		}
-
+		if ((cwmp_main->auto_tc_id < 0) || (cwmp_main->auto_tc_id >= MAX_INT_ID)) {
+			cwmp_main->auto_tc_id = 0;
+		}
+		cwmp_main->auto_tc_id++;
+		data->id = cwmp_main->auto_tc_id;
 		bkp_session_insert_autonomous_transfer_complete(data);
 		bkp_session_save();
 
@@ -337,7 +345,7 @@ int cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete(struct rpc *rp
 {
 	auto_du_state_change_compl *p = (auto_du_state_change_compl *)rpc->extra_data;
 	if (p) {
-		bkp_session_delete_autonomous_du_state_change(p);
+		bkp_session_delete_element("autonomous_du_state_change_complete", p->id);
 		free_autonomous_du_state_change_complete_data(p);
 	}
 
@@ -348,7 +356,7 @@ int cwmp_rpc_acs_destroy_data_autonomous_transfer_complete(struct rpc *rpc)
 {
 	auto_transfer_complete *p = (auto_transfer_complete *)rpc->extra_data;
 	if (p) {
-		bkp_session_delete_autonomous_transfer_complete(p);
+		bkp_session_delete_element("autonomous_transfer_complete", p->id);
 		free_autonomous_transfer_complete_data(p);
 	}
 

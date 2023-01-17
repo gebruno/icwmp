@@ -24,7 +24,7 @@ int remove_schedule_inform(struct schedule_inform *schedule_inform)
 {
 	if (schedule_inform != NULL) {
 		list_del(&(schedule_inform->list));
-		bkp_session_delete_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey ? schedule_inform->commandKey : "");
+		bkp_session_delete_element("schedule_inform", schedule_inform->id);
 		FREE(schedule_inform->commandKey);
 		free(schedule_inform);
 	}

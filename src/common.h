@@ -167,6 +167,15 @@ typedef struct cwmp {
 	time_t prev_heartbeat_time;
 	unsigned int cwmp_id;
 	int event_id;
+	int sched_inform_id;
+	int download_id;
+	int sched_download_id;
+	int cdu_id;
+	int upload_id;
+	int auto_cdu_id;
+	int auto_tc_id;
+	int cdu_complete_id;
+	int tc_id;
 	int cr_socket_desc;
 	int cwmp_period;
 	long int heart_session_interval;
@@ -408,6 +417,7 @@ typedef struct schedule_inform {
 	struct uloop_timeout handler_timer ;
 	time_t scheduled_time;
 	char *commandKey;
+	int id;
 } schedule_inform;
 
 typedef struct timewindow {
@@ -429,6 +439,7 @@ typedef struct download {
 	char *username;
 	char *password;
 	struct timewindow timewindowstruct[2];
+	int id;
 } download;
 
 typedef struct timeinterval {
@@ -443,6 +454,7 @@ typedef struct change_du_state {
 	time_t timeout;
 	char *command_key;
 	struct list_head list_operation;
+	int id;
 } change_du_state;
 
 typedef struct du_operational_uuid {
@@ -472,6 +484,7 @@ typedef struct upload {
 	char *username;
 	char *password;
 	int f_instance;
+	int id;
 } upload;
 
 typedef struct transfer_complete {
@@ -480,7 +493,9 @@ typedef struct transfer_complete {
 	char *start_time;
 	char *complete_time;
 	char *old_software_version;
+	char *file_type;
 	int type;
+	int id;
 } transfer_complete;
 
 typedef struct autonomous_du_state_change_complete {
@@ -493,6 +508,7 @@ typedef struct autonomous_du_state_change_complete {
 	int fault_code;
 	char *fault_string;
 	char *operation;
+	int id;
 } auto_du_state_change_compl;
 
 typedef struct autonomous_transfer_complete {
@@ -506,6 +522,7 @@ typedef struct autonomous_transfer_complete {
 	int fault_code;
 	bool is_download;
 	int file_size;
+	int id;
 
 } auto_transfer_complete;
 
@@ -513,6 +530,7 @@ typedef struct du_state_change_complete {
 	char *command_key;
 	time_t timeout;
 	struct list_head list_opresult;
+	int id;
 } du_state_change_complete;
 
 typedef struct opresult {

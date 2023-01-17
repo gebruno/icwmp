@@ -18,6 +18,7 @@
 #include "cwmp_zlib.h"
 #include "common.h"
 #include "event.h"
+#include "cwmp_event.h"
 #include "datamodel_interface.h"
 
 static const char *soap_env_url = "http://schemas.xmlsoap.org/soap/envelope/";
@@ -105,12 +106,48 @@ struct xml_node_data xml_nodes_data[] = {
 		[SOAP_ACDU_OPTS_REF] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, 0, NULL}, {"Version", XML_STRING, 0, NULL}, {"CurrentState", XML_STRING, 0, NULL}, {"Resolved", XML_BOOL, 0, NULL}, {"StartTime", XML_STRING, 0, NULL}, {"CompleteTime", XML_STRING, 0, NULL}, {"FaultStruct", XML_REC, SOAP_CWMP_FAULT, NULL}, {"OperationPerformed", XML_STRING, 0, NULL}}},
 
 		/*
+		 * XML Backup Session
+		 */
+		[BKP_EVT_LOAD] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"index", XML_INTEGER, 0, NULL}, {"CommandKey", XML_FUNC, XML_SWITCH, load_backup_event_command_key}, {"parameter", XML_REC, BKP_EVT_PARAM_REF, NULL}}},
+		[BKP_EVT_PARAM_REF] = {XML_LIST, BKP_EVT_SINGLE_PARAM, "parameter", {}},
+		[BKP_EVT_SINGLE_PARAM] = {XML_SINGLE, 0, NULL, {{"string", XML_FUNC, 0, load_backup_event_parameter}}},
+		[BKP_EVT_BUILD] = {XML_SINGLE, 0, NULL, {{"cwmp_event", XML_REC, BKP_EVT_BUILD_REF, NULL}}},
+		[BKP_EVT_BUILD_REF] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"index", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}}},
+		[BKP_SCHEDULE_INFORM_BUILD] = {XML_SINGLE, 0, NULL, {{"schedule_inform", XML_REC, BKP_SCHEDULE_INFORM, NULL}}},
+		[BKP_SCHEDULE_INFORM] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}}},
+		[BKP_DOWNLOAD_BUILD] = {XML_SINGLE, 0, NULL, {{"download", XML_REC, BKP_DOWNLOAD, NULL}}},
+		[BKP_DOWNLOAD] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"URL", XML_STRING, XML_SWITCH, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"FileType", XML_STRING, XML_SWITCH, NULL}, {"Username", XML_STRING, XML_SWITCH, NULL}, {"Password", XML_STRING, XML_SWITCH, NULL}, {"FileSize", XML_INTEGER, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}}},
+		[BKP_SCHED_DOWNLOAD_BUILD] = {XML_SINGLE, 0, NULL, {{"schedule_download", XML_REC, BKP_SCHED_DOWNLOAD, NULL}}},
+		[BKP_SCHED_DOWNLOAD] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"URL", XML_STRING, XML_SWITCH, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"FileType", XML_STRING, XML_SWITCH, NULL}, {"Username", XML_STRING, XML_SWITCH, NULL}, {"Password", XML_STRING, XML_SWITCH, NULL}, {"FileSize", XML_INTEGER, XML_SWITCH, NULL}, {"windowstart1", XML_INTEGER, 0, NULL}, {"windowstart2", XML_INTEGER, 0, NULL}, {"windowend1", XML_INTEGER, 0, NULL}, {"windowend2", XML_INTEGER, 0, NULL}, {"windowmode1", XML_STRING, 0, NULL}, {"windowmode2", XML_STRING, 0, NULL}, {"usermessage1", XML_STRING, 0, NULL}, {"usermessage2", XML_STRING, 0, NULL}, {"maxretrie1", XML_INTEGER, 0, NULL}, {"maxretrie2", XML_INTEGER, 0, NULL}}},
+		[BKP_UPLOAD_BUILD] = {XML_SINGLE, 0, NULL, {{"upload", XML_REC, BKP_UPLOAD, NULL}}},
+		[BKP_UPLOAD] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"URL", XML_STRING, XML_SWITCH, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"FileType", XML_STRING, XML_SWITCH, NULL}, {"Username", XML_STRING, XML_SWITCH, NULL}, {"Password", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}}},
+		[BKP_CDU_BUILD] = {XML_SINGLE, 0, NULL, {{"change_du_state", XML_REC, BKP_CDU_BUILD_REF, NULL}}},
+		[BKP_CDU_BUILD_REF] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}, {NULL, XML_REC, BKP_CDU_OPS_REF, NULL}}},
+		[BKP_CDU_OPS_REF] = {XML_LIST, BKP_CDU_OPTION, NULL, {}},
+		[BKP_CDU_OPTION] = {XML_SINGLE, 0, NULL, {{NULL, XML_FUNC, 0, build_backup_cdu_option}}},
+		[BKP_CDU] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}, {"update", XML_FUNC, 0, load_cdu_backup_operation}, {"install", XML_FUNC, 0, load_cdu_backup_operation}, {"uninstall", XML_FUNC, 0, load_cdu_backup_operation}}},
+		[BKP_CDU_UPDATE] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"URL", XML_STRING, 0, NULL}, {"Username", XML_STRING, 0, NULL}, {"Password", XML_INTEGER, 0, NULL}}},
+		[BKP_CDU_INSTALL] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"ExecutionEnvRef", XML_STRING, XML_SWITCH, NULL}, {"URL", XML_STRING, XML_SWITCH, NULL}, {"Username", XML_STRING, XML_SWITCH, NULL}, {"Password", XML_INTEGER, XML_SWITCH, NULL}}},
+		[BKP_CDU_UNINSTALL] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"ExecutionEnvRef", XML_STRING, XML_SWITCH, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}}},
+		[BKP_CDU_COMPLETE_BUILD] = {XML_SINGLE, 0, NULL, {{"du_state_change_complete", XML_REC, BKP_CDU_COMPLETE, NULL}}},
+		[BKP_CDU_COMPLETE] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}, {"opresult", XML_FUNC, 0, load_cdu_complete_backup_operation}}},
+		[BKP_CDU_COMPLETE_OPRES] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"execution_unit_ref", XML_STRING, 0, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"CurrentState", XML_STRING, XML_SWITCH, NULL}, {"Resolved", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}}},
+		[BKP_TRANSFER_COMPLETE_BUILD] = {XML_SINGLE, 0, NULL, {{"transfer_complete", XML_REC, BKP_TRANSFER_COMPLETE, NULL}}},
+		[BKP_TRANSFER_COMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"old_software_version", XML_STRING, 0, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"type", XML_LINTEGER, 0, NULL}}},
+		[BKP_AUTO_CDU_BUILD] = {XML_SINGLE, 0, NULL, {{"autonomous_du_state_change_complete", XML_REC, BKP_AUTO_CDU, NULL}}},
+		[BKP_AUTO_CDU] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"UUID", XML_STRING, XML_SWITCH, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"CurrentState", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"operation", XML_STRING, 0, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"FaultString", XML_STRING, XML_SWITCH, NULL}}},
+		[BKP_AUTO_TRANSFER_COMPLETE_BUILD] = {XML_SINGLE, 0, NULL, {{"autonomous_transfer_complete", XML_REC, BKP_AUTO_TRANSFER_COMPLETE, NULL}}},
+		[BKP_AUTO_TRANSFER_COMPLETE] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"AnnounceURL", XML_STRING, XML_SWITCH, NULL}, {"TransferURL", XML_STRING, XML_SWITCH, NULL}, {"IsDownload", XML_BOOL, 0, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"FileType", XML_STRING, XML_SWITCH, NULL}, {"FileSize", XML_INTEGER, XML_SWITCH, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"FaultString", XML_STRING, XML_SWITCH, NULL}}},
+
+		/*
 		 * XML node attributes
 		 */
 		[ATTR_PARAM_STRUCT] = {XML_SINGLE, 0, NULL, {{"xsi:type", XML_STRING, 0, NULL}}},
 		[ATTR_SOAP_ENV] = {XML_SINGLE, 0, NULL, {{"xmlns:soap_env", XML_STRING, 0, NULL}, {"xmlns:soap_enc", XML_STRING, 0, NULL}, {"xmlns:xsd", XML_STRING, 0, NULL}, {"xmlns:xsi", XML_STRING, 0, NULL}}},
 		[GET_RPC_ATTR] = {XML_SINGLE, 0, NULL, {{"xsi:type", XML_STRING, 0, NULL}, {"soap_enc:arrayType", XML_FUNC, 0, get_soap_enc_array_type}}}
 };
+
+struct xml_switch xml_nodes_names_switches[] = {{"URL", "url"}, {"UUID", "uuid"}, {"IsDownload", "isdownload"}, {"AnnounceURL", "announceurl"}, {"TransferURL", "transferurl"}, {"ExecutionEnvRef", "executionenvref"}, {"Resolved", "resolved"}, {"CurrentState", "uuid"}, {"FileType", "file_type"}, {"CommandKey", "command_key"}, {"Username", "username"}, {"Version", "version"}, {"Password", "password"}, {"StartTime", "start_time"}, {"CompleteTime", "complete_time"}, {"FileSize", "file_size"}, {"FaultCode", "fault_code"}, {"FaultString", "fault_string"}};
 
 char* xml_tags_names[] = {
 		"ParameterList",
@@ -131,6 +168,7 @@ char* xml_tags_names[] = {
 		"UUID",
 		"ExecutionEnvRef",
 		"DeploymentUnitRef",
+		"execution_unit_ref",
 		"CurrentState",
 		"Version",
 		"OperationPerformed",
@@ -148,20 +186,38 @@ char* xml_tags_names[] = {
 		"SerialNumber",
 		"CurrentTime",
 		"ProductClass",
+		"windowmode1",
+		"windowmode2",
+		"usermessage1",
+		"usermessage2",
+		"operation",
+		"old_software_version",
+		"parameter",
 		"xsi:type",
 		"soap_enc:arrayType",
 		"TargetFileName",
+		"index",
+		"id",
+		"BKP_ID",
+		"time",
 		"FileSize",
 		"Notification",
 		"MaxRetries",
+		"maxretrie1",
+		"maxretrie2",
 		"Status",
 		"InstanceNumber",
 		"FaultCode",
 		"MaxEnvelopes",
 		"RetryCount",
+		"type",
 		"DelaySeconds",
 		"WindowStart",
 		"WindowEnd",
+		"windowstart1",
+		"windowstart2",
+		"windowend1",
+		"windowend2",
 		"NextLevel",
 		"NotificationChange",
 		"Writable",
@@ -214,6 +270,35 @@ void cwmp_free_all_xml_data_list(struct list_head *list)
 		xml_data = list_entry(list->next, struct xml_list_data, list);
 		delete_xml_data_from_list(xml_data);
 	}
+}
+
+int load_backup_event_command_key(mxml_node_t *b __attribute__((unused)), struct xml_data_struct *xml_attrs)
+{
+	mxml_node_t *c = mxmlWalkNext(b, b, MXML_DESCEND);
+	if (!c || mxmlGetType(c) != MXML_OPAQUE)
+		return FAULT_CPE_INVALID_ARGUMENTS;
+	const char *command_key = mxmlGetOpaque(c);
+	if (xml_attrs->index && *(xml_attrs->index) > -1) {
+		if (EVENT_CONST[*(xml_attrs->index)].RETRY & EVENT_RETRY_AFTER_REBOOT) {
+			xml_attrs->event_save = cwmp_add_event_container(*(xml_attrs->index), ((command_key != NULL) ? (char *)command_key : ""));
+			if (xml_attrs->event_save != NULL)
+				xml_attrs->event_save->id = *(xml_attrs->id);
+		}
+	}
+	return FAULT_CPE_NO_FAULT;
+}
+
+int load_backup_event_parameter(mxml_node_t *b, struct xml_data_struct *xml_attrs)
+{
+	mxml_node_t *c = mxmlWalkNext(b, b, MXML_DESCEND);
+	if (c && mxmlGetType(c) == MXML_OPAQUE) {
+		const char *op = mxmlGetOpaque(c);
+		if (op != NULL) {
+			if (xml_attrs->event_save != NULL)
+				add_dm_parameter_to_list(&xml_attrs->event_save->head_dm_parameter, (char *)op, NULL, NULL, 0, false);
+		}
+	}
+	return FAULT_CPE_NO_FAULT;
 }
 
 int load_upload_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs)
@@ -336,6 +421,56 @@ int load_change_du_state_operation(mxml_node_t *b, struct xml_data_struct *xml_a
 		return fault;
 
 	return FAULT_CPE_NO_FAULT;
+}
+
+int load_cdu_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs)
+{
+	int fault = FAULT_CPE_NO_FAULT;
+	if (b == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
+
+	struct operations *operat =  (operations *)calloc(1, sizeof(operations));
+	list_add_tail(&(operat->list), &(xml_attrs->cdu->list_operation));
+	const char *element = mxmlGetElement(b);
+
+	struct xml_data_struct bkp_xml_cdu_backup = {0};
+	bkp_xml_cdu_backup.uuid = &operat->uuid;
+	bkp_xml_cdu_backup.exec_env_ref = &operat->executionenvref;
+	bkp_xml_cdu_backup.version = &operat->version;
+	bkp_xml_cdu_backup.url = &operat->url;
+	bkp_xml_cdu_backup.username = &operat->username;
+	bkp_xml_cdu_backup.password = &operat->password;
+	if (strcmp(element, "update") == 0) {
+		operat->type = DU_UPDATE;
+		fault = load_xml_node_data(BKP_CDU_UPDATE, b, &bkp_xml_cdu_backup);
+	} else if (strcmp(element, "install") == 0) {
+		operat->type = DU_INSTALL;
+		fault = load_xml_node_data(BKP_CDU_INSTALL, b, &bkp_xml_cdu_backup);
+	} else if (strcmp(element, "uninstall") == 0) {
+		operat->type = DU_UNINSTALL;
+		fault = load_xml_node_data(BKP_CDU_UNINSTALL, b, &bkp_xml_cdu_backup);
+	}
+	return fault;
+}
+
+int load_cdu_complete_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs)
+{
+	if (b == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
+	struct opresult *elem = (opresult *)calloc(1, sizeof(opresult));
+	list_add_tail(&(elem->list), &(xml_attrs->cdu_complete->list_opresult));
+	struct xml_data_struct opresult_bkp = {0};
+	opresult_bkp.uuid = &elem->uuid;
+	opresult_bkp.version = &elem->version;
+	opresult_bkp.du_ref = &elem->du_ref;
+	opresult_bkp.current_state = &elem->current_state;
+	opresult_bkp.resolved = &elem->resolved;
+	opresult_bkp.start_time = &elem->start_time;
+	opresult_bkp.complete_time = &elem->complete_time;
+	opresult_bkp.fault_code = &elem->fault;
+	opresult_bkp.exec_unit_ref = &elem->execution_unit_ref;
+	int fault = load_xml_node_data(BKP_CDU_COMPLETE_OPRES, b, &opresult_bkp);
+	return fault;
 }
 
 int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs)
@@ -474,6 +609,21 @@ int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *x
 	return FAULT_CPE_NO_FAULT;
 }
 
+int build_backup_cdu_option(mxml_node_t *cdu, struct xml_data_struct *xml_attrs)
+{
+	mxml_node_t *cdu_opt = NULL;
+	if (*(xml_attrs->cdu_type) == DU_INSTALL) {
+		cdu_opt = mxmlNewElement(cdu, "install");
+		return build_xml_node_data(BKP_CDU_INSTALL, cdu_opt, xml_attrs);
+	} else if (*(xml_attrs->cdu_type) == DU_UPDATE) {
+		cdu_opt = mxmlNewElement(cdu, "update");
+		return build_xml_node_data(BKP_CDU_UPDATE, cdu_opt, xml_attrs);
+	} else if (*(xml_attrs->cdu_type) == DU_UNINSTALL) {
+		cdu_opt = mxmlNewElement(cdu, "uninstall");
+		return build_xml_node_data(BKP_CDU_UNINSTALL, cdu_opt, xml_attrs);
+	}
+	return FAULT_CPE_INTERNAL_ERROR;
+}
 int get_soap_enc_array_type(mxml_node_t *node __attribute__((unused)), struct xml_data_struct *xml_attrs)
 {
 	if (xml_attrs->soap_enc_array_type == NULL)
@@ -502,6 +652,36 @@ int get_soap_enc_array_type(mxml_node_t *node __attribute__((unused)), struct xm
 int get_xml_type(int node_ref, int soap_idx)
 {
 	return xml_nodes_data[node_ref].xml_tags[soap_idx].tag_type;
+}
+
+char *get_xml_node_name_switch(char *node_name)
+{
+	unsigned int i;
+	if (node_name == NULL)
+		return NULL;
+
+	size_t total_size = sizeof(xml_nodes_names_switches) / sizeof(struct xml_switch);
+	for (i = 0; i < total_size; i++)
+	{
+		if (strcmp(node_name, xml_nodes_names_switches[i].node_name) == 0)
+			return xml_nodes_names_switches[i].switch_node_name;
+	}
+	return NULL;
+}
+
+char *get_xml_node_name_by_switch_name(char *switch_node_name)
+{
+	unsigned int i;
+	if (switch_node_name == NULL)
+		return NULL;
+
+	size_t total_size = sizeof(xml_nodes_names_switches) / sizeof(struct xml_switch);
+	for (i = 0; i < total_size; i++)
+	{
+		if (strcmp(switch_node_name, xml_nodes_names_switches[i].switch_node_name) == 0)
+			return xml_nodes_names_switches[i].node_name;
+	}
+	return NULL;
 }
 
 int get_xml_tag_index(const char *name)
@@ -614,6 +794,20 @@ bool validate_xml_node_opaque_value(char *node_name, char *opaque, struct xml_ta
 	return true;
 }
 
+bool check_node_is_switch_by_node_name(int node_ref, char *node_name)
+{
+	unsigned int i;
+	if (node_name == NULL)
+		return false;
+	size_t total_size = sizeof(xml_nodes_data[node_ref].xml_tags) / sizeof(struct xml_tag);
+	for (i = 0; i < total_size; i++)
+	{
+		if (strcmp(xml_nodes_data[node_ref].xml_tags[i].tag_name, node_name) == 0 && xml_nodes_data[node_ref].xml_tags[i].rec_ref == XML_SWITCH)
+			return true;
+	}
+	return false;
+}
+
 int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
 	mxml_node_t *b = node;
@@ -621,12 +815,16 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 	void **ptr = NULL;
 	int error = FAULT_CPE_NO_FAULT;
 	while (b) {
-		const char *node_name = mxmlGetElement(b);
+		const char *xml_node_name = mxmlGetElement(b);
 		mxml_type_t node_type = mxmlGetType(b);
 		mxml_node_t *firstchild = mxmlGetFirstChild(b);
 
+		char *node_name = get_xml_node_name_by_switch_name((char *)xml_node_name);
+		if (!check_node_is_switch_by_node_name(node_ref, node_name))
+			node_name = (char *)xml_node_name;
+
 		if (node_type == MXML_ELEMENT) {
-			soap_idx = get_xml_soap_tag_index(node_ref, node_name);
+			soap_idx = get_xml_soap_tag_index(node_ref, (char *)node_name);
 			if (soap_idx == -1) {
 				b = mxmlWalkNext(b, node, MXML_DESCEND);
 				continue;
@@ -646,7 +844,7 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 				b = mxmlWalkNext(b, node, MXML_DESCEND);
 				continue;
 			}
-			idx = get_xml_tag_index(node_name);
+			idx = get_xml_tag_index((char *)node_name);
 
 			// cppcheck-suppress knownConditionTrueFalse
 			/*
@@ -784,20 +982,36 @@ void xml_data_list_to_cdu_operations_list(struct list_head *xml_data_list, struc
 	}
 }
 
+void cdu_operations_result_list_to_xml_data_list(struct list_head *du_op_res_list, struct list_head *xml_data_list)
+{
+	struct opresult *du_op_res_data = NULL;
+	list_for_each_entry (du_op_res_data, du_op_res_list, list) {
+		struct xml_list_data *xml_data =  calloc(1, sizeof(struct xml_list_data));
+		list_add_tail(&xml_data->list, xml_data_list);
+		xml_data->uuid = strdup(du_op_res_data->uuid ? du_op_res_data->uuid : "");
+		xml_data->du_ref = strdup(du_op_res_data->du_ref ? du_op_res_data->du_ref : "");
+		xml_data->version = strdup(du_op_res_data->version ? du_op_res_data->version : "");
+		xml_data->current_state = strdup(du_op_res_data->current_state ? du_op_res_data->current_state : "");
+		xml_data->start_time = strdup(du_op_res_data->start_time ? du_op_res_data->start_time : "");
+		xml_data->complete_time = strdup(du_op_res_data->complete_time ? du_op_res_data->complete_time : "");
+		xml_data->fault_code = du_op_res_data->fault ? atoi(FAULT_CPE_ARRAY[du_op_res_data->fault].CODE) : 0;
+		xml_data->fault_string = du_op_res_data->fault ? strdup(FAULT_CPE_ARRAY[du_op_res_data->fault].DESCRIPTION) : strdup("");
+	}
+}
+
 void cdu_operations_list_to_xml_data_list(struct list_head *du_op_list, struct list_head *xml_data_list)
 {
-	struct opresult *du_opt_data = NULL;
+	struct operations *du_opt_data = NULL;
 	list_for_each_entry (du_opt_data, du_op_list, list) {
 		struct xml_list_data *xml_data =  calloc(1, sizeof(struct xml_list_data));
 		list_add_tail(&xml_data->list, xml_data_list);
 		xml_data->uuid = strdup(du_opt_data->uuid ? du_opt_data->uuid : "");
-		xml_data->du_ref = strdup(du_opt_data->du_ref ? du_opt_data->du_ref : "");
+		xml_data->du_ref = strdup(du_opt_data->url ? du_opt_data->url : "");
+		xml_data->username = strdup(du_opt_data->username ? du_opt_data->username : "");
+		xml_data->password = strdup(du_opt_data->password ? du_opt_data->password : "");
+		xml_data->execution_env_ref = strdup(du_opt_data->executionenvref ? du_opt_data->executionenvref : "");
 		xml_data->version = strdup(du_opt_data->version ? du_opt_data->version : "");
-		xml_data->current_state = strdup(du_opt_data->current_state ? du_opt_data->current_state : "");
-		xml_data->start_time = strdup(du_opt_data->start_time ? du_opt_data->start_time : "");
-		xml_data->complete_time = strdup(du_opt_data->complete_time ? du_opt_data->complete_time : "");
-		xml_data->fault_code = du_opt_data->fault ? atoi(FAULT_CPE_ARRAY[du_opt_data->fault].CODE) : 0;
-		xml_data->fault_string = du_opt_data->fault ? strdup(FAULT_CPE_ARRAY[du_opt_data->fault].DESCRIPTION) : strdup("");
+		xml_data->cdu_type = du_opt_data->type;
 	}
 }
 
@@ -829,23 +1043,23 @@ void get_xml_data_value_by_name(int type, int idx, struct xml_data_struct *xml_a
 	switch(type) {
 	case XML_STRING:
 		str = (char **)(*ptr);
-		*data_value = icwmp_strdup(*str ? *str : "");
+		*data_value = icwmp_strdup((str && *str) ? *str : "");
 		break;
 	case XML_INTEGER:
 		intgr = (int *)(*ptr);
-		icwmp_asprintf(data_value, "%d", *intgr);
+		icwmp_asprintf(data_value, "%d", intgr ? *intgr : 0);
 		break;
 	case XML_LINTEGER:
 		lint = (long int *)(*ptr);
-		icwmp_asprintf(data_value, "%ld", *lint);
+		icwmp_asprintf(data_value, "%ld", lint ? *lint : 0);
 		break;
 	case XML_BOOL:
 		bol = (bool *)(*ptr);
-		*data_value = icwmp_strdup(bol ? "1" : "0");
+		*data_value = icwmp_strdup((bol && *bol) ? "1" : "0");
 		break;
 	case XML_TIME:
 		time = (time_t *)(*ptr);
-		icwmp_asprintf(data_value, "%ld", *time);
+		icwmp_asprintf(data_value, "%ld", time ? *time : 0);
 		break;
 	case XML_NODE:
 		*data_value = *ptr;
@@ -884,12 +1098,17 @@ int build_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_
 	int total_size = get_xml_tags_array_total_size(node_ref);
 	for(i =0; i < total_size; i++) {
 		if (xml_nodes_data[node_ref].xml_tags[i].tag_name != NULL) {
-			n = mxmlNewElement(node, xml_nodes_data[node_ref].xml_tags[i].tag_name);
+			char *node_name = NULL;
+			if (xml_nodes_data[node_ref].xml_tags[i].rec_ref == XML_SWITCH)
+				node_name = get_xml_node_name_switch(xml_nodes_data[node_ref].xml_tags[i].tag_name);
+			else
+				node_name = xml_nodes_data[node_ref].xml_tags[i].tag_name;
+			n = mxmlNewElement(node, node_name);
 			if (!n)
 				return FAULT_CPE_INTERNAL_ERROR;
 		}
 
-		if (xml_nodes_data[node_ref].xml_tags[i].rec_ref >= ATTR_PARAM_STRUCT) {
+		if ((xml_nodes_data[node_ref].xml_tags[i].rec_ref >= ATTR_PARAM_STRUCT) && (xml_nodes_data[node_ref].xml_tags[i].rec_ref < XML_SWITCH)) {
 			set_node_attributes(xml_nodes_data[node_ref].xml_tags[i].rec_ref, n, xml_attrs);
 			if (xml_nodes_data[node_ref].xml_tags[i].tag_type == XML_REC)
 				continue;

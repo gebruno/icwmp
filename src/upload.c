@@ -197,7 +197,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	char *name = NULL;
 	upload_startTime = get_time(time(NULL));
 	char file_path[128] = {'\0'};
-	bkp_session_delete_upload(pupload);
+	bkp_session_delete_element("upload", pupload->id);
 	bkp_session_save();
 
 	if (pupload->file_type[0] == '1') {
@@ -302,7 +302,7 @@ int cwmp_scheduledUpload_remove_all()
 		struct upload *upload;
 		upload = list_entry(list_upload.next, struct upload, list);
 		list_del(&(upload->list));
-		bkp_session_delete_upload(upload);
+		bkp_session_delete_element("upload", upload->id);
 		if (upload->scheduled_time != 0)
 			count_upload_queue--;
 		cwmp_free_upload_request(upload);
@@ -324,7 +324,13 @@ void cwmp_start_upload(struct uloop_timeout *timeout)
 	if (error != FAULT_CPE_NO_FAULT) {
 		CWMP_LOG(ERROR, "Error while uploading the file: %s", pupload->url);
 	}
-
+	if (ptransfer_complete->id <= 0) {
+		if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
+			cwmp_main->tc_id = 0;
+		}
+		cwmp_main->tc_id++;
+		ptransfer_complete->id = cwmp_main->tc_id;
+	}
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
 	list_del(&(pupload->list));

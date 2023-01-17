@@ -38,32 +38,25 @@ struct search_keywords {
 };
 
 int cwmp_init_backup_session(char **ret, enum backup_loading load);
+int bkp_session_check_file();
 void bkp_session_save();
 int cwmp_load_saved_session(char **acsurl, enum backup_loading load);
-mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id);
-void bkp_session_delete_event(int id);
-void bkp_session_simple_insert_in_parent(char *parent, char *child, char *value);
-void bkp_session_insert_parameter(mxml_node_t *b, char *name);
-void bkp_session_simple_insert(char *parent, char *child, char *value);
-void bkp_session_insert_schedule_inform(time_t schedule_time, char *command_key);
-void bkp_session_delete_schedule_inform(time_t schedule_time, char *command_key);
-void bkp_session_insert_download(struct download *pdownload);
-void bkp_session_delete_download(struct download *pdownload);
-void bkp_session_insert_upload(struct upload *pupload);
-void bkp_session_delete_upload(struct upload *pupload);
-void bkp_session_insert_change_du_state(struct change_du_state *pchange_du_state);
-void bkp_session_delete_change_du_state(struct change_du_state *pchange_du_state);
-void bkp_session_insert_transfer_complete(struct transfer_complete *ptransfer_complete);
-void bkp_session_delete_transfer_complete(struct transfer_complete *ptransfer_complete);
 int save_acs_bkp_config();
+mxml_node_t *bkp_session_insert(mxml_node_t *tree, char *name, char *value);
+void bkp_session_simple_insert_in_parent(char *parent, char *child, char *value);
+void bkp_session_simple_insert(char *parent, char *child, char *value);
+mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id);
+void bkp_session_insert_schedule_inform(int id, time_t schedule_time, char *command_key);
+void bkp_session_insert_download(struct download *pdownload);
+void bkp_session_insert_upload(struct upload *pupload);
+void bkp_session_insert_change_du_state(struct change_du_state *pchange_du_state);
+void bkp_session_insert_transfer_complete(struct transfer_complete *ptransfer_complete);
 
 void bkp_session_insert_schedule_download(struct download *pschedule_download);
-void bkp_session_delete_du_state_change_complete(struct du_state_change_complete *pdu_state_change_complete);
-void bkp_session_delete_schedule_download(struct download *pschedule_download);
 void bkp_session_insert_du_state_change_complete(struct du_state_change_complete *pdu_state_change_complete);
 void bkp_session_insert_autonomous_du_state_change(auto_du_state_change_compl *data);
-void bkp_session_delete_autonomous_du_state_change(auto_du_state_change_compl *data);
 void bkp_session_insert_autonomous_transfer_complete(auto_transfer_complete *data);
-void bkp_session_delete_autonomous_transfer_complete(auto_transfer_complete *data);
+void bkp_session_delete_element(char *element_name, int id);
+void bkp_session_delete_element_by_key(char *element_name, char *key_name, char *key_value);
 void bkp_tree_clean(void);
 #endif /* _BACKUPSESSION_H__ */

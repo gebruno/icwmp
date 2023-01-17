@@ -45,7 +45,7 @@ const struct EVENT_CONST_STRUCT EVENT_CONST[] = {[EVENT_IDX_0BOOTSTRAP] = { "0 B
 						 [EVENT_IDX_M_Upload] = { "M Upload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 						 [EVENT_IDX_M_ChangeDUState] = { "M ChangeDUState", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT } };
 
-void cwmp_save_event_container(struct event_container *event_container) //to be moved to backupsession
+void cwmp_save_event_container(struct event_container *event_container)
 {
 	if (event_container == NULL) {
 		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
@@ -60,7 +60,7 @@ void cwmp_save_event_container(struct event_container *event_container) //to be 
 		list_for_each (ilist, &(event_container->head_dm_parameter)) {
 			struct cwmp_dm_parameter *dm_parameter;
 			dm_parameter = list_entry(ilist, struct cwmp_dm_parameter, list);
-			bkp_session_insert_parameter(b, dm_parameter->name);
+			bkp_session_insert(b, "Parameter", dm_parameter->name);
 		}
 		bkp_session_save();
 	}

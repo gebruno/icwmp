@@ -258,6 +258,15 @@ static int cwmp_init()
 	INIT_LIST_HEAD(&du_uuid_list);
 	cwmp_main->start_time = time(NULL);
 	cwmp_main->event_id = 0;
+	cwmp_main->sched_inform_id = 0;
+	cwmp_main->download_id = 0;
+	cwmp_main->sched_download_id = 0;
+	cwmp_main->cdu_id = 0;
+	cwmp_main->upload_id = 0;
+	cwmp_main->auto_cdu_id = 0;
+	cwmp_main->auto_tc_id = 0;
+	cwmp_main->cdu_complete_id = 0;
+	cwmp_main->tc_id = 0;
 	cwmp_main->cwmp_period = 0;
 	cwmp_main->cwmp_periodic_time = 0;
 	cwmp_main->cwmp_periodic_enable = false;

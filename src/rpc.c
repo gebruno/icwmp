@@ -1428,7 +1428,7 @@ int cancel_transfer(char *key)
 		list_for_each_safe (ilist, q, &(list_download)) {
 			struct download *pdownload = list_entry(ilist, struct download, list);
 			if (key && pdownload->command_key && strcmp(pdownload->command_key, key) == 0) {
-				bkp_session_delete_download(pdownload);
+				bkp_session_delete_element("download", pdownload->id);
 				bkp_session_save();
 				list_del(&(pdownload->list));
 				if (pdownload->scheduled_time != 0)
@@ -1441,7 +1441,7 @@ int cancel_transfer(char *key)
 		list_for_each_safe (ilist, q, &(list_upload)) {
 			struct upload *pupload = list_entry(ilist, struct upload, list);
 			if (key && pupload->command_key &&  strcmp(pupload->command_key, key) == 0) {
-				bkp_session_delete_upload(pupload);
+				bkp_session_delete_element("upload", pupload->id);
 				bkp_session_save();
 				list_del(&(pupload->list));
 				if (pupload->scheduled_time != 0)
@@ -1557,8 +1557,13 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 	schedule_inform->handler_timer.cb = cwmp_start_schedule_inform;
 	schedule_inform->commandKey = CWMP_STRDUP(command_key);
 	schedule_inform->scheduled_time = scheduled_time;
+	if ((cwmp_main->sched_inform_id < 0) || (cwmp_main->sched_inform_id >= MAX_INT_ID)) {
+		cwmp_main->sched_inform_id = 0;
+	}
+	cwmp_main->sched_inform_id++;
+	schedule_inform->id = cwmp_main->sched_inform_id;
 	list_add(&(schedule_inform->list), ilist->prev);
-	bkp_session_insert_schedule_inform(schedule_inform->scheduled_time, schedule_inform->commandKey);
+	bkp_session_insert_schedule_inform(schedule_inform->id, schedule_inform->scheduled_time, schedule_inform->commandKey);
 	bkp_session_save();
 
 	FREE(command_key);
@@ -1626,6 +1631,11 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 
 	change_du_state->handler_timer.cb = change_du_state_execute;
 	list_add_tail(&(change_du_state->list), &(list_change_du_state));
+	if ((cwmp_main->cdu_id < 0) || (cwmp_main->cdu_id >= MAX_INT_ID)) {
+		cwmp_main->cdu_id = 0;
+	}
+	cwmp_main->cdu_id++;
+	change_du_state->id = cwmp_main->cdu_id;
 	bkp_session_insert_change_du_state(change_du_state);
 	bkp_session_save();
 	cwmp_set_end_session(END_SESSION_CDU);
@@ -1733,6 +1743,11 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 			download->scheduled_time = scheduled_time;
 		}
 		download->handler_timer.cb = cwmp_start_download;
+		if ((cwmp_main->download_id < 0) || (cwmp_main->download_id >= MAX_INT_ID)) {
+			cwmp_main->download_id = 0;
+		}
+		cwmp_main->download_id++;
+		download->id = cwmp_main->download_id;
 		bkp_session_insert_download(download);
 		bkp_session_save();
 		if (download_delay != 0) {
@@ -1859,6 +1874,11 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 		schedule_download->timewindowstruct[i].windowend = time(NULL) + schedule_download_delay[i * 2 + 1];
 	}
 	schedule_download->handler_timer.cb = cwmp_start_schedule_download;
+	if ((cwmp_main->sched_download_id < 0) || (cwmp_main->sched_download_id >= MAX_INT_ID)) {
+		cwmp_main->sched_download_id = 0;
+	}
+	cwmp_main->sched_download_id++;
+	schedule_download->id = cwmp_main->sched_download_id;
 	bkp_session_insert_schedule_download(schedule_download);
 	bkp_session_save();
 	if (schedule_download_delay[0] != 0) {
@@ -1976,6 +1996,11 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 			count_upload_queue++;
 			upload->scheduled_time = scheduled_time;
 		}
+		if ((cwmp_main->upload_id < 0) || (cwmp_main->upload_id >= MAX_INT_ID)) {
+			cwmp_main->upload_id = 0;
+		}
+		cwmp_main->upload_id++;
+		upload->id = cwmp_main->upload_id;
 		bkp_session_insert_upload(upload);
 		bkp_session_save();
 		upload->handler_timer.cb = cwmp_start_upload;

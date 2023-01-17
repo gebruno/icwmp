@@ -419,6 +419,11 @@ int change_du_state_fault(struct change_du_state *pchange_du_state, struct du_st
 		res->complete_time = strdup(res->start_time);
 		res->fault = error;
 	}
+	if ((cwmp_main->cdu_complete_id < 0) || (cwmp_main->cdu_complete_id >= MAX_INT_ID)) {
+		cwmp_main->cdu_complete_id = 0;
+	}
+	cwmp_main->cdu_complete_id++;
+	(*pdu_state_change_complete)->id = cwmp_main->cdu_complete_id;
 	bkp_session_insert_du_state_change_complete(*pdu_state_change_complete);
 	bkp_session_save();
 	//cwmp_root_cause_changedustate_complete(*pdu_state_change_complete);
@@ -595,8 +600,13 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 			break;
 		}
 	}
-	bkp_session_delete_change_du_state(pchange_du_state);
+	bkp_session_delete_element("change_du_state", pchange_du_state->id);
 	bkp_session_save();
+	if ((cwmp_main->cdu_complete_id < 0) || (cwmp_main->cdu_complete_id >= MAX_INT_ID)) {
+		cwmp_main->cdu_complete_id = 0;
+	}
+	cwmp_main->cdu_complete_id++;
+	pdu_state_change_complete->id = cwmp_main->cdu_complete_id;
 	bkp_session_insert_du_state_change_complete(pdu_state_change_complete);
 	bkp_session_save();
 	//cwmp_root_cause_changedustate_complete(pdu_state_change_complete);
@@ -616,7 +626,7 @@ int cwmp_rpc_acs_destroy_data_du_state_change_complete(struct rpc *rpc)
 	if (rpc->extra_data != NULL) {
 		struct du_state_change_complete *p;
 		p = (struct du_state_change_complete *)rpc->extra_data;
-		bkp_session_delete_du_state_change_complete(p);
+		bkp_session_delete_element("du_state_change_complete", p->id);
 		bkp_session_save();
 		FREE(p->command_key);
 	}
