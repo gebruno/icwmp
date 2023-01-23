@@ -21,8 +21,6 @@
 #include "datamodel_interface.h"
 #include "heartbeat.h"
 
-pthread_mutex_t mutex_config_load = PTHREAD_MUTEX_INITIALIZER;
-
 static char* get_value_from_uci_option(struct uci_option *tb) {
 	if (tb == NULL)
 		return NULL;
@@ -568,8 +566,6 @@ int global_conf_init(struct cwmp *cwmp)
 {
 	int error = CWMP_OK;
 
-	pthread_mutex_lock(&mutex_config_load);
-
 	if ((error = get_global_config(&(cwmp->conf)))) {
 		cwmp->init_complete = false;
 		goto end;
@@ -580,8 +576,6 @@ int global_conf_init(struct cwmp *cwmp)
 	launch_reboot_methods(cwmp);
 
 end:
-	pthread_mutex_unlock(&mutex_config_load);
-
 	return error;
 }
 
@@ -589,12 +583,10 @@ void cwmp_config_load(struct cwmp *cwmp)
 {
 	int ret;
 
-	cwmp_uci_reinit();
 	ret = global_conf_init(cwmp);
 	while (ret != CWMP_OK && thread_end != true) {
 		CWMP_LOG(DEBUG, "Error reading uci ret = %d", ret);
 		sleep(UCI_OPTION_READ_INTERVAL);
-		cwmp_uci_reinit();
 		ret = global_conf_init(cwmp);
 	}
 }

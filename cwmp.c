@@ -63,7 +63,6 @@ static void set_cwmp_session_status_state(int status)
 	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
 		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-	cwmp_uci_reinit();
 	cwmp_uci_add_section_with_specific_name("cwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
 
 	switch (status) {
@@ -224,7 +223,6 @@ end:
 
 int get_firewall_restart_state(char **state)
 {
-	cwmp_uci_reinit();
 	return uci_get_state_value(UCI_CPE_FIREWALL_RESTART_STATE, state);
 }
 
@@ -376,7 +374,6 @@ int run_session_end_func(void)
 
 	if (end_session_flag & END_SESSION_RELOAD) {
 		CWMP_LOG(INFO, "Config reload: end session request");
-		cwmp_uci_reinit();
 		if (cwmp_apply_acs_changes() != CWMP_OK) {
 			CWMP_LOG(ERROR, "config reload failed at session end");
 		}
@@ -457,7 +454,6 @@ int run_session_end_func(void)
 
 	INIT_LIST_HEAD(&intf_reset_list);
 
-	cwmp_uci_exit();
 	icwmp_cleanmem();
 	end_session_flag = 0;
 	return CWMP_OK;
@@ -533,7 +529,6 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 
 		if (file_exists(fc_cookies))
 			remove(fc_cookies);
-		cwmp_uci_init();
 		CWMP_LOG(INFO, "Start session");
 
 		uci_get_value(UCI_CPE_EXEC_DOWNLOAD, &exec_download);
@@ -545,7 +540,6 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		FREE(exec_download);
 		error = cwmp_schedule_rpc(cwmp, session);
 		CWMP_LOG(INFO, "End session");
-		cwmp_uci_exit();
 
 		if (thread_end) {
 			event_remove_all_event_container(session, RPC_SEND);
@@ -951,7 +945,6 @@ static void cwmp_free(struct cwmp *cwmp)
 
 	clean_custom_inform_parameters();
 	icwmp_cleanmem();
-	cwmp_uci_exit();
 }
 
 static void icwmp_signal_handler(int signal_num)
@@ -987,7 +980,6 @@ static void configure_var_state(struct cwmp *cwmp)
 	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
 		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-	cwmp_uci_reinit();
 	cwmp_uci_add_section_with_specific_name("cwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
 	cwmp_uci_add_section_with_specific_name("cwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
 

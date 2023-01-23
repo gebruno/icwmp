@@ -272,7 +272,13 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 
 	if (if_wan == NULL)
 		if_wan = "wan";
-	cwmp_uci_foreach_sections("firewall", "zone", UCI_STANDARD_CONFIG, s)
+
+	struct uci_paths conf_path;
+	int ret = cwmp_uci_standard_init(&conf_path);
+	if (ret != 0)
+		return;
+
+	cwmp_uci_foreach_sections("firewall", "zone", conf_path.uci_ctx, s)
 	{
 		cwmp_uci_get_value_by_section_string(s, "network", &network);
 		if (network == NULL)
@@ -282,12 +288,15 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 			if (strcmp(net, if_wan) == 0) {
 				cwmp_uci_get_value_by_section_string(s, "name", zone_name);
 				icwmp_free(network);
+				cwmp_uci_exit(&conf_path);
 				return;
 			}
 			net = strtok(NULL, " ");
 		}
 		icwmp_free(network);
 	}
+
+	cwmp_uci_exit(&conf_path);
 }
 
 /*

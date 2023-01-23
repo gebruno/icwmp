@@ -363,7 +363,6 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
 	} else if (strcmp(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
-		cwmp_uci_init();
 		int err = CWMP_OK;
 		if (download_file_name != NULL) {
 			char file_path[512];
@@ -375,7 +374,6 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 			remove(VENDOR_CONFIG_FILE);
 		}
 
-		cwmp_uci_exit();
 		if (err == CWMP_OK)
 			error = FAULT_CPE_NO_FAULT;
 		else if (err == CWMP_GEN_ERR)
@@ -801,9 +799,7 @@ void *thread_cwmp_rpc_cpe_apply_schedule_download(void *v)
 				//TODO Not Supported
 				error = FAULT_CPE_NO_FAULT;
 			} else if (strcmp(apply_download->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
-				cwmp_uci_init();
 				int err = cwmp_uci_import(NULL, VENDOR_CONFIG_FILE, UCI_STANDARD_CONFIG);
-				cwmp_uci_exit();
 				if (err == CWMP_OK)
 					error = FAULT_CPE_NO_FAULT;
 				else if (err == CWMP_GEN_ERR)

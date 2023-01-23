@@ -42,7 +42,6 @@ static int reload_cmd(struct blob_buf *b)
 	} else {
 		int error = CWMP_OK;
 		pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
-		cwmp_uci_reinit();
 		error = cwmp_apply_acs_changes();
 		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 		if (error != CWMP_OK) {
