@@ -121,7 +121,6 @@ static void freecwmp_netlink_interface(struct nlmsghdr *nlh)
 			FREE(cwmp_main.conf.ip);
 			cwmp_main.conf.ip = strdup(if_addr);
 			cwmp_uci_set_varstate_value("cwmp", "cpe", "ip", cwmp_main.conf.ip);
-			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 			connection_request_ip_value_change(&cwmp_main, IPv4);
 			break;
 		}
@@ -142,7 +141,6 @@ static void freecwmp_netlink_interface(struct nlmsghdr *nlh)
 			FREE(cwmp_main.conf.ipv6);
 			cwmp_main.conf.ipv6 = strdup(pradd_v6);
 			cwmp_uci_set_varstate_value("cwmp", "cpe", "ipv6", cwmp_main.conf.ip);
-			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 			connection_request_ip_value_change(&cwmp_main, IPv6);
 			break;
 		}

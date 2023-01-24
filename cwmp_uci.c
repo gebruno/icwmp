@@ -338,8 +338,11 @@ int cwmp_uci_set_value_string(char *package, char *section, char *option, char *
 		return UCI_ERR_PARSE;
 	if (uci_set(uci_ctx, &ptr) != UCI_OK)
 		return UCI_ERR_NOTFOUND;
-	if (ptr.o)
+	if (ptr.o) {
+		uci_commit(uci_ctx, &ptr.p, false);
 		return UCI_OK;
+	}
+
 	return UCI_ERR_NOTFOUND;
 }
 
@@ -545,32 +548,6 @@ int cwmp_uci_get_option_value_list(char *package, char *section, char *option, s
 	return option_type;
 }
 
-int cwmp_uci_get_cwmp_standard_option_value_list(char *package, char *section, char *option, struct uci_list **value)
-{
-	struct uci_paths conf_path;
-
-	if (cwmp_uci_standard_init(&conf_path) != 0)
-		return UCI_ERR_NOTFOUND;
-
-	int ret = cwmp_uci_get_option_value_list(package, section, option, conf_path.uci_ctx, value);
-	cwmp_uci_exit(&conf_path);
-
-	return ret;
-}
-
-int cwmp_uci_get_cwmp_varstate_option_value_list(char *package, char *section, char *option, struct uci_list **value)
-{
-	struct uci_paths conf_path;
-
-	if (cwmp_uci_varstate_init(&conf_path) != 0)
-		return UCI_ERR_NOTFOUND;
-
-	int ret = cwmp_uci_get_option_value_list(package, section, option, conf_path.uci_ctx, value);
-	cwmp_uci_exit(&conf_path);
-
-	return ret;
-}
-
 int cwmp_uci_add_list_value(char *package, char *section, char *option, char *value, uci_config_paths uci_type)
 {
 	struct uci_ptr ptr = {0};
@@ -603,6 +580,7 @@ int cwmp_uci_add_list_value(char *package, char *section, char *option, char *va
 		return error;
 	}
 
+	uci_commit(conf_path.uci_ctx, &ptr.p, false);
 	cwmp_uci_exit(&conf_path);
 	return UCI_OK;
 }
@@ -637,6 +615,7 @@ int cwmp_uci_del_list_value(char *package, char *section, char *option, char *va
 		return -1;
 	}
 
+	uci_commit(conf_path.uci_ctx, &ptr.p, false);
 	cwmp_uci_exit(&conf_path);
 	return 0;
 }
@@ -682,11 +661,51 @@ int uci_add_list_value(char *cmd, uci_config_paths uci_type)
 /*
  * UCI ADD Section
  */
+static int cwmp_uci_rename_section_by_section(struct uci_section *s, char *value, struct uci_context *uci_ctx)
+{
+	struct uci_ptr up = {0};
+
+	if (s == NULL || value == NULL || uci_ctx == NULL)
+		return UCI_ERR_NOTFOUND;
+
+	if (cwmp_uci_lookup_ptr_by_section(uci_ctx, &up, s, NULL, value) == -1) {
+		return UCI_ERR_PARSE;
+	}
+
+	if (uci_rename(uci_ctx, &up) != UCI_OK) {
+		return UCI_ERR_NOTFOUND;
+	}
+
+	return UCI_OK;
+}
+
+static int add_section_helper(struct uci_paths *conf_path, char *package, char * stype, struct uci_section **s, struct uci_ptr *ptr)
+{
+	char fname[128] = {0};
+	snprintf(fname, sizeof(fname), "%s/%s", conf_path->conf_dir, package);
+
+	if (!file_exists(fname)) {
+		FILE *fptr = fopen(fname, "w");
+		if (fptr) {
+			fclose(fptr);
+		} else {
+			return UCI_ERR_UNKNOWN;
+		}
+	}
+
+	if (cwmp_uci_lookup_ptr(conf_path->uci_ctx, ptr, package, NULL, NULL, NULL) == 0
+		&& uci_add_section(conf_path->uci_ctx, ptr->p, stype, s) == UCI_OK) {
+		CWMP_LOG(INFO, "New uci section %s added successfully", stype);
+	} else {
+		return UCI_ERR_NOTFOUND;
+	}
+
+	return UCI_OK;
+}
 
 int cwmp_uci_add_section(char *package, char *stype, uci_config_paths uci_type , struct uci_section **s)
 {
 	struct uci_ptr ptr = {0};
-	char fname[128];
 	struct uci_paths conf_path;
 	int ret = -1;
 
@@ -704,30 +723,45 @@ int cwmp_uci_add_section(char *package, char *stype, uci_config_paths uci_type ,
 	if (ret != 0)
 		return UCI_ERR_NOTFOUND;
 
-	snprintf(fname, sizeof(fname), "%s/%s", conf_path.conf_dir, package);
-
-	if (!file_exists(fname)) {
-		FILE *fptr = fopen(fname, "w");
-		if (fptr) {
-			fclose(fptr);
-		} else {
-			cwmp_uci_exit(&conf_path);
-			return UCI_ERR_UNKNOWN;
-		}
-	}
-
-	if (cwmp_uci_lookup_ptr(conf_path.uci_ctx, &ptr, package, NULL, NULL, NULL) == 0
-		&& uci_add_section(conf_path.uci_ctx, ptr.p, stype, s) == UCI_OK) {
-		CWMP_LOG(INFO, "New uci section %s added successfully", stype);
-	} else {
-		cwmp_uci_exit(&conf_path);
-		return UCI_ERR_NOTFOUND;
-	}
+	if (UCI_OK == add_section_helper(&conf_path, package, stype, s, &ptr))
+		uci_commit(conf_path.uci_ctx, &ptr.p, false);
 
 	cwmp_uci_exit(&conf_path);
 	return UCI_OK;
 }
 
+int cwmp_uci_add_section_rename(char *package, char *stype, uci_config_paths uci_type , struct uci_section **s, char *name)
+{
+	struct uci_ptr ptr = {0};
+	struct uci_paths conf_path;
+	int ret = -1;
+
+	*s = NULL;
+
+	if (package == NULL || stype == NULL)
+		return UCI_ERR_NOTFOUND;
+
+	if (uci_type == UCI_STANDARD_CONFIG) {
+		ret = cwmp_uci_standard_init(&conf_path);
+	} else if (uci_type == UCI_VARSTATE_CONFIG) {
+		ret = cwmp_uci_varstate_init(&conf_path);	
+	}
+
+	if (ret != 0)
+		return UCI_ERR_NOTFOUND;
+
+	if (UCI_OK == add_section_helper(&conf_path, package, stype, s, &ptr)) {
+		if (cwmp_uci_rename_section_by_section(*s, name, conf_path.uci_ctx) != UCI_OK) {
+			cwmp_uci_exit(&conf_path);
+			return UCI_ERR_NOTFOUND;
+		}
+
+		uci_commit(conf_path.uci_ctx, &ptr.p, false);
+	}
+
+	cwmp_uci_exit(&conf_path);
+	return UCI_OK;
+}
 struct uci_section* get_section_by_section_name(char *package, char *stype, char* sname, uci_config_paths uci_type)
 {
 	struct uci_section *s;
@@ -753,40 +787,9 @@ struct uci_section* get_section_by_section_name(char *package, char *stype, char
 		}
 	}
 
+	cwmp_uci_exit(&conf_path);
  	return NULL;
 
-}
-
-int cwmp_uci_rename_section_by_section(struct uci_section *s, char *value, uci_config_paths uci_type)
-{
-	struct uci_ptr up = {0};
-	struct uci_paths conf_path;
-	int ret = -1;
-
-	if (s == NULL)
-		return UCI_ERR_NOTFOUND;
-
-	if (uci_type == UCI_STANDARD_CONFIG) {
-		ret = cwmp_uci_standard_init(&conf_path);
-	} else if (uci_type == UCI_VARSTATE_CONFIG) {
-		ret = cwmp_uci_varstate_init(&conf_path);	
-	}
-
-	if (ret != 0)
-		return UCI_ERR_NOTFOUND;
-
-	if (cwmp_uci_lookup_ptr_by_section(conf_path.uci_ctx, &up, s, NULL, value) == -1) {
-		cwmp_uci_exit(&conf_path);
-		return UCI_ERR_PARSE;
-	}
-
-	if (uci_rename(conf_path.uci_ctx, &up) != UCI_OK) {
-		cwmp_uci_exit(&conf_path);
-		return UCI_ERR_NOTFOUND;
-	}
-
-	cwmp_uci_exit(&conf_path);
-	return UCI_OK;
 }
 
 int cwmp_uci_add_section_with_specific_name(char *package, char *stype, char *section_name, uci_config_paths uci_type)
@@ -797,10 +800,7 @@ int cwmp_uci_add_section_with_specific_name(char *package, char *stype, char *se
 		return UCI_ERR_NOTFOUND;
 	if (get_section_by_section_name(package, stype, section_name, uci_type) != NULL)
 		return UCI_ERR_DUPLICATE;
-	if (cwmp_uci_add_section(package, stype, uci_type, &s) != UCI_OK)
-		return UCI_ERR_UNKNOWN;
-
-	return cwmp_uci_rename_section_by_section(s, section_name, uci_type);
+	return cwmp_uci_add_section_rename(package, stype, uci_type, &s, section_name);
 }
 
 /*
@@ -953,35 +953,6 @@ struct uci_section *cwmp_uci_walk_section(char *package, char *stype, void *arg1
 	}
 end:
 	return s;
-}
-
-int cwmp_commit_package(char *package, uci_config_paths uci_type)
-{
-	struct uci_ptr ptr = { 0 };
-	struct uci_paths conf_path;
-	int ret = -1;
-
-	if (uci_type == UCI_STANDARD_CONFIG) {
-		ret = cwmp_uci_standard_init(&conf_path);
-	} else if (uci_type == UCI_VARSTATE_CONFIG) {
-		ret = cwmp_uci_varstate_init(&conf_path);	
-	}
-
-	if (ret != 0)
-		return UCI_ERR_NOTFOUND;
-
-	if (uci_lookup_ptr(conf_path.uci_ctx, &ptr, package, true) != UCI_OK) {
-		cwmp_uci_exit(&conf_path);
-		return -1;
-	}
-
-	if (uci_commit(conf_path.uci_ctx, &ptr.p, false) != UCI_OK) {
-		cwmp_uci_exit(&conf_path);
-		return -1;
-	}
-
-	cwmp_uci_exit(&conf_path);
-	return 0;
 }
 
 int cwmp_uci_import(char *package_name, const char *input_path, uci_config_paths uci_type)

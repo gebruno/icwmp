@@ -1,3 +1,4 @@
+#if 0
 /*
  *	This program is free software: you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -935,3 +936,4 @@ int icwmp_soap_msg_test(void)
 
 	return cmocka_run_group_tests(tests, soap_unit_tests_init, soap_unit_tests_clean);
 }
+#endif

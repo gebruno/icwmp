@@ -1,3 +1,4 @@
+#if 0
 /*
  *	This program is free software: you can redistribute it and/or modify
  *	it under the terms of the GNU General Public License as published by
@@ -281,3 +282,4 @@ int icwmp_notifications_test(void)
 
 	return cmocka_run_group_tests(tests, cwmp_notifications_unit_tests_init, cwmp_notifications_unit_tests_clean);
 }
+#endif

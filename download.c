@@ -350,7 +350,6 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 	bkp_session_save();
 	if (strcmp(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
 		cwmp_uci_set_value("cwmp", "cpe", "exec_download", "1");
-		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 		if (cwmp_apply_firmware() != 0)
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 
@@ -398,7 +397,6 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 
 	if ((error == FAULT_CPE_NO_FAULT) && (pdownload->file_type[0] == '1' || pdownload->file_type[0] == '3')) {
 		cwmp_uci_set_varstate_value("cwmp", "cpe", "ParameterKey", pdownload->command_key ? pdownload->command_key : "");
-		cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 		if (pdownload->file_type[0] == '3') {
 			CWMP_LOG(INFO, "Download and apply new vendor config file is done successfully");
 			cwmp_root_cause_transfer_complete(cwmp, ptransfer_complete);
@@ -791,7 +789,6 @@ void *thread_cwmp_rpc_cpe_apply_schedule_download(void *v)
 
 			if (strcmp(apply_download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
 				cwmp_uci_set_value("cwmp", "cpe", "exec_download", "1");
-				cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 				cwmp_apply_firmware();
 				sleep(70);
 				error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;

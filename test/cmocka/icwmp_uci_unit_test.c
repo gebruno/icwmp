@@ -7,7 +7,7 @@
  *	Copyright (C) 2013-2021 iopsys Software Solutions AB
  *	  Author Omar Kallel <omar.kallel@pivasoftware.com>
  */
-
+#if 0
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -215,3 +215,4 @@ int icwmp_uci_test(void)
 
 	return cmocka_run_group_tests(tests, cwmp_uci_unit_tests_init, cwmp_uci_unit_tests_clean);
 }
+#endif

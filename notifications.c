@@ -108,10 +108,6 @@ int add_uci_option_notification(char *parameter_name, int notification)
 		cwmp_uci_add_section("cwmp", "notifications", UCI_VARSTATE_CONFIG, &s);
 	}
 	ret = cwmp_uci_add_list_value("cwmp", "@notifications[0]", notifications[notification], parameter_name, UCI_VARSTATE_CONFIG);
-	if (ret != UCI_OK)
-		return -1;
-
-	ret = cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 	return ret;
 }
 
@@ -120,22 +116,34 @@ bool check_parent_with_different_notification(char *parameter_name, int notifica
 	struct uci_list *list_notif = NULL;
 	struct uci_element *e = NULL;
 	int i;
+	bool ret = false;
+	struct uci_paths conf_path;
+
+	if (cwmp_uci_varstate_init(&conf_path) != 0)
+		return ret;
+
 	for (i = 0; i < 7; i++) {
 		int option_type;
 
 		if (i == notification)
 			continue;
-		option_type = cwmp_uci_get_cwmp_varstate_option_value_list("cwmp", "@notifications[0]", notifications[i], &list_notif);
+		option_type = cwmp_uci_get_option_value_list("cwmp", "@notifications[0]", notifications[i], conf_path.uci_ctx, &list_notif);
 		if (list_notif) {
 			uci_foreach_element(list_notif, e) {
-				if (parameter_is_subobject_of_parameter(e->name, parameter_name))
-					return true;
+				if (parameter_is_subobject_of_parameter(e->name, parameter_name)) {
+					ret = true;
+					break;
+				}
 			}
 		}
 		if (option_type == UCI_TYPE_STRING)
 			cwmp_free_uci_list(list_notif);
+
+		if (ret)
+			break;
 	}
-	return false;
+	cwmp_uci_exit(&conf_path);
+	return ret;
 }
 
 bool update_notifications_list(char *parameter_name, int notification)
@@ -145,12 +153,17 @@ bool update_notifications_list(char *parameter_name, int notification)
 	int i;
 	char *ename = NULL;
 	bool update_ret = true;
+	struct uci_paths conf_path;
 
 	if (parameter_name == NULL)
 		parameter_name = "Device.";
+
+	if (cwmp_uci_varstate_init(&conf_path) != 0)
+		return update_ret;
+
 	for (i = 0; i < 7; i++) {
 		int option_type;
-		option_type = cwmp_uci_get_cwmp_varstate_option_value_list("cwmp", "@notifications[0]", notifications[i], &list_notif);
+		option_type = cwmp_uci_get_option_value_list("cwmp", "@notifications[0]", notifications[i], conf_path.uci_ctx, &list_notif);
 		if (list_notif) {
 			uci_foreach_element_safe(list_notif, tmp, e) {
 				if (e->name == NULL)
@@ -158,15 +171,16 @@ bool update_notifications_list(char *parameter_name, int notification)
 				ename = strdup(e->name);
 				if ((strcmp(parameter_name, e->name) == 0 && (i != notification)) || parameter_is_subobject_of_parameter(parameter_name, e->name))
 					cwmp_uci_del_list_value("cwmp", "@notifications[0]", notifications[i], e->name, UCI_VARSTATE_CONFIG);
-				if (ename && (strcmp(parameter_name, ename) == 0 || parameter_is_subobject_of_parameter(ename, parameter_name) ) && (i == notification))
+				if (ename && (strcmp(parameter_name, ename) == 0 || parameter_is_subobject_of_parameter(ename, parameter_name) ) && (i == notification)) {
 					update_ret = false;
+				}
 				FREE(ename);
 			}
-			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 		}
 		if (option_type == UCI_TYPE_STRING)
 			cwmp_free_uci_list(list_notif);
 	}
+	cwmp_uci_exit(&conf_path);
 
 	if (update_ret && notification == 0 && !check_parent_with_different_notification(parameter_name, 0))
 		update_ret = false;
@@ -202,13 +216,18 @@ int get_parameter_family_notifications(char *parameter_name, struct list_head *c
 	struct uci_element *e = NULL;
 	int i, notif_ret = 0;
 	char *parent_param = NULL;
+	struct uci_paths conf_path;
 
 	if (parameter_name == NULL)
 		parameter_name = "Device.";
+
+	if (cwmp_uci_varstate_init(&conf_path) != 0)
+		return notif_ret;
+
 	for (i = 0; i < 7; i++) {
 		int option_type;
 
-		option_type = cwmp_uci_get_cwmp_varstate_option_value_list("cwmp", "@notifications[0]", notifications[i], &list_notif);
+		option_type = cwmp_uci_get_option_value_list("cwmp", "@notifications[0]", notifications[i], conf_path.uci_ctx, &list_notif);
 		if (list_notif) {
 			uci_foreach_element(list_notif, e) {
 				if (parameter_is_subobject_of_parameter(parameter_name, e->name)) {
@@ -225,6 +244,7 @@ int get_parameter_family_notifications(char *parameter_name, struct list_head *c
 		if (option_type == UCI_TYPE_STRING)
 			cwmp_free_uci_list(list_notif);
 	}
+	cwmp_uci_exit(&conf_path);
 	return notif_ret;
 }
 
@@ -327,10 +347,14 @@ void create_list_param_obj_notify()
 	struct uci_list *list_notif = NULL;
 	struct uci_element *e = NULL;
 	int i;
+	struct uci_paths conf_path;
+
+	if (cwmp_uci_varstate_init(&conf_path) != 0)
+		return;
 
 	for (i = 0; i < 7; i++) {
 		int option_type;
-		option_type = cwmp_uci_get_cwmp_varstate_option_value_list("cwmp", "@notifications[0]", notifications[i], &list_notif);
+		option_type = cwmp_uci_get_option_value_list("cwmp", "@notifications[0]", notifications[i], conf_path.uci_ctx, &list_notif);
 		if (list_notif) {
 			uci_foreach_element(list_notif, e) {
 				add_dm_parameter_to_list(&list_param_obj_notify, e->name, "", "", i, false);
@@ -339,6 +363,7 @@ void create_list_param_obj_notify()
 				cwmp_free_uci_list(list_notif);
 		}
 	}
+	cwmp_uci_exit(&conf_path);
 }
 
 char* update_list_param_leaf_notify_with_sub_parameter_list(struct list_head *list_param_leaf_notify, char* parent_parameter, int parent_notification, bool parent_forced_notif, void (*update_notify_file_line_arg)(FILE *notify_file, char *param_name, char *param_type, char *param_value, int notification), FILE* notify_file_arg)

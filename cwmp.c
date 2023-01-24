@@ -81,8 +81,6 @@ static void set_cwmp_session_status_state(int status)
 	}
 
 	cwmp_uci_set_varstate_value("cwmp", "sess_status", "current_status", state ? state : "N/A");
-
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 }
 
 static void cwmp_invoke_intf_reset(char *path)
@@ -254,7 +252,6 @@ void check_firewall_restart_state()
 	if (init == false) { // In case of timeout reset the firewall_restart flag
 		CWMP_LOG(ERROR, "Firewall restart took longer than usual");
 		cwmp_uci_set_varstate_value("cwmp", "cpe", "firewall_restart", "init");
-		cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 	}
 }
 
@@ -535,7 +532,6 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		if (exec_download && strcmp(exec_download, "1") == 0) {
 			CWMP_LOG(INFO, "Firmware downloaded and applied successfully");
 			cwmp_uci_set_value("cwmp", "cpe", "exec_download", "0");
-			cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 		}
 		FREE(exec_download);
 		error = cwmp_schedule_rpc(cwmp, session);
@@ -985,8 +981,6 @@ static void configure_var_state(struct cwmp *cwmp)
 
 	get_firewall_zone_name_by_wan_iface(cwmp->conf.default_wan_iface, &zone_name);
 	cwmp_uci_set_varstate_value("cwmp", "acs", "zonename", zone_name ? zone_name : "wan");
-
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 }
 
 int main(int argc, char **argv)
