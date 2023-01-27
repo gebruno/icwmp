@@ -15,8 +15,6 @@ exec_cmd cp test/files/etc/icwmpd/custom_notification* /etc/icwmpd
 # Test a valid custom notification json file
 #
 rm /var/log/icwmpd.log
-uci -c /var/state delete cwmp.@notifications[0]
-uci -c /var/state commit cwmp
 
 exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_valid.json"
 uci commit cwmp
@@ -29,12 +27,12 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /var/state get cwmp.@notifications[0].active | grep "Device.Users."`
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
 if [[ $notif1 != *"Device.Users."* ]]; then
 	echo "FAIL: active notifications list doesn't contain Device.Users. parameter"
 	exit 1
 fi
-notif2=`uci -c /var/state get cwmp.@notifications[0].passive | grep "Device.WiFi.SSID.1.SSID"`
+notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SSID"`
 if [[ $notif2 != *"Device.WiFi.SSID.1.SSID"* ]]; then
 	echo "FAIL: active notifications list doesn't contain Device.WiFi.SSID.1.SSID parameter"
 	exit 1
@@ -48,8 +46,8 @@ echo "PASS test valid custom notification json file"
 # Test custom notification invalid json file
 #
 rm /var/log/icwmpd.log
-uci -c /var/state delete cwmp.@notifications[0]
-uci -c /var/state commit cwmp
+uci -c /etc/icwmpd delete cwmp_notifications.@notifications[0]
+uci -c /etc/icwmpd commit cwmp_notifications
 
 exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_invalid_json.json"
 uci commit cwmp
@@ -62,12 +60,12 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /var/state get cwmp.@notifications[0].active | grep "Device.Users."`
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
 if [[ $notif1 == *"Device.Users."* ]]; then
 	echo "FAIL: the json file is invalid, the active notifcation list shouldn't contain Device.Users. parameter"
 	exit 1
 fi
-notif2=`uci -c /var/state get cwmp.@notifications[0].passive | grep "Device.WiFi.SSID.1.SSID"`
+notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SSID"`
 if [[ $notif2 == *"Device.WiFi.SSID.1.SSID"* ]]; then
 	echo "FAIL: the json file is invalid, the active notifcation list shouldn't contain Device.WiFi.SSID.1.SSID parameter"
 	exit 1
@@ -87,8 +85,8 @@ rm /etc/icwmpd/icwmpd_notify
 # Test custom notification json file containing forced active notification
 #
 rm /var/log/icwmpd.log
-uci -c /var/state delete cwmp.@notifications[0]
-uci -c /var/state commit cwmp
+uci -c /etc/icwmpd delete cwmp_notifications.@notifications[0]
+uci -c /etc/icwmpd commit cwmp_notifications
 
 exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_forced.json"
 uci commit cwmp
@@ -100,12 +98,12 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /var/state get cwmp.@notifications[0].active | grep "Device.Users."`
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
 if [[ $notif1 != *"Device.Users."* ]]; then
 	echo "FAIL: active notifications list doesn't contain Device.Users. parameter"
 	exit 1
 fi
-notif2=`uci -c /var/state get cwmp.@notifications[0].passive | grep "Device.DeviceInfo.ProvisioningCode"`
+notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.DeviceInfo.ProvisioningCode"`
 if [[ $notif2 == *"Device.DeviceInfo.ProvisioningCode"* ]]; then
 	echo "FAIL: passive notifications list contains Device.DeviceInfo.ProvisioningCode while it's a forced active notification paramter"
 	exit 1
@@ -125,8 +123,8 @@ rm /etc/icwmpd/icwmpd_notify
 # Test custom notification json file containing invalid parameter path
 #
 rm /var/log/icwmpd.log
-uci -c /var/state delete cwmp.@notifications[0]
-uci -c /var/state commit cwmp
+uci -c /etc/icwmpd delete cwmp_notifications.@notifications[0]
+uci -c /etc/icwmpd commit cwmp_notifications
 
 exec_cmd uci set cwmp.cpe.custom_notify_json="/etc/icwmpd/custom_notification_invalid_parameter.json"
 uci commit cwmp
@@ -138,12 +136,12 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /var/state get cwmp.@notifications[0].active | grep "Device.Users."`
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
 if [[ $notif1 != *"Device.Users."* ]]; then
 	echo "FAIL: active notifications list doesn't contain Device.Users. parameter"
 	exit 1
 fi
-notif2=`uci -c /var/state get cwmp.@notifications[0].passive | grep "Device.WiFi.SSID.1.SD"`
+notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SD"`
 if [[ $notif2 == *"Device.WiFi.SSID.1.SD"* ]]; then
 	echo "FAIL: passive notifications list contains Device.WiFi.SSID.1.SD while it's a wrong parameter path"
 	exit 1

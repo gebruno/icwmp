@@ -93,7 +93,7 @@ void set_interface_reset_request(char *param_name, char *value)
 	list_add_tail(&node->list, &intf_reset_list);
 }
 
-int create_cwmp_var_state_files()
+int create_cwmp_temporary_files()
 {
 	/*
 	 * Create Notifications empty uci package
@@ -228,7 +228,10 @@ static int cwmp_init()
 	if (cwmp_main->pid_file)
 		fclose(cwmp_main->pid_file);
 
-	if ((error = create_cwmp_var_state_files()))
+	if ((error = create_cwmp_temporary_files()))
+		return error;
+
+	if ((error = create_cwmp_notifications_package()))
 		return error;
 
 	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
