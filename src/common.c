@@ -319,8 +319,8 @@ void check_firewall_restart_state()
  */
 void cwmp_reboot(char *command_key)
 {
-	cwmp_uci_set_varstate_value("cwmp", "cpe", "ParameterKey", command_key);
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+	cwmp_uci_set_value("cwmp", "cpe", "ParameterKey", command_key);
+	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
@@ -329,6 +329,8 @@ void cwmp_reboot(char *command_key)
 	icwmp_ubus_invoke("rpc-sys", "reboot", b.head, NULL, NULL);
 
 	blob_buf_free(&b);
+
+	sleep(5);
 }
 
 /*

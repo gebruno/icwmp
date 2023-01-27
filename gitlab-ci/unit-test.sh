@@ -7,6 +7,8 @@ pwd
 trap cleanup EXIT
 trap cleanup SIGINT
 
+if [ ! -f /etc/icwmpd/cwmp_notifications ]; then touch /etc/icwmpd/cwmp_notifications; fi
+
 echo "Configure download server"
 configure_download_firmware
 

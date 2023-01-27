@@ -77,7 +77,8 @@
 typedef enum uci_config_paths
 {
 	UCI_STANDARD_CONFIG,
-	UCI_VARSTATE_CONFIG
+	UCI_VARSTATE_CONFIG,
+	UCI_ETCICWMPD_CONFIG
 }uci_config_paths;
 
 enum uci_val_type
@@ -130,6 +131,7 @@ int cwmp_uci_init();
 void cwmp_uci_exit(void);
 void cwmp_uci_reinit(void);
 int cwmp_uci_lookup_ptr(struct uci_context *ctx, struct uci_ptr *ptr, char *package, char *section, char *option, char *value);
+int cwmp_uci_get_option_value_list(char *package, char *section, char *option, uci_config_paths uci_type, struct uci_list **value);
 int cwmp_uci_get_cwmp_standard_option_value_list(char *package, char *section, char *option, struct uci_list **value);
 int cwmp_uci_get_cwmp_varstate_option_value_list(char *package, char *section, char *option, struct uci_list **value);
 int uci_get_state_value(char *cmd, char **value);

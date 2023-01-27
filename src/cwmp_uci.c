@@ -19,7 +19,8 @@
 
 struct uci_paths uci_save_conf_paths[] = {
 		[UCI_STANDARD_CONFIG] = { "/etc/config", "/tmp/.uci", NULL },
-		[UCI_VARSTATE_CONFIG] = { "/var/state", NULL, NULL }
+		[UCI_VARSTATE_CONFIG] = { "/var/state", NULL, NULL },
+		[UCI_ETCICWMPD_CONFIG] = {"/etc/icwmpd", NULL, NULL}
 };
 
 /*
