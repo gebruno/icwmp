@@ -115,11 +115,9 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			if (file_exists(fc_cookies))
 				remove(fc_cookies);
 
-			cwmp_uci_init();
 			CWMP_LOG(INFO, "Start HEARTBEAT session");
 			int error = cwmp_schedule_rpc(&cwmp_main, heartbeat_session);
 			CWMP_LOG(INFO, "End HEARTBEAT session");
-			cwmp_uci_exit();
 
 			if (thread_end) {
 				event_remove_all_event_container(heartbeat_session, RPC_SEND);

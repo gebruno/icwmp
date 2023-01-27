@@ -99,7 +99,6 @@ static int soap_unit_tests_init(void **state)
 	cwmp_test = &cwmp_main_test;
 	INIT_LIST_HEAD(&(cwmp_test->head_session_queue));
 	memcpy(&(cwmp_test->env), &cwmp_test, sizeof(struct env));
-	cwmp_uci_init();
 	log_set_severity_idx("DEBUG");
 	return 0;
 }
@@ -117,7 +116,6 @@ static int soap_unit_tests_clean(void **state)
 	icwmp_free_list_services();
 	clean_name_space();
 	clean_config();
-	cwmp_uci_exit();
 	return 0;
 }
 

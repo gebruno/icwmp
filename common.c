@@ -272,7 +272,13 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 
 	if (if_wan == NULL)
 		if_wan = "wan";
-	cwmp_uci_foreach_sections("firewall", "zone", UCI_STANDARD_CONFIG, s)
+
+	struct uci_paths conf_path;
+	int ret = cwmp_uci_standard_init(&conf_path);
+	if (ret != 0)
+		return;
+
+	cwmp_uci_foreach_sections("firewall", "zone", conf_path.uci_ctx, s)
 	{
 		cwmp_uci_get_value_by_section_string(s, "network", &network);
 		if (network == NULL)
@@ -282,12 +288,15 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 			if (strcmp(net, if_wan) == 0) {
 				cwmp_uci_get_value_by_section_string(s, "name", zone_name);
 				icwmp_free(network);
+				cwmp_uci_exit(&conf_path);
 				return;
 			}
 			net = strtok(NULL, " ");
 		}
 		icwmp_free(network);
 	}
+
+	cwmp_uci_exit(&conf_path);
 }
 
 /*
@@ -295,16 +304,16 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
  */
 void cwmp_reboot(char *command_key)
 {
-	cwmp_uci_set_varstate_value("cwmp", "cpe", "ParameterKey", command_key ? command_key : "");
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+	cwmp_uci_set_value("cwmp", "cpe", "ParameterKey", command_key ? command_key : "");
 
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
+
 	blob_buf_init(&b, 0);
-
 	icwmp_ubus_invoke("rpc-sys", "reboot", b.head, NULL, NULL);
-
 	blob_buf_free(&b);
+
+	sleep(5);
 }
 
 /*
@@ -314,11 +323,12 @@ void cwmp_factory_reset() //use the ubus rpc-sys factory
 {
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
+
 	blob_buf_init(&b, 0);
-
 	icwmp_ubus_invoke("rpc-sys", "factory", b.head, NULL, NULL);
-
 	blob_buf_free(&b);
+
+	sleep(5);
 }
 
 long int get_file_size(char *file_name)
@@ -619,9 +629,8 @@ void icwmp_restart_services()
 		}
 	}
 	if (g_firewall_restart) {
-			CWMP_LOG(INFO, "Initiating Firewall restart");
-			cwmp_uci_set_varstate_value("cwmp", "cpe", "firewall_restart", "in_progress");
-			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+		CWMP_LOG(INFO, "Initiating Firewall restart");
+		cwmp_uci_set_varstate_value("cwmp", "cpe", "firewall_restart", "in_progress");
 	}
 	icwmp_free_list_services();
 }

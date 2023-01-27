@@ -26,7 +26,6 @@ LIST_HEAD(parameters_list);
 
 static int cwmp_notifications_unit_tests_init(void **state)
 {
-	cwmp_uci_init();
 	return 0;
 }
 
@@ -34,7 +33,6 @@ static int cwmp_notifications_unit_tests_clean(void **state)
 {
 	icwmp_cleanmem();
 	cwmp_free_all_dm_parameter_list(&parameters_list);
-	cwmp_uci_exit();
 	return 0;
 }
 
@@ -95,9 +93,14 @@ static int get_parameter_notification_from_notifications_uci_list(char *paramete
 	int i, notification = 0;
 	struct uci_list *list_notif;
 	struct uci_element *e;
+	struct uci_paths conf_path;
+
+	if (cwmp_uci_etccwmpd_init(&conf_path) != 0)
+		return -1;
+
 	for (i = 0; i < 7; i++) {
 		int option_type;
-		option_type = cwmp_uci_get_cwmp_varstate_option_value_list("cwmp", "@notifications[0]", notifications_test[i], &list_notif);
+		option_type = cwmp_uci_get_option_value_list("cwmp_notifications", "@notifications[0]", notifications_test[i], conf_path.uci_ctx, &list_notif);
 		if (list_notif) {
 			uci_foreach_element(list_notif, e) {
 				if (strcmp(e->name, parameter_name) == 0) {
@@ -111,6 +114,7 @@ static int get_parameter_notification_from_notifications_uci_list(char *paramete
 		if(notification > 0)
 			break;
 	}
+	cwmp_uci_exit(&conf_path);
 	return notification;
 }
 

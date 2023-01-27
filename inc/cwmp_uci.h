@@ -67,7 +67,8 @@
 typedef enum uci_config_paths
 {
 	UCI_STANDARD_CONFIG,
-	UCI_VARSTATE_CONFIG
+	UCI_VARSTATE_CONFIG,
+	UCI_ETCICWMPD_CONFIG
 }uci_config_paths;
 
 enum uci_val_type
@@ -115,22 +116,20 @@ struct uci_paths {
 	struct uci_context *uci_ctx;
 };
 
-extern struct uci_paths uci_save_conf_paths[];
-int cwmp_uci_init();
-void cwmp_uci_exit(void);
-void cwmp_uci_reinit(void);
+int cwmp_uci_standard_init(struct uci_paths *conf_path);
+int cwmp_uci_varstate_init(struct uci_paths *conf_path);
+int cwmp_uci_etccwmpd_init(struct uci_paths *conf_path);
+void cwmp_uci_exit(struct uci_paths *conf_path);
 int cwmp_uci_lookup_ptr(struct uci_context *ctx, struct uci_ptr *ptr, char *package, char *section, char *option, char *value);
-int cwmp_uci_get_cwmp_standard_option_value_list(char *package, char *section, char *option, struct uci_list **value);
-int cwmp_uci_get_cwmp_varstate_option_value_list(char *package, char *section, char *option, struct uci_list **value);
+int cwmp_uci_get_option_value_list(char *package, char *section, char *option, struct uci_context *uci_ctx, struct uci_list **value);
 int uci_get_state_value(char *cmd, char **value);
-int uci_set_value_by_path(char *cmd, char *value, uci_config_paths uci_type);
+int uci_set_value_by_path(char *cmd, char *value, struct uci_context *uci_ctx);
 int cwmp_uci_set_value_by_path(char *path, char *value);
 int cwmp_uci_set_varstate_value_by_path(char *path, char *value);
 int uci_get_value(char *cmd, char **value);
-struct uci_section *cwmp_uci_walk_section(char *package, char *stype, void *arg1, void *arg2, int cmp, int (*filter)(struct uci_section *s, void *value), struct uci_section *prev_section, uci_config_paths uci_type, int walk);
+struct uci_section *cwmp_uci_walk_section(char *package, char *stype, void *arg1, void *arg2, int cmp, int (*filter)(struct uci_section *s, void *value), struct uci_section *prev_section, struct uci_context *uci_ctx, int walk);
 int cwmp_uci_get_value_by_section_string(struct uci_section *s, char *option, char **value);
-int cwmp_uci_get_option_value_string(char *package, char *section, char *option, uci_config_paths uci_type, char **value);
-int cwmp_commit_package(char *package, uci_config_paths uci_type);
+int cwmp_uci_get_option_value_string(char *package, char *section, char *option, struct uci_context *uci_ctx, char **value);
 int cwmp_uci_import(char *package_name, const char *input_path, uci_config_paths uci_type);
 int cwmp_uci_export_package(char *package, const char *output_path, uci_config_paths uci_type);
 int cwmp_uci_export(const char *output_path, uci_config_paths uci_type);
@@ -147,12 +146,12 @@ void cwmp_uci_list_init(struct uci_list *ptr);
 void cwmp_uci_list_add(struct uci_list *head, struct uci_list *ptr);
 struct uci_section* get_section_by_section_name(char *package, char *stype, char* sname, uci_config_paths uci_type);
 
-#define cwmp_uci_path_foreach_option_eq(package, stype, option, val, section) \
-	for (section = cwmp_uci_walk_section(package, stype, option, val, CWMP_CMP_OPTION_EQUAL, NULL, NULL, UCI_STANDARD_CONFIG, CWMP_GET_FIRST_SECTION); section != NULL; section = cwmp_uci_walk_section(package, stype, option, val, CWMP_CMP_OPTION_EQUAL, NULL, section, UCI_STANDARD_CONFIG, CWMP_GET_NEXT_SECTION))
+#define cwmp_uci_path_foreach_option_eq(package, stype, option, val, uci_ctx, section) \
+	for (section = cwmp_uci_walk_section(package, stype, option, val, CWMP_CMP_OPTION_EQUAL, NULL, NULL, uci_ctx, CWMP_GET_FIRST_SECTION); section != NULL; section = cwmp_uci_walk_section(package, stype, option, val, CWMP_CMP_OPTION_EQUAL, NULL, section, uci_ctx, CWMP_GET_NEXT_SECTION))
 
-#define cwmp_uci_foreach_sections(package, stype, uci_type, section) \
-	for (section = cwmp_uci_walk_section(package, stype, NULL, NULL, CWMP_CMP_SECTION, NULL, NULL, uci_type, CWMP_GET_FIRST_SECTION); section != NULL; section = cwmp_uci_walk_section(package, stype, NULL, NULL, CWMP_CMP_SECTION, NULL, section, uci_type, CWMP_GET_NEXT_SECTION))
+#define cwmp_uci_foreach_sections(package, stype, uci_ctx, section) \
+	for (section = cwmp_uci_walk_section(package, stype, NULL, NULL, CWMP_CMP_SECTION, NULL, NULL, uci_ctx, CWMP_GET_FIRST_SECTION); section != NULL; section = cwmp_uci_walk_section(package, stype, NULL, NULL, CWMP_CMP_SECTION, NULL, section, uci_ctx, CWMP_GET_NEXT_SECTION))
 
-#define cwmp_uci_foreach_varstate_sections(package, stype, section) \
-	for (section = cwmp_uci_walk_section(package, stype, NULL, NULL, CWMP_CMP_SECTION, NULL, NULL, UCI_VARSTATE_CONFIG, CWMP_GET_FIRST_SECTION); section != NULL; section = cwmp_uci_walk_section(package, stype, NULL, NULL, CWMP_CMP_SECTION, NULL, section, UCI_VARSTATE_CONFIG, CWMP_GET_NEXT_SECTION))
+#define cwmp_uci_foreach_varstate_sections(package, stype, uci_ctx, section) \
+	for (section = cwmp_uci_walk_section(package, stype, NULL, NULL, CWMP_CMP_SECTION, NULL, NULL, uci_ctx, CWMP_GET_FIRST_SECTION); section != NULL; section = cwmp_uci_walk_section(package, stype, NULL, NULL, CWMP_CMP_SECTION, NULL, section, uci_ctx, CWMP_GET_NEXT_SECTION))
 #endif

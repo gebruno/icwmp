@@ -91,7 +91,6 @@ int http_client_init(struct cwmp *cwmp)
 		int tmp = inet_pton(AF_INET, ip, buf);
 
 		cwmp_uci_set_value("cwmp", "acs", "ip_version", (tmp == 1) ? "4" : "6");
-		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 	}
 	return 0;
 }
@@ -239,7 +238,6 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 				tmp = inet_pton(AF_INET6, ip, buf);
 
 			cwmp_uci_set_varstate_value("cwmp", "acs", tmp ? "ip6" : "ip", ip_acs);
-			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 
 			// Trigger firewall to reload firewall.cwmp
 			struct blob_buf b = { 0 };
@@ -454,7 +452,6 @@ void http_server_init(void)
 	snprintf(cr_port_str, 6, "%hu", cr_port);
 	cr_port_str[5] = '\0';
 	cwmp_uci_set_value("cwmp", "cpe", "port", cr_port_str);
-	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 	connection_request_port_value_change(&cwmp_main, cr_port);
 	CWMP_LOG(INFO, "Connection Request server initiated with the port: %d", cr_port);
 }

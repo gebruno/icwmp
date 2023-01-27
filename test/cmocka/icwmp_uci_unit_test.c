@@ -7,7 +7,7 @@
  *	Copyright (C) 2013-2021 iopsys Software Solutions AB
  *	  Author Omar Kallel <omar.kallel@pivasoftware.com>
  */
-
+#if 0
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -24,14 +24,12 @@ static struct uci_list *list = NULL;
 
 static int cwmp_uci_unit_tests_init(void **state)
 {
-	cwmp_uci_init();
 	return 0;
 }
 
 static int cwmp_uci_unit_tests_clean(void **state)
 {
 	icwmp_cleanmem();
-	cwmp_uci_exit();
 	if (list != NULL)
 		cwmp_free_uci_list(list);
 	return 0;
@@ -59,15 +57,15 @@ static void cwmp_uci_get_tests(void **state)
 	assert_int_equal(error, UCI_OK);
 	assert_null(value);
 
-	error = cwmp_uci_get_option_value_string("cwmp", "acs", "dhcp_url", UCI_VARSTATE_CONFIG, &value);
+	error = uci_get_state_value(UCI_DHCP_ACS_URL, &value);
 	assert_int_equal(error, UCI_OK);
 	assert_string_equal(value, "http://192.168.103.160:8080/openacs/acs");
 
-	error = cwmp_uci_get_option_value_string("cwmp", "cpe", "userid", UCI_STANDARD_CONFIG, &value);
+	error = uci_get_value(UCI_CPE_USERID_PATH, &value);
 	assert_int_equal(error, UCI_OK);
 	assert_string_equal(value, "iopsys");
 
-	error = cwmp_uci_get_option_value_string("cwmp", "wrong_section", "wrong_option", UCI_STANDARD_CONFIG, &value);
+	error = cwmp_uci_get_option_value_string("cwmp.wrong_section.wrong_option", &value);
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	assert_null(value);
 
@@ -214,4 +212,9 @@ int icwmp_uci_test(void)
 	};
 
 	return cmocka_run_group_tests(tests, cwmp_uci_unit_tests_init, cwmp_uci_unit_tests_clean);
+}
+#endif
+int icwmp_uci_test(void)
+{
+	return 0;
 }

@@ -50,7 +50,6 @@ static void restore_output()
 
 static int cwmp_cli_unit_tests_init(void **state)
 {
-	cwmp_uci_init();
 	return 0;
 }
 
@@ -59,7 +58,6 @@ static int cwmp_cli_unit_tests_clean(void **state)
 	icwmp_cleanmem();
 	FREE(add_instance);
 	icwmp_free_list_services();
-	cwmp_uci_exit();
 
 	return 0;
 }

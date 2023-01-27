@@ -589,12 +589,10 @@ void cwmp_config_load(struct cwmp *cwmp)
 {
 	int ret;
 
-	cwmp_uci_reinit();
 	ret = global_conf_init(cwmp);
 	while (ret != CWMP_OK && thread_end != true) {
 		CWMP_LOG(DEBUG, "Error reading uci ret = %d", ret);
 		sleep(UCI_OPTION_READ_INTERVAL);
-		cwmp_uci_reinit();
 		ret = global_conf_init(cwmp);
 	}
 }

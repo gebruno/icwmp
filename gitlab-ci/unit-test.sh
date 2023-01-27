@@ -24,6 +24,8 @@ supervisorctl status all
 echo "Clean cmocka"
 make clean -C test/cmocka/
 
+if [ ! -f /etc/icwmpd/cwmp_notifications ]; then touch /etc/icwmpd/cwmp_notifications; fi
+
 echo "Running unit test"
 make -C test/cmocka all
 check_ret $?

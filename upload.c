@@ -137,9 +137,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	}
 	if (pupload->file_type[0] == '1') {
 		snprintf(file_path, sizeof(file_path), "/tmp/all_configs");
-		cwmp_uci_init();
 		cwmp_uci_export(file_path, UCI_STANDARD_CONFIG);
-		cwmp_uci_exit();
 	} else if (pupload->file_type[0] == '2') {
 		snprintf(file_path, sizeof(file_path), "/tmp/syslog");
 		copy("/var/log/syslog", file_path);
@@ -147,9 +145,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 		lookup_vcf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
-			cwmp_uci_init();
 			cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);
-			cwmp_uci_exit();
 			FREE(name);
 		} else {
 			error = FAULT_CPE_UPLOAD_FAILURE;

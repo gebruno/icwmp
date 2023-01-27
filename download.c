@@ -350,7 +350,6 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 	bkp_session_save();
 	if (strcmp(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
 		cwmp_uci_set_value("cwmp", "cpe", "exec_download", "1");
-		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 		if (cwmp_apply_firmware() != 0)
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 
@@ -363,7 +362,6 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
 	} else if (strcmp(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
-		cwmp_uci_init();
 		int err = CWMP_OK;
 		if (download_file_name != NULL) {
 			char file_path[512];
@@ -375,7 +373,6 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 			remove(VENDOR_CONFIG_FILE);
 		}
 
-		cwmp_uci_exit();
 		if (err == CWMP_OK)
 			error = FAULT_CPE_NO_FAULT;
 		else if (err == CWMP_GEN_ERR)
@@ -399,8 +396,7 @@ int apply_downloaded_file(struct cwmp *cwmp, struct download *pdownload, char *d
 		error = FAULT_CPE_INVALID_ARGUMENTS;
 
 	if ((error == FAULT_CPE_NO_FAULT) && (pdownload->file_type[0] == '1' || pdownload->file_type[0] == '3')) {
-		cwmp_uci_set_varstate_value("cwmp", "cpe", "ParameterKey", pdownload->command_key ? pdownload->command_key : "");
-		cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+		cwmp_uci_set_value("cwmp", "cpe", "ParameterKey", pdownload->command_key ? pdownload->command_key : "");
 		if (pdownload->file_type[0] == '3') {
 			CWMP_LOG(INFO, "Download and apply new vendor config file is done successfully");
 			cwmp_root_cause_transfer_complete(cwmp, ptransfer_complete);
@@ -793,7 +789,6 @@ void *thread_cwmp_rpc_cpe_apply_schedule_download(void *v)
 
 			if (strcmp(apply_download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
 				cwmp_uci_set_value("cwmp", "cpe", "exec_download", "1");
-				cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 				cwmp_apply_firmware();
 				sleep(70);
 				error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
@@ -801,9 +796,7 @@ void *thread_cwmp_rpc_cpe_apply_schedule_download(void *v)
 				//TODO Not Supported
 				error = FAULT_CPE_NO_FAULT;
 			} else if (strcmp(apply_download->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
-				cwmp_uci_init();
 				int err = cwmp_uci_import(NULL, VENDOR_CONFIG_FILE, UCI_STANDARD_CONFIG);
-				cwmp_uci_exit();
 				if (err == CWMP_OK)
 					error = FAULT_CPE_NO_FAULT;
 				else if (err == CWMP_GEN_ERR)
