@@ -63,6 +63,7 @@ int cwmp_session_init()
 	cwmp_main->cwmp_cr_event = 0;
 
 	cwmp_uci_init();
+
 	/*
 	 * Set Required methods as initial value of
 	 */
@@ -259,7 +260,6 @@ static void set_cwmp_session_status_state(int status)
 	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
 		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-	cwmp_uci_reinit();
 	cwmp_uci_add_section_with_specific_name("cwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
 
 	switch (status) {
@@ -329,10 +329,10 @@ void start_cwmp_session()
 	uloop_timeout_cancel(&check_notify_timer);
 	if (cwmp_session_init() != CWMP_OK) {
 		CWMP_LOG(ERROR, "Not able to init a CWMP session");
+		cwmp_config_load();
 		t = cwmp_get_retry_interval(0);
 		CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
 		set_cwmp_session_status(SESSION_FAILURE, t);
-		cwmp_config_load();
 		trigger_periodic_notify_check();
 		return;
 	}
@@ -625,6 +625,7 @@ int run_session_end_func(void)
 
 	if (end_session_flag & END_SESSION_INIT_NOTIFY) {
 		CWMP_LOG(INFO, "SetParameterAttributes end session: reinit list notify");
+		cwmp_uci_reinit();
 		reinit_list_param_notify();
 	}
 

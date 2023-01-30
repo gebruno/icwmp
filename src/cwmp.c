@@ -196,6 +196,22 @@ end:
 	return 0;
 }
 
+static void configure_var_state()
+{
+	char *zone_name = NULL;
+
+	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
+		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+	cwmp_uci_add_section_with_specific_name("cwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
+	cwmp_uci_add_section_with_specific_name("cwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
+
+	get_firewall_zone_name_by_wan_iface(cwmp_main->conf.default_wan_iface, &zone_name);
+	cwmp_uci_set_varstate_value("cwmp", "acs", "zonename", zone_name ? zone_name : "wan");
+
+	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+}
+
 static int cwmp_init()
 {
 	int error;
@@ -234,6 +250,7 @@ static int cwmp_init()
 	if ((error = create_cwmp_notifications_package()))
 		return error;
 
+	cwmp_uci_init();
 	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
 	cwmp_config_load();
 
@@ -253,6 +270,9 @@ static int cwmp_init()
 	load_custom_notify_json();
 	set_default_forced_active_parameters_notifications();
 	init_list_param_notify();
+	configure_var_state();
+	cwmp_uci_exit();
+
 	create_cwmp_session_structure();
 	get_nonce_key();
 	memset(&intf_reset_list, 0, sizeof(struct list_head));
@@ -338,23 +358,6 @@ void cwmp_exit()
 	cwmp_free();
 }
 
-static void configure_var_state()
-{
-	char *zone_name = NULL;
-
-	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
-		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-	cwmp_uci_reinit();
-	cwmp_uci_add_section_with_specific_name("cwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
-	cwmp_uci_add_section_with_specific_name("cwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
-
-	get_firewall_zone_name_by_wan_iface(cwmp_main->conf.default_wan_iface, &zone_name);
-	cwmp_uci_set_varstate_value("cwmp", "acs", "zonename", zone_name ? zone_name : "wan");
-
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
-}
-
 int main(int argc, char **argv)
 {
 	int error;
@@ -379,7 +382,6 @@ int main(int argc, char **argv)
 	if ((error = cwmp_root_cause_events()))
 		return error;
 
-	configure_var_state();
 	icwmp_http_server_init();
 
 	uloop_init();

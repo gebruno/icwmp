@@ -55,6 +55,7 @@ static int reload_cmd(struct blob_buf *b)
 			blobmsg_add_u32(b, "status", 0);
 			blobmsg_add_string(b, "info", "icwmpd config reloaded");
 		}
+		cwmp_uci_exit();
 	}
 
 	return 0;

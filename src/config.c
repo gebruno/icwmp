@@ -603,7 +603,6 @@ void cwmp_config_load()
 {
 	int ret;
 
-	cwmp_uci_reinit();
 	ret = global_conf_init();
 	while (ret != CWMP_OK && cwmp_stop != true) {
 		CWMP_LOG(DEBUG, "Error reading uci ret = %d", ret);
@@ -626,6 +625,7 @@ int cwmp_get_deviceid()
 int cwmp_config_reload()
 {
 	memset(&cwmp_main->env, 0, sizeof(struct env));
+	cwmp_uci_reinit();
 	int err = global_conf_init();
 	if (err != CWMP_OK)
 		return err;
