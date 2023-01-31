@@ -131,7 +131,7 @@ int xml_handle_message(struct session *session)
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
 	rpc_cpe = NULL;
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
-		if (i != RPC_CPE_FAULT && c && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
+		if (i != RPC_CPE_FAULT && c && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= global_int_param_read(&conf->supported_amd_version)) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
 			rpc_cpe = cwmp_add_session_rpc_cpe(session, i);
 			if (rpc_cpe == NULL)
@@ -275,7 +275,8 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 	mxmlElementSetAttr(envelope, "xmlns:soap_enc", "http://schemas.xmlsoap.org/soap/encoding/");
 	mxmlElementSetAttr(envelope, "xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
 	mxmlElementSetAttr(envelope, "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-	mxmlElementSetAttr(envelope, "xmlns:cwmp", cwmp_urls[(cwmp->conf.supported_amd_version) - 1]);
+	int amd_ver = global_int_param_read(&cwmp->conf.supported_amd_version);
+	mxmlElementSetAttr(envelope, "xmlns:cwmp", cwmp_urls[amd_ver - 1]);
 
 	mxml_node_t *header = mxmlNewElement(envelope, "soap_env:Header");
 	if (header == NULL) {
@@ -292,7 +293,7 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 	mxmlElementSetAttr(id, "soap_env:mustUnderstand", "1");
 
 	mxml_node_t *node = NULL;
-	if (cwmp->conf.supported_amd_version >= 4) {
+	if (amd_ver >= 4) {
 		node = mxmlNewElement(header, "cwmp:SessionTimeout");
 		if (!node) {
 			MXML_DELETE(xml);
@@ -300,14 +301,15 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 		}
 
 		mxmlElementSetAttr(node, "soap_env:mustUnderstand", "0");
-		node = mxmlNewInteger(node, cwmp->conf.session_timeout);
+		unsigned int sess_timeout = global_uint_param_read(&cwmp->conf.session_timeout);
+		node = mxmlNewInteger(node, sess_timeout);
 		if (!node) {
 			MXML_DELETE(xml);
 			return;
 		}
 	}
 
-	if (cwmp->conf.supported_amd_version >= 5) {
+	if (amd_ver >= 5) {
 		node = mxmlNewElement(header, "cwmp:SupportedCWMPVersions");
 		if (!node) {
 			MXML_DELETE(xml);
@@ -315,7 +317,7 @@ static void load_inform_xml_schema(mxml_node_t **tree, struct cwmp *cwmp, struct
 		}
 
 		mxmlElementSetAttr(node, "soap_env:mustUnderstand", "0");
-		node = mxmlNewOpaque(node, xml_get_cwmp_version(cwmp->conf.supported_amd_version));
+		node = mxmlNewOpaque(node, xml_get_cwmp_version(amd_ver));
 		if (!node) {
 			MXML_DELETE(xml);
 			return;
@@ -545,19 +547,21 @@ int cwmp_rpc_acs_parse_response_inform(struct cwmp *cwmp, struct session *sessio
 	b = mxmlWalkNext(b, tree, MXML_DESCEND_FIRST);
 	if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
 		goto error;
-	if (cwmp->conf.supported_amd_version == 1) {
-		cwmp->conf.amd_version = 1;
+
+	int supported_amd_version = global_int_param_read(&cwmp->conf.supported_amd_version);
+	if (supported_amd_version == 1) {
+		global_int_param_write(&cwmp->conf.amd_version, 1);
 		return 0;
 	}
 	b = mxmlFindElement(tree, tree, "UseCWMPVersion", NULL, NULL, MXML_DESCEND);
-	if (b && cwmp->conf.supported_amd_version >= 5) { //IF supported version !=5 acs response dosen't contain UseCWMPVersion
+	if (b && supported_amd_version >= 5) { //IF supported version !=5 acs response dosen't contain UseCWMPVersion
 		b = mxmlWalkNext(b, tree, MXML_DESCEND_FIRST);
 		if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
 			goto error;
 		c = (char *) mxmlGetOpaque(b);
 		if (c && *(c + 1) == '.') {
 			c += 2;
-			cwmp->conf.amd_version = atoi(c) + 1;
+			global_int_param_write(&cwmp->conf.amd_version, atoi(c) + 1);
 			return 0;
 		}
 		goto error;
@@ -570,28 +574,28 @@ int cwmp_rpc_acs_parse_response_inform(struct cwmp *cwmp, struct session *sessio
 		}
 	}
 	if (i == 0) {
-		cwmp->conf.amd_version = i + 1;
+		global_int_param_write(&cwmp->conf.amd_version, i + 1);
 	} else if (i >= 1 && i <= 3) {
-		switch (cwmp->conf.supported_amd_version) {
+		switch (supported_amd_version) {
 		case 1:
-			cwmp->conf.amd_version = 1; //Already done
+			global_int_param_write(&cwmp->conf.amd_version, 1); //Already done
 			break;
 		case 2:
 		case 3:
 		case 4:
 			//MIN ACS CPE
-			if (cwmp->conf.supported_amd_version <= i + 1)
-				cwmp->conf.amd_version = cwmp->conf.supported_amd_version;
+			if (supported_amd_version <= i + 1)
+				global_int_param_write(&cwmp->conf.amd_version, supported_amd_version);
 			else
-				cwmp->conf.amd_version = i + 1;
+				global_int_param_write(&cwmp->conf.amd_version, i + 1);
 			break;
 		//(cwmp->supported_conf.amd_version < i+1) ?"cwmp->conf.amd_version":"i+1";
 		case 5:
-			cwmp->conf.amd_version = i + 1;
+			global_int_param_write(&cwmp->conf.amd_version, i + 1);
 			break;
 		}
 	} else if (i >= 4) {
-		cwmp->conf.amd_version = cwmp->conf.supported_amd_version;
+		global_int_param_write(&cwmp->conf.amd_version, supported_amd_version);
 	}
 	return 0;
 
@@ -666,7 +670,9 @@ int cwmp_rpc_acs_prepare_get_rpc_methods(struct cwmp *cwmp, struct session *sess
 	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		return -1;
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp->conf.amd_version) - 1]);
+
+	int amd_version = global_int_param_read(&cwmp->conf.amd_version);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[amd_version - 1]);
 	n = mxmlFindElement(tree, tree, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		return -1;
@@ -697,7 +703,8 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct cwmp *cwmp, struct session *se
 	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		goto error;
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp->conf.amd_version) - 1]);
+	int amd_version = global_int_param_read(&cwmp->conf.amd_version);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[amd_version - 1]);
 
 	n = mxmlFindElement(tree, tree, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	if (!n)
@@ -792,7 +799,8 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct cwmp *cwmp, struct sess
 	if (!n)
 		goto error;
 
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp->conf.amd_version) - 1]);
+	int amd_version = global_int_param_read(&cwmp->conf.amd_version);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[amd_version - 1]);
 	n = mxmlFindElement(tree, tree, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		goto error;

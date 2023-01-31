@@ -23,8 +23,9 @@ static void *thread_delay_reboot(void *arg)
 {
 	struct cwmp *cwmp = (struct cwmp *)arg;
 
-	CWMP_LOG(INFO, "The device will reboot after %d seconds", cwmp->conf.delay_reboot);
-	sleep(cwmp->conf.delay_reboot);
+	int delay_reboot = global_int_param_read(&cwmp->conf.delay_reboot);
+	CWMP_LOG(INFO, "The device will reboot after %d seconds", delay_reboot);
+	sleep(delay_reboot);
 	cwmp_uci_set_value("cwmp", "cpe", "delay_reboot", "-1");
 	/* check if the session is running before calling reboot method */
 	/* if the session is in progress, wait until the end of the session */
@@ -62,7 +63,7 @@ static void create_delay_reboot_thread(struct cwmp *cwmp, bool thread_exist)
 static void *thread_schedule_reboot(void *arg)
 {
 	struct cwmp *cwmp = (struct cwmp *)arg;
-	time_t remaining_time = cwmp->conf.schedule_reboot - time(NULL);
+	time_t remaining_time = global_time_param_read(&cwmp->conf.schedule_reboot) - time(NULL);
 
 	CWMP_LOG(INFO, "The device will reboot after %ld seconds", remaining_time);
 	sleep(remaining_time);
@@ -103,16 +104,18 @@ static void create_schedule_reboot_thread(struct cwmp *cwmp, bool thread_exist)
 
 void launch_reboot_methods(struct cwmp *cwmp)
 {
+	int delay_reboot = global_int_param_read(&cwmp->conf.delay_reboot);
+	time_t schedule_reboot = global_time_param_read(&cwmp->conf.schedule_reboot);
 
-	if (cwmp->conf.delay_reboot != g_curr_delay_reboot && cwmp->conf.delay_reboot > 0) {
+	if (delay_reboot != g_curr_delay_reboot && delay_reboot > 0) {
 
 		create_delay_reboot_thread(cwmp, (g_curr_delay_reboot != -1));
-		g_curr_delay_reboot = cwmp->conf.delay_reboot;
+		g_curr_delay_reboot = delay_reboot;
 	}
 
-	if (cwmp->conf.schedule_reboot != g_curr_schedule_redoot && (cwmp->conf.schedule_reboot - time(NULL)) > 0) {
+	if (schedule_reboot != g_curr_schedule_redoot && (schedule_reboot - time(NULL)) > 0) {
 
 		create_schedule_reboot_thread(cwmp, (g_curr_schedule_redoot != 0));
-		g_curr_schedule_redoot = cwmp->conf.schedule_reboot;
+		g_curr_schedule_redoot = schedule_reboot;
 	}
 }

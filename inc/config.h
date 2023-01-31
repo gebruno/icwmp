@@ -15,8 +15,6 @@
 
 #include "cwmp_uci.h"
 
-extern pthread_mutex_t mutex_config_load;
-
 int global_conf_init(struct cwmp *cwmp);
 int get_global_config(struct config *conf);
 int cwmp_get_deviceid(struct cwmp *cwmp);

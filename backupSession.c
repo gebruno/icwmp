@@ -764,10 +764,14 @@ void bkp_session_delete_transfer_complete(struct transfer_complete *ptransfer_co
 int save_acs_bkp_config(struct cwmp *cwmp)
 {
 	struct config *conf;
+	char *url = NULL;
 
 	conf = &(cwmp->conf);
-	bkp_session_simple_insert("acs", "url", conf->acsurl);
+	global_string_param_read(&conf->acsurl, &url);
+	bkp_session_simple_insert("acs", "url", url);
 	bkp_session_save();
+
+	FREE(url);
 	return CWMP_OK;
 }
 

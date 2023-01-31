@@ -111,16 +111,20 @@ static void freecwmp_netlink_interface(struct nlmsghdr *nlh)
 			}
 
 			if_indextoname(ifa->ifa_index, if_name);
-			if (itfcmp(cwmp_main.conf.interface, if_name)) {
+			char *intf = NULL;
+			global_string_param_read(&cwmp_main.conf.interface, &intf);
+			if (itfcmp(intf, if_name)) {
 				rth = RTA_NEXT(rth, rtl);
+				FREE(intf);
 				continue;
 			}
+			FREE(intf);
 
 			inet_ntop(AF_INET, &(addr), if_addr, INET_ADDRSTRLEN);
 
-			FREE(cwmp_main.conf.ip);
-			cwmp_main.conf.ip = strdup(if_addr);
-			cwmp_uci_set_varstate_value("cwmp", "cpe", "ip", cwmp_main.conf.ip);
+			global_string_param_free(&cwmp_main.conf.ip);
+			global_string_param_write(&cwmp_main.conf.ip, if_addr);
+			cwmp_uci_set_varstate_value("cwmp", "cpe", "ip", if_addr);
 			connection_request_ip_value_change(&cwmp_main, IPv4);
 			break;
 		}
@@ -133,14 +137,18 @@ static void freecwmp_netlink_interface(struct nlmsghdr *nlh)
 			}
 			inet_ntop(AF_INET6, RTA_DATA(rth), pradd_v6, sizeof(pradd_v6));
 			if_indextoname(ifa->ifa_index, if_name);
-			if (strncmp(cwmp_main.conf.interface, if_name, IFNAMSIZ)) {
+			char *intf = NULL;
+			global_string_param_read(&cwmp_main.conf.interface, &intf);
+			if (strncmp(intf, if_name, IFNAMSIZ)) {
 				rth = RTA_NEXT(rth, rtl);
+				FREE(intf);
 				continue;
 			}
+			FREE(intf);
 
-			FREE(cwmp_main.conf.ipv6);
-			cwmp_main.conf.ipv6 = strdup(pradd_v6);
-			cwmp_uci_set_varstate_value("cwmp", "cpe", "ipv6", cwmp_main.conf.ip);
+			global_string_param_free(&cwmp_main.conf.ipv6);
+			global_string_param_write(&cwmp_main.conf.ipv6, pradd_v6);
+			cwmp_uci_set_varstate_value("cwmp", "cpe", "ipv6", pradd_v6);
 			connection_request_ip_value_change(&cwmp_main, IPv6);
 			break;
 		}

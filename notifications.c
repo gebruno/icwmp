@@ -476,21 +476,28 @@ void load_custom_notify_json(struct cwmp *cwmp)
 	int rem;
 
 	cwmp->custom_notify_active = false;
-	if (cwmp->conf.custom_notify_json == NULL || !file_exists(cwmp->conf.custom_notify_json))
+	char *cust_notify_json = NULL;
+	global_string_param_read(&cwmp->conf.custom_notify_json, &cust_notify_json);
+	if (CWMP_STRLEN(cust_notify_json) == 0 || !file_exists(cust_notify_json)) {
+		FREE(cust_notify_json);
 		return;
+	}
 
 	// Check for custom notification success import marker
-	if (file_exists(NOTIFY_MARKER) == true)
+	if (file_exists(NOTIFY_MARKER) == true) {
+		FREE(cust_notify_json);
 		return;
+	}
 
 	memset(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
 	// Create success marker in temp area, so that it can be in sync with backup script
-	if (blobmsg_add_json_from_file(&bbuf, cwmp->conf.custom_notify_json) == false) {
-		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp->conf.custom_notify_json);
+	if (blobmsg_add_json_from_file(&bbuf, cust_notify_json) == false) {
+		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cust_notify_json);
 		blob_buf_free(&bbuf);
 		creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		FREE(cust_notify_json);
 		return;
 	}
 
@@ -498,11 +505,13 @@ void load_custom_notify_json(struct cwmp *cwmp)
 	struct blob_attr *tb_notif[1] = { NULL};
 	blobmsg_parse(p_notif, 1, tb_notif, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 	if (tb_notif[0] == NULL) {
-		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a notify parameters list", cwmp->conf.custom_notify_json);
+		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a notify parameters list", cust_notify_json);
 		blob_buf_free(&bbuf);
 		creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		FREE(cust_notify_json);
 		return;
 	}
+	FREE(cust_notify_json);
 	custom_notify_list = tb_notif[0];
 
 	const struct blobmsg_policy p[2] = { { "parameter", BLOBMSG_TYPE_STRING }, { "notify_type", BLOBMSG_TYPE_STRING } };
@@ -674,8 +683,8 @@ void *thread_periodic_check_notify(void *v)
 	time_t current_time;
 	int is_notify;
 
-	periodic_interval = cwmp->conf.periodic_notify_interval;
-	periodic_enable = cwmp->conf.periodic_notify_enable;
+	periodic_interval = global_int_param_read(&cwmp->conf.periodic_notify_interval);
+	periodic_enable = global_bool_param_read(&cwmp->conf.periodic_notify_enable);
 
 	for (;;) {
 		if (periodic_enable) {
@@ -752,8 +761,11 @@ static void udplw_server_param(struct addrinfo **res)
 	conf = &(cwmp->conf);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
-	snprintf(port, sizeof(port), "%d", conf->lw_notification_port);
-	getaddrinfo(conf->lw_notification_hostname, port, &hints, res);
+	snprintf(port, sizeof(port), "%d", global_int_param_read(&conf->lw_notification_port));
+	char *hostname = NULL;
+	global_string_param_read(&conf->lw_notification_hostname, &hostname);
+	getaddrinfo(hostname, port, &hints, res);
+	FREE(hostname);
 }
 
 char *calculate_lwnotification_cnonce()
@@ -823,8 +835,10 @@ void cwmp_lwnotification()
 		return;
 	}
 	message_compute_signature(msg_out, signature, sizeof(signature));
-	snprintf(msg, sizeof(msg), "%s \n %s: %s \n %s: %s \n %s: %zu\n %s: %s\n\n%s", "POST /HTTPS/1.1", "HOST", conf->lw_notification_hostname, "Content-Type", "test/xml; charset=utf-8", "Content-Lenght", strlen(msg_out), "Signature", signature, msg_out);
-
+	char *hostname = NULL;
+	global_string_param_read(&conf->lw_notification_hostname, &hostname);
+	snprintf(msg, sizeof(msg), "%s \n %s: %s \n %s: %s \n %s: %zu\n %s: %s\n\n%s", "POST /HTTPS/1.1", "HOST", hostname, "Content-Type", "test/xml; charset=utf-8", "Content-Lenght", strlen(msg_out), "Signature", signature, msg_out);
+	FREE(hostname);
 	send_udp_message(servaddr, msg);
 	free_all_list_lw_notify();
 	//freeaddrinfo(servaddr); //To check

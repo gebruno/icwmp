@@ -121,17 +121,22 @@ void message_compute_signature(char *msg_out, char *signature, size_t len)
 	struct cwmp *cwmp = &cwmp_main;
 	struct config *conf;
 	conf = &(cwmp->conf);
+	char *password = NULL;
+
+	global_string_param_read(&conf->acs_passwd, &password);
 
 #ifdef LMBEDTLS
 	unsigned char result[MBEDTLS_MD_MAX_SIZE] = {0};
 	const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA1);
 
-	mbedtls_md_hmac(md_info, (unsigned char *)conf->acs_passwd, CWMP_STRLEN(conf->acs_passwd), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result);
+	mbedtls_md_hmac(md_info, (unsigned char *)password, CWMP_STRLEN(password), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result);
 #else
 	unsigned char result[EVP_MAX_MD_SIZE] = {0};
 
-	HMAC(EVP_sha1(), conf->acs_passwd, CWMP_STRLEN(conf->acs_passwd), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result, NULL);
+	HMAC(EVP_sha1(), password, CWMP_STRLEN(password), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result, NULL);
 #endif
+
+	FREE(password);
 
 	for (int i = 0; i < result_len; i++) {
 		if (len - CWMP_STRLEN(signature) < 3) // each time 2 hex chars + '\0' at end so needed space is 3 bytes

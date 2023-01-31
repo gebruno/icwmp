@@ -183,7 +183,10 @@ static void bb_add_icwmp_status(struct blob_buf *bb)
 	void *tbl = blobmsg_open_table(bb, "cwmp");
 	bb_add_string(bb, "status", cwmp_main.init_complete ? "up" : "init");
 	bb_add_string(bb, "start_time", get_time(cwmp_main.start_time));
-	bb_add_string(bb, "acs_url", cwmp_main.conf.acsurl);
+	char *acs_url = NULL;
+	global_string_param_read(&cwmp_main.conf.acsurl, &acs_url);
+	bb_add_string(bb, "acs_url", acs_url);
+	FREE(acs_url);
 	blobmsg_close_table(bb, tbl);
 }
 
@@ -279,7 +282,8 @@ static void icwmp_inform_get_rpc_method(struct ubus_context *ctx, struct ubus_re
 
 	cwmp_save_event_container(event_container);
 	session = list_entry(cwmp_main.head_event_container, struct session, head_event_container);
-	if (cwmp_main.conf.acs_getrpc && cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
+	bool acs_getrpc = global_bool_param_read(&cwmp_main.conf.acs_getrpc);
+	if (acs_getrpc && cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
 		pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 		return;
 	}

@@ -185,7 +185,9 @@ int cwmp_root_cause_event_bootstrap(struct cwmp *cwmp)
 	if (acsurl == NULL)
 		save_acs_bkp_config(cwmp);
 
-	if (acsurl == NULL || ((cmp = CWMP_STRCMP(cwmp->conf.acsurl, acsurl)) != 0)) {
+	char *conf_url = NULL;
+	global_string_param_read(&cwmp->conf.acsurl, &conf_url);
+	if (acsurl == NULL || ((cmp = CWMP_STRCMP(conf_url, acsurl)) != 0)) {
 		pthread_mutex_lock(&(cwmp->mutex_session_queue));
 		if (cwmp->head_event_container != NULL && cwmp->head_session_queue.next != &(cwmp->head_session_queue)) {
 			struct session *session;
@@ -209,6 +211,7 @@ int cwmp_root_cause_event_bootstrap(struct cwmp *cwmp)
 	} else {
 		FREE(acsurl);
 	}
+	FREE(conf_url);
 
 	if (cmp) {
 		pthread_mutex_lock(&(cwmp->mutex_session_queue));
@@ -329,7 +332,7 @@ int cwmp_root_cause_get_rpc_method(struct cwmp *cwmp)
 		}
 		cwmp_save_event_container(event_container);
 		session = list_entry(cwmp->head_event_container, struct session, head_event_container);
-		if (cwmp->conf.acs_getrpc && cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
+		if (global_bool_param_read(&cwmp->conf.acs_getrpc) && cwmp_add_session_rpc_acs(session, RPC_ACS_GET_RPC_METHODS) == NULL) {
 			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			return CWMP_MEM_ERR;
 		}
@@ -351,18 +354,19 @@ void *thread_event_periodic(void *v)
 	long int delta_time;
 	time_t unknown_time;
 
-	periodic_interval = cwmp->conf.period;
-	periodic_enable = cwmp->conf.periodic_enable;
-	periodic_time = cwmp->conf.time;
+	periodic_interval = global_int_param_read(&cwmp->conf.period);
+	periodic_enable = global_bool_param_read(&cwmp->conf.periodic_enable);
+	periodic_time = global_time_param_read(&cwmp->conf.time);
 	unknown_time = convert_datetime_to_timestamp("0001-01-01T00:00:00Z");
 
 	for (;;) {
 		pthread_mutex_lock(&(cwmp->mutex_periodic));
-		if (cwmp->conf.periodic_enable) {
+		if (periodic_enable) {
 			current_time = time(NULL);
 			if (periodic_time != 0) {
 				if (periodic_time == unknown_time) {
-					delta_time = (current_time + cwmp->conf.periodic_entropy) % periodic_interval;
+					unsigned int periodic_entropy = global_uint_param_read(&cwmp->conf.periodic_entropy);
+					delta_time = (current_time + periodic_entropy) % periodic_interval;
 				} else {
 					delta_time = (current_time - periodic_time) % periodic_interval;
 				}
@@ -385,10 +389,10 @@ void *thread_event_periodic(void *v)
 		if (thread_end)
 			break;
 
-		if (periodic_interval != cwmp->conf.period || periodic_enable != cwmp->conf.periodic_enable || periodic_time != cwmp->conf.time) {
-			periodic_enable = cwmp->conf.periodic_enable;
-			periodic_interval = cwmp->conf.period;
-			periodic_time = cwmp->conf.time;
+		if (periodic_interval != global_int_param_read(&cwmp->conf.period) || periodic_enable != global_bool_param_read(&cwmp->conf.periodic_enable) || periodic_time != global_time_param_read(&cwmp->conf.time)) {
+			periodic_enable = global_bool_param_read(&cwmp->conf.periodic_enable);
+			periodic_interval = global_int_param_read(&cwmp->conf.period);
+			periodic_time = global_time_param_read(&cwmp->conf.time);
 			continue;
 		}
 		CWMP_LOG(INFO, "Periodic thread: add periodic event in the queue");
@@ -420,13 +424,13 @@ int cwmp_root_cause_event_periodic(struct cwmp *cwmp)
 	char local_time[27] = { 0 };
 	struct tm *t_tm;
 
-	if (cwmp->cwmp_period == cwmp->conf.period && cwmp->cwmp_periodic_enable == cwmp->conf.periodic_enable && cwmp->cwmp_periodic_time == cwmp->conf.time)
+	if (cwmp->cwmp_period == global_int_param_read(&cwmp->conf.period) && cwmp->cwmp_periodic_enable == global_bool_param_read(&cwmp->conf.periodic_enable) && cwmp->cwmp_periodic_time == global_time_param_read(&cwmp->conf.time))
 		return CWMP_OK;
 
 	pthread_mutex_lock(&(cwmp->mutex_periodic));
-	cwmp->cwmp_period = cwmp->conf.period;
-	cwmp->cwmp_periodic_enable = cwmp->conf.periodic_enable;
-	cwmp->cwmp_periodic_time = cwmp->conf.time;
+	cwmp->cwmp_period = global_int_param_read(&cwmp->conf.period);
+	cwmp->cwmp_periodic_enable = global_bool_param_read(&cwmp->conf.periodic_enable);
+	cwmp->cwmp_periodic_time = global_time_param_read(&cwmp->conf.time);
 	CWMP_LOG(INFO, cwmp->cwmp_periodic_enable ? "Periodic event is enabled. Interval period = %ds" : "Periodic event is disabled", cwmp->cwmp_period);
 
 	t_tm = localtime(&cwmp->cwmp_periodic_time);
@@ -451,7 +455,8 @@ void connection_request_ip_value_change(struct cwmp *cwmp, int version)
 {
 	char *bip = NULL;
 	char *ip_version = (version == IPv6) ? "ipv6" : "ip";
-	char *ip_value = (version == IPv6) ? cwmp->conf.ipv6 : cwmp->conf.ip;
+	char *ip_value = NULL;
+	(version == IPv6) ? global_string_param_read(&cwmp->conf.ipv6, &ip_value) : global_string_param_read(&cwmp->conf.ip, &ip_value);
 
 	if (version == IPv6)
 		cwmp_load_saved_session(cwmp, &bip, CR_IPv6);
@@ -481,6 +486,7 @@ void connection_request_ip_value_change(struct cwmp *cwmp, int version)
 		pthread_cond_signal(&(cwmp->threshold_session_send));
 	}
 	FREE(bip);
+	FREE(ip_value);
 }
 
 void connection_request_port_value_change(struct cwmp *cwmp, int port)

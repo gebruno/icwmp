@@ -165,8 +165,8 @@ int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat)
 	unsigned int retry_count = 0;
 	double min = 0;
 	double max = 0;
-	int m = cwmp->conf.retry_min_wait_interval;
-	int k = cwmp->conf.retry_interval_multiplier;
+	int m = global_int_param_read(&cwmp->conf.retry_min_wait_interval);
+	int k = global_int_param_read(&cwmp->conf.retry_interval_multiplier);
 	int exp;
 	if (heart_beat)
 		exp = heart_beat_retry_count_session;
@@ -597,21 +597,28 @@ static void check_exit_timer_expiry(struct uloop_timeout *timeout)
 
 static void *thread_uloop_run(void *v __attribute__((unused)))
 {
+	char *temp = NULL;
+
 	uloop_init();
 
 	if (netlink_init()) {
 		CWMP_LOG(ERROR, "netlink initialization failed");
 	}
 
-	if (cwmp_main.conf.ipv6_enable) {
+	bool v6_enable = global_bool_param_read(&cwmp_main.conf.ipv6_enable);
+	if (v6_enable) {
 		if (netlink_init_v6()) {
 			CWMP_LOG(ERROR, "netlink initialization failed");
 		}
 	}
 
-	ctx = ubus_connect(cwmp_main.conf.ubus_socket);
-	if (!ctx)
+	global_string_param_read(&cwmp_main.conf.ubus_socket, &temp);
+	ctx = ubus_connect(temp);
+	if (!ctx) {
+		FREE(temp);
 		return NULL;
+	}
+	FREE(temp);
 
 	ubus_add_uloop(ctx);
 
@@ -641,24 +648,33 @@ void load_forced_inform_json_file(struct cwmp *cwmp)
 	struct blob_attr *cur;
 	struct blob_attr *custom_forced_inform_list = NULL;
 	int rem;
+	char *temp = NULL;
 
-	if (cwmp->conf.forced_inform_json_file == NULL || !file_exists(cwmp->conf.forced_inform_json_file))
+	global_string_param_read(&cwmp->conf.forced_inform_json_file, &temp);
+	if (CWMP_STRLEN(temp) == 0 || !file_exists(temp)) {
+		FREE(temp);
 		return;
+	}
 
 	memset(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
-	if (blobmsg_add_json_from_file(&bbuf, cwmp->conf.forced_inform_json_file) == false) {
-		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp->conf.forced_inform_json_file);
+	if (blobmsg_add_json_from_file(&bbuf, temp) == false) {
+		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", temp);
 		blob_buf_free(&bbuf);
+		FREE(temp);
 		return;
 	}
+
+	FREE(temp);
 	const struct blobmsg_policy p[1] = { { "forced_inform", BLOBMSG_TYPE_ARRAY } };
 	struct blob_attr *tb[1] = { NULL };
 	blobmsg_parse(p, 1, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 	if (tb[0] == NULL) {
-		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a forced inform parameters list", cwmp->conf.custom_notify_json);
+		global_string_param_read(&cwmp->conf.custom_notify_json, &temp);
+		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a forced inform parameters list", temp);
 		blob_buf_free(&bbuf);
+		FREE(temp);
 		return;
 	}
 
@@ -682,7 +698,6 @@ void load_forced_inform_json_file(struct cwmp *cwmp)
 		FREE(val);
 	}
 	blob_buf_free(&bbuf);
-
 }
 
 void load_boot_inform_json_file(struct cwmp *cwmp)
@@ -691,26 +706,34 @@ void load_boot_inform_json_file(struct cwmp *cwmp)
 	struct blob_attr *cur;
 	struct blob_attr *custom_boot_inform_list = NULL;
 	int rem;
+	char *temp = NULL;
 
-	if (cwmp->conf.boot_inform_json_file == NULL || !file_exists(cwmp->conf.boot_inform_json_file))
+	global_string_param_read(&cwmp->conf.boot_inform_json_file, &temp);
+	if (CWMP_STRLEN(temp) == 0 || !file_exists(temp)) {
+		FREE(temp);
 		return;
+	}
 
 	memset(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
-	if (blobmsg_add_json_from_file(&bbuf, cwmp->conf.boot_inform_json_file) == false) {
-		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp->conf.boot_inform_json_file);
+	if (blobmsg_add_json_from_file(&bbuf, temp) == false) {
+		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", temp);
 		blob_buf_free(&bbuf);
+		FREE(temp);
 		return;
 	}
 
+	FREE(temp);
 	const struct blobmsg_policy p[1] = { { "boot_inform", BLOBMSG_TYPE_ARRAY } };
 	struct blob_attr *tb[1] = { NULL };
 	blobmsg_parse(p, 1, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 
 	if (tb[0] == NULL) {
-		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a boot inform parameters list", cwmp->conf.custom_notify_json);
+		global_string_param_read(&cwmp->conf.custom_notify_json, &temp);
+		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a boot inform parameters list", temp);
 		blob_buf_free(&bbuf);
+		FREE(temp);
 		return;
 	}
 
@@ -915,21 +938,21 @@ static void cwmp_free(struct cwmp *cwmp)
 	FREE(cwmp->deviceid.productclass);
 	FREE(cwmp->deviceid.oui);
 	FREE(cwmp->deviceid.softwareversion);
-	FREE(cwmp->conf.lw_notification_hostname);
-	FREE(cwmp->conf.ip);
-	FREE(cwmp->conf.ipv6);
-	FREE(cwmp->conf.acsurl);
-	FREE(cwmp->conf.acs_userid);
-	FREE(cwmp->conf.acs_passwd);
-	FREE(cwmp->conf.interface);
-	FREE(cwmp->conf.cpe_userid);
-	FREE(cwmp->conf.cpe_passwd);
-	FREE(cwmp->conf.ubus_socket);
-	FREE(cwmp->conf.connection_request_path);
-	FREE(cwmp->conf.default_wan_iface);
-	FREE(cwmp->conf.forced_inform_json_file);
-	FREE(cwmp->conf.custom_notify_json);
-	FREE(cwmp->conf.boot_inform_json_file);
+	global_string_param_free(&cwmp->conf.lw_notification_hostname);
+	global_string_param_free(&cwmp->conf.ip);
+	global_string_param_free(&cwmp->conf.ipv6);
+	global_string_param_free(&cwmp->conf.acsurl);
+	global_string_param_free(&cwmp->conf.acs_userid);
+	global_string_param_free(&cwmp->conf.acs_passwd);
+	global_string_param_free(&cwmp->conf.interface);
+	global_string_param_free(&cwmp->conf.cpe_userid);
+	global_string_param_free(&cwmp->conf.cpe_passwd);
+	global_string_param_free(&cwmp->conf.ubus_socket);
+	global_string_param_free(&cwmp->conf.connection_request_path);
+	global_string_param_free(&cwmp->conf.default_wan_iface);
+	global_string_param_free(&cwmp->conf.forced_inform_json_file);
+	global_string_param_free(&cwmp->conf.custom_notify_json);
+	global_string_param_free(&cwmp->conf.boot_inform_json_file);
 	FREE(nonce_key);
 	clean_list_param_notify();
 	bkp_tree_clean();
@@ -979,8 +1002,11 @@ static void configure_var_state(struct cwmp *cwmp)
 	cwmp_uci_add_section_with_specific_name("cwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
 	cwmp_uci_add_section_with_specific_name("cwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
 
-	get_firewall_zone_name_by_wan_iface(cwmp->conf.default_wan_iface, &zone_name);
+	char *def_wan_intf = NULL;
+	global_string_param_read(&cwmp->conf.default_wan_iface, &def_wan_intf);
+	get_firewall_zone_name_by_wan_iface(def_wan_intf, &zone_name);
 	cwmp_uci_set_varstate_value("cwmp", "acs", "zonename", zone_name ? zone_name : "wan");
+	FREE(def_wan_intf);
 }
 
 int main(int argc, char **argv)

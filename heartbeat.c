@@ -22,7 +22,8 @@ static struct session_status heart_beat_session_status = {0};
 
 void check_trigger_heartbeat_session()
 {
-	if (cwmp_main.conf.heart_beat_enable && !old_heartbeat_enable)
+	bool enable = global_bool_param_read(&cwmp_main.conf.heart_beat_enable);
+	if (enable && !old_heartbeat_enable)
 		pthread_cond_signal(&threshold_heartbeat_session);
 }
 
@@ -55,8 +56,9 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 		if (thread_end)
 			break;
 
-		if (cwmp_main.conf.heart_beat_enable) {
-			heartbeat_interval.tv_sec = time(NULL) + cwmp_main.conf.heartbeat_interval;
+		bool enable = global_bool_param_read(&cwmp_main.conf.heart_beat_enable);
+		if (enable) {
+			heartbeat_interval.tv_sec = time(NULL) + global_int_param_read(&cwmp_main.conf.heartbeat_interval);
 			pthread_mutex_lock(&mutex_heartbeat);
 			pthread_cond_timedwait(&threshold_heartbeat_session, &mutex_heartbeat, &heartbeat_interval);
 			if (thread_end)
@@ -151,7 +153,7 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			heart_beat_session_status.last_status = SESSION_SUCCESS;
 			heart_beat_session_status.next_retry = 0;
 			heart_beat_session_status.success_session++;
-			heartbeat_interval.tv_sec = time(NULL) + cwmp_main.conf.heartbeat_interval;
+			heartbeat_interval.tv_sec = time(NULL) + global_int_param_read(&cwmp_main.conf.heartbeat_interval);
 			pthread_mutex_unlock(&mutex_heartbeat_session);
 			pthread_mutex_unlock(&mutex_heartbeat);
 		} else {

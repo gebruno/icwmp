@@ -547,5 +547,16 @@ int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session);
 int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);
 bool uci_str_to_bool(char *value);
+bool global_bool_param_read(const bool *param);
+void global_string_param_read(char **param, char **val);
+int global_int_param_read(const int *param);
+time_t global_time_param_read(const time_t *param);
+unsigned int global_uint_param_read(const unsigned int *param);
+void global_bool_param_write(bool *param, bool value);
+void global_string_param_write(char **param, char *value);
+void global_int_param_write(int *param, int value);
+void global_time_param_write(time_t *param, time_t value);
+void global_uint_param_write(unsigned int *param, unsigned int value);
+void global_string_param_free(char **param);
 
 #endif

@@ -35,6 +35,7 @@ static int nbre_services = 0;
 static char *list_services[MAX_NBRE_SERVICES] = { 0 };
 LIST_HEAD(cwmp_memory_list);
 extern bool g_firewall_restart;
+pthread_mutex_t mutex_global_config = PTHREAD_MUTEX_INITIALIZER;
 
 struct cwmp_mem {
 	struct list_head list;
@@ -131,6 +132,121 @@ int global_env_init(int argc, char **argv, struct env *env)
 		}
 	}
 	return CWMP_OK;
+}
+
+int global_int_param_read(const int *param)
+{
+	int val = 0;
+
+	pthread_mutex_lock(&mutex_global_config);
+	val = *param;
+	pthread_mutex_unlock(&mutex_global_config);
+
+	return val;
+}
+
+void global_string_param_read(char **param, char **val)
+{
+	if (param == NULL || *param == NULL || val == NULL)
+		return;
+
+	pthread_mutex_lock(&mutex_global_config);
+	*val = CWMP_STRDUP(*param);
+	pthread_mutex_unlock(&mutex_global_config);
+}
+
+bool global_bool_param_read(const bool *param)
+{
+	bool val = 0;
+
+	pthread_mutex_lock(&mutex_global_config);
+	val = *param;
+	pthread_mutex_unlock(&mutex_global_config);
+
+	return val;
+}
+
+time_t global_time_param_read(const time_t *param)
+{
+	time_t val = 0;
+
+	pthread_mutex_lock(&mutex_global_config);
+	val = *param;
+	pthread_mutex_unlock(&mutex_global_config);
+
+	return val;
+}
+
+unsigned int global_uint_param_read(const unsigned int *param)
+{
+	unsigned int val = 0;
+
+	pthread_mutex_lock(&mutex_global_config);
+	val = *param;
+	pthread_mutex_unlock(&mutex_global_config);
+
+	return val;
+}
+
+void global_string_param_write(char **param, char *value)
+{
+	if (param == NULL)
+		return;
+
+	pthread_mutex_lock(&mutex_global_config);
+	if (CWMP_STRLEN(value) == 0) {
+		FREE(*param);
+	} else {
+		*param = CWMP_STRDUP(value);
+	}
+	pthread_mutex_unlock(&mutex_global_config);
+}
+
+void global_bool_param_write(bool *param, bool value)
+{
+	if (param == NULL)
+		return;
+
+	pthread_mutex_lock(&mutex_global_config);
+	*param = value;
+	pthread_mutex_unlock(&mutex_global_config);
+}
+
+void global_time_param_write(time_t *param, time_t value)
+{
+	if (param == NULL)
+		return;
+
+	pthread_mutex_lock(&mutex_global_config);
+	*param = value;
+	pthread_mutex_unlock(&mutex_global_config);
+}
+
+void global_int_param_write(int *param, int value)
+{
+	if (param == NULL)
+		return;
+
+	pthread_mutex_lock(&mutex_global_config);
+	*param = value;
+	pthread_mutex_unlock(&mutex_global_config);
+}
+
+void global_uint_param_write(unsigned int *param, unsigned int value)
+{
+	if (param == NULL)
+		return;
+
+	pthread_mutex_lock(&mutex_global_config);
+	*param = value;
+	pthread_mutex_unlock(&mutex_global_config);
+}
+
+void global_string_param_free(char **param)
+{
+	pthread_mutex_lock(&mutex_global_config);
+	FREE(*param);
+	pthread_mutex_unlock(&mutex_global_config);
 }
 
 /*
@@ -752,10 +868,13 @@ void ubus_network_interface_callback(struct ubus_request *req __attribute__((unu
 
 	// Only update the interface if its not empty
 	if (CWMP_STRLEN(l3_device)) {
-		cwmp_main.conf.interface = strdup(l3_device);
+		global_string_param_write(&cwmp_main.conf.interface, l3_device);
 	}
 
-	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main.conf.interface);
+	char *intf = NULL;
+	global_string_param_read(&cwmp_main.conf.interface, &intf);
+	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", intf);
+	FREE(intf);
 }
 
 int get_connection_interface(char *iface)
@@ -772,7 +891,7 @@ int get_connection_interface(char *iface)
 	char ubus_obj[100] = {0};
 	snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", iface);
 
-	FREE(cwmp_main.conf.interface);
+	global_string_param_free(&cwmp_main.conf.interface);
 
 	int e = icwmp_ubus_invoke(ubus_obj, "status", b.head, ubus_network_interface_callback, NULL);
 	blob_buf_free(&b);
@@ -780,9 +899,15 @@ int get_connection_interface(char *iface)
 	if (e != 0) {
 		return -1;
 	}
-	if (cwmp_main.conf.interface == NULL) {
+
+	char *tmp = NULL;
+	global_string_param_read(&cwmp_main.conf.interface, &tmp);
+	if (CWMP_STRLEN(tmp) == 0) {
+		FREE(tmp);
 		return -1;
 	}
+
+	FREE(tmp);
 	return CWMP_OK;
 }
 

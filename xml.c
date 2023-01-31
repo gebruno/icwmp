@@ -138,13 +138,14 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 	char c[512];
 	int msg_out_len = 0, f, r = 0;
 	mxml_node_t *b;
+	int compression = global_int_param_read(&cwmp->conf.compression);
 
 	if (session->tree_out) {
 		unsigned char *zmsg_out;
 		msg_out = mxmlSaveAllocString(session->tree_out, whitespace_cb);
 		CWMP_LOG_XML_MSG(DEBUG, msg_out, XML_MSG_OUT);
-		if (cwmp->conf.compression != COMP_NONE) {
-			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, cwmp->conf.compression)) {
+		if (compression != COMP_NONE) {
+			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, compression)) {
 				return -1;
 			}
 			FREE(msg_out);
@@ -236,7 +237,8 @@ int xml_prepare_msg_out(struct session *session)
 		return -1;
 	}
 
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(conf->amd_version) - 1]);
+	int amd_version = global_int_param_read(&conf->amd_version);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[amd_version - 1]);
 	if (!session->tree_out)
 		return -1;
 
@@ -464,10 +466,14 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(un, conf->acs_userid)) {
+	char *acs_userid = NULL;
+	global_string_param_read(&conf->acs_userid, &acs_userid);
+	if (NULL == mxmlNewOpaque(un, acs_userid)) {
+		FREE(acs_userid);
 		MXML_DELETE(xml);
 		return;
 	}
+	FREE(acs_userid);
 
 	mxml_node_t *cn = mxmlNewElement(notification, "CN");
 	if (cn == NULL) {
