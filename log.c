@@ -26,7 +26,10 @@ static char log_file_name[256];
 static bool enable_log_file = true;
 static bool enable_log_stdout = false;
 static bool enable_log_syslog = true;
+
+#ifdef CWMP_ENABLE_FILE_LOGGING
 static pthread_mutex_t mutex_log = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 int log_set_severity_idx(char *value)
 {
@@ -90,57 +93,88 @@ int log_set_on_syslog(char *value)
 	return 1;
 }
 
-void puts_log(int severity, const char *fmt, ...)
+#ifdef CWMP_ENABLE_FILE_LOGGING
+static void log_to_file(const char *file_name, const char *msg, int severity, int *xml_msgtype)
 {
-	va_list args;
-	int i;
 	struct tm *Tm;
 	struct timeval tv;
+	char log_file_name_bak[258] = {0};
+	int i;
 	FILE *pLog = NULL;
 	struct stat st;
 	long int size = 0;
-	char log_file_name_bak[258];
-	char buf[1024];
-	char buf_file[1024];
+	char buf[1024] = {0};
+	char buf_file[1024] = {0};
+	char *description = NULL, *separator = NULL;
 
 	pthread_mutex_lock(&mutex_log);
-
-	if (severity > log_severity) {
-		goto end;
-	}
-
 	gettimeofday(&tv, 0);
 	Tm = localtime(&tv.tv_sec);
 	i = snprintf(buf, sizeof(buf), "%02d-%02d-%4d, %02d:%02d:%02d %s ", Tm->tm_mday, Tm->tm_mon + 1, Tm->tm_year + 1900, Tm->tm_hour, Tm->tm_min, Tm->tm_sec, SEVERITY_NAMES[severity]);
-	if (strlen(log_file_name) == 0) {
-		CWMP_STRNCPY(log_file_name, DEFAULT_LOG_FILE_NAME, sizeof(log_file_name));
+
+	if (xml_msgtype != NULL) {
+		if (*xml_msgtype == XML_MSG_IN) {
+			description = "MESSAGE IN\n";
+			separator = "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
+		} else {
+			description = "MESSAGE OUT\n";
+			separator = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
+		}
+	} else {
+		int rem_len = sizeof(buf) - i;
+		snprintf(buf + i, rem_len, "%s", msg);
 	}
+
 	if (enable_log_file) {
-		if (stat(log_file_name, &st) == 0) {
+		if (stat(file_name, &st) == 0) {
 			size = st.st_size;
 		}
 		if (size >= log_max_size) {
-			snprintf(log_file_name_bak, sizeof(log_file_name_bak), "%s.1", log_file_name);
-			rename(log_file_name, log_file_name_bak);
-			pLog = fopen(log_file_name, "w");
+			snprintf(log_file_name_bak, sizeof(log_file_name_bak), "%s.1", file_name);
+			rename(file_name, log_file_name_bak);
+			pLog = fopen(file_name, "w");
 		} else {
-			pLog = fopen(log_file_name, "a+");
+			pLog = fopen(file_name, "a+");
+		}
+
+		if (xml_msgtype != NULL) {
+			fputs(buf, pLog);
+			fputs(description, pLog);
+			fputs(separator, pLog);
+			fputs(msg, pLog);
+			fputs("\n", pLog);
+			fputs(separator, pLog);
+			fclose(pLog);
+		}else {
+			CWMP_STRNCPY(buf_file, buf, sizeof(buf_file));
+			buf_file[strlen(buf)] = '\n';
+			buf_file[strlen(buf) + 1] = '\0';
+			fputs(buf_file, pLog);
+			fclose(pLog);
 		}
 	}
-	va_start(args, fmt);
-	vsprintf(buf + i, (const char *)fmt, args);
-	if (enable_log_file) {
-		CWMP_STRNCPY(buf_file, buf, sizeof(buf_file));
-		buf_file[strlen(buf)] = '\n';
-		buf_file[strlen(buf) + 1] = '\0';
-		fputs(buf_file, pLog);
-	}
-	va_end(args);
-	if (enable_log_file) {
-		fclose(pLog);
-	}
+
 	if (enable_log_stdout) {
 		puts(buf);
+		if (xml_msgtype != NULL) {
+			puts(description);
+			puts(separator);
+			puts(msg);
+			puts("\n");
+			puts(separator);
+		}
+	}
+
+	pthread_mutex_unlock(&mutex_log);
+}
+#endif
+
+void puts_log(int severity, const char *fmt, ...)
+{
+	va_list args;
+
+	if (severity > log_severity) {
+		return;
 	}
 
 	if (enable_log_syslog) {
@@ -148,75 +182,37 @@ void puts_log(int severity, const char *fmt, ...)
 		vsyslog(severity, fmt, args);
 		va_end(args);
 	}
-end:
-	pthread_mutex_unlock(&mutex_log);
+
+#ifdef CWMP_ENABLE_FILE_LOGGING
+	char buf[1024] = {0};
+	va_start(args, fmt);
+	vsprintf(buf, fmt, args);
+	va_end(args);
+	if (strlen(log_file_name) == 0) {
+		log_to_file(DEFAULT_LOG_FILE_NAME, (const char*)buf, severity, NULL);
+	} else {
+		log_to_file(log_file_name, (const char*)buf, severity, NULL);
+	}
+#endif
 }
 
 void puts_log_xmlmsg(int severity, char *msg, int msgtype)
 {
-	struct tm *Tm;
-	struct timeval tv;
-	FILE *pLog = NULL;
-	struct stat st;
-	long int size = 0;
-	char log_file_name_bak[258];
-	char buf[1024];
-	char *description, *separator;
-
-	pthread_mutex_lock(&mutex_log);
-
 	if (severity > log_severity) {
-		goto end;
-	}
-
-	gettimeofday(&tv, 0);
-	Tm = localtime(&tv.tv_sec);
-	snprintf(buf, sizeof(buf), "%02d-%02d-%4d, %02d:%02d:%02d %s ", Tm->tm_mday, Tm->tm_mon + 1, Tm->tm_year + 1900, Tm->tm_hour, Tm->tm_min, Tm->tm_sec, SEVERITY_NAMES[severity]);
-	if (strlen(log_file_name) == 0) {
-		CWMP_STRNCPY(log_file_name, DEFAULT_LOG_FILE_NAME, sizeof(log_file_name));
-	}
-
-	if (msgtype == XML_MSG_IN) {
-		description = "MESSAGE IN\n";
-		separator = "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n";
-
-	} else {
-		description = "MESSAGE OUT\n";
-		separator = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n";
-	}
-	if (enable_log_file) {
-		if (stat(log_file_name, &st) == 0) {
-			size = st.st_size;
-		}
-		if (size >= log_max_size) {
-			snprintf(log_file_name_bak, sizeof(log_file_name_bak), "%s.1", log_file_name);
-			rename(log_file_name, log_file_name_bak);
-			pLog = fopen(log_file_name, "w");
-		} else {
-			pLog = fopen(log_file_name, "a+");
-		}
-		fputs(buf, pLog);
-		fputs(description, pLog);
-		fputs(separator, pLog);
-		fputs(msg, pLog);
-		fputs("\n", pLog);
-		fputs(separator, pLog);
-		fclose(pLog);
-	}
-	if (enable_log_stdout) {
-		puts(buf);
-		puts(description);
-		puts(separator);
-		puts(msg);
-		puts("\n");
-		puts(separator);
+		return;
 	}
 
 	if (enable_log_syslog) {
 		syslog(severity, "%s: %s", ((msgtype == XML_MSG_IN) ? "IN" : "OUT"), msg);
-		if (sizeof(buf) < strlen(msg))
+		if (1024 < strlen(msg))
 			syslog(severity, "Truncated message at %zu characters", strlen(msg));
 	}
-end:
-	pthread_mutex_unlock(&mutex_log);
+
+#ifdef CWMP_ENABLE_FILE_LOGGING
+	if (strlen(log_file_name) == 0) {
+		log_to_file(DEFAULT_LOG_FILE_NAME, (const char*)msg, severity, &msgtype);
+	} else {
+		log_to_file(log_file_name, (const char *)msg, severity, &msgtype);
+	}
+#endif
 }

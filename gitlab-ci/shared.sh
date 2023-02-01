@@ -113,7 +113,7 @@ function clean_icwmp()
 
 function build_icwmp()
 {
-	COV_CFLAGS='-g -O0 -fprofile-arcs -ftest-coverage'
+	COV_CFLAGS='-g -O0 -fprofile-arcs -ftest-coverage -DCWMP_ENABLE_FILE_LOGGING'
 	COV_LDFLAGS='--coverage'
 
 	# clean icwmp
