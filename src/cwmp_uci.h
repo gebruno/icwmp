@@ -122,13 +122,11 @@ struct config_uci_list {
 struct uci_paths {
 	char *conf_dir;
 	char *save_dir;
-	struct uci_context *uci_ctx;
 };
 
 extern struct uci_paths uci_save_conf_paths[];
-int cwmp_uci_init();
-void cwmp_uci_exit(void);
-void cwmp_uci_reinit(void);
+struct uci_context *cwmp_uci_init_by_uci_path(uci_config_paths uci_path);
+void cwmp_uci_exit(struct uci_context *uci_ctx);
 int cwmp_uci_lookup_ptr(struct uci_context *ctx, struct uci_ptr *ptr, char *package, char *section, char *option, char *value);
 int cwmp_uci_get_cwmp_standard_option_value_list(char *package, char *section, char *option, struct uci_list **value);
 int cwmp_uci_get_cwmp_varstate_option_value_list(char *package, char *section, char *option, struct uci_list **value);
@@ -142,7 +140,7 @@ int cwmp_uci_get_value_by_section_string(struct uci_section *s, char *option, ch
 int cwmp_uci_get_option_value_string(char *package, char *section, char *option, uci_config_paths uci_type, char **value);
 int cwmp_commit_package(char *package, uci_config_paths uci_type);
 int cwmp_uci_import(char *package_name, const char *input_path, uci_config_paths uci_type);
-int cwmp_uci_export_package(char *package, const char *output_path, uci_config_paths uci_type);
+int cwmp_uci_export_package(char *package, const char *output_path, struct uci_context *uci_ctx);
 int cwmp_uci_export(const char *output_path, uci_config_paths uci_type);
 void cwmp_free_uci_list(struct uci_list *list);
 int cwmp_uci_add_list_value(char *package, char *section, char *option, char *value, uci_config_paths uci_type);

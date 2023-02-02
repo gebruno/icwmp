@@ -24,14 +24,12 @@ static struct uci_list *list = NULL;
 
 static int cwmp_uci_unit_tests_init(void **state)
 {
-	cwmp_uci_init();
 	return 0;
 }
 
 static int cwmp_uci_unit_tests_clean(void **state)
 {
 	icwmp_cleanmem();
-	cwmp_uci_exit();
 	if (list != NULL)
 		cwmp_free_uci_list(list);
 	return 0;

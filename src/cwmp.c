@@ -305,7 +305,6 @@ static void cwmp_free()
 	bkp_tree_clean();
 	icwmp_uloop_ubus_exit();
 	icwmp_cleanmem();
-	cwmp_uci_exit();
 	rpc_exit();
 	clean_cwmp_session_structure();
 	FREE(cwmp_main);
@@ -342,7 +341,6 @@ static void configure_var_state()
 	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
 		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-	cwmp_uci_reinit();
 	cwmp_uci_add_section_with_specific_name("cwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
 	cwmp_uci_add_section_with_specific_name("cwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
 

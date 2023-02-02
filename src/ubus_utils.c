@@ -44,7 +44,6 @@ static int reload_cmd(struct blob_buf *b)
 		blobmsg_add_string(b, "info", "Session running, reload at the end of the session");
 	} else {
 		int error = CWMP_OK;
-		cwmp_uci_reinit();
 		error = cwmp_apply_acs_changes();
 		if (error != CWMP_OK) {
 			// Failed to load cwmp config

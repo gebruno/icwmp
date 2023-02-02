@@ -278,7 +278,6 @@ void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
 
 int get_firewall_restart_state(char **state)
 {
-	cwmp_uci_reinit();
 	return uci_get_state_value(UCI_CPE_FIREWALL_RESTART_STATE, state);
 }
 

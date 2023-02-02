@@ -62,7 +62,6 @@ int cwmp_session_init()
 
 	cwmp_main->cwmp_cr_event = 0;
 
-	cwmp_uci_init();
 	/*
 	 * Set Required methods as initial value of
 	 */
@@ -99,7 +98,6 @@ int cwmp_session_rpc_destructor(struct rpc *rpc)
 
 int cwmp_session_exit()
 {
-	cwmp_uci_exit();
 	icwmp_cleanmem();
 	return CWMP_OK;
 }
@@ -259,7 +257,6 @@ static void set_cwmp_session_status_state(int status)
 	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
 		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-	cwmp_uci_reinit();
 	cwmp_uci_add_section_with_specific_name("cwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
 
 	switch (status) {
@@ -615,7 +612,6 @@ int run_session_end_func(void)
 
 	if (end_session_flag & END_SESSION_RELOAD) {
 		CWMP_LOG(INFO, "Config reload: end session request");
-		cwmp_uci_reinit();
 		if (cwmp_apply_acs_changes() != CWMP_OK) {
 			CWMP_LOG(ERROR, "config reload failed at session end");
 		}

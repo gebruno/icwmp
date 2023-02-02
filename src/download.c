@@ -500,7 +500,6 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
 	} else if (strcmp(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
-		cwmp_uci_init();
 		int err = CWMP_OK;
 		if (download_file_name != NULL) {
 			char file_path[512];
@@ -512,7 +511,6 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 			remove(VENDOR_CONFIG_FILE);
 		}
 
-		cwmp_uci_exit();
 		if (err == CWMP_OK)
 			error = FAULT_CPE_NO_FAULT;
 		else if (err == CWMP_GEN_ERR)

@@ -603,12 +603,10 @@ void cwmp_config_load()
 {
 	int ret;
 
-	cwmp_uci_reinit();
 	ret = global_conf_init();
 	while (ret != CWMP_OK && cwmp_stop != true) {
 		CWMP_LOG(DEBUG, "Error reading uci ret = %d", ret);
 		sleep(UCI_OPTION_READ_INTERVAL);
-		cwmp_uci_reinit();
 		ret = global_conf_init();
 	}
 }

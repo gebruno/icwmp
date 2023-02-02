@@ -202,9 +202,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 
 	if (pupload->file_type[0] == '1') {
 		snprintf(file_path, sizeof(file_path), "/tmp/all_configs");
-		cwmp_uci_init();
 		cwmp_uci_export(file_path, UCI_STANDARD_CONFIG);
-		cwmp_uci_exit();
 	} else if (pupload->file_type[0] == '2') {
 		lookup_vlf_name(1, &name);
 		if (name && strlen(name) > 0) {
@@ -221,9 +219,9 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 		lookup_vcf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
-			cwmp_uci_init();
-			cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);
-			cwmp_uci_exit();
+			struct uci_context *uci_ctx = cwmp_uci_init_by_uci_path(UCI_STANDARD_CONFIG);
+			cwmp_uci_export_package(name, file_path, uci_ctx);
+			cwmp_uci_exit(uci_ctx);
 			FREE(name);
 		} else {
 			error = FAULT_CPE_UPLOAD_FAILURE;

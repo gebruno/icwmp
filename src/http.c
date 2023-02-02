@@ -475,11 +475,9 @@ void icwmp_http_server_init(void)
 	char cr_port_str[6];
 	snprintf(cr_port_str, 6, "%hu", cr_port);
 	cr_port_str[5] = '\0';
-	cwmp_uci_init();
 	cwmp_uci_set_value("cwmp", "cpe", "port", cr_port_str);
 	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 	connection_request_port_value_change(cr_port);
-	cwmp_uci_exit();
 	CWMP_LOG(INFO, "Connection Request server initiated with the port: %d", cr_port);
 }
 
