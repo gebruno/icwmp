@@ -129,35 +129,30 @@ int global_env_init(int argc, char **argv, struct env *env)
 void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *param_val, char *param_type,
 			      int notification, bool writable)
 {
-	struct cwmp_dm_parameter *dm_parameter;
-	struct list_head *ilist;
+	struct cwmp_dm_parameter *dm_parameter = NULL;
 
-	list_for_each (ilist, head) {
-		int cmp;
-		dm_parameter = list_entry(ilist, struct cwmp_dm_parameter, list);
-		if (dm_parameter->name == NULL)
-			continue;
-		cmp = strcmp(dm_parameter->name, param_name);
-		if (cmp == 0) {
+	if (!head || !param_name)
+		return;
+
+	list_for_each_entry(dm_parameter, head, list) {
+
+		if (strcmp(param_name, dm_parameter->name) == 0) {
 			if (param_val && strcmp(dm_parameter->value, param_val) != 0) {
 				free(dm_parameter->value);
 				dm_parameter->value = strdup(param_val);
 			}
 			dm_parameter->notification = notification;
 			return;
-		} else if (cmp > 0) {
-			break;
 		}
 	}
-	dm_parameter = calloc(1, sizeof(struct cwmp_dm_parameter));
-	_list_add(&dm_parameter->list, ilist->prev, ilist);
-	if (param_name)
-		dm_parameter->name = strdup(param_name);
-	if (param_val)
-		dm_parameter->value = strdup(param_val);
 
+	dm_parameter = calloc(1, sizeof(struct cwmp_dm_parameter));
+	list_add_tail(&dm_parameter->list, head);
+
+	dm_parameter->name = strdup(param_name);
+	dm_parameter->value = param_val ? strdup(param_val) : NULL;
 	dm_parameter->type = strdup(param_type ? param_type : "xsd:string");
-	dm_parameter->access_list = strdup("");
+	dm_parameter->access_list = NULL;
 	dm_parameter->notification = notification;
 	dm_parameter->writable = writable;
 }
