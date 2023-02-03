@@ -139,7 +139,7 @@ static void freecwmp_netlink_interface(struct nlmsghdr *nlh)
 			if_indextoname(ifa->ifa_index, if_name);
 			char *intf = NULL;
 			global_string_param_read(&cwmp_main.conf.interface, &intf);
-			if (strncmp(intf, if_name, IFNAMSIZ)) {
+			if (itfcmp(intf, if_name)) {
 				rth = RTA_NEXT(rth, rtl);
 				FREE(intf);
 				continue;
