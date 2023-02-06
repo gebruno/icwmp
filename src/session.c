@@ -668,6 +668,11 @@ int run_session_end_func(void)
 		cwmp_upload_diagnostics();
 	}
 
+	if (end_session_flag & END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC) {
+		CWMP_LOG(INFO, "Executing wifi neighboring diagnostic: end session request");
+		cwmp_wifi_neighboring__diagnostics();
+	}
+
 	if (cwmp_main->diag_session) {
 		struct session_timer_event *periodic_inform_event = calloc(1, sizeof(struct session_timer_event));
 		periodic_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;

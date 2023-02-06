@@ -32,9 +32,11 @@ struct diagnostic_input {
 #define TRACEROUTE_NUMBER_INPUTS 8
 #define UDPECHO_NUMBER_INPUTS 9
 #define NSLKUP_NUMBER_INPUTS 5
+#define WIFINEIGHB_NUMBER_INPUTS 0
 
 #define IP_DIAGNOSTICS_OBJECT "Device.IP.Diagnostics."
 #define DNS_DIAGNOSTICS_OBJECT "Device.DNS.Diagnostics."
+#define WIFI_DIAGNOSTCS_OBJECT "Device.WiFi."
 
 #define DOWNLOAD_DIAG_ACT_NAME "DownloadDiagnostics()"
 #define UPLOAD_DIAG_ACT_NAME "UploadDiagnostics()"
@@ -43,6 +45,7 @@ struct diagnostic_input {
 #define TRACE_ROUTE_DIAG_ACT_NAME "TraceRoute()"
 #define UDPECHO_DIAG_ACT_NAME "UDPEchoDiagnostics()"
 #define NSLOOKUP_DIAG_ACT_NAME "NSLookupDiagnostics()"
+#define WIFINEIBORING_DIAG_ACT_NAME "NeighboringWiFiDiagnostic()"
 
 struct diagnostic_input download_diagnostics_array[DOWNLOAD_NUMBER_INPUTS] = {
 	{ "Interface", "Device.IP.Diagnostics.DownloadDiagnostics.Interface", NULL },
@@ -149,26 +152,39 @@ void empty_ubus_callback(struct ubus_request *req __attribute__((unused)), int t
 
 static int cwmp_diagnostics_operate(char *diagnostics_object, char *action_name, struct diagnostic_input diagnostics_array[], int number_inputs)
 {
-	int e, i;
+	int e;
 	struct blob_buf b = { 0 };
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 	bb_add_string(&b, "path", diagnostics_object);
 	bb_add_string(&b, "action", action_name);
-	void *tbl = blobmsg_open_table(&b, "input");
-	for (i = 0; i < number_inputs; i++) {
-		if (diagnostics_array[i].value == NULL || diagnostics_array[i].value[0] == '\0')
-			continue;
-		bb_add_string(&b, diagnostics_array[i].input_name, diagnostics_array[i].value);
+	if (number_inputs > 0) {
+		int i;
+		void *tbl = blobmsg_open_table(&b, "input");
+		for (i = 0; i < number_inputs; i++) {
+			if (diagnostics_array[i].value == NULL || diagnostics_array[i].value[0] == '\0')
+				continue;
+			bb_add_string(&b, diagnostics_array[i].input_name, diagnostics_array[i].value);
+		}
+		blobmsg_close_table(&b, tbl);
 	}
-	blobmsg_close_table(&b, tbl);
-
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "operate", b.head, empty_ubus_callback, NULL);
 	blob_buf_free(&b);
 
 	if (e)
 		return -1;
+	return 0;
+}
+
+int cwmp_wifi_neighboring__diagnostics()
+{
+	struct diagnostic_input empty_array[1] = {{}};
+	if (cwmp_diagnostics_operate(WIFI_DIAGNOSTCS_OBJECT, WIFINEIBORING_DIAG_ACT_NAME, empty_array, WIFINEIGHB_NUMBER_INPUTS) == -1)
+		return -1;
+
+	CWMP_LOG(INFO, "WiFi neighboring diagnostic is successfully executed");
+	cwmp_main->diag_session = true;
 	return 0;
 }
 

@@ -16,6 +16,7 @@
 
 bool set_diagnostic_parameter_structure_value(char *parameter_name, char *value);
 
+int cwmp_wifi_neighboring__diagnostics();
 int cwmp_download_diagnostics();
 int cwmp_upload_diagnostics();
 int cwmp_ip_ping_diagnostics();
