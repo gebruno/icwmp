@@ -673,6 +673,11 @@ int run_session_end_func(void)
 		cwmp_wifi_neighboring__diagnostics();
 	}
 
+	if (end_session_flag & END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC) {
+		CWMP_LOG(INFO, "Executing IP layer capacity diagnostic: end session request");
+		cwmp_ip_layer_capacity_diagnostics();
+	}
+
 	if (cwmp_main->diag_session) {
 		struct session_timer_event *periodic_inform_event = calloc(1, sizeof(struct session_timer_event));
 		periodic_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;

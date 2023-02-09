@@ -33,6 +33,7 @@ struct diagnostic_input {
 #define UDPECHO_NUMBER_INPUTS 9
 #define NSLKUP_NUMBER_INPUTS 5
 #define WIFINEIGHB_NUMBER_INPUTS 0
+#define IPLAYER_CAPACITY_INPUTS 22
 
 #define IP_DIAGNOSTICS_OBJECT "Device.IP.Diagnostics."
 #define DNS_DIAGNOSTICS_OBJECT "Device.DNS.Diagnostics."
@@ -46,6 +47,32 @@ struct diagnostic_input {
 #define UDPECHO_DIAG_ACT_NAME "UDPEchoDiagnostics()"
 #define NSLOOKUP_DIAG_ACT_NAME "NSLookupDiagnostics()"
 #define WIFINEIBORING_DIAG_ACT_NAME "NeighboringWiFiDiagnostic()"
+#define IPLAYER_CAPACITY_ACT_NAME "IPLayerCapacity()"
+
+struct diagnostic_input iplayer_capacity_array[IPLAYER_CAPACITY_INPUTS] = {
+	{ "Interface", "Device.IP.Diagnostics.IPLayerCapacityMetrics.Interface", NULL },
+	{ "Role", "Device.IP.Diagnostics.IPLayerCapacityMetrics.Role", NULL },
+	{ "Host", "Device.IP.Diagnostics.IPLayerCapacityMetrics.Host", NULL },
+	{ "Port", "Device.IP.Diagnostics.IPLayerCapacityMetrics.Port", NULL },
+	{ "JumboFramesPermitted", "Device.IP.Diagnostics.IPLayerCapacityMetrics.JumboFramesPermitted", NULL },
+	{ "DSCP", "Device.IP.Diagnostics.IPLayerCapacityMetrics.DSCP", NULL },
+	{ "ProtocolVersion", "Device.IP.Diagnostics.IPLayerCapacityMetrics.ProtocolVersion", NULL },
+	{ "UDPPayloadContent", "Device.IP.Diagnostics.IPLayerCapacityMetrics.UDPPayloadContent", NULL },
+	{ "TestType", "Device.IP.Diagnostics.IPLayerCapacityMetrics.TestType", NULL },
+	{ "IPDVEnable", "Device.IP.Diagnostics.IPLayerCapacityMetrics.IPDVEnable", NULL },
+	{ "StartSendingRateIndex", "Device.IP.Diagnostics.IPLayerCapacityMetrics.StartSendingRateIndex", NULL },
+	{ "NumberTestSubIntervals", "Device.IP.Diagnostics.IPLayerCapacityMetrics.NumberTestSubIntervals", NULL },
+	{ "NumberFirstModeTestSubIntervals", "Device.IP.Diagnostics.IPLayerCapacityMetrics.NumberFirstModeTestSubIntervals", NULL },
+	{ "TestSubInterval", "Device.IP.Diagnostics.IPLayerCapacityMetrics.TestSubInterval", NULL },
+	{ "StatusFeedbackInterval", "Device.IP.Diagnostics.IPLayerCapacityMetrics.StatusFeedbackInterval", NULL },
+	{ "SeqErrThresh", "Device.IP.Diagnostics.IPLayerCapacityMetrics.SeqErrThresh", NULL },
+	{ "ReordDupIgnoreEnable", "Device.IP.Diagnostics.IPLayerCapacityMetrics.ReordDupIgnoreEnable", NULL },
+	{ "LowerThresh", "Device.IP.Diagnostics.IPLayerCapacityMetrics.LowerThresh", NULL },
+	{ "UpperThresh", "Device.IP.Diagnostics.IPLayerCapacityMetrics.UpperThresh", NULL },
+	{ "HighSpeedDelta", "Device.IP.Diagnostics.IPLayerCapacityMetrics.HighSpeedDelta", NULL },
+	{ "SlowAdjThresh", "Device.IP.Diagnostics.IPLayerCapacityMetrics.SlowAdjThresh", NULL },
+	{ "RateAdjAlgorithm", "Device.IP.Diagnostics.IPLayerCapacityMetrics.RateAdjAlgorithm", NULL },
+};
 
 struct diagnostic_input download_diagnostics_array[DOWNLOAD_NUMBER_INPUTS] = {
 	{ "Interface", "Device.IP.Diagnostics.DownloadDiagnostics.Interface", NULL },
@@ -145,7 +172,7 @@ bool set_diagnostic_parameter_structure_value(char *parameter_name, char *value)
 	return set_specific_diagnostic_object_parameter_structure_value(&download_diagnostics_array, DOWNLOAD_NUMBER_INPUTS, parameter_name, value) || set_specific_diagnostic_object_parameter_structure_value(&upload_diagnostics_array, UPLOAD_NUMBER_INPUTS, parameter_name, value) ||
 	       set_specific_diagnostic_object_parameter_structure_value(&ipping_diagnostics_array, IPPING_NUMBER_INPUTS, parameter_name, value) || set_specific_diagnostic_object_parameter_structure_value(&nslookup_diagnostics_array, NSLKUP_NUMBER_INPUTS, parameter_name, value) ||
 	       set_specific_diagnostic_object_parameter_structure_value(&traceroute_diagnostics_array, TRACEROUTE_NUMBER_INPUTS, parameter_name, value) || set_specific_diagnostic_object_parameter_structure_value(&udpecho_diagnostics_array, UDPECHO_NUMBER_INPUTS, parameter_name, value) ||
-	       set_specific_diagnostic_object_parameter_structure_value(&seserverselection_diagnostics_array, SESERVERSELECT_NUMBER_INPUTS, parameter_name, value);
+	       set_specific_diagnostic_object_parameter_structure_value(&seserverselection_diagnostics_array, SESERVERSELECT_NUMBER_INPUTS, parameter_name, value) || set_specific_diagnostic_object_parameter_structure_value(&iplayer_capacity_array, IPLAYER_CAPACITY_INPUTS, parameter_name, value);
 }
 
 void empty_ubus_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg __attribute__((unused))) {}
@@ -184,6 +211,16 @@ int cwmp_wifi_neighboring__diagnostics()
 		return -1;
 
 	CWMP_LOG(INFO, "WiFi neighboring diagnostic is successfully executed");
+	cwmp_main->diag_session = true;
+	return 0;
+}
+
+int cwmp_ip_layer_capacity_diagnostics()
+{
+	if (cwmp_diagnostics_operate(IP_DIAGNOSTICS_OBJECT, IPLAYER_CAPACITY_ACT_NAME, iplayer_capacity_array, IPLAYER_CAPACITY_INPUTS) == -1)
+		return -1;
+
+	CWMP_LOG(INFO, "IP layer capacity diagnostic is successfully executed");
 	cwmp_main->diag_session = true;
 	return 0;
 }

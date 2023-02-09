@@ -24,5 +24,6 @@ int cwmp_nslookup_diagnostics();
 int cwmp_traceroute_diagnostics();
 int cwmp_udp_echo_diagnostics();
 int cwmp_serverselection_diagnostics();
+int cwmp_ip_layer_capacity_diagnostics();
 
 #endif
