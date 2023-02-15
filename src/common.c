@@ -325,7 +325,9 @@ void cwmp_reboot(char *command_key)
 
 	blob_buf_free(&b);
 
-	sleep(5);
+	// Wait before exit to avoid getting restarted by procd
+	sleep(300);
+	CWMP_LOG(ERROR, "# Problem in system restart #");
 }
 
 /*
@@ -340,6 +342,10 @@ void cwmp_factory_reset() //use the ubus rpc-sys factory
 	icwmp_ubus_invoke("rpc-sys", "factory", b.head, NULL, NULL);
 
 	blob_buf_free(&b);
+
+	// Wait before exit to avoid getting restarted by procd
+	sleep(300);
+	CWMP_LOG(ERROR, "# Problem in system factory reset #");
 }
 
 long int get_file_size(char *file_name)
