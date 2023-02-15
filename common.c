@@ -429,7 +429,7 @@ void cwmp_reboot(char *command_key)
 	icwmp_ubus_invoke("rpc-sys", "reboot", b.head, NULL, NULL);
 	blob_buf_free(&b);
 
-	sleep(5);
+	sleep(300);
 }
 
 /*
@@ -444,7 +444,7 @@ void cwmp_factory_reset() //use the ubus rpc-sys factory
 	icwmp_ubus_invoke("rpc-sys", "factory", b.head, NULL, NULL);
 	blob_buf_free(&b);
 
-	sleep(5);
+	sleep(300);
 }
 
 long int get_file_size(char *file_name)
