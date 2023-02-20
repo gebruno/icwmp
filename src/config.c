@@ -486,6 +486,19 @@ int get_global_config()
 		cwmp_main->conf.delay_reboot = -1;
 	}
 
+	if (uci_get_value(UCI_CPE_ACTIVE_NOTIF_THROTTLE, &value) == CWMP_OK) {
+		int a = 0;
+
+		if (value != NULL) {
+			a = atoi(value);
+			FREE(value);
+		}
+
+		cwmp_main->conf.active_notif_throttle = a;
+	} else {
+		cwmp_main->conf.active_notif_throttle = 0;
+	}
+
 	cwmp_main->conf.custom_notify_json = NULL;
 	if (uci_get_value(UCI_CPE_JSON_CUSTOM_NOTIFY_FILE, &value) == CWMP_OK) {
 		FREE(cwmp_main->conf.custom_notify_json);

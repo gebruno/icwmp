@@ -39,6 +39,7 @@ static void cwmp_periodic_session_timer(struct uloop_timeout *timeout);
 struct uloop_timeout session_timer = { .cb = cwmp_schedule_session };
 struct uloop_timeout periodic_session_timer = { .cb = cwmp_periodic_session_timer };
 struct uloop_timeout retry_session_timer = { .cb = cwmp_schedule_session };
+struct uloop_timeout throttle_session_timer = { .cb = cwmp_schedule_throttle_session };
 //struct session_timer_event session_timer_evt = {.session_timer_evt = {.cb = cwmp_schedule_session_with_event}, .event = -1};
 
 unsigned int end_session_flag = 0;
@@ -404,6 +405,13 @@ void start_cwmp_session()
 			remove_single_event(EVENT_IDX_14HEARTBEAT);
 		cwmp_main->retry_count_session = 0;
 		set_cwmp_session_status(SESSION_SUCCESS, 0);
+		if (cwmp_main->throttle_session_triggered == true) {
+			cwmp_main->throttle_session_triggered = false;
+			if (!cwmp_main->throttle_session)
+				uloop_timeout_cancel(&throttle_session_timer);
+			else
+				cwmp_main->throttle_session = false;
+		}
 		rpc_exit();
 	}
 	run_session_end_func();
@@ -426,9 +434,25 @@ void trigger_cwmp_session_timer()
 	uloop_timeout_set(&session_timer, 10);
 }
 
+void trigger_cwmp_throttle_session_timer(unsigned int delay)
+{
+	uloop_timeout_cancel(&retry_session_timer);
+	uloop_timeout_set(&throttle_session_timer, delay * 1000 + 10);
+}
+
 void cwmp_schedule_session(struct uloop_timeout *timeout  __attribute__((unused)))
 {
 	pthread_mutex_lock(&cwmp_session_mutex);
+	cwmp_main->throttle_session = false;
+	start_cwmp_session();
+	pthread_mutex_unlock(&cwmp_session_mutex);
+}
+
+
+void cwmp_schedule_throttle_session(struct uloop_timeout *timeout  __attribute__((unused)))
+{
+	pthread_mutex_lock(&cwmp_session_mutex);
+	cwmp_main->throttle_session = true;
 	start_cwmp_session();
 	pthread_mutex_unlock(&cwmp_session_mutex);
 }

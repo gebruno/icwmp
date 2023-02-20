@@ -117,6 +117,7 @@ typedef struct config {
 	time_t schedule_reboot;
 	time_t time;
 	time_t heart_time;
+	unsigned int active_notif_throttle;
 	unsigned int periodic_entropy;
 	bool periodic_enable;
 	bool periodic_notify_enable;
@@ -157,6 +158,7 @@ typedef struct cwmp {
 	bool prev_heartbeat_enable;
 	bool heart_session;
 	bool diag_session;
+	bool throttle_session;
 	int prev_periodic_interval;
 	int prev_heartbeat_interval;
 	int retry_count_session;
@@ -182,6 +184,7 @@ typedef struct cwmp {
 	bool cwmp_periodic_enable;
 	bool custom_notify_active;
 	struct ubus_event_handler *ev;
+	bool throttle_session_triggered;
 } cwmp;
 
 enum action {

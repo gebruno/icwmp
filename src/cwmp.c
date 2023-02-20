@@ -245,6 +245,8 @@ static int cwmp_init()
 	cwmp_main->prev_heartbeat_time = cwmp_main->conf.heart_time;
 	cwmp_main->heart_session = false;
 	cwmp_main->diag_session = false;
+	cwmp_main->throttle_session = false;
+	cwmp_main->throttle_session_triggered = false;
 	if (cwmp_stop == true)
 		return CWMP_GEN_ERR;
 

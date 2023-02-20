@@ -703,7 +703,16 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 		cwmp_update_enabled_notify_file();
 	if (is_notify & NOTIF_ACTIVE) {
 		send_active_value_change();
-		trigger_cwmp_session_timer();
+		int last_session_interval = time(NULL) - cwmp_main->session->session_status.last_end_time;
+		if (!cwmp_main->throttle_session_triggered && (cwmp_main->session->session_status.last_status == SESSION_SUCCESS) && (cwmp_main->conf.active_notif_throttle > 0)) {
+			cwmp_main->throttle_session_triggered = true;
+			if (last_session_interval < cwmp_main->conf.active_notif_throttle)
+				trigger_cwmp_throttle_session_timer(cwmp_main->conf.active_notif_throttle - last_session_interval);
+			else
+				trigger_cwmp_throttle_session_timer(0);
+		}
+		else if (cwmp_main->conf.active_notif_throttle == 0)
+			trigger_cwmp_session_timer();
 	}
 
 	if (is_notify & NOTIF_LW_ACTIVE)
