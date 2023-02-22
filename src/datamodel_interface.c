@@ -587,7 +587,7 @@ void ubus_setm_values_callback(struct ubus_request *req, int type __attribute__(
 	}
 }
 
-int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list, char *parameter_key, int *flag, struct list_head *faults_list)
+int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list, int *flag, struct list_head *faults_list)
 {
 	int e;
 	struct cwmp_dm_parameter *param_value = NULL;
@@ -606,7 +606,6 @@ int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list
 		blobmsg_close_table(&b, tbl);
 	}
 	blobmsg_close_array(&b, arr);
-	bb_add_string(&b, "key", parameter_key ? parameter_key : "");
 	blobmsg_add_u32(&b, "transaction_id", transaction_id);
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
@@ -666,20 +665,19 @@ void ubus_objects_callback(struct ubus_request *req, int type __attribute__((unu
 	}
 }
 
-static void prepare_add_delete_blobmsg(struct blob_buf *b, char *object_name, char *key)
+static void prepare_add_delete_blobmsg(struct blob_buf *b, char *object_name)
 {
 	if (b == NULL)
 		return;
 
 	char *object = CWMP_STRLEN(object_name) ? object_name : DM_ROOT_OBJ;
 	bb_add_string(b, "path", object);
-	bb_add_string(b, "key", key ? key : "");
 	blobmsg_add_u32(b, "transaction_id", transaction_id);
 	bb_add_string(b, "proto", "cwmp");
 	blobmsg_add_u32(b, "instance_mode", cwmp_main->conf.instance_mode);
 }
 
-char *cwmp_add_object(char *object_name, char *key, char **instance)
+char *cwmp_add_object(char *object_name, char **instance)
 {
 	int e;
 	struct object_result add_result = { .instance = instance };
@@ -687,7 +685,7 @@ char *cwmp_add_object(char *object_name, char *key, char **instance)
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	prepare_add_delete_blobmsg(&b, object_name, key);
+	prepare_add_delete_blobmsg(&b, object_name);
 
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "add_object", b.head, ubus_objects_callback, &add_result);
 	blob_buf_free(&b);
@@ -703,7 +701,7 @@ char *cwmp_add_object(char *object_name, char *key, char **instance)
 	return NULL;
 }
 
-char *cwmp_delete_object(char *object_name, char *key)
+char *cwmp_delete_object(char *object_name)
 {
 	int e;
 	struct object_result add_result = { .instance = NULL };
@@ -711,7 +709,7 @@ char *cwmp_delete_object(char *object_name, char *key)
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	prepare_add_delete_blobmsg(&b, object_name, key);
+	prepare_add_delete_blobmsg(&b, object_name);
 
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "del_object", b.head, ubus_objects_callback, &add_result);
 	blob_buf_free(&b);

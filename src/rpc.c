@@ -1018,10 +1018,11 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	if (fault_code != FAULT_CPE_NO_FAULT)
 		goto fault;
 
-	fault_code = cwmp_set_multiple_parameters_values(&list_set_param_value, parameter_key ? parameter_key : "", &flag, rpc->list_set_value_fault);
+	fault_code = cwmp_set_multiple_parameters_values(&list_set_param_value, &flag, rpc->list_set_value_fault);
 	if (fault_code != FAULT_CPE_NO_FAULT)
 		goto fault;
 
+	set_rpc_parameter_key(parameter_key);
 	FREE(parameter_key);
 	struct cwmp_dm_parameter *param_value = NULL;
 	list_for_each_entry (param_value, &list_set_param_value, list) {
@@ -1152,7 +1153,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	}
 
 	if (object_name) {
-		char *err = cwmp_add_object(object_name, parameter_key ? parameter_key : "", &instance);
+		char *err = cwmp_add_object(object_name, &instance);
 		if (err) {
 			fault_code = cwmp_get_fault_code_by_string(err);
 			goto fault;
@@ -1161,6 +1162,8 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		fault_code = FAULT_CPE_INVALID_PARAMETER_NAME;
 		goto fault;
 	}
+
+	set_rpc_parameter_key(parameter_key);
 	if (instance == NULL)
 		goto fault;
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "AddObject");
@@ -1230,7 +1233,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 			goto fault;
 	}
 	if (object_name) {
-		char *err = cwmp_delete_object(object_name, parameter_key ? parameter_key : "");
+		char *err = cwmp_delete_object(object_name);
 		if (err) {
 			fault_code = cwmp_get_fault_code_by_string(err);
 			goto fault;
@@ -1239,7 +1242,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 		fault_code = FAULT_CPE_INVALID_PARAMETER_NAME;
 		goto fault;
 	}
-
+	set_rpc_parameter_key(parameter_key);
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "DeleteObject");
 
 	if (!b) {

@@ -537,8 +537,7 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		error = FAULT_CPE_INVALID_ARGUMENTS;
 
 	if ((error == FAULT_CPE_NO_FAULT) && (pdownload->file_type[0] == '1' || pdownload->file_type[0] == '3')) {
-		cwmp_uci_set_value("cwmp", "cpe", "ParameterKey", pdownload->command_key ? pdownload->command_key : "");
-		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+		set_rpc_parameter_key(pdownload->command_key);
 		if (pdownload->file_type[0] == '3') {
 			CWMP_LOG(INFO, "Download and apply new vendor config file is done successfully");
 			//cwmp_root_cause_transfer_complete(ptransfer_complete);

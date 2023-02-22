@@ -309,13 +309,18 @@ void check_firewall_restart_state()
 	}
 }
 
+void set_rpc_parameter_key(char *param_key)
+{
+	cwmp_uci_set_value("cwmp", "cpe", "ParameterKey", param_key ? param_key : "");
+	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+}
+
 /*
  * Reboot
  */
 void cwmp_reboot(char *command_key)
 {
-	cwmp_uci_set_value("cwmp", "cpe", "ParameterKey", command_key);
-	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+	set_rpc_parameter_key(command_key);
 
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));

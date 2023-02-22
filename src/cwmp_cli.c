@@ -87,7 +87,7 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 	LIST_HEAD(list_set_param_value);
 	LIST_HEAD(faults_list);
 	add_dm_parameter_to_list(&list_set_param_value, in.first_input, in.second_input, NULL, 0, false);
-	int fault_idx = cwmp_set_multiple_parameters_values(&list_set_param_value, "set_key", &flag, &faults_list);
+	int fault_idx = cwmp_set_multiple_parameters_values(&list_set_param_value, &flag, &faults_list);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	if (fault_idx != FAULT_CPE_NO_FAULT) {
 		struct cwmp_param_fault *param_fault = NULL;
@@ -101,6 +101,7 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 		cwmp_free_all_list_param_fault(&faults_list);
 		return icwmp_strdup(fault);
 	}
+	set_rpc_parameter_key(in.third_input);
 	if (transaction_id) {
 		cwmp_transaction_commit();
 		icwmp_restart_services();
@@ -132,12 +133,13 @@ char *cmd_add_exec_func(struct cmd_input in, union cmd_result *res)
 			return "9002";
 	}
 
-	char *fault = cwmp_add_object(in.first_input, in.second_input ? in.second_input : "add_obj", &(res->instance));
+	char *fault = cwmp_add_object(in.first_input, &(res->instance));
 	if (fault != NULL) {
 		if (transaction_id)
 			cwmp_transaction_abort();
 		return fault;
 	}
+	set_rpc_parameter_key(in.second_input);
 	if (transaction_id) {
 		cwmp_transaction_commit();
 		icwmp_restart_services();
@@ -171,12 +173,13 @@ char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 			return "9002";
 	}
 
-	char *fault = cwmp_delete_object(in.first_input, in.second_input ? in.second_input : "del_obj");
+	char *fault = cwmp_delete_object(in.first_input);
 	if (fault != NULL) {
 		if (transaction_id)
 			cwmp_transaction_abort();
 		return fault;
 	}
+	set_rpc_parameter_key(in.second_input);
 	if (transaction_id) {
 		cwmp_transaction_commit();
 		icwmp_restart_services();
@@ -290,9 +293,9 @@ void cwmp_cli_help()
 	printf("	help 					=> show this help\n");
 	printf("	get [path-expr] 			=> get parameter values\n");
 	printf("	get_names [path-expr] [next-level] 	=> get parameter names\n");
-	printf("	set [path-expr] [value] 		=> set parameter value\n");
-	printf("	add [object] 				=> add object\n");
-	printf("	del [object] 				=> delete object\n");
+	printf("	set [path-expr] [value] [pkey]		=> set parameter value\n");
+	printf("	add [object] [pkey] 				=> add object\n");
+	printf("	del [object] [pkey]				=> delete object\n");
 	printf("	get_notif [path-expr]			=> get parameter notifications\n");
 	printf("	set_notif [path-expr] [notification]	=> set parameter notifications\n");
 }
@@ -315,7 +318,7 @@ char* execute_cwmp_cli_command(char *cmd, char *args[])
 	}
 	if (strcmp(cmd, "help") == 0)
 		goto cli_help;
-	struct cmd_input cmd_in = { args[0] ? args[0] : NULL, args[0] && args[1] ? args[1] : NULL };
+	struct cmd_input cmd_in = { args[0] ? args[0] : NULL, args[0] && args[1] ? args[1] : NULL,  args[0] && args[1] && args[2] ? args[2] : NULL };
 	union cmd_result cmd_out = { 0 };
 	char *fault = NULL, *fault_ret = NULL;
 	size_t i;

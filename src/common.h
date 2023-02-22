@@ -611,4 +611,5 @@ void cwmp_invoke_intf_reset(char *path);
 void check_firewall_restart_state();
 void add_day_to_time(struct tm *time);
 int set_rpc_acs_to_supported(const char *rpc_name);
+void set_rpc_parameter_key(char *param_key);
 #endif
