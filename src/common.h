@@ -159,7 +159,6 @@ typedef struct cwmp {
 	bool diag_session;
 	int prev_periodic_interval;
 	int prev_heartbeat_interval;
-	int count_handle_notify;
 	int retry_count_session;
 	FILE *pid_file;
 	time_t start_time;

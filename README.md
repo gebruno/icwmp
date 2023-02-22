@@ -63,6 +63,7 @@ uci commit cwmp
 * [Supported RPC Methods](./docs/guide/supported_rpc.md)
 * [UBUS methods](./docs/guide/ubus_method.md)
 * [Command Line Interface](./docs/guide/cli.md)
+* [icwmp design](./docs/design.md)
 
 ## Dependencies
 

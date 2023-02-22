@@ -98,6 +98,7 @@ char *check_valid_parameter_path(char *parameter_name)
 	char *error = NULL;
 	LIST_HEAD(parameters_list);
 
+	/*check if parameter name is valid parameter path*/
 	error = cwmp_get_parameter_names(parameter_name, true, &parameters_list);
 
 	if (error != NULL && strcmp(error, "9003") == 0)
@@ -111,6 +112,8 @@ char *check_valid_parameter_path(char *parameter_name)
 /*
  * SetParameterAttributes
  */
+
+// Add parameter_name to the suitable notifications list
 int add_uci_option_notification(char *parameter_name, int notification)
 {
 	char *notification_type = NULL;
@@ -165,14 +168,19 @@ bool update_notifications_list(char *parameter_name, int notification)
 
 	if (parameter_name == NULL)
 		parameter_name = "Device.";
+	/*
+	 * Parse all possible lists of of notifications one by one
+	 */
 	for (i = 0; i < 7; i++) {
 		int option_type;
+
 		option_type = cwmp_uci_get_option_value_list("cwmp_notifications", "@notifications[0]", notifications[i], UCI_ETCICWMPD_CONFIG, &list_notif);
 		if (list_notif) {
 			uci_foreach_element_safe(list_notif, tmp, e) {
 				if (e->name == NULL)
 					continue;
 				ename = strdup(e->name);
+
 				if ((strcmp(parameter_name, e->name) == 0 && (i != notification)) || parameter_is_subobject_of_parameter(parameter_name, e->name))
 					cwmp_uci_del_list_value("cwmp_notifications", "@notifications[0]", notifications[i], e->name, UCI_ETCICWMPD_CONFIG);
 				if (ename && (strcmp(parameter_name, ename) == 0 || parameter_is_subobject_of_parameter(ename, parameter_name) ) && (i == notification))
@@ -196,14 +204,18 @@ char *cwmp_set_parameter_attributes(char *parameter_name, int notification)
 
 	if (parameter_name == NULL)
 		parameter_name = "Device.";
+
+	/*Check if the parameter name is present in TR-181 datamodel*/
 	error = check_valid_parameter_path(parameter_name);
 
 	if (error != NULL)
 		return error;
 
+	/*Mustn't set notifications for forced notifications parameter*/
 	if (check_parameter_forced_notification(parameter_name))
 		return "9009";
 
+	/*checks if the notifications lists need to be updated*/
 	if (update_notifications_list(parameter_name, notification) == true)
 		add_uci_option_notification(parameter_name, notification);
 
@@ -294,10 +306,10 @@ char *cwmp_get_parameter_attributes(char *parameter_name, struct list_head *para
 			continue;
 		}
 		notif_leaf = get_parameter_leaf_notification_from_childs_list(param_value->name, &childs_notifs);
-		if (notif_leaf == -1) {
+		if (notif_leaf == -1) { //param_value is not among childs_notifs
 			add_dm_parameter_to_list(parameters_list, param_value->name, "", "", notification, false);
 		}
-		else {
+		else { //param_value is among childs_notifs
 			add_dm_parameter_to_list(parameters_list, param_value->name, "", "", notif_leaf, false);
 		}
 	}

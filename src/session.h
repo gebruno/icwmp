@@ -39,7 +39,6 @@ typedef struct session {
 	mxml_node_t *tree_out;
 	mxml_node_t *body_in;
 	bool hold_request;
-	bool digest_auth;
 	int fault_code;
 	int error;
 } session;
