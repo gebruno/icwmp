@@ -263,8 +263,6 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	struct xml_data_struct env_xml_attrs = {0};
 
 	env_xml_attrs.xml_env = &envelope;
-	env_xml_attrs.amd_version = &cwmp_main->conf.supported_amd_version;
-	env_xml_attrs.session_timeout = &cwmp_main->conf.session_timeout;
 
 	int fault = build_xml_node_data(SOAP_ENV, xml, &env_xml_attrs);
 

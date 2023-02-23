@@ -571,14 +571,14 @@ int check_value_change(void)
 	FILE *fp;
 	char buf[1280];
 	char *dm_value = NULL, *dm_type = NULL;
-	int int_ret = 0;
+	int notif_ret = 0;
 	struct blob_buf bbuf;
 
 	char *parameter = NULL, *value = NULL;
 	int notification = 0;
 	fp = fopen(DM_ENABLED_NOTIFY, "r");
 	if (fp == NULL)
-		return int_ret;
+		return notif_ret;
 
 	LIST_HEAD(list_notify_params);
 	create_list_param_leaf_notify(&list_notify_params, NULL, NULL);
@@ -618,12 +618,12 @@ int check_value_change(void)
 				add_lw_list_value_change(parameter, dm_value, dm_type);
 
 			if (notification == 1)
-				int_ret |= NOTIF_PASSIVE;
+				notif_ret |= NOTIF_PASSIVE;
 			if (notification == 2)
-				int_ret |= NOTIF_ACTIVE;
+				notif_ret |= NOTIF_ACTIVE;
 
 			if (notification == 5 || notification == 6)
-				int_ret |= NOTIF_LW_ACTIVE;
+				notif_ret |= NOTIF_LW_ACTIVE;
 		}
 		FREE(dm_value);
 		FREE(dm_type);
@@ -635,7 +635,7 @@ int check_value_change(void)
 	}
 	fclose(fp);
 	cwmp_free_all_dm_parameter_list(&list_notify_params);
-	return int_ret;
+	return notif_ret;
 }
 
 void cwmp_prepare_value_change()

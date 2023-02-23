@@ -28,7 +28,7 @@ As descibed in TR-069 standard, CWMP stack comprises several components that are
 
 - Application: the application uses CWMP protocol on the CPE. In the icwmp client, the main application is defined in cwmp.c source file. It's based on uloop libubox functionality. Multiple timers are running under the main uloop of icwmp like session timer, ubus timer, heartbeat timer, ...
 - RPC methods: The specific RPC methods that are defined by CWMP protocol. In icwmp client RPC methods are defined under the source file rpc.c.
-- SOAP: A standard XML-based syntax used here to encode remote procedure calls. The SOAP part is developed in xml.c file and it's detailed in the section ...
+- SOAP: A standard XML-based syntax used here to encode remote procedure calls. The SOAP part is developed in xml.c file.
 - HTTP: this part is responsible to send SOAP messages over HTTP. In icwmp it's based on libcurl library. Its corresponding C functions are developed in the file http.c.
 - SSL/TLS: The standard Internet transport layer security protocol. icwmp can work with openssl or mbedtls or wolfssl depending on the SSL library selection. Its corresponding functions are defined in ssl_utils.c file.
 
@@ -58,9 +58,9 @@ class cwmp {
  - cr_socket_des: is an integer attribute. This attribute contains the id of the socket used by the CR.
  - pide_file: is a File type attribute. This file used by the app in order to garantuate a single app instance running.
  - deviceid: its type is deviceid structure. This struct contains the device information important attributes values: OUI, Manufacturer, SerialNumber, ProductClass, SoftwareVersion.
- - session: its type is session structure. This structure contains attributes related to the running application. 
+ - session: its type is session structure. This structure contains attributes related to the running session. 
  
-  ```mermaid
+```mermaid
 classDiagram
 class session {
 	head_rpc_cpe: list
@@ -102,7 +102,8 @@ flowchart TD
 	C --> K[Start CR server thread]
 	K --> L[listen to coming HTTP requests in the CR port]
 	L --> M{CR is received}
-	M -- yes --> E
+	M -- yes --> N[execute the ubus method: tr069 inform]
+	N --> E
 	M -- no --> L
 ```
 
@@ -119,9 +120,6 @@ flowchart TD
  
 then the application start the uloop run by waiting uloop timeouts to come.
 
-two kinds of timeouts can be detected:
-
-
 2 - In the same time a thread is created. It permits a permenant listening of the port , in the purpose to receive connection requests.
 In case a CR is received successfully "tr069 inform" ubus call is triggered from this thread in the purpose to trigger a new session with '6 CONNECTION REQUEST' event.
 
@@ -136,48 +134,61 @@ The Inform ACS request is sent by the CPE to the ACS in the start of the CWMP se
 
 In icwmp the corresponding function responsible to create the Inform message is cwmp_rpc_acs_prepare_message_inform. It starts by getting the device ID attributes and the list of events that needs to be included in the inform message and then parameters that are amended in the ParameterList including default Inform Parameter and other parameters like parameters related to the Value Change.
 
-
 ## Events manipulation
 
 As described in TR069 standard, events in CWMP protocol must be sent by the CPE in an Inform request in order to notify the ACS when something of interest has happened. 
 
-In icwmp when creating the inform message events are loaded from events list_head attribute of the session structure attribute.
+CWMP events are stored in the **events** list_head attribute of the session structure attribute. Each element of this list is an instance of the structure event_container that is the following:
+
+```mermaid
+classDiagram
+class event_container {
+	code: integer
+	next_session: boolean
+	command_key: string
+	head_dm_parameter: list
+	id: integer
+}
+```
+
+In icwmp when creating the inform message events are loaded from **events** list.
 
 As soon as the event is reached, it's added to the list events. Different scenarios are presents to reach event in icwmp:
 
-- Start app events: this scenario includes following events: "0 BOOTSTRAP" (if it's the first Inform to be sent to the specified ACS), "1 BOOT"
+- Start app events: this scenario includes following events: "0 BOOTSTRAP" (if it's the first Inform to be sent to the specified ACS), "1 BOOT".
 - Get the event from the backupSession in the start of the App: Just after starting the icwmp app in the init step, the app loads the backupsession events in events list from "cwmp_event" xml tag. Then add the to the events list. This case includes events that occurs before the restart of the icwmp or reboot/upgrade of the system. In this scenario events included are: "M Reboot", "M Download", "M ScheduleDownload", "7 TRANSFER COMPLETE".
 - Events when running CWMP session. Events for this scenario are detected and added to the events while executing the CWMP session especially in RPC calls. Such as "3 SHEDULED" for ScheduleInform method, "7 TRANSFER COMPLETE" (in the call of Download, Upload), "8 DIAGNOSTIC COMPLETE" (after completing diagnostic execution triggered by the ACS), "11 DU STATE CHANGE COMPLETE" after completing CDU request execution triggered by the ACS), "M Download", "M Upload" ...
 - Events are detected at specific time using uloop_timeout_set:"2 PERIODIC", "14 HEARTBEAT"
 - External Events: "6 CONNECTION REQUEST" when receiving a connection request from the ACS in order to start a new session. CR thread is permenantly listening on the CR port in order to detect such event and then trigger a new session. "4 VALUE CHANGE" (check notifications part), "10 AUTONOMOUS Single TRANSFER COMPLETE", "12 AUTONOMOUS  DU STATE CHANGE COMPLETE"
 
-### Notifications
+## Notifications
 
 [Notifications in icwmp client](./notifications.md)
 
 ## XML in icwmp
 
-__TODO__
-
-xml structures: struct xml_node_data, struct xml_tag, struct xml_list_data, struct xml_data_struct, struct xml_tag_validation
-
-struct xml_node_data xml_nodes_data[] array
-
-xml load functions: load_xml_node_data, load_xml_list_node_data, load_single_xml_node_data
-
-build_xml_node_data: build_xml_list_node_data, build_single_xml_node_data
+[XML mechanism in icwmp client](./xml.md)
 
 ## Backup Session management
 
-**TODO**
+Backup session feature in icwmp is used to store data that should be conserved even after reboot or sysupgrad of the system. Those data are followings:
 
-Methods that needs backupsession
+- events
+- download
+- transfer complete
+- schedule download
+- schedule inform
+- upload
+- change du state
+- autonomous change du state
+- du state change complete
 
-find node by id
+Those data are stored in xml format in the file  /etc/icwmpd/icwmpd_backup_session.xml. This data is loaded by the call of the function cwmp_load_saved_session in the start of the icwmp application.
 
-insert functions
+Backup session feature uses XML functions (check XML part) to build/load XML nodes that should be stored in the backup session file. So for each kind of backup session datas there are rows in **xml_nodes_data** that their index are definde in the enumaration **xml_node_references**.
+All backup session indexes are successive in the enumaration and starts with "BKP_".
 
-load functions
+For each kind of backup session data, there are insert functions that calls build_xml_node_data and load functions that calls load_xml_node_data.
 
 ## UCI and config mangement
 

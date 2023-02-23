@@ -11,16 +11,19 @@ flowchart TD
     E --> D
     D --> F[Receive Inform Response from the ACS]
     F --> G[Parse rest of other ACS methods list]
-    G --> H{End of ACS methods list?}
-    H -- no --> G
-    H -- yes --> I[Send empty HTTP message to the ACS]
-    I --> J[Receive HTTP Request from the ACS]
-    J --> K[Is request body empty]
-    K -- yes --> N[Execute end session function]
-    N --> O[exit session]
-    K -- no --> L[Execute CPE method]
-    L --> M[Send CPE method response to the ACS]
-    M --> J
+    G --> H[Prepare next ACS method request]
+    H --> I[Send Acs method request]
+    I --> J[Receive ACS method response]
+    J --> K{End of ACS methods list?}
+    K -- no --> H
+    K -- yes --> L[Send empty HTTP message to the ACS]
+    L --> M[Receive HTTP Request from the ACS]
+    M --> N{Is request body empty?}
+    N -- yes --> O[Execute end session function]
+    O --> P[exit session]
+    N -- no --> Q[Execute CPE method]
+    Q --> R[Send CPE method response to the ACS]
+    R --> M
 ```
 
 
