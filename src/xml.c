@@ -477,7 +477,7 @@ int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 {
 	if (b == NULL || xml_attrs == NULL)
 		return FAULT_CPE_INTERNAL_ERROR;
-	int amd_version = xml_attrs->amd_version ? *(xml_attrs->amd_version) : 2;
+	int amd_version = cwmp_main->conf.supported_amd_version ? cwmp_main->conf.supported_amd_version : DEFAULT_AMD_VERSION;
 	mxml_node_t **envelope = xml_attrs->xml_env;
 
 	*envelope = b;
@@ -505,7 +505,7 @@ int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 			return FAULT_CPE_INTERNAL_ERROR;
 
 		mxmlElementSetAttr(node, "soap_env:mustUnderstand", "0");
-		node = mxmlNewInteger(node, *(xml_attrs->session_timeout));
+		node = mxmlNewInteger(node, cwmp_main->conf.session_timeout ? cwmp_main->conf.session_timeout : 60);
 		if (!node)
 			return FAULT_CPE_INTERNAL_ERROR;
 	}

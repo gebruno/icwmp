@@ -3,7 +3,8 @@
  *
  * Copyright (C) 2021-2022, IOPSYS Software Solutions AB.
  *
- *	  Author Suvendhu Hansa <suvendhu.hansa@iopsys.eu>
+ *	  Author: Suvendhu Hansa <suvendhu.hansa@iopsys.eu>
+ *	  Author: Omar Kallel <omar.kallel@pivasoftware.com>
  *
  * See LICENSE file for license related information.
  *

@@ -76,7 +76,6 @@ char *forced_inform_parameters[] = {
 
 int xml_handle_message()
 {
-	struct rpc *rpc_cpe;
 	char *c = NULL;
 	int i;
 	mxml_node_t *b;
@@ -141,25 +140,24 @@ int xml_handle_message()
 		goto fault;
 	}
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
-	rpc_cpe = NULL;
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
 		if (i != RPC_CPE_FAULT && c && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
-			rpc_cpe = cwmp_add_session_rpc_cpe(i);
-			if (rpc_cpe == NULL)
+			cwmp_main->session->rpc_cpe = build_sessin_rcp_cpe(i);
+			if (cwmp_main->session->rpc_cpe == NULL)
 				goto error;
 			break;
 		}
 	}
-	if (!rpc_cpe) {
+	if (!cwmp_main->session->rpc_cpe) {
 		CWMP_LOG(INFO, "%s RPC is not supported", c);
 		cwmp_main->session->fault_code = FAULT_CPE_METHOD_NOT_SUPPORTED;
 		goto fault;
 	}
 	return 0;
 fault:
-	rpc_cpe = cwmp_add_session_rpc_cpe(RPC_CPE_FAULT);
-	if (rpc_cpe == NULL)
+	cwmp_main->session->rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_FAULT);
+	if (cwmp_main->session->rpc_cpe == NULL)
 		goto error;
 	return 0;
 error:
@@ -263,8 +261,6 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	struct xml_data_struct env_xml_attrs = {0};
 
 	env_xml_attrs.xml_env = &envelope;
-	env_xml_attrs.amd_version = &cwmp_main->conf.supported_amd_version;
-	env_xml_attrs.session_timeout = &cwmp_main->conf.session_timeout;
 
 	int fault = build_xml_node_data(SOAP_ENV, xml, &env_xml_attrs);
 
@@ -355,30 +351,28 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		goto end;
 
 	struct uci_section *s = NULL;
-	cwmp_uci_foreach_sections("cwmp", "inform_parameter", UCI_VARSTATE_CONFIG, s)
+	cwmp_uci_foreach_sections("cwmp", "inform_parameter", UCI_STANDARD_CONFIG, s)
 	{
 		char *enable = NULL;
 		cwmp_uci_get_value_by_section_string(s, "enable", &enable);
 		if (strcasecmp(enable, "0") == 0 || strcasecmp(enable , "false") == 0)
 			continue;
 		char *parameter_name = NULL;
+
 		cwmp_uci_get_value_by_section_string(s, "parameter_name", &parameter_name);
 
 		if (CWMP_STRLEN(parameter_name) == 0)
+			continue;
+
+		LIST_HEAD(parameters_list);
+		char *err = cwmp_get_parameter_values(parameter_name, &parameters_list);
+		if (err || list_empty(&parameters_list))
 			continue;
 
 		char *events_str_list = NULL;
 		cwmp_uci_get_value_by_section_string(s, "events_list", &events_str_list);
 
 		if (!check_inform_parameter_events_list_corresponding(events_str_list, &(cwmp_main->session->events)))
-			continue;
-
-		LIST_HEAD(parameters_list);
-		char *err = cwmp_get_parameter_values(parameter_name, &parameters_list);
-		if (err)
-			continue;
-
-		if (list_empty(&parameters_list))
 			continue;
 
 		struct list_head *data_list = &parameters_list;
@@ -1005,7 +999,6 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 	xml_data_list_to_dm_parameter_list(&xml_list_set_param_value, &list_set_param_value);
 
-	int flag = 0;
 	if (transaction_id == 0) {
 		if (!cwmp_transaction_start("cwmp")) {
 			fault_code = FAULT_CPE_INTERNAL_ERROR;
@@ -1018,7 +1011,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	if (fault_code != FAULT_CPE_NO_FAULT)
 		goto fault;
 
-	fault_code = cwmp_set_multiple_parameters_values(&list_set_param_value, &flag, rpc->list_set_value_fault);
+	fault_code = cwmp_set_multiple_parameters_values(&list_set_param_value, rpc->list_set_value_fault);
 	if (fault_code != FAULT_CPE_NO_FAULT)
 		goto fault;
 
@@ -1028,6 +1021,8 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	list_for_each_entry (param_value, &list_set_param_value, list) {
 		set_interface_reset_request(param_value->name, param_value->value);
 		set_diagnostic_parameter_structure_value(param_value->name, param_value->value);
+		int diag_flag = get_diagnostic_state_flag(param_value->name, param_value->value);
+		cwmp_set_end_session(diag_flag);
 	}
 
 	cwmp_free_all_xml_data_list(&xml_list_set_param_value);
@@ -1047,12 +1042,12 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	if (fault_code)
 		goto fault;
 
-	if (!cwmp_transaction_commit()) {
+	if (!cwmp_transaction_commit(true)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
 
-	cwmp_set_end_session(flag | END_SESSION_RESTART_SERVICES | END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD);
+	cwmp_set_end_session(END_SESSION_RESTART_SERVICES | END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD);
 	return 0;
 
 fault:
@@ -1172,7 +1167,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 
 	int instance_int = atoi(instance);
-	int status = 1;
+	int status = 0;
 	struct xml_data_struct add_resp_xml_attrs = {0};
 	add_resp_xml_attrs.instance = &instance_int;
 	add_resp_xml_attrs.status = &status;
@@ -1181,7 +1176,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	if (fault_code != CWMP_OK)
 		goto fault;
 
-	if (!cwmp_transaction_commit())
+	if (!cwmp_transaction_commit(false))
 		goto fault;
 
 	char *object_path = NULL;
@@ -1258,7 +1253,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	if (fault_code != CWMP_OK)
 		goto fault;
 
-	if (!cwmp_transaction_commit()) {
+	if (!cwmp_transaction_commit(true)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}

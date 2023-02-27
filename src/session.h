@@ -31,8 +31,8 @@ typedef struct session_status {
 } session_status;
 
 typedef struct session {
-	struct list_head head_rpc_cpe;
 	struct list_head head_rpc_acs;
+	struct rpc *rpc_cpe;
 	struct list_head events;
 	struct session_status session_status;
 	mxml_node_t *tree_in;
@@ -58,24 +58,26 @@ enum end_session_enum
 	END_SESSION_EXTERNAL_ACTION = 1 << 1,
 	END_SESSION_RELOAD = 1 << 2,
 	END_SESSION_FACTORY_RESET = 1 << 3,
-	END_SESSION_IPPING_DIAGNOSTIC = 1 << 4,
-	END_SESSION_DOWNLOAD_DIAGNOSTIC = 1 << 5,
-	END_SESSION_UPLOAD_DIAGNOSTIC = 1 << 6,
-	END_SESSION_X_FACTORY_RESET_SOFT = 1 << 7,
+	END_SESSION_X_FACTORY_RESET_SOFT = 1 << 4,
+
+	END_SESSION_IPPING_DIAGNOSTIC = 1 << 5,
+	END_SESSION_DOWNLOAD_DIAGNOSTIC = 1 << 6,
+	END_SESSION_UPLOAD_DIAGNOSTIC = 1 << 7,
 	END_SESSION_NSLOOKUP_DIAGNOSTIC = 1 << 8,
 	END_SESSION_TRACEROUTE_DIAGNOSTIC = 1 << 9,
 	END_SESSION_UDPECHO_DIAGNOSTIC = 1 << 10,
 	END_SESSION_SERVERSELECTION_DIAGNOSTIC = 1 << 11,
 	END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC = 1<<12,
-	END_SESSION_SET_NOTIFICATION_UPDATE = 1 << 13,
-	END_SESSION_RESTART_SERVICES = 1 << 14,
-	END_SESSION_INIT_NOTIFY = 1 << 15,
-	END_SESSION_DOWNLOAD = 1 << 16,
-	END_SESSION_SCHEDULE_DOWNLOAD = 1 << 17,
-	END_SESSION_UPLOAD = 1 << 18,
-	END_SESSION_SCHEDULE_INFORM = 1 << 19,
-	END_SESSION_CDU = 1 << 20,
-	END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC = 1 << 21
+	END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC = 1 << 13,
+
+	END_SESSION_SET_NOTIFICATION_UPDATE = 1 << 14,
+	END_SESSION_RESTART_SERVICES = 1 << 15,
+	END_SESSION_INIT_NOTIFY = 1 << 16,
+	END_SESSION_DOWNLOAD = 1 << 17,
+	END_SESSION_SCHEDULE_DOWNLOAD = 1 << 18,
+	END_SESSION_UPLOAD = 1 << 19,
+	END_SESSION_SCHEDULE_INFORM = 1 << 20,
+	END_SESSION_CDU = 1 << 21
 };
 
 enum enum_session_status
@@ -89,15 +91,17 @@ enum enum_session_status
 extern unsigned int end_session_flag;
 
 void cwmp_set_end_session(unsigned int flag);
-struct rpc *cwmp_add_session_rpc_cpe(int type);
+struct rpc *build_sessin_rcp_cpe(int type);
 struct rpc *cwmp_add_session_rpc_acs(int type);
 struct rpc *cwmp_add_session_rpc_acs_head(int type);
 int cwmp_session_rpc_destructor(struct rpc *rpc);
 void trigger_cwmp_session_timer();
+void trigger_cwmp_throttle_session_timer(unsigned int delay);
 void trigger_session_by_ubus(char *event);
 void initiate_cwmp_periodic_session_feature();
 int run_session_end_func(void);
 void cwmp_schedule_session(struct uloop_timeout *timeout);
+void cwmp_schedule_throttle_session(struct uloop_timeout *timeout  __attribute__((unused)));
 void cwmp_schedule_session_with_event(struct uloop_timeout *timeout);
 void trigger_cwmp_session_timer_with_event(struct uloop_timeout *timeout);
 void start_cwmp_session();

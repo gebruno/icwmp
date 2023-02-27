@@ -29,8 +29,11 @@ Valid commands:
         del [object]                            => delete object
         get_notif [path-expr]                   => get parameter notifications
 ```
-> Note: icwmpd CLI is a debug utility and hence it is advised to use for debug and development purpose only.
-> icwmpd CLI utility is independent of icwmpd daemon.
+
+
+!!! note
+
+    icwmpd CLI is a debug utility and hence it is advised to use for debug and development purpose only. icwmpd CLI utility is independent of icwmpd daemon.
 
 icwmp CLI command success result is displayed in the terminal as following:
 
@@ -41,6 +44,7 @@ root@iopsys:~# icwmpd -c set Device.WiFi.SSID.1.SSID wifi1_ssid
 Set value is successfully done
 Device.WiFi.SSID.1.SSID => wifi1_ssid
 ```
+
 In the case of fault the result is displayed as following:
 
 ```bash

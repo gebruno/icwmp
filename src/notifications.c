@@ -22,8 +22,9 @@
 #include "cwmp_event.h"
 
 #define UPSTREAM_STABILITY_CHECK_TIMESPAN 5  // In seconds
-
+#define MANAGEABLE_DEVICES_NBRE "Device.ManagementServer.ManageableDeviceNumberOfEntries"
 LIST_HEAD(list_value_change);
+
 LIST_HEAD(list_lw_value_change);
 LIST_HEAD(list_param_obj_notify);
 
@@ -571,14 +572,14 @@ int check_value_change(void)
 	FILE *fp;
 	char buf[1280];
 	char *dm_value = NULL, *dm_type = NULL;
-	int int_ret = 0;
+	int notif_ret = 0;
 	struct blob_buf bbuf;
 
 	char *parameter = NULL, *value = NULL;
 	int notification = 0;
 	fp = fopen(DM_ENABLED_NOTIFY, "r");
 	if (fp == NULL)
-		return int_ret;
+		return notif_ret;
 
 	LIST_HEAD(list_notify_params);
 	create_list_param_leaf_notify(&list_notify_params, NULL, NULL);
@@ -612,18 +613,25 @@ int check_value_change(void)
 			continue;
 		}
 		if ((notification >= 1) && (dm_value != NULL) && value && (strcmp(dm_value, value) != 0)) {
-			if (notification == 1 || notification == 2)
+
+			if (cwmp_main->conf.md_notif_limit > 0 && strcmp(parameter, MANAGEABLE_DEVICES_NBRE) == 0 && notification == 2) {
+				unsigned int time_from_last_vc = time(NULL) - cwmp_main->md_value_change_last_time;
+				if ((cwmp_main->md_value_change_last_time <= 0) || (time_from_last_vc >= cwmp_main->conf.md_notif_limit)) {
+					cwmp_main->md_value_change_last_time = time(NULL);
+					add_list_value_change(MANAGEABLE_DEVICES_NBRE, dm_value, dm_type);
+				}
+			} else if (notification == 1 || notification == 2)
 				add_list_value_change(parameter, dm_value, dm_type);
-			if (notification >= 3)
+			else
 				add_lw_list_value_change(parameter, dm_value, dm_type);
 
 			if (notification == 1)
-				int_ret |= NOTIF_PASSIVE;
+				notif_ret |= NOTIF_PASSIVE;
 			if (notification == 2)
-				int_ret |= NOTIF_ACTIVE;
+				notif_ret |= NOTIF_ACTIVE;
 
 			if (notification == 5 || notification == 6)
-				int_ret |= NOTIF_LW_ACTIVE;
+				notif_ret |= NOTIF_LW_ACTIVE;
 		}
 		FREE(dm_value);
 		FREE(dm_type);
@@ -635,7 +643,7 @@ int check_value_change(void)
 	}
 	fclose(fp);
 	cwmp_free_all_dm_parameter_list(&list_notify_params);
-	return int_ret;
+	return notif_ret;
 }
 
 void cwmp_prepare_value_change()
@@ -703,7 +711,16 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 		cwmp_update_enabled_notify_file();
 	if (is_notify & NOTIF_ACTIVE) {
 		send_active_value_change();
-		trigger_cwmp_session_timer();
+		int last_session_interval = time(NULL) - cwmp_main->session->session_status.last_end_time;
+		if (!cwmp_main->throttle_session_triggered && (cwmp_main->session->session_status.last_status == SESSION_SUCCESS) && (cwmp_main->conf.active_notif_throttle > 0)) {
+			cwmp_main->throttle_session_triggered = true;
+			if (last_session_interval < cwmp_main->conf.active_notif_throttle)
+				trigger_cwmp_throttle_session_timer(cwmp_main->conf.active_notif_throttle - last_session_interval);
+			else
+				trigger_cwmp_throttle_session_timer(0);
+		}
+		else if (cwmp_main->conf.active_notif_throttle == 0)
+			trigger_cwmp_session_timer();
 	}
 
 	if (is_notify & NOTIF_LW_ACTIVE)

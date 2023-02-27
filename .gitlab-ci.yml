@@ -1,7 +1,12 @@
 include:
+  - project: 'docs/portal2/pipeline-template'
+    file: 'MkDocs.gitlab-ci.yml'
+    rules:
+      - if: $CI_COMMIT_BRANCH == "devel"
+
+include:
   - project: 'iopsys/gitlab-ci-pipeline'
     file: '/static-code-analysis.yml'
-    ref: 'Feature9341'
 
 variables:
   DEBUG: 'TRUE'
@@ -17,7 +22,8 @@ stages:
     - static_code_analysis
     - unit_test
     - functional_test
-
+    - deploy
+    
 run_unit_test:
    stage: unit_test
    image: "${COMMON_IMAGE}"
@@ -29,7 +35,7 @@ run_unit_test:
    artifacts:
       when: always
       paths:
-         - timestamp.log
+         - ${CI_PROJECT_DIR}/timestamp.log
          - memory-report.xml
          - unit-test-coverage.xml
 
@@ -41,13 +47,12 @@ run_api_test:
     - "./gitlab-ci/install-dependencies.sh"
     - "./gitlab-ci/setup.sh"
     - "./gitlab-ci/functional-api-test.sh"
-
     artifacts:
         when: always
         reports:
             junit: ./report/tap.xml
         paths:
-            - timestamp.log
+            - ${CI_PROJECT_DIR}/timestamp.log
             - api-test-coverage.xml
             - api-test-memory-report.xml
             - api-test-result.log
@@ -60,13 +65,12 @@ run_functional_test:
     - "./gitlab-ci/install-dependencies.sh"
     - "./gitlab-ci/setup.sh"
     - "./gitlab-ci/functional-test.sh"
-
     artifacts:
         when: always
         reports:
             junit: ./report/tap.xml
         paths:
-            - timestamp.log
+            - ${CI_PROJECT_DIR}/timestamp.log
             - funl-test-coverage.xml
             - funl-test-memory-report.xml
             - funl-test-result.log

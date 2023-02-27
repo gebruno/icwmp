@@ -41,6 +41,8 @@
 #define UCI_CPE_NOTIFY_PERIOD "cwmp.cpe.periodic_notify_interval"
 #define UCI_CPE_SCHEDULE_REBOOT "cwmp.cpe.schedule_reboot"
 #define UCI_CPE_DELAY_REBOOT "cwmp.cpe.delay_reboot"
+#define UCI_CPE_ACTIVE_NOTIF_THROTTLE "cwmp.cpe.active_notif_throttle"
+#define UCI_CPE_MANAGEABLE_DEVICES_NOTIF_LIMIT "cwmp.cpe.md_notif_limit"
 #define UCI_CPE_JSON_CUSTOM_NOTIFY_FILE "cwmp.cpe.custom_notify_json"
 #define LW_NOTIFICATION_ENABLE "cwmp.lwn.enable"
 #define LW_NOTIFICATION_HOSTNAME "cwmp.lwn.hostname"
@@ -78,8 +80,8 @@ typedef enum uci_config_paths
 {
 	UCI_STANDARD_CONFIG,
 	UCI_VARSTATE_CONFIG,
-	UCI_ETCICWMPD_CONFIG
-}uci_config_paths;
+	UCI_ETCICWMPD_CONFIG,
+} uci_config_paths;
 
 enum uci_val_type
 {

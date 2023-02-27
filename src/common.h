@@ -117,6 +117,9 @@ typedef struct config {
 	time_t schedule_reboot;
 	time_t time;
 	time_t heart_time;
+
+	unsigned int active_notif_throttle;
+	unsigned int md_notif_limit;
 	unsigned int periodic_entropy;
 	bool periodic_enable;
 	bool periodic_notify_enable;
@@ -157,6 +160,7 @@ typedef struct cwmp {
 	bool prev_heartbeat_enable;
 	bool heart_session;
 	bool diag_session;
+	bool throttle_session;
 	int prev_periodic_interval;
 	int prev_heartbeat_interval;
 	int retry_count_session;
@@ -164,6 +168,7 @@ typedef struct cwmp {
 	time_t start_time;
 	time_t prev_periodic_time;
 	time_t prev_heartbeat_time;
+	time_t md_value_change_last_time;
 	unsigned int cwmp_id;
 	int event_id;
 	int sched_inform_id;
@@ -182,6 +187,7 @@ typedef struct cwmp {
 	bool cwmp_periodic_enable;
 	bool custom_notify_active;
 	struct ubus_event_handler *ev;
+	bool throttle_session_triggered;
 } cwmp;
 
 enum action {
@@ -602,6 +608,7 @@ int copy_file(char *source_file, char *target_file);
 int get_connection_interface();
 char *get_time(time_t t_time);
 bool is_obj_excluded(const char *object_name);
+bool is_reload_parameter(const char *object_name);
 time_t convert_datetime_to_timestamp(char *value);
 int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);

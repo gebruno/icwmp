@@ -14,7 +14,7 @@ sleep 2
 check_session "AddObject"
 obj_instance=$(print_tag_value "cwmp:AddObjectResponse" "InstanceNumber")
 status=$(print_tag_value "cwmp:AddObjectResponse" "Status")
-if [ "$obj_instance" != "2" -o $status != "1" ]; then
+if [ "$obj_instance" != "2" -o $status != "0" ]; then
 	echo "Error: Add Object Method doesn't work correctly, current_value($obj_instance) expected_value(2)" >> ./funl-test-debug.log
 	exit 1
 fi

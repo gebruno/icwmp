@@ -17,6 +17,7 @@
 #define TRANSFER_COMPL_SEC_NAME "transfer_complete"
 
 static char *CWMP_EVENTS[] = {"0 BOOTSTRAP", "1 BOOT", "2 PERIODIC", "3 SCHEDULED", "5 KICKED", "6 CONNECTION REQUEST", "7 TRANSFER COMPLETE", "8 DIAGNOSTICS COMPLETE", "9 REQUEST DOWNLOAD", "10 AUTONOMOUS TRANSFER COMPLETE", "11 DU STATE CHANGE COMPLETE", "M Reboot", "M ScheduleInform", "M Download", "M ScheduleDownload", "M Upload", "M ChangeDUState", "14 HEARTBEAT", NULL};
+static char *Forced_Inform_Parmeters[] = {"Device.RootDataModelVersion", "Device.DeviceInfo.HardwareVersion", "Device.DeviceInfo.SoftwareVersion", "Device.DeviceInfo.ProvisioningCode", "Device.ManagementServer.ParameterKey", "Device.ManagementServer.ConnectionRequestURL", "Device.ManagementServer.AliasBasedAddressing"};
 static char *DUStateOperationType[] = {"Install", "Update", "Uninstall", NULL};
 static char *DUStateResultType[] = {"Success", "Failure", "Both", NULL};
 static char *DUStateFaultCode[] = {"9001", "9003", "9012", "9013", "9015", "9016", "9017", "9018","9022", "9023", "9024", "9025", "9026", "9027", "9028", "9029", "9030", "9031", "9032", NULL};
@@ -45,11 +46,6 @@ struct manageable_device_node
 	struct list_head list;
 	struct manageable_device_args dev;
 };
-
-void cwmp_set_end_session_flag(struct dmctx *ctx, unsigned int flag)
-{
-	ctx->end_session_flag |= flag;
-}
 
 static struct uci_section* get_autonomous_notify_section(char *sec_name)
 {
@@ -280,7 +276,6 @@ static int set_management_server_url(char *refparam, struct dmctx *ctx, void *da
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "dhcp_discovery", "disable");
 			dmuci_set_value("cwmp", "acs", "url", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			break;
 	}
 	return 0;
@@ -302,7 +297,6 @@ static int set_management_server_username(char *refparam, struct dmctx *ctx, voi
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "userid", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -318,7 +312,6 @@ static int set_management_server_passwd(char *refparam, struct dmctx *ctx, void 
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "passwd", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -340,7 +333,6 @@ static int set_management_server_schedule_reboot(char *refparam, struct dmctx *c
 			break;
 		case VALUESET:
 			dmuci_set_value("cwmp", "cpe", "schedule_reboot", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			break;
 	}
 	return 0;
@@ -362,7 +354,6 @@ static int set_management_server_delay_reboot(char *refparam, struct dmctx *ctx,
 			break;
 		case VALUESET:
 			dmuci_set_value("cwmp", "cpe", "delay_reboot", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			break;
 	}
 	return 0;
@@ -394,7 +385,6 @@ static int set_management_server_periodic_inform_enable(char *refparam, struct d
 		case VALUESET:
 			string_to_bool(value, &b);
 			dmuci_set_value("cwmp", "acs", "periodic_inform_enable", b ? "1" : "0");
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -416,7 +406,6 @@ static int set_management_server_periodic_inform_interval(char *refparam, struct
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "periodic_inform_interval", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -438,7 +427,6 @@ static int set_management_server_periodic_inform_time(char *refparam, struct dmc
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "periodic_inform_time", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -533,7 +521,6 @@ static int set_management_server_connection_request_username(char *refparam, str
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "cpe", "userid", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -549,7 +536,6 @@ static int set_management_server_connection_request_passwd(char *refparam, struc
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "cpe", "passwd", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -571,7 +557,6 @@ static int set_upgrades_managed(char *refparam, struct dmctx *ctx, void *data, c
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "cpe", "upgrades_managed", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -607,7 +592,6 @@ static int set_lwn_protocol_used(char *refparam, struct dmctx *ctx, void *data, 
 				dmuci_set_value("cwmp", "lwn", "enable", "1");
 			else
 				dmuci_set_value("cwmp", "lwn", "enable", "0");
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -629,7 +613,6 @@ static int set_lwn_host(char *refparam, struct dmctx *ctx, void *data, char *ins
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "lwn", "hostname", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -651,7 +634,6 @@ static int set_lwn_port(char *refparam, struct dmctx *ctx, void *data, char *ins
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "lwn", "port", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -680,7 +662,6 @@ static int set_management_server_http_compression(char *refparam, struct dmctx *
 		case VALUESET:
 			if (strcasecmp(value, "gzip") == 0 || strcasecmp(value, "deflate") == 0 || strncasecmp(value, "disable", 7) == 0) {
 				dmuci_set_value("cwmp", "acs", "compression", value);
-				cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			}
 			return 0;
 	}
@@ -715,7 +696,6 @@ static int set_management_server_retry_min_wait_interval(char *refparam, struct 
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "retry_min_wait_interval", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -749,7 +729,6 @@ static int set_management_server_retry_interval_multiplier(char *refparam, struc
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "retry_interval_multiplier", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -779,7 +758,6 @@ static int set_instance_mode(char *refparam, struct dmctx *ctx, void *data, char
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "cpe", "instance_mode", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -847,6 +825,46 @@ static int get_manageable_device_number_of_entries(char *refparam, struct dmctx 
 	return 0;
 }
 
+static int get_default_active_notification_throttle(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
+{
+	*value = dmuci_get_option_value_fallback_def("cwmp", "cpe", "active_notif_throttle", "0");
+	return 0;
+}
+
+static int set_default_active_notification_throttle(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
+{
+	switch (action) {
+		case VALUECHECK:
+			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"1",NULL}}, 1))
+				return FAULT_9007;
+			return 0;
+		case VALUESET:
+			dmuci_set_value("cwmp", "cpe", "active_notif_throttle", value);
+			return 0;
+	}
+	return 0;
+}
+
+static int get_manageable_device_notification_limit(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
+{
+	*value = dmuci_get_option_value_fallback_def("cwmp", "cpe", "md_notif_limit", "0");
+	return 0;
+}
+
+static int set_manageable_device_notification_limit(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
+{
+	switch (action) {
+		case VALUECHECK:
+			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"1",NULL}}, 1))
+				return FAULT_9007;
+			return 0;
+		case VALUESET:
+			dmuci_set_value("cwmp", "cpe", "md_notif_limit", value);
+			return 0;
+	}
+	return 0;
+}
+
 static int get_heart_beat_policy_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
 	*value = dmuci_get_option_value_fallback_def("cwmp", "acs", "heartbeat_enable", "0");
@@ -862,7 +880,6 @@ static int set_heart_beat_policy_enable(char *refparam, struct dmctx *ctx, void 
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "heartbeat_enable", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -884,7 +901,6 @@ static int set_heart_beat_policy_reporting_interval(char *refparam, struct dmctx
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "heartbeat_interval", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -905,7 +921,6 @@ static int set_heart_beat_policy_initiation_time(char *refparam, struct dmctx *c
 			return 0;
 		case VALUESET:
 			dmuci_set_value("cwmp", "acs", "heartbeat_time", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -913,15 +928,11 @@ static int set_heart_beat_policy_initiation_time(char *refparam, struct dmctx *c
 
 static int browseInformParameterInst(struct dmctx *dmctx, DMNODE *parent_node, void *prev_data, char *prev_instance)
 {
-	struct uci_section *s = NULL, *dmmap_sect = NULL;
+	struct uci_section *s = NULL;
 	char *inst = NULL;
-	uci_path_foreach_sections(varstate, "cwmp", "inform_parameter", s) {
-		if ((dmmap_sect = get_dup_section_in_dmmap("dmmap_mgt_server", "inform_parameter", section_name(s))) == NULL) {
-			dmuci_add_section_bbfdm("dmmap_mgt_server", "inform_parameter", &dmmap_sect);
-			dmuci_set_value_by_section_bbfdm(dmmap_sect, "section_name", section_name(s));
-		}
-		inst = handle_instance(dmctx, parent_node, dmmap_sect, "informparam_instance", "informparam_alias");
-		struct dmmap_dup inform_param_afgs = { .config_section = s, .dmmap_section = dmmap_sect };
+	uci_foreach_sections("cwmp", "inform_parameter", s) {
+		inst = handle_instance(dmctx, parent_node, s, "informparam_instance", "informparam_alias");
+		struct dmmap_dup inform_param_afgs = {.config_section = s };
 		if (DM_LINK_INST_OBJ(dmctx, parent_node, (void *)&inform_param_afgs, inst) == DM_STOP)
 			break;
 	}
@@ -930,18 +941,11 @@ static int browseInformParameterInst(struct dmctx *dmctx, DMNODE *parent_node, v
 
 static int add_inform_parameter(char *refparam, struct dmctx *ctx, void *data, char **instance)
 {
-	struct uci_section *s = NULL, *dmmap_sect = NULL;
-	char inf_param[32] = {0};
+	struct uci_section *s = NULL;
 
-	snprintf(inf_param, sizeof(inf_param), "inf_param_%s", *instance);
-
-	dmuci_add_section_varstate("cwmp", "inform_parameter", &s);
-	dmuci_rename_section_by_section(s, inf_param);
+	dmuci_add_section("cwmp", "inform_parameter", &s);
+	dmuci_set_value_by_section(s, "informparam_instance", *instance);
 	dmuci_set_value_by_section(s, "enable", "0");
-
-	dmuci_add_section_bbfdm("dmmap_mgt_server", "inform_parameter", &dmmap_sect);
-	dmuci_set_value_by_section(dmmap_sect, "section_name", section_name(s));
-	dmuci_set_value_by_section(dmmap_sect, "informparam_instance", *instance);
 	return 0;
 }
 
@@ -950,18 +954,11 @@ static int delete_inform_parameter(char *refparam, struct dmctx *ctx, void *data
 	struct uci_section *s = NULL, *stmp = NULL;
 	switch (del_action) {
 		case DEL_INST:
-			dmuci_delete_by_section(((struct dmmap_dup *)data)->dmmap_section, NULL, NULL);
 			dmuci_delete_by_section(((struct dmmap_dup *)data)->config_section, NULL, NULL);
 			break;
 		case DEL_ALL:
-			uci_path_foreach_sections_safe(varstate, "cwmp", "inform_parameter", stmp, s) {
-				struct uci_section *dmmap_section = NULL;
-
-				get_dmmap_section_of_config_section("dmmap_mgt_server", "inform_parameter", section_name(s), &dmmap_section);
-
-				dmuci_delete_by_section(dmmap_section, NULL, NULL);
-
-				dmuci_delete_by_section_varstate(s, NULL, NULL);
+			uci_foreach_sections_safe("cwmp", "inform_parameter", stmp, s) {
+				dmuci_delete_by_section(s, NULL, NULL);
 			}
 			return 0;
 	}
@@ -985,7 +982,6 @@ static int set_inform_parameter_enable(char *refparam, struct dmctx *ctx, void *
 			return 0;
 		case VALUESET:
 			dmuci_set_value_by_section_varstate(inform_param_args->config_section, "enable", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
 			return 0;
 	}
 	return 0;
@@ -994,7 +990,7 @@ static int set_inform_parameter_enable(char *refparam, struct dmctx *ctx, void *
 static int get_inform_parameter_alias(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
 	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
-	dmuci_get_value_by_section_string(inform_param_args->dmmap_section, "informparam_alias", value);
+	dmuci_get_value_by_section_string(inform_param_args->config_section, "informparam_alias", value);
 	if ((*value)[0] == '\0')
 		dmasprintf(value, "cpe-%s", instance);
 	return 0;
@@ -1009,8 +1005,7 @@ static int set_inform_parameter_alias(char *refparam, struct dmctx *ctx, void *d
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section_varstate(inform_param_args->dmmap_section, "informparam_alias", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
+			dmuci_set_value_by_section_varstate(inform_param_args->config_section, "informparam_alias", value);
 			return 0;
 	}
 	return 0;
@@ -1028,12 +1023,11 @@ static int set_inform_parameter_parameter_name(char *refparam, struct dmctx *ctx
 	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, 256, NULL, NULL))
+			if (dm_validate_string_list(value, -1, -1, -1, -1, -1, Forced_Inform_Parmeters, NULL) == 0)
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section_varstate(inform_param_args->config_section, "parameter_name", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
+			dmuci_set_value_by_section_bbfdm(inform_param_args->config_section, "parameter_name", value);
 			return 0;
 	}
 	return 0;
@@ -1054,8 +1048,7 @@ static int set_inform_parameter_event_list(char *refparam, struct dmctx *ctx, vo
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section_varstate(inform_param_args->config_section, "events_list", value);
-			cwmp_set_end_session_flag(ctx, BBF_END_SESSION_RELOAD);
+			dmuci_set_value_by_section_bbfdm(inform_param_args->config_section, "events_list", value);
 			return 0;
 	}
 	return 0;
@@ -1344,6 +1337,8 @@ DMLEAF tManagementServerParams[] = {
 {"NATDetected", &DMREAD, DMT_BOOL, get_nat_detected, NULL, BBFDM_CWMP, "2.0"},
 {"InformParameterNumberOfEntries", &DMREAD, DMT_UNINT, get_inform_parameter_number_of_entries, NULL, BBFDM_CWMP, "2.0"},
 {"ManageableDeviceNumberOfEntries", &DMREAD, DMT_UNINT, get_manageable_device_number_of_entries, NULL, BBFDM_CWMP, "2.0"},
+{"DefaultActiveNotificationThrottle", &DMWRITE, DMT_UNINT, get_default_active_notification_throttle, set_default_active_notification_throttle, BBFDM_CWMP, "2.0"},
+{"ManageableDeviceNotificationLimit", &DMWRITE, DMT_UNINT, get_manageable_device_notification_limit, set_manageable_device_notification_limit, BBFDM_CWMP, "2.0"},
 {0}
 };
 

@@ -18,6 +18,7 @@
 #include "ubus_utils.h"
 #include "log.h"
 #include "event.h"
+#include "session.h"
 
 struct diagnostic_input {
 	char *input_name;
@@ -151,6 +152,41 @@ struct diagnostic_input nslookup_diagnostics_array[NSLKUP_NUMBER_INPUTS] = { //
 	{ "NumberOfRepetitions", "Device.DNS.Diagnostics.NSLookupDiagnostics.NumberOfRepetitions", NULL },
 	{ "Timeout", "Device.DNS.Diagnostics.NSLookupDiagnostics.Timeout", NULL }
 };
+
+int get_diagnostic_state_flag(char *parameter_name, char *value)
+{
+	if (strcmp(value, "Requested") != 0)
+		return 0;
+
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.DownloadDiagnostics.DiagnosticsState") == 0)
+		return END_SESSION_DOWNLOAD_DIAGNOSTIC;
+
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.UploadDiagnostics.DiagnosticsState") == 0)
+		return END_SESSION_UPLOAD_DIAGNOSTIC;
+
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPPing.DiagnosticsState") == 0)
+		return END_SESSION_IPPING_DIAGNOSTIC;
+
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.ServerSelectionDiagnostics.DiagnosticsState") == 0)
+		return END_SESSION_SERVERSELECTION_DIAGNOSTIC;
+
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.TraceRoute.DiagnosticsState") == 0)
+		return END_SESSION_TRACEROUTE_DIAGNOSTIC;
+
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.UDPEchoDiagnostics.DiagnosticsState") == 0)
+		return END_SESSION_UDPECHO_DIAGNOSTIC;
+
+	if (strcmp(parameter_name, "Device.DNS.Diagnostics.NSLookupDiagnostics.DiagnosticsState") == 0)
+		return END_SESSION_NSLOOKUP_DIAGNOSTIC;
+
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPLayerCapacityMetrics.DiagnosticsState") == 0)
+		return END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC;
+
+	if (strcmp(parameter_name, "Device.​WiFi.​NeighboringWiFiDiagnostic.DiagnosticsState") == 0)
+		return END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC;
+
+	return 0;
+}
 
 static bool set_specific_diagnostic_object_parameter_structure_value(struct diagnostic_input (*diagnostics_array)[], int number_inputs, char *parameter, char *value)
 {

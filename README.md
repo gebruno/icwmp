@@ -37,7 +37,10 @@ config lwn 'lwn'
 	option port ''
 ```
 
-> Note: `icwmpd` depends on usp.raw for all datamodel parameters, some `DeviceId` related parameters can be overwritten by writing them directly on `/etc/config/cwmp` file.
+
+!!! note
+    
+    `icwmpd` depends on usp.raw for all datamodel parameters, some `DeviceId` related parameters can be overwritten by writing them directly on `/etc/config/cwmp` file.
 
 ```bash
 uci set cwmp.cpe.manufacturer="ABC"
@@ -49,11 +52,15 @@ uci set cwmp.cpe.model_name="MODELXXX"
 uci set cwmp.cpe.description="This is a test device"
 uci commit cwmp
 ```
-> Complete UCI for `cwmp` configuration available in [link](./docs/api/uci/cwmp.md) or [raw schema](https://dev.iopsys.eu/iopsys/icwmp/-/blob/devel/schemas/uci/cwmp.json)
 
-> icwmpd gets the datamodel from the DUT via ubus using uspd, and also it registers `tr069` ubus namespace to expose some debug and cwmp client rpc funtionalities, so it is required to start it after starting `ubusd` and `uspd`.
+!!! note
+    
+    Complete UCI for `cwmp` configuration available in [link](./docs/api/uci/cwmp.md) or [raw schema](https://dev.iopsys.eu/iopsys/icwmp/-/blob/devel/schemas/uci/cwmp.json)
+    
+    icwmpd gets the datamodel from the DUT via ubus using uspd, and also it registers `tr069` ubus namespace to expose some debug and cwmp client rpc funtionalities, so it is required to start it after starting `ubusd` and `uspd`.
 
 ## Important topics
+* [icwmp design](./docs/arch/design.md)
 * [Concepts & Workflow](./docs/guide/workflow.md)
 * [Provisioning via DHCP](./docs/guide/dhcp_provisioning.md)
 * [HTTPS configuration guide](./docs/guide/https_config.md)
@@ -63,7 +70,6 @@ uci commit cwmp
 * [Supported RPC Methods](./docs/guide/supported_rpc.md)
 * [UBUS methods](./docs/guide/ubus_method.md)
 * [Command Line Interface](./docs/guide/cli.md)
-* [icwmp design](./docs/design.md)
 
 ## Dependencies
 

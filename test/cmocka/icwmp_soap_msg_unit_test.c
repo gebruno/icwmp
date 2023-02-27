@@ -205,9 +205,8 @@ static void prepare_gpv_soap_request(char *parameters[], int len)
 static void soap_get_param_value_message_test(void **state)
 {
 	mxml_node_t *env = NULL, *n = NULL, *name = NULL, *value = NULL;
-	struct rpc *rpc_cpe;
 
-	rpc_cpe = list_entry(&(cwmp_main->session->head_rpc_cpe), struct rpc, list);
+	struct rpc *rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_GET_PARAMETER_VALUES);
 
 	/*
 	 * Valid parameter path
@@ -305,10 +304,8 @@ static void prepare_addobj_soap_request(char *object, char *parameter_key)
 static void soap_add_object_message_test(void **state)
 {
 	mxml_node_t *env = NULL, *n = NULL, *add_resp = NULL;
-	struct rpc *rpc_cpe;
 
-	rpc_cpe = list_entry(&(cwmp_main->session->head_rpc_cpe), struct rpc, list);
-
+	struct rpc *rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_ADD_OBJECT);
 	/*
 	 * Valid path & writable object
 	 */
@@ -332,7 +329,7 @@ static void soap_add_object_message_test(void **state)
 	instance = (mxmlGetFirstChild(n) && mxmlGetOpaque(mxmlGetFirstChild(n))) ? atoi(mxmlGetOpaque(mxmlGetFirstChild(n))) : 1;
 	n = mxmlFindElement(add_resp, add_resp, "Status", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "0");
 	MXML_DELETE(cwmp_main->session->tree_in);
 	MXML_DELETE(cwmp_main->session->tree_out);
 
@@ -454,9 +451,8 @@ static void prepare_delobj_soap_request(char *object, char *parameter_key)
 static void soap_delete_object_message_test(void **state)
 {
 	mxml_node_t *env = NULL, *n = NULL, *add_resp = NULL;
-	struct rpc *rpc_cpe;
 
-	rpc_cpe = list_entry(&(cwmp_main->session->head_rpc_cpe), struct rpc, list);
+	struct rpc *rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_DELETE_OBJECT);
 
 	/*
 	 * Valid path & writable object
@@ -601,9 +597,8 @@ static void prepare_gpa_soap_request(char *parameter)
 static void soap_get_parameter_attributes_message_test(void **state)
 {
 	mxml_node_t *env = NULL, *n = NULL, *param_attr = NULL;
-	struct rpc *rpc_cpe;
 
-	rpc_cpe = list_entry(&(cwmp_main->session->head_rpc_cpe), struct rpc, list);
+	struct rpc *rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_GET_PARAMETER_ATTRIBUTES);
 
 	/*
 	 * Valid path
@@ -701,9 +696,8 @@ static void prepare_spa_soap_request(char *parameter, char *notification, char *
 static void soap_set_parameter_attributes_message_test(void **state)
 {
 	mxml_node_t *env = NULL, *n = NULL;
-	struct rpc *rpc_cpe;
 
-	rpc_cpe = list_entry(&(cwmp_main->session->head_rpc_cpe), struct rpc, list);
+	struct rpc *rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_SET_PARAMETER_ATTRIBUTES);
 
 	/*
 	 * Valid path

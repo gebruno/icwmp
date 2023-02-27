@@ -11,7 +11,7 @@
 #define XML2(A,B) {A, B, 0, NULL}
 #define XML3(A,B,C) {A, B, C, NULL}
 #define XML4(A,B,D) {A, B, 0, D}
-enum soap_methods {
+enum xml_nodes_references {
 	SOAP_REQ_SPV = 1,
 	SOAP_REQ_GPV,
 	SOAP_REQ_GPN,
@@ -159,6 +159,7 @@ struct xml_tag_validation {
 };
 
 struct xml_data_struct {
+	//XML node leafs attributes
 	mxml_node_t **parameter_list;
 	char **name;
 	char **value;
@@ -232,18 +233,18 @@ struct xml_data_struct {
 	bool *writable;
 	bool *is_download;
 
-	struct change_du_state *cdu;
-	struct du_state_change_complete *cdu_complete;
+	//Useful attributes
+	struct list_head *data_list; //Load/Build XML list nodes
 	mxml_node_t **xml_env;
-	struct list_head *data_list;
-	char **xcwmp;
-	int *amd_version;
-	struct event_container *event_save;
-	unsigned int *session_timeout;
-	int *cdu_type;
 	int *counter;
 	struct xml_tag_validation *validations;
 	int nbre_validations;
+
+	//Processing attributes
+	struct du_state_change_complete *cdu_complete;
+	struct change_du_state *cdu;
+	struct event_container *event_save;
+	int *cdu_type;
 	int rpc_enum;
 	bool inc_counter;
 };

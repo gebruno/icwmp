@@ -2,7 +2,8 @@
 
 In icwmp client, the CWMP session is executed under a uloop timeout handler that calls the C function responsible on the CWMP session execution: start_cwmp_session that has the following activity diagram:
 
- ```mermaid
+ 
+```mermaid
 flowchart TD
 	A[init cwmp session] --> B[check notification value change]
 	B --> C{value change?}
@@ -11,16 +12,19 @@ flowchart TD
     E --> D
     D --> F[Receive Inform Response from the ACS]
     F --> G[Parse rest of other ACS methods list]
-    G --> H{End of ACS methods list?}
-    H -- no --> G
-    H -- yes --> I[Send empty HTTP message to the ACS]
-    I --> J[Receive HTTP Request from the ACS]
-    J --> K[Is request body empty]
-    K -- yes --> N[Execute end session function]
-    N --> O[exit session]
-    K -- no --> L[Execute CPE method]
-    L --> M[Send CPE method response to the ACS]
-    M --> J
+    G --> H[Prepare next ACS method request]
+    H --> I[Send Acs method request]
+    I --> J[Receive ACS method response]
+    J --> K{End of ACS methods list?}
+    K -- no --> H
+    K -- yes --> L[Send empty HTTP message to the ACS]
+    L --> M[Receive HTTP Request from the ACS]
+    M --> N{Is request body empty?}
+    N -- yes --> O[Execute end session function]
+    O --> P[exit session]
+    N -- no --> Q[Execute CPE method]
+    Q --> R[Send CPE method response to the ACS]
+    R --> M
 ```
 
 
@@ -45,6 +49,7 @@ RPC ACS methods are called just after initiating the session. It starts by the c
 
 In icwmp RPC ACS methods are defined in the array rpc_acs_methods of the structure rpc_acs_method. 
 
+
 ```mermaid
 classDiagram
 class rpc_acs_method {
@@ -53,11 +58,13 @@ class rpc_acs_method {
 	parse_message: function
 }
 ```
+
 - name: is a string attribute. It contains the name the RPC.
 - prepare_message: it's a function attribute. This function is responsible to create the SOAP message that will be sent as the RPC method call to the ACS.
 - parse_response: it's a function attribute. This function is responsible to to parse the SOAP message coming from the ACS
 
 RPC ACS method is executed in a process respecting the tr-069 protocol layer as described in the following communication diagram:
+
 
 ```mermaid
 graph RL
@@ -91,6 +98,7 @@ In the next step after the CPE receive the HTTP response from the ACS, it extrac
 
 In icwmp RPC CPE methods are defined in the array rpc_cpe_methods of the structure rpc_cpe_method.
 
+
 ```mermaid
 classDiagram
 class rpc_cpe_method {
@@ -99,10 +107,12 @@ class rpc_cpe_method {
 	parse_message: function
 }
 ```
+
 - name: is a string attribute. It contains the name the RPC.
 - handler: the corresponding the handler function responsible to extract data from the SOAP message and then execute corresponding features
 
 RPC CPE method is executed in a process respecting the tr-069 protocol layer as described in the following communication diagram:
+
 
 ```mermaid
 graph LR
@@ -115,7 +125,7 @@ graph LR
     C --> |7 Build SOAP response message| C
     C --> |8 SOAP RPC response| B
     B --> |9 HTTP response| A
- ```
+```
  
 The scenario starts by receiving the HTTP Request from the ACS. The HTTP body should be a SOAP RPC call message. The RPC method and its arguments are extracted from the SOAP message in the SOAP layer. Basing on this extracted data the corresponding function is executed in the RPC layer.
 
