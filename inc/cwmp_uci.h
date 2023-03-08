@@ -113,13 +113,12 @@ struct config_uci_list {
 struct uci_paths {
 	char *conf_dir;
 	char *save_dir;
-	struct uci_context *uci_ctx;
 };
 
-int cwmp_uci_standard_init(struct uci_paths *conf_path);
-int cwmp_uci_varstate_init(struct uci_paths *conf_path);
-int cwmp_uci_etccwmpd_init(struct uci_paths *conf_path);
-void cwmp_uci_exit(struct uci_paths *conf_path);
+struct uci_context *cwmp_uci_standard_init();
+struct uci_context *cwmp_uci_varstate_init();
+struct uci_context *cwmp_uci_etccwmpd_init();
+void cwmp_uci_exit(struct uci_context *uci_ctx);
 int cwmp_uci_lookup_ptr(struct uci_context *ctx, struct uci_ptr *ptr, char *package, char *section, char *option, char *value);
 int cwmp_uci_get_option_value_list(char *package, char *section, char *option, struct uci_context *uci_ctx, struct uci_list **value);
 int uci_get_state_value(char *cmd, char **value);
