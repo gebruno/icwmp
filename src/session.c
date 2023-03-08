@@ -100,6 +100,7 @@ int cwmp_session_rpc_destructor(struct rpc *rpc)
 
 int cwmp_session_exit()
 {
+	rpc_exit();
 	cwmp_uci_exit();
 	icwmp_cleanmem();
 	return CWMP_OK;
@@ -373,6 +374,7 @@ void start_cwmp_session()
 	if (error != CWMP_OK) {
 		CWMP_LOG(ERROR, "CWMP session error: %d", error);
 	}
+
 	/*
 	 * End session
 	 */
@@ -382,7 +384,8 @@ void start_cwmp_session()
 		cwmp_remove_all_session_events();
 		run_session_end_func();
 		cwmp_session_exit();
-		rpc_exit();
+
+
 		return;
 	}
 
@@ -398,7 +401,10 @@ void start_cwmp_session()
 			uloop_timeout_cancel(&heartbeat_session_timer);
 			uloop_timeout_set(&heartbeat_session_timer, 1000 * t);
 		}
+
+		cwmp_set_end_session(END_SESSION_RELOAD);
 	} else {
+		save_acs_bkp_config();
 		if (!cwmp_main->session->session_status.is_heartbeat)
 			cwmp_remove_all_session_events();
 		else
@@ -412,7 +418,6 @@ void start_cwmp_session()
 			else
 				cwmp_main->throttle_session = false;
 		}
-		rpc_exit();
 	}
 	run_session_end_func();
 	cwmp_session_exit();
@@ -587,7 +592,6 @@ struct rpc *cwmp_add_session_rpc_cpe(int type)
 struct rpc *cwmp_add_session_rpc_acs(int type)
 {
 	struct rpc *rpc_acs;
-
 	rpc_acs = calloc(1, sizeof(struct rpc));
 	if (rpc_acs == NULL) {
 		return NULL;

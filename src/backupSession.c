@@ -93,10 +93,7 @@ int bkp_session_check_file()
 
 int save_acs_bkp_config()
 {
-	struct config *conf;
-
-	conf = &(cwmp_main->conf);
-	bkp_session_simple_insert("acs", "URL", conf->acsurl);
+	bkp_session_simple_insert("acs", "URL", cwmp_main->conf.acsurl);
 	bkp_session_save();
 	return CWMP_OK;
 }
