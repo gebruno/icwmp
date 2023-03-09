@@ -51,7 +51,6 @@ int create_cwmp_session_structure()
 		return CWMP_GEN_ERR;
 	INIT_LIST_HEAD(&(cwmp_main->session->events));
 	INIT_LIST_HEAD(&(cwmp_main->session->head_rpc_acs));
-	INIT_LIST_HEAD(&(cwmp_main->session->head_rpc_cpe));
 	cwmp_main->session->session_status.is_heartbeat = false;
 	cwmp_main->session->session_status.next_heartbeat = false;
 	return CWMP_OK;
@@ -76,6 +75,8 @@ int cwmp_session_init()
 	rpc_acs = cwmp_add_session_rpc_acs_head(RPC_ACS_INFORM);
 	if (rpc_acs == NULL)
 		return CWMP_GEN_ERR;
+
+	cwmp_main->session->rpc_cpe = NULL;
 
 	set_cwmp_session_status(SESSION_RUNNING, 0);
 	if (file_exists(fc_cookies))
@@ -121,7 +122,7 @@ static int cwmp_rpc_cpe_handle_message(struct rpc *rpc_cpe)
 int cwmp_schedule_rpc()
 {
 	struct list_head *ilist;
-	struct rpc *rpc_acs, *rpc_cpe;
+	struct rpc *rpc_acs;
 
 	if (icwmp_http_client_init() || cwmp_stop) {
 		CWMP_LOG(INFO, "Initializing http client failed");
@@ -179,23 +180,18 @@ int cwmp_schedule_rpc()
 		if (xml_handle_message() || cwmp_stop)
 			goto retry;
 
-		while (cwmp_main->session->head_rpc_cpe.next != &(cwmp_main->session->head_rpc_cpe)) {
-
-			rpc_cpe = list_entry(cwmp_main->session->head_rpc_cpe.next, struct rpc, list);
-			if (!rpc_cpe->type || cwmp_stop)
-				goto retry;
-
-			CWMP_LOG(INFO, "Preparing the %s%s message", rpc_cpe_methods[rpc_cpe->type].name, (rpc_cpe->type != RPC_CPE_FAULT) ? "Response" : "");
-			if (cwmp_rpc_cpe_handle_message(rpc_cpe) || cwmp_stop)
+		while (cwmp_main->session->rpc_cpe) {
+			CWMP_LOG(INFO, "Preparing the %s%s message", rpc_cpe_methods[cwmp_main->session->rpc_cpe->type].name, (cwmp_main->session->rpc_cpe->type != RPC_CPE_FAULT) ? "Response" : "");
+			if (cwmp_rpc_cpe_handle_message(cwmp_main->session->rpc_cpe) || cwmp_stop)
 				goto retry;
 			MXML_DELETE(cwmp_main->session->tree_in);
 
-			CWMP_LOG(INFO, "Send the %s%s message to the ACS", rpc_cpe_methods[rpc_cpe->type].name, (rpc_cpe->type != RPC_CPE_FAULT) ? "Response" : "");
-			if (xml_send_message(rpc_cpe) || cwmp_stop)
+			CWMP_LOG(INFO, "Send the %s%s message to the ACS", rpc_cpe_methods[cwmp_main->session->rpc_cpe->type].name, (cwmp_main->session->rpc_cpe->type != RPC_CPE_FAULT) ? "Response" : "");
+			if (xml_send_message(cwmp_main->session->rpc_cpe) || cwmp_stop)
 				goto retry;
 			MXML_DELETE(cwmp_main->session->tree_out);
+			FREE(cwmp_main->session->rpc_cpe);
 
-			cwmp_session_rpc_destructor(rpc_cpe);
 			if (!cwmp_main->session->tree_in || cwmp_stop)
 				break;
 
@@ -305,22 +301,15 @@ void set_cwmp_session_status(int status, int retry_time)
 
 void rpc_exit()
 {
-	struct rpc *rpc;
 	while (cwmp_main->session->head_rpc_acs.next != &(cwmp_main->session->head_rpc_acs)) {
-		rpc = list_entry(cwmp_main->session->head_rpc_acs.next, struct rpc, list);
+		struct rpc *rpc = list_entry(cwmp_main->session->head_rpc_acs.next, struct rpc, list);
 		if (!rpc)
 			break;
 		if (rpc_acs_methods[rpc->type].extra_clean != NULL)
 			rpc_acs_methods[rpc->type].extra_clean(rpc);
 		cwmp_session_rpc_destructor(rpc);
 	}
-
-	while (cwmp_main->session->head_rpc_cpe.next != &(cwmp_main->session->head_rpc_cpe)) {
-		rpc = list_entry(cwmp_main->session->head_rpc_cpe.next, struct rpc, list);
-		if (!rpc)
-			break;
-		cwmp_session_rpc_destructor(rpc);
-	}
+	FREE(cwmp_main->session->rpc_cpe);
 }
 
 void start_cwmp_session()
@@ -370,6 +359,7 @@ void start_cwmp_session()
 		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
 	}
 	FREE(exec_download);
+
 	error = cwmp_schedule_rpc();
 	if (error != CWMP_OK) {
 		CWMP_LOG(ERROR, "CWMP session error: %d", error);
@@ -576,7 +566,7 @@ void reinit_cwmp_periodic_session_feature()
 	cwmp_main->prev_periodic_time = cwmp_main->conf.time;
 }
 
-struct rpc *cwmp_add_session_rpc_cpe(int type)
+struct rpc *build_sessin_rcp_cpe(int type)
 {
 	struct rpc *rpc_cpe;
 
@@ -585,7 +575,6 @@ struct rpc *cwmp_add_session_rpc_cpe(int type)
 		return NULL;
 	}
 	rpc_cpe->type = type;
-	list_add_tail(&(rpc_cpe->list), &(cwmp_main->session->head_rpc_cpe));
 	return rpc_cpe;
 }
 

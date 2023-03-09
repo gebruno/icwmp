@@ -76,7 +76,6 @@ char *forced_inform_parameters[] = {
 
 int xml_handle_message()
 {
-	struct rpc *rpc_cpe;
 	char *c = NULL;
 	int i;
 	mxml_node_t *b;
@@ -141,25 +140,24 @@ int xml_handle_message()
 		goto fault;
 	}
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
-	rpc_cpe = NULL;
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
 		if (i != RPC_CPE_FAULT && c && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
-			rpc_cpe = cwmp_add_session_rpc_cpe(i);
-			if (rpc_cpe == NULL)
+			cwmp_main->session->rpc_cpe = build_sessin_rcp_cpe(i);
+			if (cwmp_main->session->rpc_cpe == NULL)
 				goto error;
 			break;
 		}
 	}
-	if (!rpc_cpe) {
+	if (!cwmp_main->session->rpc_cpe) {
 		CWMP_LOG(INFO, "%s RPC is not supported", c);
 		cwmp_main->session->fault_code = FAULT_CPE_METHOD_NOT_SUPPORTED;
 		goto fault;
 	}
 	return 0;
 fault:
-	rpc_cpe = cwmp_add_session_rpc_cpe(RPC_CPE_FAULT);
-	if (rpc_cpe == NULL)
+	cwmp_main->session->rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_FAULT);
+	if (cwmp_main->session->rpc_cpe == NULL)
 		goto error;
 	return 0;
 error:

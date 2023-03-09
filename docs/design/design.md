@@ -63,8 +63,8 @@ class cwmp {
 ```mermaid
 classDiagram
 class session {
-	head_rpc_cpe: list
 	head_rpc_acs: list
+	rpc_cpe: struct rpc
 	events: list
 	session_status: struct session_status
 	tree_in: mxml_node_t
@@ -76,7 +76,7 @@ class session {
 
  session attributes are:
  
- - head_rpc_cpe: its type is struct list_head. It contains RPC methods list that needs to be executed by the CPE in the actual session.
+ - rpc_cpe: its type is struct rpc. It contains RPC method that is just requested by the ACS to be executed in the CPE.
  - head_rpc_acs: its type is struct list_head. It contains RPC methods list that the CPE requests to be executed in the ACS side in the actual session.
  - events: its type is struct list_head. It contains list of events that the CPE notifies the ACS in the Inform message of the actual session.
  - session_status: its type is struct session_status. it contains informations about the running session like start time, end time, if it's successful or failed session, hearbeat session validation ...

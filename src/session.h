@@ -31,8 +31,8 @@ typedef struct session_status {
 } session_status;
 
 typedef struct session {
-	struct list_head head_rpc_cpe;
 	struct list_head head_rpc_acs;
+	struct rpc *rpc_cpe;
 	struct list_head events;
 	struct session_status session_status;
 	mxml_node_t *tree_in;
@@ -89,7 +89,7 @@ enum enum_session_status
 extern unsigned int end_session_flag;
 
 void cwmp_set_end_session(unsigned int flag);
-struct rpc *cwmp_add_session_rpc_cpe(int type);
+struct rpc *build_sessin_rcp_cpe(int type);
 struct rpc *cwmp_add_session_rpc_acs(int type);
 struct rpc *cwmp_add_session_rpc_acs_head(int type);
 int cwmp_session_rpc_destructor(struct rpc *rpc);
