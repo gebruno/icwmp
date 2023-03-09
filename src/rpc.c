@@ -1024,6 +1024,8 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	list_for_each_entry (param_value, &list_set_param_value, list) {
 		set_interface_reset_request(param_value->name, param_value->value);
 		set_diagnostic_parameter_structure_value(param_value->name, param_value->value);
+		int diag_flag = get_diagnostic_state_flag(param_value->name, param_value->value);
+		cwmp_set_end_session(diag_flag);
 	}
 
 	cwmp_free_all_xml_data_list(&xml_list_set_param_value);

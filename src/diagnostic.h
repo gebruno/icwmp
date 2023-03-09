@@ -15,6 +15,7 @@
 #define __DIAGNOSTIC__H
 
 bool set_diagnostic_parameter_structure_value(char *parameter_name, char *value);
+int get_diagnostic_state_flag(char *parameter_name, char *value);
 
 int cwmp_wifi_neighboring__diagnostics();
 int cwmp_download_diagnostics();
