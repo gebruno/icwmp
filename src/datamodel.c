@@ -26,6 +26,8 @@ static char *TCTransferType[] = {"Upload", "Download", "Both", NULL};
 static char *TCResultType[] = {"Success", "Failure", "Both", NULL};
 static char *TCFileType[] = {"1 Firmware Upgrade Image", "2 Web Content", "3 Vendor Configuration File", "4 Vendor Log File", NULL};
 
+#define BBF_END_SESSION_RELOAD 1 << 2
+
 enum suboption_125 {
 	OPT_OUI,
 	OPT_SERIAL,
