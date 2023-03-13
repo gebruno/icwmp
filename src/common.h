@@ -605,6 +605,7 @@ int copy_file(char *source_file, char *target_file);
 int get_connection_interface();
 char *get_time(time_t t_time);
 bool is_obj_excluded(const char *object_name);
+bool is_reload_parameter(const char *object_name);
 time_t convert_datetime_to_timestamp(char *value);
 int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);

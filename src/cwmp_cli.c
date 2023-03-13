@@ -77,7 +77,6 @@ void display_get_cmd_result(struct cmd_input in __attribute__((unused)), union c
  */
 char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)))
 {
-	int flag;
 	if (in.first_input == NULL || in.second_input == NULL || strlen(in.first_input) == 0 || strlen(in.second_input) == 0)
 		return "9003";
 	if (transaction_id == 0) {
@@ -87,7 +86,7 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 	LIST_HEAD(list_set_param_value);
 	LIST_HEAD(faults_list);
 	add_dm_parameter_to_list(&list_set_param_value, in.first_input, in.second_input, NULL, 0, false);
-	int fault_idx = cwmp_set_multiple_parameters_values(&list_set_param_value, &flag, &faults_list);
+	int fault_idx = cwmp_set_multiple_parameters_values(&list_set_param_value, &faults_list);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	if (fault_idx != FAULT_CPE_NO_FAULT) {
 		struct cwmp_param_fault *param_fault = NULL;

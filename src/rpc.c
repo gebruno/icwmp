@@ -999,7 +999,6 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 	xml_data_list_to_dm_parameter_list(&xml_list_set_param_value, &list_set_param_value);
 
-	int flag = 0;
 	if (transaction_id == 0) {
 		if (!cwmp_transaction_start("cwmp")) {
 			fault_code = FAULT_CPE_INTERNAL_ERROR;
@@ -1012,7 +1011,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	if (fault_code != FAULT_CPE_NO_FAULT)
 		goto fault;
 
-	fault_code = cwmp_set_multiple_parameters_values(&list_set_param_value, &flag, rpc->list_set_value_fault);
+	fault_code = cwmp_set_multiple_parameters_values(&list_set_param_value, rpc->list_set_value_fault);
 	if (fault_code != FAULT_CPE_NO_FAULT)
 		goto fault;
 
@@ -1048,7 +1047,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		goto fault;
 	}
 
-	cwmp_set_end_session(flag | END_SESSION_RESTART_SERVICES | END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD);
+	cwmp_set_end_session(END_SESSION_RESTART_SERVICES | END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD);
 	return 0;
 
 fault:

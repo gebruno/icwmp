@@ -27,7 +27,7 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 int cwmp_get_leaf_value(char *leaf, char **value);
 char *cwmp_get_multiple_parameters_values(struct list_head *arg_params_list, struct list_head *parameters_list);
 char *cwmp_get_single_parameter_value(char *parameter_name, struct cwmp_dm_parameter *dm_parameter);
-int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list, int *flag, struct list_head *faults_list);
+int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list, struct list_head *faults_list);
 char *cwmp_add_object(char *object_name, char **instance);
 char *cwmp_delete_object(char *object_name);
 char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_head *parameters_list);

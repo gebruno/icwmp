@@ -37,7 +37,6 @@ struct list_params_result {
 
 struct setm_values_res {
 	bool status;
-	int *flag;
 	struct list_head *faults_list;
 };
 /*
@@ -557,16 +556,13 @@ void ubus_setm_values_callback(struct ubus_request *req, int type __attribute__(
 		return;
 	}
 	struct setm_values_res *set_result = (struct setm_values_res *)req->priv;
-	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_BOOL }, { "flag", BLOBMSG_TYPE_INT64 } };
+	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_BOOL } };
 	struct blob_attr *tb[2] = { NULL, NULL };
 	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
 	if (tb[0]) {
 		set_result->status = blobmsg_get_u8(tb[0]);
-		if (set_result->status) {
-			int *flag = set_result->flag;
-			*flag = tb[1] ? blobmsg_get_u64(tb[1]) : 0;
+		if (set_result->status)
 			return;
-		}
 	}
 	set_result->status = false;
 	struct blob_attr *faults_params = get_parameters_array(msg);
@@ -587,11 +583,11 @@ void ubus_setm_values_callback(struct ubus_request *req, int type __attribute__(
 	}
 }
 
-int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list, int *flag, struct list_head *faults_list)
+int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list, struct list_head *faults_list)
 {
 	int e;
 	struct cwmp_dm_parameter *param_value = NULL;
-	struct setm_values_res set_result = { .flag = flag, .faults_list = faults_list };
+	struct setm_values_res set_result = { .faults_list = faults_list };
 	struct blob_buf b = { 0 };
 
 	memset(&b, 0, sizeof(struct blob_buf));
