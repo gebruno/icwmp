@@ -79,8 +79,8 @@ typedef enum uci_config_paths
 {
 	UCI_STANDARD_CONFIG,
 	UCI_VARSTATE_CONFIG,
-	UCI_ETCICWMPD_CONFIG
-}uci_config_paths;
+	UCI_ETCICWMPD_CONFIG,
+} uci_config_paths;
 
 enum uci_val_type
 {

@@ -351,30 +351,28 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		goto end;
 
 	struct uci_section *s = NULL;
-	cwmp_uci_foreach_sections("cwmp", "inform_parameter", UCI_VARSTATE_CONFIG, s)
+	cwmp_uci_foreach_sections("cwmp", "inform_parameter", UCI_STANDARD_CONFIG, s)
 	{
 		char *enable = NULL;
 		cwmp_uci_get_value_by_section_string(s, "enable", &enable);
 		if (strcasecmp(enable, "0") == 0 || strcasecmp(enable , "false") == 0)
 			continue;
 		char *parameter_name = NULL;
+
 		cwmp_uci_get_value_by_section_string(s, "parameter_name", &parameter_name);
 
 		if (CWMP_STRLEN(parameter_name) == 0)
+			continue;
+
+		LIST_HEAD(parameters_list);
+		char *err = cwmp_get_parameter_values(parameter_name, &parameters_list);
+		if (err || list_empty(&parameters_list))
 			continue;
 
 		char *events_str_list = NULL;
 		cwmp_uci_get_value_by_section_string(s, "events_list", &events_str_list);
 
 		if (!check_inform_parameter_events_list_corresponding(events_str_list, &(cwmp_main->session->events)))
-			continue;
-
-		LIST_HEAD(parameters_list);
-		char *err = cwmp_get_parameter_values(parameter_name, &parameters_list);
-		if (err)
-			continue;
-
-		if (list_empty(&parameters_list))
 			continue;
 
 		struct list_head *data_list = &parameters_list;
