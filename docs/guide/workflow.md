@@ -1,4 +1,4 @@
-## Concepts and Workflow
+# Concepts and Workflow
 
 In OpenWRT integration, `icwmpd` depends on `procd` based init script `/etc/init.d/icwmpd` to start it in boot-up. Once started, it reads the initial configuration from UCI and if configured connects to the ACS.
 
