@@ -247,6 +247,7 @@ static int cwmp_init()
 	cwmp_main->diag_session = false;
 	cwmp_main->throttle_session = false;
 	cwmp_main->throttle_session_triggered = false;
+	cwmp_main->md_value_change_last_time = 0;
 	if (cwmp_stop == true)
 		return CWMP_GEN_ERR;
 

@@ -42,6 +42,7 @@
 #define UCI_CPE_SCHEDULE_REBOOT "cwmp.cpe.schedule_reboot"
 #define UCI_CPE_DELAY_REBOOT "cwmp.cpe.delay_reboot"
 #define UCI_CPE_ACTIVE_NOTIF_THROTTLE "cwmp.cpe.active_notif_throttle"
+#define UCI_CPE_MANAGEABLE_DEVICES_NOTIF_LIMIT "cwmp.cpe.md_notif_limit"
 #define UCI_CPE_JSON_CUSTOM_NOTIFY_FILE "cwmp.cpe.custom_notify_json"
 #define LW_NOTIFICATION_ENABLE "cwmp.lwn.enable"
 #define LW_NOTIFICATION_HOSTNAME "cwmp.lwn.hostname"

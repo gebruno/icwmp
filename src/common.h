@@ -117,7 +117,9 @@ typedef struct config {
 	time_t schedule_reboot;
 	time_t time;
 	time_t heart_time;
+
 	unsigned int active_notif_throttle;
+	unsigned int md_notif_limit;
 	unsigned int periodic_entropy;
 	bool periodic_enable;
 	bool periodic_notify_enable;
@@ -166,6 +168,7 @@ typedef struct cwmp {
 	time_t start_time;
 	time_t prev_periodic_time;
 	time_t prev_heartbeat_time;
+	time_t md_value_change_last_time;
 	unsigned int cwmp_id;
 	int event_id;
 	int sched_inform_id;

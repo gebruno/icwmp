@@ -22,8 +22,9 @@
 #include "cwmp_event.h"
 
 #define UPSTREAM_STABILITY_CHECK_TIMESPAN 5  // In seconds
-
+#define MANAGEABLE_DEVICES_NBRE "Device.ManagementServer.ManageableDeviceNumberOfEntries"
 LIST_HEAD(list_value_change);
+
 LIST_HEAD(list_lw_value_change);
 LIST_HEAD(list_param_obj_notify);
 
@@ -612,9 +613,16 @@ int check_value_change(void)
 			continue;
 		}
 		if ((notification >= 1) && (dm_value != NULL) && value && (strcmp(dm_value, value) != 0)) {
-			if (notification == 1 || notification == 2)
+
+			if (cwmp_main->conf.md_notif_limit > 0 && strcmp(parameter, MANAGEABLE_DEVICES_NBRE) == 0 && notification == 2) {
+				unsigned int time_from_last_vc = time(NULL) - cwmp_main->md_value_change_last_time;
+				if ((cwmp_main->md_value_change_last_time <= 0) || (time_from_last_vc >= cwmp_main->conf.md_notif_limit)) {
+					cwmp_main->md_value_change_last_time = time(NULL);
+					add_list_value_change(MANAGEABLE_DEVICES_NBRE, dm_value, dm_type);
+				}
+			} else if (notification == 1 || notification == 2)
 				add_list_value_change(parameter, dm_value, dm_type);
-			if (notification >= 3)
+			else
 				add_lw_list_value_change(parameter, dm_value, dm_type);
 
 			if (notification == 1)

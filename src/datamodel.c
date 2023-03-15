@@ -845,6 +845,26 @@ static int set_default_active_notification_throttle(char *refparam, struct dmctx
 	return 0;
 }
 
+static int get_manageable_device_notification_limit(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
+{
+	*value = dmuci_get_option_value_fallback_def("cwmp", "cpe", "md_notif_limit", "0");
+	return 0;
+}
+
+static int set_manageable_device_notification_limit(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
+{
+	switch (action) {
+		case VALUECHECK:
+			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"1",NULL}}, 1))
+				return FAULT_9007;
+			return 0;
+		case VALUESET:
+			dmuci_set_value("cwmp", "cpe", "md_notif_limit", value);
+			return 0;
+	}
+	return 0;
+}
+
 static int get_heart_beat_policy_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
 	*value = dmuci_get_option_value_fallback_def("cwmp", "acs", "heartbeat_enable", "0");
@@ -1318,6 +1338,7 @@ DMLEAF tManagementServerParams[] = {
 {"InformParameterNumberOfEntries", &DMREAD, DMT_UNINT, get_inform_parameter_number_of_entries, NULL, BBFDM_CWMP, "2.0"},
 {"ManageableDeviceNumberOfEntries", &DMREAD, DMT_UNINT, get_manageable_device_number_of_entries, NULL, BBFDM_CWMP, "2.0"},
 {"DefaultActiveNotificationThrottle", &DMWRITE, DMT_UNINT, get_default_active_notification_throttle, set_default_active_notification_throttle, BBFDM_CWMP, "2.0"},
+{"ManageableDeviceNotificationLimit", &DMWRITE, DMT_UNINT, get_manageable_device_notification_limit, set_manageable_device_notification_limit, BBFDM_CWMP, "2.0"},
 {0}
 };
 
