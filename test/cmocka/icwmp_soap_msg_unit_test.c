@@ -329,7 +329,7 @@ static void soap_add_object_message_test(void **state)
 	instance = (mxmlGetFirstChild(n) && mxmlGetOpaque(mxmlGetFirstChild(n))) ? atoi(mxmlGetOpaque(mxmlGetFirstChild(n))) : 1;
 	n = mxmlFindElement(add_resp, add_resp, "Status", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1");
+	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "0");
 	MXML_DELETE(cwmp_main->session->tree_in);
 	MXML_DELETE(cwmp_main->session->tree_out);
 

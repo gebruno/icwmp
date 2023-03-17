@@ -102,7 +102,7 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 	}
 	set_rpc_parameter_key(in.third_input);
 	if (transaction_id) {
-		cwmp_transaction_commit();
+		cwmp_transaction_commit(true);
 		icwmp_restart_services();
 	}
 
@@ -140,7 +140,7 @@ char *cmd_add_exec_func(struct cmd_input in, union cmd_result *res)
 	}
 	set_rpc_parameter_key(in.second_input);
 	if (transaction_id) {
-		cwmp_transaction_commit();
+		cwmp_transaction_commit(false);
 		icwmp_restart_services();
 	}
 	return NULL;
@@ -180,7 +180,7 @@ char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 	}
 	set_rpc_parameter_key(in.second_input);
 	if (transaction_id) {
-		cwmp_transaction_commit();
+		cwmp_transaction_commit(true);
 		icwmp_restart_services();
 	}
 	return NULL;
@@ -244,7 +244,7 @@ char *cmd_set_notif_exec_func(struct cmd_input in, union cmd_result *res __attri
 		return fault;
 	}
 	if (transaction_id)
-		cwmp_transaction_commit();
+		cwmp_transaction_commit(true);
 	return NULL;
 }
 

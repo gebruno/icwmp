@@ -130,14 +130,14 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	cwmp_transaction_start("cwmp");
 	fault = cwmp_set_multiple_parameters_values(&list_set_param_value, &faults_array);
 	assert_int_equal(fault, 0);
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(true);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 
 	add_dm_parameter_to_list(&list_set_param_value, "Device.ManagementServer.Username", "iopsys_user", NULL, 0, false);
 	cwmp_transaction_start("cwmp");
 	fault = cwmp_set_multiple_parameters_values(&list_set_param_value, &faults_array);
 	assert_int_equal(fault, 0);
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(true);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	fault = 0;
 
@@ -219,7 +219,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	cwmp_transaction_start("cwmp");
 	fault = cwmp_set_multiple_parameters_values(&list_set_param_value, &faults_array);
 	assert_int_equal(fault, 0);
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(true);
 	cwmp_free_all_list_param_fault(&faults_array);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 
@@ -236,7 +236,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	list_for_each_entry (param_fault, &faults_array, list) {
 		assert_in_set(param_fault->fault, faults_values, 3);
 	}
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(true);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 }
 
@@ -252,7 +252,7 @@ static void dm_add_object_test(void **state)
 	fault = cwmp_add_object("Device.WiFi.SSID.", &instance);
 	assert_non_null(instance);
 	assert_null(fault);
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(false);
 	FREE(instance);
 
 	/*
@@ -263,7 +263,7 @@ static void dm_add_object_test(void **state)
 	assert_non_null(fault);
 	assert_string_equal(fault, "9005");
 	assert_null(instance);
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(false);
 	FREE(instance);
 
 	/*
@@ -274,7 +274,7 @@ static void dm_add_object_test(void **state)
 	assert_non_null(fault);
 	assert_string_equal(fault, "9005");
 	assert_null(instance);
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(false);
 	FREE(instance);
 }
 
@@ -288,7 +288,7 @@ static void dm_delete_object_test(void **state)
 	cwmp_transaction_start("cwmp");
 	fault = cwmp_delete_object("Device.WiFi.SSID.2.");
 	assert_null(fault);
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(true);
 
 	/*
 	 * Delete not valid path object
@@ -297,7 +297,7 @@ static void dm_delete_object_test(void **state)
 	fault = cwmp_delete_object("Device.WiFi.SIDl.3.");
 	assert_non_null(fault);
 	assert_string_equal(fault, "9005");
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(true);
 
 	/*
 	 * Delte valid path not writable object
@@ -306,7 +306,7 @@ static void dm_delete_object_test(void **state)
 	fault = cwmp_delete_object("Device.DeviceInfo.Processor.2.");
 	assert_non_null(fault);
 	assert_string_equal(fault, "9005");
-	cwmp_transaction_commit();
+	cwmp_transaction_commit(true);
 }
 
 static void dm_get_parameter_names_test(void **state)

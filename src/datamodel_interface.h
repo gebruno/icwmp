@@ -20,7 +20,7 @@ extern int transaction_id;
 struct blob_attr *get_parameters_array(struct blob_attr *msg);
 int get_fault(struct blob_attr *msg);
 bool cwmp_transaction_start(char *app);
-bool cwmp_transaction_commit();
+bool cwmp_transaction_commit(bool rest_serv);
 bool cwmp_transaction_abort();
 bool cwmp_transaction_status();
 char *cwmp_get_parameter_values(char *parameter_name, struct list_head *parameters_list);

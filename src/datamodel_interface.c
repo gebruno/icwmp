@@ -39,6 +39,11 @@ struct setm_values_res {
 	bool status;
 	struct list_head *faults_list;
 };
+
+struct transaction_commit_info {
+	bool status;
+	bool restart_services;
+};
 /*
  * Common functions
  */
@@ -159,21 +164,25 @@ void ubus_transaction_commit_callback(struct ubus_request *req __attribute__((un
 		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
 		return;
 	}
-	bool *status = (bool *)req->priv;
+	struct transaction_commit_info *trans_commit = (struct transaction_commit_info*)req->priv;
 	const struct blobmsg_policy p[1] = { { "status", BLOBMSG_TYPE_BOOL } };
-	struct blob_attr *updated_services = NULL;
 	struct blob_attr *cur;
 	int rem;
 
 	struct blob_attr *tb[1] = { NULL };
 	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
 	if (!tb[0]) {
-		*status = false;
+		trans_commit->status = false;
 		return;
 	}
-	*status = blobmsg_get_u8(tb[0]);
-	if (*status == false)
+	trans_commit->status = blobmsg_get_u8(tb[0]);
+	if (trans_commit->status == false)
 		return;
+
+	if (trans_commit->restart_services == false)
+		return;
+
+	struct blob_attr *updated_services = NULL;
 
 	blobmsg_for_each_attr(cur, msg, rem)
 	{
@@ -257,10 +266,10 @@ bool cwmp_transaction_start(char *app)
 	return status;
 }
 
-bool cwmp_transaction_commit()
+bool cwmp_transaction_commit(bool rest_serv)
 {
 	CWMP_LOG(INFO, "Transaction Commit ...");
-	bool status = false;
+	struct transaction_commit_info trans_commit = {.status = false, .restart_services = rest_serv};
 	struct blob_buf b = { 0 };
 
 	memset(&b, 0, sizeof(struct blob_buf));
@@ -268,18 +277,18 @@ bool cwmp_transaction_commit()
 	blobmsg_add_u32(&b, "transaction_id", transaction_id);
 	blobmsg_add_u8(&b, "restart_services", false);
 
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_commit", b.head, ubus_transaction_commit_callback, &status);
+	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_commit", b.head, ubus_transaction_commit_callback, &trans_commit);
 	if (e != 0) {
 		CWMP_LOG(INFO, "Transaction commit failed: Ubus err code: %d", e);
-		status = false;
+		trans_commit.status = false;
 	}
-	if (!status) {
+	if (!trans_commit.status) {
 		CWMP_LOG(INFO, "Transaction Commit with id: %d doesn't success\n", transaction_id);
 	}
 
 	blob_buf_free(&b);
 	transaction_id = 0;
-	return status;
+	return trans_commit.status;
 }
 
 bool cwmp_transaction_abort()

@@ -1042,7 +1042,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	if (fault_code)
 		goto fault;
 
-	if (!cwmp_transaction_commit()) {
+	if (!cwmp_transaction_commit(true)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
@@ -1167,7 +1167,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 
 	int instance_int = atoi(instance);
-	int status = 1;
+	int status = 0;
 	struct xml_data_struct add_resp_xml_attrs = {0};
 	add_resp_xml_attrs.instance = &instance_int;
 	add_resp_xml_attrs.status = &status;
@@ -1176,7 +1176,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	if (fault_code != CWMP_OK)
 		goto fault;
 
-	if (!cwmp_transaction_commit())
+	if (!cwmp_transaction_commit(false))
 		goto fault;
 
 	char *object_path = NULL;
@@ -1253,7 +1253,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	if (fault_code != CWMP_OK)
 		goto fault;
 
-	if (!cwmp_transaction_commit()) {
+	if (!cwmp_transaction_commit(true)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
