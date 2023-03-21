@@ -317,16 +317,17 @@ static void http_cr_new_client(int client, bool service_available)
 	bool internal_error = false;
 	char cr_http_get_head[HTTP_GET_HDR_LEN] = {0};
 	char *temp = NULL;
+	char *username = NULL;
+	char *password = NULL;
 
+	CWMP_LOG(INFO, "Received a new CR from ACS, service_available: %d", service_available);
 	fp = fdopen(client, "r+");
 	if (fp == NULL) {
 		CWMP_LOG(INFO, "Failed to open client socket");
 		service_available = false;
 		goto http_end;
 	}
-	char *username = NULL;
 	global_string_param_read(&cwmp_main.conf.cpe_userid, &username);
-	char *password = NULL;
 	global_string_param_read(&cwmp_main.conf.cpe_passwd, &password);
 
 	memset(auth_digest_buffer, 0, BUFSIZ);
@@ -393,7 +394,7 @@ http_end:
 	FREE(username);
 	FREE(password);
 	if (!service_available || !method_is_get) {
-		CWMP_LOG(INFO, "Receive Connection Request: Return 503 Service Unavailable");
+		CWMP_LOG(WARNING, "Receive Connection Request: Return 503 Service Unavailable");
 		if (fp) {
 			fputs("HTTP/1.1 503 Service Unavailable\r\n", fp);
 			fputs("Connection: close\r\n", fp);
@@ -408,7 +409,7 @@ http_end:
 		}
 		http_success_cr();
 	} else if (internal_error) {
-		CWMP_LOG(INFO, "Receive Connection Request: Return 500 Internal Error");
+		CWMP_LOG(WARNING, "Receive Connection Request: Return 500 Internal Error");
 		if (fp) {
 			fputs("HTTP/1.1 500 Internal Server Error\r\n", fp);
 			fputs("Connection: close\r\n", fp);
@@ -416,7 +417,7 @@ http_end:
 		}
 	}
 	else {
-		CWMP_LOG(INFO, "Receive Connection Request: Return 401 Unauthorized");
+		CWMP_LOG(WARNING, "Receive Connection Request: Return 401 Unauthorized");
 		if (fp) {
 			fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
 			fputs("Connection: close\r\n", fp);
@@ -508,6 +509,7 @@ void http_server_listen(void)
 			if (cr_request > CONNECTION_REQUEST_RESTRICT_REQUEST) {
 				restrict_start_time = current_time;
 				service_available = false;
+				CWMP_LOG(WARNING, "CR count %d exceeded max %d, SKIPPED", cr_request, CONNECTION_REQUEST_RESTRICT_REQUEST);
 			}
 		}
 		http_cr_new_client(client_sock, service_available);

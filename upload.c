@@ -234,7 +234,7 @@ void *thread_cwmp_rpc_cpe_upload(void *v)
 				if (pupload->scheduled_time != 0)
 					count_download_queue--;
 				cwmp_free_upload_request(pupload);
-				pthread_mutex_unlock(&mutex_download);
+				pthread_mutex_unlock(&mutex_upload);
 				continue;
 			}
 			if ((timeout >= 0) && (timeout <= time_of_grace)) {
