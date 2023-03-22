@@ -5,26 +5,83 @@
 icwmp is client side implementation of CWMP protocol. Its source code is completely conform with TR-069 standard. So it supports all required features described in the TR-069 standard.
 So TR-069 features like cwmp session, events management, soap management, RPC methods management ... are supportd in the icwmp implementation.
 
-As descibed in TR-069 standard, CWMP stack comprises several components that are unique to this protocol, and makes use of several standard protocols. Those components are followings:
+As descibed in TR-069 standard, CWMP stack comprises several components that are unique to this protocol, and makes use of several standard protocols. 
+
+Those components are the following:
+
+
+### CWMP Stack and icwmp corresponding source files 
+
+
+
 
 <table>
+<tbody>
 <tr><td>
+<table>
+<thead>
+  <tr>
+    <th colspan="2">CWMP Stack and icwmp corresponding source files</th>
+  </tr>
+</thead>
+<tbody>
+<tr><td><b>Application</b></td><td> cwmp.c session.c</td></tr>
+<tr><td><b>RPC Methods</b></td><td>  rpc.c</td></tr>
+<tr><td><b>SOAP</b></td><td>xml.c</td></tr>
+<tr><td><b>HTTP</b></td><td>http.c digauth.c</td></tr>
+<tr><td><b>SSL/TLS</b></td><td>  ssl_utils.c</td></tr>
+</tbody>
+</table>
 
-|<div>CWMP Stack </div> and icwmp corresponding source files| 
-|--|
-|__Application__			  cwmp.c session.c|
-|__RPC Methods__			  rpc.c||
-|__SOAP__					  xml.c|
-|__HTTP__					  http.c digauth.c|
-|__SSL/TLS__				  ssl_utils.c|
 
-</td><td>
+</td>
 
-|Common Source files|
-|--|
-|<div>backup_session.c </div><div> cwmp_uci.c </div><div> ubus_utils.c </div><div> subprocess.c </div><div> common.c </div><div> config.c </div><div> datamodel_interface.c </div><div> diagnostic.c </div><div> download.c </div><div> upload.c </div> notifications.c|
-
-</td></tr> </table>
+<td>
+<table>
+<thead>
+  <tr>
+    <th>Common Source files</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-0pky">backup_session.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">cwmp_uci.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">ubus_utils.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">subprocess.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">common.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">config.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">datamodel_interface.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">diagnostic.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">download.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">upload.c</td>
+  </tr>
+  <tr>
+    <td class="tg-0pky">notifications.c</td>
+  </tr>
+  </tbody>
+</table>
+</td></tr> 
+</tbody>
+</table>
 
 - Application: the application uses CWMP protocol on the CPE. In the icwmp client, the main application is defined in cwmp.c source file. It's based on uloop libubox functionality. Multiple timers are running under the main uloop of icwmp like session timer, ubus timer, heartbeat timer, ...
 - RPC methods: The specific RPC methods that are defined by CWMP protocol. In icwmp client RPC methods are defined under the source file rpc.c.
@@ -51,6 +108,7 @@ class cwmp {
 	pid_file: FILE
 }
 ```
+
  - conf: its type is the config structure. config structure is responsible to define the UCI configuration of the application and it's loaded in the start of icwmp. Multiple UCI options are defined in this structure such as configurations related to the CPE like CR credentials, CR port, provisioning code ... and configurations related to the ACS connection like ACS access username/password, periodic_inform_enable, periodic_inform_interval ...
  - heart_session: is a boolean attribute. This attribute is used to check if the running session is a Heartbeat session.
  - diag_session: is a boolean attribute. This  attribute is used to check if the running session contains the event '8 DIAGNOSTICS COMPLETE'
