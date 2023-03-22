@@ -5,6 +5,8 @@ include:
 include:
   - project: 'docs/portal2/pipeline-template'
     file: 'MkDocs.gitlab-ci.yml'
+    rules:
+      - if: $CI_COMMIT_BRANCH == "devel"
 
 variables:
   DEBUG: 'TRUE'
