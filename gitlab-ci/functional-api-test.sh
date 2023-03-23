@@ -6,9 +6,8 @@ pwd
 
 trap cleanup EXIT
 trap cleanup SIGINT
-set -x
-pwd && ls -la
-date +%s > timestamp.log
+
+date +%s > timestamp
 echo "Compiling icmwp"
 build_icwmp
 

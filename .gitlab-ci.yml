@@ -35,7 +35,7 @@ run_unit_test:
    artifacts:
       when: always
       paths:
-         - ${CI_PROJECT_DIR}/timestamp.log
+         - ${CI_PROJECT_DIR}/timestamp
          - memory-report.xml
          - unit-test-coverage.xml
 
@@ -52,7 +52,7 @@ run_api_test:
         reports:
             junit: ./report/tap.xml
         paths:
-            - ${CI_PROJECT_DIR}/timestamp.log
+            - ${CI_PROJECT_DIR}/timestamp
             - api-test-coverage.xml
             - api-test-memory-report.xml
             - api-test-result.log
@@ -70,7 +70,7 @@ run_functional_test:
         reports:
             junit: ./report/tap.xml
         paths:
-            - ${CI_PROJECT_DIR}/timestamp.log
+            - ${CI_PROJECT_DIR}/timestamp
             - funl-test-coverage.xml
             - funl-test-memory-report.xml
             - funl-test-result.log

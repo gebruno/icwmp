@@ -46,10 +46,7 @@ supervisorctl status
 gcovr -r . 2> /dev/null #throw away stderr
 # Artefact
 
-set -x
-pwd && ls -la
-
 gcovr -r . 2> /dev/null --xml -o ./unit-test-coverage.xml
-date +%s > timestamp.log
+date +%s > timestamp
 
 echo "Unit test PASS"
