@@ -79,7 +79,10 @@ root@iopsys:~# cat /etc/icwmpd/inform.json
 }
 ```
 
-> Note: In the Above example, parameter has to be defined with a valid datamodel parameter name and notify_type needs to be the notification type (number as present in the above table). Both the parameters are required.
+
+!!! note
+
+    In the Above example, parameter has to be defined with a valid datamodel parameter name and notify_type needs to be the notification type (number as present in the above table). Both the parameters are required.
 
 
 After defining the JSON file with all the required parameters, this information required to update cwmp uci as below:
@@ -89,8 +92,8 @@ root@iopsys:~# uci commit cwmp
 root@iopsys:~# /etc/init.d/icwmpd restart
 ```
 
->- ACS can manage the attributes of parameter added by custom_notification as it does for the other parameters
->- After firmware upgrade, for the 1st bootup, the custom_notify_json has higher priority, latter on ACS configured attributes get priority.
->- Addition of custom notification parameters is one time activity after upgrade, once done It can only be managed through ACS.
->- Parameters with wildcard not supported currently. So parameter like Device.WiFi.SSID.*. will be skipped
+- ACS can manage the attributes of parameter added by custom_notification as it does for the other parameters
+- After firmware upgrade, for the 1st bootup, the custom_notify_json has higher priority, latter on ACS configured attributes get priority.
+- Addition of custom notification parameters is one time activity after upgrade, once done It can only be managed through ACS.
+- Parameters with wildcard not supported currently. So parameter like Device.WiFi.SSID.*. will be skipped
 

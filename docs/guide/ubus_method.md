@@ -2,7 +2,10 @@
 
 `icwmpd` provides some RPCs support over ubus and some debug utilities those can be accessed using `tr069` ubus object. So, it must be launched on startup after `ubusd`.
 
-> Note: For more info on the `tr069` ubus schema see [link](../api/ubus/tr069.md) or [raw schema](https://dev.iopsys.eu/iopsys/icwmp/-/blob/devel/schemas/ubus/tr069.json)
+
+!!! note
+
+    For more info on the `tr069` ubus schema see [link](../api/ubus/tr069.md) or [raw schema](https://dev.iopsys.eu/iopsys/icwmp/-/blob/devel/schemas/ubus/tr069.json)
 
 ### tr069 ubus examples
 Please note, the output shown in below examples are just for demonstration purpose, the actual output shall vary as per the cwmp configuration and state.

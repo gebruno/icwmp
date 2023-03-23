@@ -2,7 +2,8 @@
 
 In icwmp client, the CWMP session is executed under a uloop timeout handler that calls the C function responsible on the CWMP session execution: start_cwmp_session that has the following activity diagram:
 
- ```mermaid
+ 
+```mermaid
 flowchart TD
 	A[init cwmp session] --> B[check notification value change]
 	B --> C{value change?}
@@ -48,6 +49,7 @@ RPC ACS methods are called just after initiating the session. It starts by the c
 
 In icwmp RPC ACS methods are defined in the array rpc_acs_methods of the structure rpc_acs_method. 
 
+
 ```mermaid
 classDiagram
 class rpc_acs_method {
@@ -56,11 +58,13 @@ class rpc_acs_method {
 	parse_message: function
 }
 ```
+
 - name: is a string attribute. It contains the name the RPC.
 - prepare_message: it's a function attribute. This function is responsible to create the SOAP message that will be sent as the RPC method call to the ACS.
 - parse_response: it's a function attribute. This function is responsible to to parse the SOAP message coming from the ACS
 
 RPC ACS method is executed in a process respecting the tr-069 protocol layer as described in the following communication diagram:
+
 
 ```mermaid
 graph RL
@@ -94,6 +98,7 @@ In the next step after the CPE receive the HTTP response from the ACS, it extrac
 
 In icwmp RPC CPE methods are defined in the array rpc_cpe_methods of the structure rpc_cpe_method.
 
+
 ```mermaid
 classDiagram
 class rpc_cpe_method {
@@ -102,10 +107,12 @@ class rpc_cpe_method {
 	parse_message: function
 }
 ```
+
 - name: is a string attribute. It contains the name the RPC.
 - handler: the corresponding the handler function responsible to extract data from the SOAP message and then execute corresponding features
 
 RPC CPE method is executed in a process respecting the tr-069 protocol layer as described in the following communication diagram:
+
 
 ```mermaid
 graph LR
@@ -118,7 +125,7 @@ graph LR
     C --> |7 Build SOAP response message| C
     C --> |8 SOAP RPC response| B
     B --> |9 HTTP response| A
- ```
+```
  
 The scenario starts by receiving the HTTP Request from the ACS. The HTTP body should be a SOAP RPC call message. The RPC method and its arguments are extracted from the SOAP message in the SOAP layer. Basing on this extracted data the corresponding function is executed in the RPC layer.
 

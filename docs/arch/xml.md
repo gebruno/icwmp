@@ -8,7 +8,8 @@ All xml nodes names that are needed in icwmp for both SOAP and backup session ar
 
 The type of the array xml_nodes_data is __xml_node_data__ :
 
- ```mermaid
+ 
+```mermaid
 classDiagram
 class cwmp {
 	node_ms: integer
@@ -17,12 +18,14 @@ class cwmp {
 	xml_tags: xml_tag array
 }
 ```
+
 - node_ms: is an integer that can have two values (XML_SINGLE 0 or XML_LIST 1). Is used to indicate if the corresponding XML node is present as list or just one time.
 - tag_node_ref: this integer attribute is an index in the same array xml_nodes_date of the corresponding node in case of list. Its value is 0 if the component is Single.
 - tag_list_name: in case of list this string is the tag parent name of each node. Its value is NULL if the component is Single.
 - xml_tags: is an array of tags under the node. xml_tag is the type of this array. Its structure is the following:
 
- ```mermaid
+ 
+```mermaid
 classDiagram
 class xml_tag {
 	tag_name: string
@@ -31,6 +34,7 @@ class xml_tag {
 	xml_func: function
 }
 ```
+
 each xml node tag in XML mechanism developed in icwmp has as type the xml_tag structure that has presented attributes:
 
 - tag_name: has as type string and it's the name of the tag
@@ -42,7 +46,8 @@ each xml node tag in XML mechanism developed in icwmp has as type the xml_tag st
 
 The xml_data_struct is a structure used for both load and build xml messages. It contains two parts of attributes, the first part contains attributes used for xml leaf node values for both buld and load, the second part contains attributes used while executing load/build process:
 
- ```mermaid
+ 
+```mermaid
 classDiagram
 class xml_data_struct {
 	//XML node leafs attributes
@@ -93,6 +98,7 @@ Single rows in the table define a node or a group of nodes  that appears just on
 
 The process of loading a single row node is done by the following algorithm:
 
+
 ```mermaid
 flowchart TD
 	A[parse the requested xml node elements] -- reached_node --> B{is reached node NULL}
@@ -126,7 +132,8 @@ While loading values from the XML node, the mechanism is checking the validation
 
 Validations attribute is an array of the structure **xml_tag_validation** that has the following diagram:
 
- ```mermaid
+ 
+```mermaid
 classDiagram
 class xml_tag_validation {
 	tag_name: string
@@ -135,7 +142,8 @@ class xml_tag_validation {
 	max: integer
 }
 ```
-- tag_name: a sting that has as value the XML node tag name.
+
+-tag_name: a sting that has as value the XML node tag name.
 - validation_type: integer that its value is used to choose the suitable validation function
 - min: integer used to validate if value is in a range
 - max: integer used to validate if value is in a range
@@ -157,6 +165,7 @@ The supported validation functions that are supported:
 List rows in the table **xml_nodes_data** define a node or a group of nodes  that appears multiple times in a sequence list under the requested node. load_xml_list_node_data function is responsible to load values under such kind of nodes.
 
 The process of loading a list row node is done by the following algorithm:
+
 
 ```mermaid
 flowchart TD
@@ -195,6 +204,7 @@ build_single_xml_node_data function is responsible to build XML nodes that conta
 
 The algorithm of such feature is described in following diagram:
 
+
 ```mermaid
 flowchart TD
 	A[parse xml tags array of corresponding row xml_nodes_data]-->B{End of Array?}
@@ -216,6 +226,7 @@ flowchart TD
 	L -->M[set the opaque value to the x_node xml node]
 	M -->C
 ```
+
 the build of a single node of xml_nodes_data array is done by the parse of the corresponding xml_tags array one by one. For each element the function creates the xml node and then set its opaque value basing on its type XML_REC, XML_FUNC, or otherwise.
 
 #### build_xml_list_node_data
@@ -223,6 +234,7 @@ the build of a single node of xml_nodes_data array is done by the parse of the c
 build_xml_list_node_data function is responsible to build XML nodes that contains nodes or group of nodes that appears multiple times in sequence list.
 
 The algorithm of such feature is described in following diagram:
+
 
 ```mermaid
 flowchart TD

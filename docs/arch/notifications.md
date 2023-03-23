@@ -15,7 +15,8 @@ Seven possible uci list can be present under the notifications section:  disable
 
 cwmp_set_parameter_attributes is the C function that is executed in case the SetParameterAttributes is called by the ACS. Its activity diagram is the following:
 
- ```mermaid
+ 
+```mermaid
 flowchart TD
     A[Check valid parameter_name] --> B{fault?}
     B -- no --> C{parameter_name is forced notification}
@@ -35,7 +36,8 @@ As a first step the SPA function check if the parameter path is valid, then it c
 
 The following decribe the algorithm of the function **update_notifications_list**:
 
- ```mermaid
+ 
+```mermaid
 flowchart TD
     A[Iterate notifications list => param_iter notif_iter] --> B{param_name == param_iter <br> && <br> notification != notif_iter}
     B -- no --> C{param_iter is suboject of param_name}
@@ -60,7 +62,8 @@ false value is affected to update_ret only if the parameter_name parameter is su
 cwmp_get_parameter_attributes is the C function  that is executed in case the GetParameterAttributes is called by the ACS. Its input argument is the requester parameter name: param_name. Its activity diagram is the following:
 
 
- ```mermaid
+ 
+```mermaid
 flowchart TD
 	A[check valid parameter path of param_name] --> B{valid?}
 	B -- yes --> C[get_parameter_family_notifications of param_name => ret_notif, children_notif]
@@ -82,7 +85,8 @@ flowchart TD
 
 As a first step the GPA function check if the parameter path is valid, after that it calls the function get_parameter_family_notifications that has the below algorithm. This function permits to get the list of all childs parameters notifications of parameter_name presents in uci notifications list. Its input argument is the requester parameter name: param_name.
 
- ```mermaid
+ 
+```mermaid
 flowchart TD
     A[iterate parameters_notifications list => param_iter notif_iter] --> B{param_name is subobject of param_iter <br> or param_name == param_iter}
     B -- no --> C{param_iter is subobject of param_name}
@@ -116,7 +120,8 @@ Next sections describes those two features in notifications in icwmp:
 
 check_value_change is responsible to detect what parameters (with enabled notifications) values changed. This process algorithm is described in the following diagram
 
- ```mermaid
+ 
+```mermaid
 flowchart TD
 	A[get all leaf parameters values list corresponding <br>to parameters with enabled notification <br> => list_notify_params] -->B
 	B[parse dm_enabled_notify_file line by line]--param_json_obj-->C[get corresponding parameter/value from param_json_obj]

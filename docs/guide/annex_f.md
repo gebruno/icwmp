@@ -4,6 +4,7 @@ The CPE WAN Management Protocol can be used to remotely manage CPE Devices that 
 > -- <cite> TR-69 Annex F.</cite>
 
 Below is the sequence diagram for the Device-Gateway association with DHCP Discover.
+
 ```mermaid
 sequenceDiagram
     Lan-Device->>+Gateway: DHCP Discover (Device Identity)
@@ -24,7 +25,10 @@ A Gateway here in this context means, an Annex-F capable CPE running icwmpd whic
 The Gateway Identity tuple (OUI, ProductClass, SerialNumber) is present in 'db' (Same source used for Device.DeviceInfo. object).
 
 The `/etc/init.d/icwmp` script reads the default lan interface from UCI option `cwmp.cpe.default_lan_interface` and configures the gateway identity in `dhcp` UCI for the corresponding LAN interface section to publish gateway information to its LAN clients.
-> Note: If UCI option `cwmp.cpe.default_lan_interface` is not defined then gateway identity would not be published in LAN network.
+
+!!! note
+    
+    If UCI option `cwmp.cpe.default_lan_interface` is not defined then gateway identity would not be published in LAN network.
 
 ### Identification of Manageable Device in LAN network
 Gateway device relies on DHCP options (/tmp/dhcp.client.options) file for getting the Manageable Device identities, which is exposed in the TR181 datamodel using (libbbf) API's.
@@ -37,7 +41,10 @@ A Lan-Device here in this context means, an Annex-F capable CPE running icwmpd w
 The Lan-Device Identity tuple (OUI, ProductClass, SerialNumber) is present in 'db' (Same source used for Device.DeviceInfo. object).
 
 The `/etc/init.d/icwmp` script reads the default wan interface from UCI option `cwmp.cpe.default_wan_interface` and configures the device identity in `network` UCI to publish its own identity to upstream network (DHCP server) using DHCP option 125 for the corresponding wan interface.
-> Note: If UCI option `cwmp.cpe.default_wan_interface` is not defined then it assumes the default interface as `wan`.
+
+!!! note
+    
+    If UCI option `cwmp.cpe.default_wan_interface` is not defined then it assumes the default interface as `wan`.
 
 ### Identification of Gateway Device in WAN network
 If lan-device(CPE) receives DHCP option 125 in DHCP offer from upstream network it exposes the same in its UBUS method (e.g. ifstatus wan).
@@ -52,6 +59,7 @@ root@iopsys-44d43771b000:~# ifstatus wan
 	}
 }
 ```
+
 ICWMPD package adds a [DHCP client hook script](https://dev.iopsys.eu/iopsys/icwmp/-/blob/devel/files/etc/udhcpc.user.d/udhcpc_icwmp_opt125.user), which parses DHCP option 125 to extract gateway identity based on Enterprise ID `3561`.
 This script then writes the gateway identity in `/var/state/cwmp` if CWMP is enabled in the device.
 

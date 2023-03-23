@@ -39,7 +39,10 @@ Email Address []:dev@iopsys.eu
 root@75f824228409:/opt/genieacs# 
 ```
 
-> Note: When generating the certificate, you must fill the Common Name filed with the correct URL server (for example here 'genieacs') otherwise you will get an error later when trying to connect to the ACS.
+
+!!! note
+
+    When generating the certificate, you must fill the Common Name filed with the correct URL server (for example here 'genieacs') otherwise you will get an error later when trying to connect to the ACS.
 
 ## Installing and Configuring GenieACS environment variables
 
