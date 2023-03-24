@@ -98,6 +98,8 @@ int http_client_init(struct cwmp *cwmp)
 		int tmp = inet_pton(AF_INET, ip, buf);
 
 		cwmp_uci_set_value("cwmp", "acs", "ip_version", (tmp == 1) ? "4" : "6");
+	} else {
+		curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 	}
 	return 0;
 }
