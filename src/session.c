@@ -301,13 +301,18 @@ void set_cwmp_session_status(int status, int retry_time)
 
 void rpc_exit()
 {
-	while (cwmp_main->session->head_rpc_acs.next != &(cwmp_main->session->head_rpc_acs)) {
-		struct rpc *rpc = list_entry(cwmp_main->session->head_rpc_acs.next, struct rpc, list);
-		if (!rpc)
-			break;
-		if (rpc_acs_methods[rpc->type].extra_clean != NULL)
-			rpc_acs_methods[rpc->type].extra_clean(rpc);
-		cwmp_session_rpc_destructor(rpc);
+	if (cwmp_main == NULL || cwmp_main->session == NULL)
+		return;
+
+	if (!list_empty(&(cwmp_main->session->head_rpc_acs))) {
+		while (cwmp_main->session->head_rpc_acs.next != &(cwmp_main->session->head_rpc_acs)) {
+			struct rpc *rpc = list_entry(cwmp_main->session->head_rpc_acs.next, struct rpc, list);
+			if (!rpc)
+				break;
+			if (rpc_acs_methods[rpc->type].extra_clean != NULL)
+				rpc_acs_methods[rpc->type].extra_clean(rpc);
+			cwmp_session_rpc_destructor(rpc);
+		}
 	}
 	FREE(cwmp_main->session->rpc_cpe);
 }

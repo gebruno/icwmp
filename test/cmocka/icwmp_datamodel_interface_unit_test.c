@@ -39,7 +39,6 @@ static int dm_iface_unit_tests_init(void **state)
 static int dm_iface_unit_tests_clean(void **state)
 {
 	icwmp_free_list_services();
-	clean_cwmp_session_structure();
 	FREE(cwmp_main->deviceid.manufacturer);
 	FREE(cwmp_main->deviceid.serialnumber);
 	FREE(cwmp_main->deviceid.productclass);
@@ -58,10 +57,11 @@ static int dm_iface_unit_tests_clean(void **state)
 	FREE(cwmp_main->conf.connection_request_path);
 	FREE(cwmp_main->conf.default_wan_iface);
 	FREE(cwmp_main->conf.custom_notify_json);
-	FREE(cwmp_main);
 	cwmp_free_all_list_param_fault(&faults_array);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	cwmp_session_exit();
+	clean_cwmp_session_structure();
+	FREE(cwmp_main);
 	return 0;
 }
 
