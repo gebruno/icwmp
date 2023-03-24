@@ -439,7 +439,7 @@ int cwmp_get_leaf_value(char *leaf, char **value)
 /*
  * Get parameter Values/Names/Notify
  */
-void ubus_get_parameter_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
+static void ubus_get_parameter_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
 	if (msg == NULL) {
 		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
@@ -468,7 +468,12 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 	int e;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
 	struct blob_buf b = { 0 };
-	char *param = CWMP_STRLEN(parameter_name) ? parameter_name : DM_ROOT_OBJ;
+	unsigned int len = CWMP_STRLEN(parameter_name);
+
+	if (len > 2 && parameter_name[len - 1] == '.' && parameter_name[len - 2] == '*')
+		return "9005";
+
+	char *param = len ? parameter_name : DM_ROOT_OBJ;
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
@@ -500,13 +505,19 @@ char *cwmp_get_multiple_parameters_values(struct list_head *arg_params_list, str
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
+
 	void *arr = blobmsg_open_array(&b, "paths");
 	list_for_each_entry (param_value, arg_params_list, list) {
-		if (!param_value->name)
-			break;
+		unsigned int len = CWMP_STRLEN(param_value->name);
+
+		if (len == 0 || (len > 2 && param_value->name[len - 1] == '.' && param_value->name[len - 2] == '*'))
+			continue;
+
 		blobmsg_add_string(&b, NULL, param_value->name);
 	}
 	blobmsg_close_array(&b, arr);
+
+	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
 	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "getm_values", b.head, ubus_get_parameter_callback, &get_result );
@@ -529,8 +540,13 @@ char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_h
 	int e;
 	struct list_params_result get_result = { .parameters_list = parameters_list };
 	struct blob_buf b = { 0 };
+	unsigned int len = CWMP_STRLEN(object_name);
+
+	if (len > 2 && object_name[len - 1] == '.' && object_name[len - 2] == '*')
+		return "9005";
 
 	char *object = object_name ? object_name : "";
+
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 	bb_add_string(&b, "path", object);
