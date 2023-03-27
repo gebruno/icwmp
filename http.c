@@ -35,12 +35,15 @@ char *fc_cookies = "/tmp/icwmp_cookies";
 
 void http_set_timeout(void)
 {
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	if (curl)
 		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 1);
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 }
 
 int http_client_init(struct cwmp *cwmp)
 {
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	char *dhcp_dis = NULL;
 	char *acs_var_stat = NULL;
 
@@ -55,12 +58,14 @@ int http_client_init(struct cwmp *cwmp)
 				free(acs_var_stat);
 				FREE(dhcp_dis);
 				FREE(url);
+				CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 				return -1;
 			}
 		} else {
 			if (CWMP_STRLEN(url) == 0 || icwmp_asprintf(&http_c.url, "%s", url) == -1) {
 				FREE(dhcp_dis);
 				FREE(url);
+				CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 				return -1;
 			}
 		}
@@ -68,6 +73,7 @@ int http_client_init(struct cwmp *cwmp)
 		if (url == NULL || icwmp_asprintf(&http_c.url, "%s", url) == -1) {
 			FREE(dhcp_dis);
 			FREE(url);
+			CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 			return -1;
 		}
 	}
@@ -76,14 +82,16 @@ int http_client_init(struct cwmp *cwmp)
 	if (dhcp_dis)
 		free(dhcp_dis);
 
-	CWMP_LOG(INFO, "ACS url: %s", http_c.url);
+	CWMP_LOG(INFO, "#### ACS url: %s", http_c.url);
 
 	/* TODO debug ssl config from freecwmp*/
 
 	curl_global_init(CURL_GLOBAL_SSL);
 	curl = curl_easy_init();
-	if (!curl)
+	if (!curl) {
+		CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 		return -1;
+	}
 
 	bool v6_enable = global_bool_param_read(&cwmp->conf.ipv6_enable);
 	if (v6_enable) {
@@ -99,11 +107,13 @@ int http_client_init(struct cwmp *cwmp)
 
 		cwmp_uci_set_value("cwmp", "acs", "ip_version", (tmp == 1) ? "4" : "6");
 	}
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 	return 0;
 }
 
 void http_client_exit(void)
 {
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	icwmp_free(http_c.url);
 
 	if (http_c.header_list) {
@@ -117,37 +127,45 @@ void http_client_exit(void)
 		curl = NULL;
 	}
 	curl_global_cleanup();
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 }
 
 static size_t http_get_response(void *buffer, size_t size, size_t rxed, char **msg_in)
 {
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	char *c = NULL;
 
-	CWMP_LOG(INFO, "HTTP CURL handler function");
+	CWMP_LOG(INFO, "#### HTTP CURL handler function");
 
 	if (msg_in == NULL) {
-		CWMP_LOG(ERROR, "msg_in is null");
+		CWMP_LOG(ERROR, "#### msg_in is null");
+		CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 		return 0;
 	}
 
 	if (buffer == NULL) {
-		CWMP_LOG(ERROR, "Buffer is null");
+		CWMP_LOG(ERROR, "#### Buffer is null");
+		CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 		return 0;
 	}
 
 	if (cwmp_asprintf(&c, "%s%.*s", *msg_in, (int)(size * rxed), (char *)buffer) == -1) {
 		FREE(*msg_in);
+		CWMP_LOG(ERROR, "#### asprintf failed");
+		CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
 	FREE(*msg_in);
 	*msg_in = c;
 
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 	return size * rxed;
 }
 
 int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **msg_in)
 {
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	unsigned char buf[sizeof(struct in6_addr)];
 	int tmp = 0;
 	CURLcode res;
@@ -158,16 +176,22 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 
 	http_c.header_list = NULL;
 	http_c.header_list = curl_slist_append(http_c.header_list, "User-Agent: iopsys-cwmp");
-	if (!http_c.header_list)
+	if (!http_c.header_list) {
+		CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 		return -1;
+	}
 	http_c.header_list = curl_slist_append(http_c.header_list, "Content-Type: text/xml");
-	if (!http_c.header_list)
+	if (!http_c.header_list) {
+		CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 		return -1;
+	}
 
 	if (global_bool_param_read(&cwmp->conf.http_disable_100continue)) {
 		http_c.header_list = curl_slist_append(http_c.header_list, "Expect:");
-		if (!http_c.header_list)
+		if (!http_c.header_list) {
+			CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 			return -1;
+		}
 	}
 	curl_easy_setopt(curl, CURLOPT_URL, http_c.url);
 	global_string_param_read(&cwmp->conf.acs_userid, &temp);
@@ -222,6 +246,7 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 	FREE(temp);
 
 	global_string_param_read(&cwmp->conf.interface, &temp);
+	CWMP_LOG(DEBUG, "#### func: %s, line: %d interface %s", __FUNCTION__, __LINE__, temp);
 	curl_easy_setopt(curl, CURLOPT_INTERFACE, temp);
 	FREE(temp);
 	*msg_in = (char *)calloc(1, sizeof(char));
@@ -233,9 +258,9 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 		if (len) {
 			if (errbuf[len - 1] == '\n')
 				errbuf[len - 1] = '\0';
-			CWMP_LOG(ERROR, "libcurl: (%d) %s", res, errbuf);
+			CWMP_LOG(ERROR, "#### 1-libcurl: (%d) %s", res, errbuf);
 		} else {
-			CWMP_LOG(ERROR, "libcurl: (%d) %s", res, curl_easy_strerror(res));
+			CWMP_LOG(ERROR, "#### 2-libcurl: (%d) %s", res, curl_easy_strerror(res));
 		}
 	}
 
@@ -266,7 +291,7 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 	if (http_code == 204) {
-		CWMP_LOG(INFO, "Receive HTTP 204 No Content");
+		CWMP_LOG(INFO, "#### Receive HTTP 204 No Content");
 	}
 
 	if (http_code == 415) {
@@ -286,6 +311,7 @@ int http_send_message(struct cwmp *cwmp, char *msg_out, int msg_out_len, char **
 	if (res)
 		goto error;
 
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d success", __FUNCTION__, __LINE__);
 	return 0;
 
 error:
@@ -294,20 +320,24 @@ error:
 		curl_slist_free_all(http_c.header_list);
 		http_c.header_list = NULL;
 	}
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 	return -1;
 }
 
 void http_success_cr(void)
 {
-	CWMP_LOG(INFO, "Connection Request thread: add connection request event in the queue");
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
+	CWMP_LOG(INFO, "#### Connection Request thread: add connection request event in the queue");
 	pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 	cwmp_add_event_container(&cwmp_main, EVENT_IDX_6CONNECTION_REQUEST, "");
 	pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 	pthread_cond_signal(&(cwmp_main.threshold_session_send));
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 }
 
 static void http_cr_new_client(int client, bool service_available)
 {
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	FILE *fp = NULL;
 	char buffer[BUFSIZ] = {0};
 	char auth_digest_buffer[BUFSIZ] = {0};
@@ -320,10 +350,10 @@ static void http_cr_new_client(int client, bool service_available)
 	char *username = NULL;
 	char *password = NULL;
 
-	CWMP_LOG(INFO, "Received a new CR from ACS, service_available: %d", service_available);
+	CWMP_LOG(INFO, "#### Received a new CR from ACS, service_available: %d", service_available);
 	fp = fdopen(client, "r+");
 	if (fp == NULL) {
-		CWMP_LOG(INFO, "Failed to open client socket");
+		CWMP_LOG(INFO, "#### Failed to open client socket");
 		service_available = false;
 		goto http_end;
 	}
@@ -333,7 +363,7 @@ static void http_cr_new_client(int client, bool service_available)
 	memset(auth_digest_buffer, 0, BUFSIZ);
 	if (!username || !password) {
 		// if we dont have username or password configured proceed with connecting to ACS
-		CWMP_LOG(INFO, "Failed to get acs username and password");
+		CWMP_LOG(INFO, "#### Failed to get acs username and password");
 		service_available = false;
 		goto http_end;
 	}
@@ -394,14 +424,14 @@ http_end:
 	FREE(username);
 	FREE(password);
 	if (!service_available || !method_is_get) {
-		CWMP_LOG(WARNING, "Receive Connection Request: Return 503 Service Unavailable");
+		CWMP_LOG(WARNING, "#### Receive Connection Request: Return 503 Service Unavailable");
 		if (fp) {
 			fputs("HTTP/1.1 503 Service Unavailable\r\n", fp);
 			fputs("Connection: close\r\n", fp);
 			fputs("Content-Length: 0\r\n", fp);
 		}
 	} else if (auth_status) {
-		CWMP_LOG(INFO, "Receive Connection Request: success authentication");
+		CWMP_LOG(INFO, "#### Receive Connection Request: success authentication");
 		if (fp) {
 			fputs("HTTP/1.1 200 OK\r\n", fp);
 			fputs("Connection: close\r\n", fp);
@@ -409,7 +439,7 @@ http_end:
 		}
 		http_success_cr();
 	} else if (internal_error) {
-		CWMP_LOG(WARNING, "Receive Connection Request: Return 500 Internal Error");
+		CWMP_LOG(WARNING, "#### Receive Connection Request: Return 500 Internal Error");
 		if (fp) {
 			fputs("HTTP/1.1 500 Internal Server Error\r\n", fp);
 			fputs("Connection: close\r\n", fp);
@@ -417,7 +447,7 @@ http_end:
 		}
 	}
 	else {
-		CWMP_LOG(WARNING, "Receive Connection Request: Return 401 Unauthorized");
+		CWMP_LOG(WARNING, "#### Receive Connection Request: Return 401 Unauthorized");
 		if (fp) {
 			fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
 			fputs("Connection: close\r\n", fp);
@@ -429,10 +459,12 @@ http_end:
 		fputs("\r\n", fp);
 		fclose(fp);
 	}
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 }
 
 void http_server_init(void)
 {
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	struct sockaddr_in6 server = { 0 };
 	unsigned short cr_port;
 	unsigned short prev_cr_port = (unsigned short)global_int_param_read(&cwmp_main.conf.connection_request_port);
@@ -441,21 +473,24 @@ void http_server_init(void)
 		cr_port = (unsigned short)global_int_param_read(&cwmp_main.conf.connection_request_port);
 		unsigned short i = (DEFAULT_CONNECTION_REQUEST_PORT == cr_port) ? 1 : 0;
 		//Create socket
-		if (thread_end)
+		if (thread_end) {
+			CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 			return;
+		}
 
 		cwmp_main.cr_socket_desc = socket(AF_INET6, SOCK_STREAM, 0);
 		if (cwmp_main.cr_socket_desc == -1) {
-			CWMP_LOG(ERROR, "Could not open server socket for Connection Requests, Error no is : %d, Error description is : %s", errno, strerror(errno));
+			CWMP_LOG(ERROR, "#### Could not open server socket for Connection Requests, Error no is : %d, Error description is : %s", errno, strerror(errno));
 			sleep(1);
 			continue;
 		}
+		CWMP_LOG(DEBUG, "#### sock_fd: %d", cwmp_main.cr_socket_desc);
 
 		fcntl(cwmp_main.cr_socket_desc, F_SETFD, fcntl(cwmp_main.cr_socket_desc, F_GETFD) | FD_CLOEXEC);
 
 		int reusaddr = 1;
 		if (setsockopt(cwmp_main.cr_socket_desc, SOL_SOCKET, SO_REUSEADDR, &reusaddr, sizeof(int)) < 0) {
-			CWMP_LOG(WARNING, "setsockopt(SO_REUSEADDR) failed");
+			CWMP_LOG(WARNING, "#### setsockopt(SO_REUSEADDR) failed");
 		}
 
 		//Prepare the sockaddr_in structure
@@ -463,16 +498,18 @@ void http_server_init(void)
 		server.sin6_addr = in6addr_any;
 
 		for (;; i++) {
-			if (thread_end)
+			if (thread_end) {
+				CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 				return;
+			}
 
 			server.sin6_port = htons(cr_port);
 			//Bind
 			if (bind(cwmp_main.cr_socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
 				//print the error message
-				CWMP_LOG(ERROR, "Could not bind server socket on the port %d, Error no is : %d, Error description is : %s", cr_port, errno, strerror(errno));
+				CWMP_LOG(ERROR, "#### Could not bind server socket on the port %d, Error no is : %d, Error description is : %s", cr_port, errno, strerror(errno));
 				cr_port = DEFAULT_CONNECTION_REQUEST_PORT + i;
-				CWMP_LOG(INFO, "Trying to use another connection request port: %d", cr_port);
+				CWMP_LOG(INFO, "#### Trying to use another connection request port: %d", cr_port);
 				continue;
 			}
 			break;
@@ -487,11 +524,13 @@ void http_server_init(void)
 		connection_request_port_value_change(&cwmp_main, cr_port);
 	}
 
-	CWMP_LOG(INFO, "Connection Request server initiated with the port: %d", cr_port);
+	CWMP_LOG(INFO, "#### Connection Request server initiated with the port: %d", cr_port);
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 }
 
 void http_server_listen(void)
 {
+	CWMP_LOG(DEBUG, "#### entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	int c;
 	int cr_request = 0;
 	time_t restrict_start_time = 0;
@@ -503,12 +542,14 @@ void http_server_listen(void)
 	//Accept and incoming connection
 	c = sizeof(struct sockaddr_in);
 	do {
-		if (thread_end)
+		if (thread_end) {
+			CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 			return;
+		}
 
 		int client_sock = accept(cwmp_main.cr_socket_desc, (struct sockaddr *)&client, (socklen_t *)&c);
 		if (client_sock < 0) {
-			CWMP_LOG(ERROR, "Could not accept connections for Connection Requests!");
+			CWMP_LOG(ERROR, "#### Could not accept connections for Connection Requests! Error: %d", errno);
 			shutdown(cwmp_main.cr_socket_desc, SHUT_RDWR);
 			http_server_init();
 			listen(cwmp_main.cr_socket_desc, 3);
@@ -517,6 +558,7 @@ void http_server_listen(void)
 			continue;
 		}
 
+		CWMP_LOG(DEBUG, "#### accepted socket %d", client_sock);
 		bool service_available;
 		time_t current_time;
 
@@ -530,10 +572,12 @@ void http_server_listen(void)
 			if (cr_request > CONNECTION_REQUEST_RESTRICT_REQUEST) {
 				restrict_start_time = current_time;
 				service_available = false;
-				CWMP_LOG(WARNING, "CR count %d exceeded max %d, SKIPPED", cr_request, CONNECTION_REQUEST_RESTRICT_REQUEST);
+				CWMP_LOG(WARNING, "#### CR count %d exceeded max %d, SKIPPED", cr_request, CONNECTION_REQUEST_RESTRICT_REQUEST);
 			}
 		}
 		http_cr_new_client(client_sock, service_available);
 		close(client_sock);
+		CWMP_LOG(DEBUG, "#### Client socket %d closed", client_sock);
 	} while (1);
+	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 }

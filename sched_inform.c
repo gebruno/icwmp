@@ -30,8 +30,9 @@ void *thread_cwmp_rpc_cpe_scheduleInform(void *v)
 
 	for (;;) {
 
-		if (thread_end)
+		if (thread_end) {
 			break;
+		}
 
 		if (list_schedule_inform.next != &(list_schedule_inform)) {
 			schedule_inform = list_entry(list_schedule_inform.next, struct schedule_inform, list);

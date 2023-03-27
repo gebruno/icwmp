@@ -204,8 +204,9 @@ void *thread_cwmp_rpc_cpe_upload(void *v)
 
 	for (;;) {
 
-		if (thread_end)
+		if (thread_end) {
 			break;
+		}
 
 		if (list_upload.next != &(list_upload)) {
 			pupload = list_entry(list_upload.next, struct upload, list);

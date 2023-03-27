@@ -153,8 +153,9 @@ int get_preinit_config(struct config *conf)
 	struct uci_element *e;
 
 	ctx = uci_alloc_context();
-	if (!ctx)
+	if (!ctx) {
 		return CWMP_GEN_ERR;
+	}
 
 	if (uci_load(ctx, "cwmp", &pkg)) {
 		uci_free_context(ctx);

@@ -154,6 +154,8 @@ end:
 
 void puts_log_xmlmsg(int severity, char *msg, int msgtype)
 {
+	if (msg == NULL)
+		CWMP_LOG(ERROR, "######### input msg is null ###############");
 	struct tm *Tm;
 	struct timeval tv;
 	FILE *pLog = NULL;

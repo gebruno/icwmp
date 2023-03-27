@@ -53,16 +53,18 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 
 	sleep(2);
 	for (;;) {
-		if (thread_end)
+		if (thread_end) {
 			break;
+		}
 
 		bool enable = global_bool_param_read(&cwmp_main.conf.heart_beat_enable);
 		if (enable) {
 			heartbeat_interval.tv_sec = time(NULL) + global_int_param_read(&cwmp_main.conf.heartbeat_interval);
 			pthread_mutex_lock(&mutex_heartbeat);
 			pthread_cond_timedwait(&threshold_heartbeat_session, &mutex_heartbeat, &heartbeat_interval);
-			if (thread_end)
+			if (thread_end) {
 				break;
+			}
 
 			if (cwmp_main.session_status.last_status == SESSION_FAILURE) {
 				CWMP_LOG(WARNING, "Not able to start HEARTBEAT Session for this period: CWMP Session is retrying");
@@ -70,8 +72,9 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 				//continue;
 			}
 
-			if (thread_end)
+			if (thread_end) {
 				break;
+			}
 
 			pthread_mutex_lock(&mutex_heartbeat_session);
 			struct session *heartbeat_session = NULL;

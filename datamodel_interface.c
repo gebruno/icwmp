@@ -125,11 +125,13 @@ int get_single_fault_from_blob_attr(struct blob_attr *msg)
 {
 	int fault_code = FAULT_CPE_NO_FAULT;
 	fault_code = get_fault(msg);
-	if (fault_code != FAULT_CPE_NO_FAULT)
+	if (fault_code != FAULT_CPE_NO_FAULT) {
 		return fault_code;
+	}
 	struct blob_attr *faults_array = get_parameters_array(msg);
-	if (faults_array == NULL)
+	if (faults_array == NULL) {
 		return FAULT_CPE_NO_FAULT;
+	}
 	struct blob_attr *cur;
 	int rem;
 	blobmsg_for_each_attr(cur, faults_array, rem)
@@ -163,8 +165,9 @@ void ubus_transaction_commit_callback(struct ubus_request *req __attribute__((un
 		return;
 	}
 	*status = blobmsg_get_u8(tb[0]);
-	if (*status == false)
+	if (*status == false) {
 		return;
+	}
 
 	blobmsg_for_each_attr(cur, msg, rem)
 	{
@@ -387,24 +390,24 @@ int cwmp_get_leaf_value(char *leaf, char **value)
 	size_t llen;
 
 	if (leaf == NULL || value == NULL) {
-		CWMP_LOG(INFO, "Empty parameter/value in arguments")
+		CWMP_LOG(INFO, "Empty parameter/value in arguments");
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	}
 
 	llen = strlen(leaf);
 	if (llen == 0) {
-		CWMP_LOG(INFO, "Empty parameter in arguments")
+		CWMP_LOG(INFO, "Empty parameter in arguments");
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	}
 
 	if (leaf[llen - 1] == '.') {
-		CWMP_LOG(INFO, "Non-leaf parameter parameter")
+		CWMP_LOG(INFO, "Non-leaf parameter parameter");
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	}
 
 	cwmp_get_single_parameter_value(leaf, &dm_param);
 	if (dm_param.name == NULL) {
-		CWMP_LOG(INFO, "Fault in getting the parameter %s", leaf)
+		CWMP_LOG(INFO, "Fault in getting the parameter %s", leaf);
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
@@ -667,8 +670,9 @@ void ubus_objects_callback(struct ubus_request *req, int type __attribute__((unu
 
 static void prepare_add_delete_blobmsg(struct blob_buf *b, char *object_name, char *key)
 {
-	if (b == NULL)
+	if (b == NULL) {
 		return;
+	}
 
 	char *object = CWMP_STRLEN(object_name) ? object_name : DM_ROOT_OBJ;
 	bb_add_string(b, "path", object);

@@ -14,6 +14,7 @@
 #include "sched_inform.h"
 #include "event.h"
 #include "cwmp_uci.h"
+#include "libubox/blobmsg_json.h"
 
 typedef int (*callback)(struct blob_buf *b);
 

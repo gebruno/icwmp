@@ -135,18 +135,21 @@ void set_interface_reset_request(char *param_name, char *value)
 		return;
 	}
 
-	if (interface_reset_req(param_name, value) == false)
+	if (interface_reset_req(param_name, value) == false) {
 		return;
+	}
 
 	// Store the interface path to handle after session end
 	int len = 0;
 	char *pos = strrchr(param_name, '.');
-	if (pos == NULL)
+	if (pos == NULL) {
 		return;
+	}
 
 	len = pos - param_name + 2;
-	if (len <= 0)
+	if (len <= 0) {
 		return;
+	}
 
 	intf_reset_node *node = (intf_reset_node *)malloc(sizeof(intf_reset_node));
 	if (node == NULL) {
@@ -189,23 +192,32 @@ int cwmp_get_retry_interval(struct cwmp *cwmp, bool heart_beat)
 
 static int cwmp_rpc_cpe_handle_message(struct session *session, struct rpc *rpc_cpe)
 {
-	if (xml_prepare_msg_out(session))
+	CWMP_LOG(DEBUG, "entry func: %s, line: %d", __FUNCTION__, __LINE__);
+	if (xml_prepare_msg_out(session)) {
+		CWMP_LOG(DEBUG, "exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 		return -1;
+	}
 
-	if (rpc_cpe_methods[rpc_cpe->type].handler(session, rpc_cpe))
+	if (rpc_cpe_methods[rpc_cpe->type].handler(session, rpc_cpe)) {
+		CWMP_LOG(DEBUG, "exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 		return -1;
+	}
 
-	if (xml_set_cwmp_id_rpc_cpe(session))
+	if (xml_set_cwmp_id_rpc_cpe(session)) {
+		CWMP_LOG(DEBUG, "exit func: %s, line: %d error", __FUNCTION__, __LINE__);
 		return -1;
+	}
 
+	CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 	return 0;
 }
 
 static void cwmp_prepare_value_change(struct cwmp *cwmp)
 {
 	struct event_container *event_container;
-	if (list_value_change.next == &(list_value_change))
+	if (list_value_change.next == &(list_value_change)) {
 		return;
+	}
 	pthread_mutex_lock(&(cwmp->mutex_session_queue));
 	event_container = cwmp_add_event_container(cwmp, EVENT_IDX_4VALUE_CHANGE, "");
 	if (!event_container)
@@ -257,6 +269,7 @@ void check_firewall_restart_state()
 
 int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 {
+	CWMP_LOG(DEBUG, "entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	struct list_head *ilist;
 	struct rpc *rpc_acs, *rpc_cpe;
 
@@ -328,6 +341,7 @@ int cwmp_schedule_rpc(struct cwmp *cwmp, struct session *session)
 			CWMP_LOG(INFO, "Send the %s%s message to the ACS", rpc_cpe_methods[rpc_cpe->type].name, (rpc_cpe->type != RPC_CPE_FAULT) ? "Response" : "");
 			if (xml_send_message(cwmp, session, rpc_cpe) || thread_end)
 				goto retry;
+			CWMP_LOG(INFO, "Send done");
 			MXML_DELETE(session->tree_out);
 
 			cwmp_session_rpc_destructor(rpc_cpe);
@@ -359,6 +373,7 @@ end:
 	MXML_DELETE(session->tree_out);
 	http_client_exit();
 	xml_exit();
+	CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 	return session->error;
 }
 
@@ -460,6 +475,7 @@ int run_session_end_func(void)
 
 static void cwmp_schedule_session(struct cwmp *cwmp)
 {
+	CWMP_LOG(DEBUG, "entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	int t;
 	struct timespec time_to_wait = { 0, 0 };
 	bool retry = false;
@@ -480,6 +496,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 			CWMP_LOG(INFO, "Waiting the next session");
 
 			if (thread_end) {
+				CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 				pthread_mutex_unlock(&(cwmp->mutex_session_send));
 				return;
 			}
@@ -487,6 +504,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 			pthread_cond_timedwait(&(cwmp->threshold_session_send), &(cwmp->mutex_session_send), &time_to_wait);
 
 			if (thread_end) {
+				CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 				pthread_mutex_unlock(&(cwmp->mutex_session_send));
 				return;
 			}
@@ -498,6 +516,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		if (cwmp->session_status.last_status == SESSION_FAILURE) {
 			cwmp_config_load(cwmp);
 			if (thread_end) {
+				CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 				pthread_mutex_unlock(&mutex_heartbeat_session);
 				pthread_mutex_unlock(&(cwmp->mutex_session_send));
 				return;
@@ -516,6 +535,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		cwmp_prepare_value_change(cwmp);
 		clean_list_value_change();
 		if ((error = cwmp_move_session_to_session_send(cwmp, session))) {
+			CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 			CWMP_LOG(EMERG, "FATAL error in the mutex process in the session scheduler!");
 			exit(EXIT_FAILURE);
 		}
@@ -540,6 +560,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		CWMP_LOG(INFO, "End session");
 
 		if (thread_end) {
+			CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 			event_remove_all_event_container(session, RPC_SEND);
 			run_session_end_func();
 			cwmp_session_destructor(session);
@@ -551,6 +572,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		if (session->error == CWMP_RETRY_SESSION && (!list_empty(&(session->head_event_container)) || (list_empty(&(session->head_event_container)) && cwmp->cwmp_cr_event == 0))) {
 			cwmp_config_load(cwmp);
 			if (thread_end) {
+				CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 				event_remove_all_event_container(session, RPC_SEND);
 				run_session_end_func();
 				cwmp_session_destructor(session);
@@ -586,6 +608,7 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		pthread_mutex_unlock(&mutex_heartbeat_session);
 		pthread_mutex_unlock(&(cwmp->mutex_session_send));
 	}
+	CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 }
 
 static void check_exit_timer_expiry(struct uloop_timeout *timeout)
@@ -624,8 +647,9 @@ static void *thread_uloop_run(void *v __attribute__((unused)))
 
 	ubus_add_uloop(ctx);
 
-	if (icwmp_register_object(ctx))
+	if (icwmp_register_object(ctx)) {
 		return NULL;
+	}
 
 	struct uloop_timeout tm;
 	memset(&tm, 0, sizeof(tm));
@@ -640,7 +664,9 @@ static void *thread_uloop_run(void *v __attribute__((unused)))
 
 static void *thread_http_cr_server_listen(void *v __attribute__((unused)))
 {
+	CWMP_LOG(DEBUG, "entry func: %s, line: %d", __FUNCTION__, __LINE__);
 	http_server_listen();
+	CWMP_LOG(DEBUG, "exit func: %s, line: %d", __FUNCTION__, __LINE__);
 	return NULL;
 }
 
@@ -911,14 +937,16 @@ static int cwmp_init(struct cwmp *cwmp)
 	pthread_mutex_init(&mutex_heartbeat, NULL);
 	INIT_LIST_HEAD(&(cwmp->head_session_queue));
 
-	if ((error = create_cwmp_var_state_files()))
+	if ((error = create_cwmp_var_state_files())) {
 		return error;
+	}
 
 	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
 	cwmp_config_load(cwmp);
 
-	if (thread_end == true)
+	if (thread_end == true) {
 		return CWMP_GEN_ERR;
+	}
 
 	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
 	cwmp_get_deviceid(cwmp);
@@ -1028,12 +1056,14 @@ int main(int argc, char **argv)
 	cwmp_main.init_complete = false;
 
 	error = wait_for_usp_raw_object();
-	if (error)
+	if (error) {
 		return error;
+	}
 
 	memset(&env, 0, sizeof(struct env));
-	if ((error = global_env_init(argc, argv, &env)))
+	if ((error = global_env_init(argc, argv, &env))) {
 		return error;
+	}
 
 	memcpy(&(cwmp_main.env), &env, sizeof(struct env));
 
@@ -1057,11 +1087,13 @@ int main(int argc, char **argv)
 	CWMP_LOG(INFO, "STARTING ICWMP with PID :%d", getpid());
 	cwmp_main.start_time = time(NULL);
 
-	if ((error = cwmp_init_backup_session(&cwmp_main, NULL, ALL)))
+	if ((error = cwmp_init_backup_session(&cwmp_main, NULL, ALL))) {
 		return error;
+	}
 
-	if ((error = cwmp_root_cause_events(&cwmp_main)))
+	if ((error = cwmp_root_cause_events(&cwmp_main))) {
 		return error;
+	}
 
 	configure_var_state(&cwmp_main);
 	http_server_init();

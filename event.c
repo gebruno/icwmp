@@ -386,8 +386,9 @@ void *thread_event_periodic(void *v)
 		}
 		pthread_mutex_unlock(&(cwmp->mutex_periodic));
 
-		if (thread_end)
+		if (thread_end) {
 			break;
+		}
 
 		if (periodic_interval != global_int_param_read(&cwmp->conf.period) || periodic_enable != global_bool_param_read(&cwmp->conf.periodic_enable) || periodic_time != global_time_param_read(&cwmp->conf.time)) {
 			periodic_enable = global_bool_param_read(&cwmp->conf.periodic_enable);

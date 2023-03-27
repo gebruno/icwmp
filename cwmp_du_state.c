@@ -338,8 +338,9 @@ void *thread_cwmp_rpc_cpe_change_du_state(void *v)
 
 	for (;;) {
 
-		if (thread_end)
+		if (thread_end) {
 			break;
+		}
 		if (list_change_du_state.next != &(list_change_du_state)) {
 			struct change_du_state *pchange_du_state = list_entry(list_change_du_state.next, struct change_du_state, list);
 			time_t current_time = time(NULL);

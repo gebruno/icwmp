@@ -261,6 +261,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 		if (cwmp_check_image() == 0) {
 			long int file_size = get_file_size(FIRMWARE_UPGRADE_IMAGE);
 			if (file_size > flashsize) {
+				CWMP_LOG(ERROR, "download %s failed: file size %ld > flash size %ld", __FUNCTION__, file_size, flashsize);
 				error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 				remove(FIRMWARE_UPGRADE_IMAGE);
 				goto end_download;
@@ -269,6 +270,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 				goto end_download;
 			}
 		} else {
+			CWMP_LOG(ERROR, "download %s, failed in cwmp_check_image", __FUNCTION__);
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 			remove(FIRMWARE_UPGRADE_IMAGE);
 		}
@@ -447,8 +449,9 @@ void *thread_cwmp_rpc_cpe_download(void *v)
 	sleep(3);
 	for (;;) {
 
-		if (thread_end)
+		if (thread_end) {
 			break;
+		}
 		
 		if (list_download.next != &(list_download)) {
 			pdownload = list_entry(list_download.next, struct download, list);
@@ -561,8 +564,9 @@ void *thread_cwmp_rpc_cpe_schedule_download(void *v)
 	for (;;) {
 		time_t current_time;
 
-		if (thread_end)
+		if (thread_end) {
 			break;
+		}
 
 		current_time = time(NULL);
 		if (list_schedule_download.next != &(list_schedule_download)) {
@@ -637,8 +641,9 @@ void *thread_cwmp_rpc_cpe_schedule_download(void *v)
 						pthread_mutex_lock(&mutex_apply_schedule_download);
 						pthread_mutex_lock(&mutex_schedule_download);
 						error = apply_downloaded_file(cwmp, current_download, download_file_name, ptransfer_complete);
-						if (error == FAULT_CPE_NO_FAULT)
+						if (error == FAULT_CPE_NO_FAULT) {
 							exit(EXIT_SUCCESS);
+						}
 
 						pthread_mutex_unlock(&mutex_schedule_download);
 						pthread_mutex_unlock(&mutex_apply_schedule_download);
@@ -669,8 +674,9 @@ void *thread_cwmp_rpc_cpe_schedule_download(void *v)
 					bkp_session_delete_transfer_complete(ptransfer_complete);
 				} else {
 					error = apply_downloaded_file(cwmp, current_download, download_file_name,  ptransfer_complete);
-					if (error == FAULT_CPE_NO_FAULT)
+					if (error == FAULT_CPE_NO_FAULT) {
 						exit(EXIT_SUCCESS);
+					}
 				}
 				pthread_mutex_unlock(&(cwmp->mutex_session_send));
 				pthread_cond_signal(&(cwmp->threshold_session_send));
@@ -712,8 +718,9 @@ void *thread_cwmp_rpc_cpe_apply_schedule_download(void *v)
 	for (;;) {
 		time_t current_time;
 
-		if (thread_end)
+		if (thread_end) {
 			break;
+		}
 
 		current_time = time(NULL);
 		if (list_apply_schedule_download.next != &(list_apply_schedule_download)) {

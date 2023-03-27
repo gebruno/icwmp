@@ -692,13 +692,15 @@ void *thread_periodic_check_notify(void *v)
 			current_time = time(NULL);
 			periodic_timeout.tv_sec = current_time + periodic_interval;
 
-			if (thread_end)
+			if (thread_end) {
 				break;
+			}
 
 			pthread_cond_timedwait(&(cwmp->threshold_notify_periodic), &(cwmp->mutex_notify_periodic), &periodic_timeout);
 
-			if (thread_end)
+			if (thread_end) {
 				break;
+			}
 
 			pthread_mutex_lock(&(cwmp->mutex_session_send));
 			is_notify = check_value_change();
