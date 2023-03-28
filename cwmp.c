@@ -422,6 +422,8 @@ int run_session_end_func(void)
 		cwmp_upload_diagnostics();
 	}
 
+	copy_bkp_files_to_etc();
+
 	if (end_session_flag & END_SESSION_REBOOT) {
 		CWMP_LOG(INFO, "Executing Reboot: end session request");
 		cwmp_reboot(commandKey);

@@ -22,6 +22,8 @@
 
 #define CWMP_BACKUP_SESSION "<cwmp></cwmp>"
 #define CWMP_BKP_FILE "/var/run/icwmpd/icwmpd_backup_session.xml"
+#define CWMP_ETC_BKP_FILE "/etc/icwmpd/icwmpd_backup_session.xml"
+
 typedef enum backup_loading
 {
 	ALL,
@@ -67,4 +69,5 @@ void bkp_session_delete_du_state_change_complete(struct du_state_change_complete
 void bkp_session_delete_schedule_download(struct download *pschedule_download);
 void bkp_session_insert_du_state_change_complete(struct du_state_change_complete *pdu_state_change_complete);
 void bkp_tree_clean(void);
+void copy_bkp_files_to_etc(void);
 #endif /* _BACKUPSESSION_H__ */

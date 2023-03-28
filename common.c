@@ -825,7 +825,6 @@ char *string_to_hex(const unsigned char *str, size_t size)
 
 int copy_file(char *source_file, char *target_file)
 {
-	char ch;
 	FILE *source, *target;
 	if (source_file == NULL || target_file == NULL) {
 		CWMP_LOG(ERROR, "source file or target file is null: %p %p", source_file, target_file);
@@ -843,8 +842,8 @@ int copy_file(char *source_file, char *target_file)
 		return -1;
 	}
 
-	ch = fgetc(source);
-	while( feof(source) != EOF) {
+	int ch = fgetc(source);
+	while (ch != EOF) {
 		fputc(ch, target);
 		ch = fgetc(source);
 	}

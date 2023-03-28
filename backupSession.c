@@ -191,6 +191,15 @@ void bkp_session_save()
 	pthread_mutex_unlock(&mutex_backup_session);
 }
 
+void copy_bkp_files_to_etc(void)
+{
+	if (file_exists(CWMP_BKP_FILE) && !file_exists(CWMP_ETC_BKP_FILE)) {
+		pthread_mutex_lock(&mutex_backup_session);
+		copy_file(CWMP_BKP_FILE, CWMP_ETC_BKP_FILE);
+		pthread_mutex_unlock(&mutex_backup_session);
+	}
+}
+
 mxml_node_t *bkp_session_insert(mxml_node_t *tree, char *name, char *value)
 {
 	mxml_node_t *b;
