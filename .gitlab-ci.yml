@@ -6,7 +6,7 @@ include:
 
 variables:
   DEBUG: 'TRUE'
-  COMMON_IMAGE: "iopsys/code-analysis:0.27"
+  COMMON_IMAGE: "dev.iopsys.eu:5050/iopsys/gitlab-ci-pipeline/code-analysis:0.27"
   RUN_CPPCHECK: "cppcheck --enable=all --error-exitcode=1 -D_GNU_SOURCE --suppress=unusedFunction -i ./test/ --inline-suppr"
   SOURCE_FOLDER: "./src"
   CWMP_WORKER_PROCESSES: 1
@@ -19,7 +19,7 @@ stages:
     - unit_test
     - functional_test
     - deploy
-    
+
 run_unit_test:
    stage: unit_test
    image: "${COMMON_IMAGE}"
@@ -31,10 +31,10 @@ run_unit_test:
    artifacts:
       when: always
       paths:
-         - timestamp.log
+         - timestamp
          - memory-report.xml
          - unit-test-coverage.xml
-         
+
 run_api_test:
     stage: functional_test
     image: "${COMMON_IMAGE}"
@@ -49,7 +49,7 @@ run_api_test:
         reports:
             junit: ./report/tap.xml
         paths:
-            - timestamp.log
+            - timestamp
             - api-test-coverage.xml
             - api-test-memory-report.xml
             - api-test-result.log
@@ -68,7 +68,7 @@ run_functional_test:
         reports:
             junit: ./report/tap.xml
         paths:
-            - timestamp.log
+            - timestamp
             - funl-test-coverage.xml
             - funl-test-memory-report.xml
             - funl-test-result.log
