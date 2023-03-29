@@ -15,6 +15,9 @@ configure_download_firmware
 rm /etc/supervisor/conf.d/*.conf
 cp ./gitlab-ci/iopsys-supervisord-unit.conf /etc/supervisor/conf.d/
 
+echo "Compiling icmwp"
+build_icwmp
+
 echo "Starting dependent services"
 supervisorctl status all
 supervisorctl update
@@ -25,13 +28,6 @@ supervisorctl status all
 
 echo "Clean cmocka"
 make clean -C test/cmocka/
-
-echo "icwmp datamodel install"
-make -C test/cmocka libcwmpdm
-mkdir -p /usr/lib/bbfdm
-cp test/cmocka/libcwmpdm.so /usr/lib/bbfdm
-supervisorctl stop uspd 
-supervisorctl start uspd
 
 echo "Running unit test"
 make -C test/cmocka all
