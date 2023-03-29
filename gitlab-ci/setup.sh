@@ -8,7 +8,6 @@ fi
 echo "preparation script"
 pwd
 
-mkdir -p /var/run/icwmpd/
 rm -rf /etc/supervisor/conf.d/*.conf
 cp ./gitlab-ci/iopsys-supervisord.conf /etc/supervisor/conf.d/
 cp -rf ./test/files/* /

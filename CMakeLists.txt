@@ -17,8 +17,6 @@ ENDIF()
 
 FILE(GLOB ICWMP_SOURCES ${PROJECT_SOURCE_DIR}/src/*.c)
 
-list(REMOVE_ITEM ICWMP_SOURCES ${PROJECT_SOURCE_DIR}/src/datamodel.c)
-
 IF(WITH_WOLFSSL)
 	SET(SSL_LIBS wolfssl)
 	SET(SSL_LIBS crypto)
@@ -37,18 +35,14 @@ IF(WITH_MBEDTLS)
 	add_compile_definitions(LMBEDTLS)
 ENDIF(WITH_MBEDTLS)
 
+#[[Compile and install icwmpd]]
 ADD_EXECUTABLE(icwmpd ${ICWMP_SOURCES})
-
 TARGET_LINK_LIBRARIES(icwmpd pthread z m json-c uci ubox ubus blobmsg_json curl mxml uuid ${SSL_LIBS} ${CRYPTO_LIBS})
-	
 INSTALL(FILES icwmpd DESTINATION usr/sbin)
-
 INSTALL(DIRECTORY DESTINATION etc/icwmpd)
+INSTALL(DIRECTORY DESTINATION var/run/icwmpd)
 
-FILE(GLOB CWMPDM_SOURCES ${PROJECT_SOURCE_DIR}/src/datamodel.c)
-
-ADD_LIBRARY(cwmpdm SHARED ${CWMPDM_SOURCES})
-
+#[[Compile and install libcwmpdm.so]]
+ADD_LIBRARY(cwmpdm SHARED ${PROJECT_SOURCE_DIR}/src/cwmp_dm/datamodel.c)
 INSTALL(DIRECTORY DESTINATION usr/lib/bbfdm)
 INSTALL(TARGETS cwmpdm LIBRARY DESTINATION usr/lib/bbfdm)
-#INSTALL(FILES libcwmpdm.so DESTINATION usr/lib/bbfdm)
