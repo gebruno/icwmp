@@ -8,7 +8,6 @@ pwd
 trap cleanup EXIT
 trap cleanup SIGINT
 
-date +%s > timestamp.log
 echo "Compiling icmwp"
 build_icwmp
 
@@ -94,5 +93,7 @@ exec_cmd tap-junit --input ./funl-test-result.log --output report
 
 sleep 10
 check_valgrind_xml
+
+date +%s > timestamp.log
 
 echo "Functional test :: PASS"
