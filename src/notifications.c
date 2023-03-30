@@ -42,8 +42,8 @@ char *default_active_notifications_parameters[] = {
 };
 
 char *forced_notifications_parameters[] = {
-		"Device.DeviceInfo.SoftwareVersion",
-		"Device.DeviceInfo.ProvisioningCode"
+	"Device.DeviceInfo.SoftwareVersion",
+	"Device.DeviceInfo.ProvisioningCode"
 };
 
 /*

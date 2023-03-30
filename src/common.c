@@ -755,25 +755,35 @@ void ubus_network_interface_callback(struct ubus_request *req __attribute__((unu
 
 	// Only update the interface if its not empty
 	if (CWMP_STRLEN(l3_device)) {
-		cwmp_main->conf.interface = strdup(l3_device);
+		cwmp_main->net.interface = strdup(l3_device);
 	}
 
-	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main->conf.interface);
+	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main->net.interface);
 }
 
-int get_connection_interface(char *iface)
+void set_uci_connection_interface(char* interface)
 {
-	if (iface == NULL)
-		return -1;
+	if (interface == NULL) {
+		CWMP_LOG(WARNING, "%s interface is NULL", __FUNCTION__);
+		return;
+	}
+	cwmp_uci_set_varstate_value("cwmp", "cpe", "interface", interface);
+	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+}
 
+int get_connection_interface()
+{
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	char ubus_obj[100] = {0};
-	snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", iface);
+	if (cwmp_main->net.ipv6_status)
+		snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", cwmp_main->conf.default_wan6_iface);
+	else
+		snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", cwmp_main->conf.default_wan_iface);
 
-	FREE(cwmp_main->conf.interface);
+	FREE(cwmp_main->net.interface);
 
 	int e = icwmp_ubus_invoke(ubus_obj, "status", b.head, ubus_network_interface_callback, NULL);
 	blob_buf_free(&b);
@@ -781,10 +791,82 @@ int get_connection_interface(char *iface)
 	if (e != 0) {
 		return -1;
 	}
-	if (cwmp_main->conf.interface == NULL) {
+	if (cwmp_main->net.interface == NULL) {
 		return -1;
 	}
+	set_uci_connection_interface(cwmp_main->net.interface);
 	return CWMP_OK;
+}
+
+int get_connection_parameters()
+{
+	int error = get_connection_interface();
+	if (error != CWMP_OK) {
+		CWMP_LOG(DEBUG, "Failed to get interface [%s] details", cwmp_main->net.connection_wan_iface);
+		return error;
+	}
+
+	error = icwmp_check_http_connection();
+	if (error != CWMP_OK || !cwmp_main->net.connection_wan_iface) {
+		CWMP_LOG(DEBUG, "Failed to check http connection");
+		return error;
+	}
+	return CWMP_OK;
+}
+
+void ubus_network_interface_status_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
+{
+	bool *up = (bool *)req->priv;
+
+	const struct blobmsg_policy p[1] = { { "up", BLOBMSG_TYPE_BOOL } };
+	struct blob_attr *tb[1] = { NULL };
+	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
+	if (tb[0] != NULL)
+		*up = blobmsg_get_bool(tb[0]);
+}
+
+bool check_ipv6_enabled()
+{
+	bool up=false;
+	struct blob_buf b = { 0 };
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	char ubus_network_interface[512];
+	snprintf(ubus_network_interface, sizeof(ubus_network_interface), "network.interface.%s", cwmp_main->conf.default_wan6_iface);
+	icwmp_ubus_invoke(ubus_network_interface, "status", b.head, ubus_network_interface_status_callback, &up);
+
+	blob_buf_free(&b);
+
+	return up;
+}
+
+bool check_connection_attributes_change()
+{
+	cwmp_uci_reinit();
+
+	char *actual_wan_interface = NULL, *actual_wan6_interface = NULL;
+	uci_get_value("cwmp.cpe.default_wan_interface", &actual_wan_interface);
+	uci_get_value("cwmp.cpe.default_wan6_interface", &actual_wan6_interface);
+	bool wan_interface_changed = CWMP_STRCMP(actual_wan_interface, cwmp_main->conf.default_wan_iface);
+	bool wan6_interface_changed = CWMP_STRCMP(actual_wan6_interface, cwmp_main->conf.default_wan_iface);
+
+	if (wan_interface_changed)
+	{
+		FREE(cwmp_main->conf.default_wan_iface);
+		cwmp_main->conf.default_wan_iface = strdup(actual_wan_interface);
+	}
+	if (wan6_interface_changed)
+	{
+		FREE(cwmp_main->conf.default_wan6_iface);
+		cwmp_main->conf.default_wan6_iface = strdup(actual_wan6_interface);
+	}
+	FREE(actual_wan_interface);
+	FREE(actual_wan6_interface);
+	bool actual_ipv6_status = check_ipv6_enabled();
+	bool ipv6_status_changed = (actual_ipv6_status != cwmp_main->net.ipv6_status);
+	cwmp_main->net.ipv6_status = actual_ipv6_status;
+	return ipv6_status_changed || wan_interface_changed || wan6_interface_changed;
 }
 
 char *get_time(time_t t_time)

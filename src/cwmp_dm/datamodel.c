@@ -457,10 +457,10 @@ static void get_management_ip_port(char **listen_addr)
 {
 	char *ip = NULL, *port = NULL, *interface = NULL, *if_name = NULL, *version = NULL;
 
-	dmuci_get_option_value_string("cwmp", "cpe", "default_wan_interface", &interface);
-	dmuci_get_option_value_string("cwmp", "cpe", "interface", &if_name);
-	dmuci_get_option_value_string("cwmp", "acs", "ip_version", &version);
+	dmuci_get_option_value_string_varstate("cwmp", "cpe", "interface", &if_name);
+	dmuci_get_option_value_string_varstate("cwmp", "acs", "ip_version", &version);
 	dmuci_get_option_value_string("cwmp", "cpe", "port", &port);
+	dmuci_get_option_value_string("cwmp", "cpe", *version == '6' ? "default_wan6_interface" : "default_wan_interface", &interface);
 
 	if (network_get_ipaddr(interface, *version == '6' ? 6 : 4, &ip) == -1) {
 		if (if_name[0] == '\0')

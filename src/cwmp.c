@@ -205,6 +205,8 @@ static int cwmp_init()
 
 	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	cwmp_main->init_complete = false;
+	cwmp_main->net.interface = NULL;
+	cwmp_main->net.connection_wan_iface = NULL;
 	error = get_preinit_config();
 	if (error) {
 		return error;
@@ -276,6 +278,13 @@ static int cwmp_init()
 	cwmp_main->cwmp_period = 0;
 	cwmp_main->cwmp_periodic_time = 0;
 	cwmp_main->cwmp_periodic_enable = false;
+	sleep(15);
+	cwmp_main->net.ipv6_status = check_ipv6_enabled();
+	error = get_connection_parameters();
+	if (error != CWMP_OK) {
+		CWMP_LOG(DEBUG, "Failed to get connection parameters");
+		return error;
+	}
 	return CWMP_OK;
 }
 
@@ -293,12 +302,12 @@ static void cwmp_free()
 	FREE(cwmp_main->conf.acsurl);
 	FREE(cwmp_main->conf.acs_userid);
 	FREE(cwmp_main->conf.acs_passwd);
-	FREE(cwmp_main->conf.interface);
+	FREE(cwmp_main->net.interface);
 	FREE(cwmp_main->conf.cpe_userid);
 	FREE(cwmp_main->conf.cpe_passwd);
 	FREE(cwmp_main->conf.ubus_socket);
 	FREE(cwmp_main->conf.connection_request_path);
-	FREE(cwmp_main->conf.default_wan_iface);
+	FREE(cwmp_main->net.connection_wan_iface);
 	FREE(cwmp_main->conf.custom_notify_json);
 	FREE(cwmp_main->conf.auto_cdu_fault_code);
 	FREE(cwmp_main->conf.auto_cdu_oprt_type);
@@ -306,6 +315,8 @@ static void cwmp_free()
 	FREE(cwmp_main->conf.auto_tc_file_type);
 	FREE(cwmp_main->conf.auto_tc_result_type);
 	FREE(cwmp_main->conf.auto_tc_transfer_type);
+	FREE(cwmp_main->conf.default_wan_iface);
+	FREE(cwmp_main->conf.default_wan6_iface);
 	FREE(nonce_key);
 	clean_list_param_notify();
 	bkp_tree_clean();
@@ -352,7 +363,7 @@ static void configure_var_state()
 	cwmp_uci_add_section_with_specific_name("cwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
 	cwmp_uci_add_section_with_specific_name("cwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
 
-	get_firewall_zone_name_by_wan_iface(cwmp_main->conf.default_wan_iface, &zone_name);
+	get_firewall_zone_name_by_wan_iface(cwmp_main->net.connection_wan_iface, &zone_name);
 	cwmp_uci_set_varstate_value("cwmp", "acs", "zonename", zone_name ? zone_name : "wan");
 
 	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);

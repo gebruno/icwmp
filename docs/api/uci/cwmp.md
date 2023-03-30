@@ -103,13 +103,6 @@
                     <td class="td_row_odd"><div class="td_row_odd">The retry interval multiplier for session retry session as described in the standard.</div></td>
                   </tr>
                   <tr>
-                    <td class="td_row_odd"><div class="td_row_odd">ipv6_enable</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd">boolean</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd">no</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd"></div></td>
-                    <td class="td_row_odd"><div class="td_row_odd">Enables IPv6 in cwmp</div></td>
-                  </tr>
-                  <tr>
                     <td class="td_row_even"><div class="td_row_even">ssl_capath</div></td>
                     <td class="td_row_even"><div class="td_row_even">string</div></td>
                     <td class="td_row_even"><div class="td_row_even">no</div></td>
@@ -230,13 +223,6 @@
                     <td class="td_row_even"><div class="td_row_even">no</div></td>
                     <td class="td_row_even"><div class="td_row_even"></div></td>
                     <td class="td_row_even"><div class="td_row_even">Overwrite DeviceId parameter</div></td>
-                  </tr>
-                  <tr>
-                    <td class="td_row_odd"><div class="td_row_odd">default_wan_interface</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd">string</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd">no</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd"></div></td>
-                    <td class="td_row_odd"><div class="td_row_odd">Configure the default wan interface of the device.</div></td>
                   </tr>
                   <tr>
                     <td class="td_row_odd"><div class="td_row_odd">default_lan_interface</div></td>

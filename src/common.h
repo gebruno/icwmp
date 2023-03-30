@@ -22,6 +22,8 @@
 #include <libubox/list.h>
 #include <pthread.h>
 #include <libubox/uloop.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #ifndef FREE
 #define FREE(x) do { if(x) {free(x); x = NULL;} } while (0)
@@ -31,7 +33,7 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-#define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : -1)
+#define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : (S1 == S2))
 #define CWMP_STRDUP(S1) ((S1 != NULL) ? strdup(S1) : NULL)
 #define CWMP_STRLEN(S1) ((S1 != NULL) ? strlen(S1) : 0)
 
@@ -87,6 +89,13 @@ typedef struct env {
 	long int max_firmware_size;
 } env;
 
+struct connection {
+	char *connection_wan_iface;
+	char *interface;
+	int ip_resolve;
+	bool ipv6_status;
+};
+
 typedef struct config {
 	char *acsurl;
 	char *acs_userid;
@@ -97,17 +106,16 @@ typedef struct config {
 	char *custom_notify_json;
 	char *ip;
 	char *ipv6;
-	char *interface;
 	char *ubus_socket;
-	char *default_wan_iface;
 	char *connection_request_path;
 	char *auto_tc_transfer_type;
 	char *auto_tc_result_type;
 	char *auto_tc_file_type;
-
 	char *auto_cdu_oprt_type;
 	char *auto_cdu_result_type;
 	char *auto_cdu_fault_code;
+	char *default_wan_iface;
+	char *default_wan6_iface;
 	int connection_request_port;
 	int period;
 	int periodic_notify_interval;
@@ -124,7 +132,6 @@ typedef struct config {
 	bool periodic_enable;
 	bool periodic_notify_enable;
 	bool insecure_enable;
-	bool ipv6_enable;
 	bool heart_beat_enable;
 	bool acs_getrpc;
 	bool auto_tc_enable;
@@ -153,6 +160,7 @@ typedef struct cwmp {
 	struct env env;
 	struct config conf;
 	struct deviceid deviceid;
+	struct connection net;
 	struct session *session;
 	bool cwmp_cr_event;
 	bool init_complete;
@@ -606,6 +614,10 @@ bool icwmp_validate_int_in_range(char *arg, int min, int max);
 char *string_to_hex(const unsigned char *str, size_t size);
 int copy_file(char *source_file, char *target_file);
 int get_connection_interface();
+int get_connection_parameters();
+int icwmp_check_http_connection();
+bool check_ipv6_enabled();
+bool check_connection_attributes_change();
 char *get_time(time_t t_time);
 bool is_obj_excluded(const char *object_name);
 bool is_reload_parameter(const char *object_name);

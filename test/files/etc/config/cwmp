@@ -11,14 +11,13 @@ config acs 'acs'
 	option retry_min_wait_interval '5'
 	#­ possible configs interval :[1000:65535]
 	option retry_interval_multiplier '2000'
-	option ipv6_enable '0'
-	option ip_version '4'
 	
 
 config cpe 'cpe'
 	option enable '1'
 	option interface 'eth0'
 	option default_wan_interface 'wan'
+	option default_wan6_interface 'wan6'
 	option log_to_console 'disable'
 	option log_to_syslog 'disable'
 	option log_to_file 'enable'

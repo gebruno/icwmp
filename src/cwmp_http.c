@@ -13,6 +13,7 @@
 #include "cwmp_http.h"
 #include "http.h"
 #include "log.h"
+#include "cwmp_uci.h"
 
 struct uloop_fd http_event6;
 
@@ -48,4 +49,58 @@ void http_server_start(void)
 void http_server_stop(void)
 {
 	pthread_join(http_cr_server_thread, NULL);
+}
+
+void set_http_ip_resolve(int resolve)
+{
+	cwmp_uci_set_varstate_value("cwmp", "acs", "ip_version", (resolve == CURL_IPRESOLVE_V6) ? "6" : "4");
+	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+	FREE(cwmp_main->net.connection_wan_iface);
+	cwmp_main->net.connection_wan_iface = strdup((resolve == CURL_IPRESOLVE_V6) ? cwmp_main->conf.default_wan6_iface : cwmp_main->conf.default_wan_iface);
+	cwmp_main->net.ip_resolve = resolve;
+}
+
+int icwmp_check_http_connection()
+{
+	if (!cwmp_main->net.ipv6_status) {
+		set_http_ip_resolve(CURL_IPRESOLVE_V4);
+		return CWMP_OK;
+	}
+	long resolve = CURL_IPRESOLVE_V6;
+	while(1) {
+		CURL *c = curl_easy_init();
+		if(c) {
+			CURLcode ret;
+			curl_easy_setopt(c, CURLOPT_FAILONERROR, true);
+			curl_easy_setopt(c, CURLOPT_URL, cwmp_main->conf.acsurl);
+			curl_easy_setopt(c, CURLOPT_CONNECT_ONLY, 1L);
+			curl_easy_setopt(c, CURLOPT_IPRESOLVE, resolve);
+			curl_easy_setopt(c, CURLOPT_INTERFACE, cwmp_main->net.interface);
+			ret = curl_easy_perform(c);
+			if(ret == CURLE_OK) {
+				int tmp = 1;
+				char *ip = NULL;
+				curl_easy_getinfo(c, CURLINFO_PRIMARY_IP, &ip);
+				if (ip) {
+					unsigned char buf[sizeof(struct in6_addr)];
+					tmp = inet_pton(AF_INET, ip, buf);
+				}
+
+				if (tmp)
+					set_http_ip_resolve(CURL_IPRESOLVE_V4);
+				else
+					set_http_ip_resolve(CURL_IPRESOLVE_V6);
+				curl_easy_cleanup(c);
+				return CWMP_OK;
+			}
+			curl_easy_cleanup(c);
+		}
+		if (resolve == CURL_IPRESOLVE_V6)
+			resolve = CURL_IPRESOLVE_V4;
+		else if (resolve == CURL_IPRESOLVE_V4)
+			resolve = CURL_IPRESOLVE_WHATEVER;
+		else
+			break;
+	}
+	return -1;
 }

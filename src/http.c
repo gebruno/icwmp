@@ -10,7 +10,6 @@
  * See LICENSE file for license related information.
  *
  */
-#include <curl/curl.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <fcntl.h>
@@ -42,58 +41,17 @@ void http_set_timeout(void)
 
 int icwmp_http_client_init()
 {
-	char *dhcp_dis = NULL;
-	char *acs_var_stat = NULL;
-
-	uci_get_value(UCI_DHCP_DISCOVERY_PATH, &dhcp_dis);
-
-	if (dhcp_dis && cwmp_main->retry_count_session > 0 && strcmp(dhcp_dis, "enable") == 0) {
-		uci_get_state_value(UCI_DHCP_ACS_URL, &acs_var_stat);
-		if (acs_var_stat) {
-			if (icwmp_asprintf(&http_c.url, "%s", acs_var_stat) == -1) {
-				free(acs_var_stat);
-				FREE(dhcp_dis);
-				return -1;
-			}
-		} else {
-			if (cwmp_main->conf.acsurl == NULL || icwmp_asprintf(&http_c.url, "%s", cwmp_main->conf.acsurl) == -1) {
-				FREE(dhcp_dis);
-				return -1;
-			}
-		}
-	} else {
-		if (cwmp_main->conf.acsurl == NULL || icwmp_asprintf(&http_c.url, "%s", cwmp_main->conf.acsurl) == -1) {
-			FREE(dhcp_dis);
-			return -1;
-		}
+	if (cwmp_main->conf.acsurl == NULL || icwmp_asprintf(&http_c.url, "%s", cwmp_main->conf.acsurl) == -1) {
+		return -1;
 	}
 
-	if (dhcp_dis)
-		free(dhcp_dis);
-
 	CWMP_LOG(INFO, "ACS url: %s", http_c.url);
-
-	/* TODO debug ssl config from freecwmp*/
 
 	curl_global_init(CURL_GLOBAL_SSL);
 	curl = curl_easy_init();
 	if (!curl)
 		return -1;
 
-	if (cwmp_main->conf.ipv6_enable) {
-		unsigned char buf[sizeof(struct in6_addr)];
-
-		char *ip = NULL;
-		curl_easy_setopt(curl, CURLOPT_URL, http_c.url);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
-		curl_easy_setopt(curl, CURLOPT_NOBODY, 1);
-		curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);
-		curl_easy_perform(curl);
-		int tmp = inet_pton(AF_INET, ip, buf);
-
-		cwmp_uci_set_value("cwmp", "acs", "ip_version", (tmp == 1) ? "4" : "6");
-		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
-	}
 	return 0;
 }
 
@@ -159,6 +117,7 @@ static void http_set_connection_options()
 	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
 	curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
 	curl_easy_setopt(curl, CURLOPT_NOBODY, 0);
+	curl_easy_setopt(curl, CURLOPT_IPRESOLVE, cwmp_main->net.ip_resolve);
 #ifdef DEVEL
 	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 #endif
@@ -166,7 +125,7 @@ static void http_set_connection_options()
 	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, fc_cookies);
 	curl_easy_setopt(curl, CURLOPT_COOKIEJAR, fc_cookies);
 
-	curl_easy_setopt(curl, CURLOPT_INTERFACE, cwmp_main->conf.interface);
+	curl_easy_setopt(curl, CURLOPT_INTERFACE, cwmp_main->net.interface);
 }
 
 static void http_set_header_list_options()

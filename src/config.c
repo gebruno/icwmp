@@ -48,6 +48,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_ENABLE_SYSLOG,
 		UCI_CPE_AMD_VERSION,
 		UCI_CPE_DEFAULT_WAN_IFACE,
+		UCI_CPE_DEFAULT_WAN6_IFACE,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -61,6 +62,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		{ .name = "log_to_syslog", .type = UCI_TYPE_STRING },
 		{ .name = "amd_version", .type = UCI_TYPE_STRING },
 		{ .name = "default_wan_interface", .type = UCI_TYPE_STRING },
+		{ .name = "default_wan6_interface", .type = UCI_TYPE_STRING },
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS] = {0};
@@ -91,18 +93,23 @@ static void config_get_cpe_elements(struct uci_section *s)
 	}
 	cwmp_main->conf.supported_amd_version = cwmp_main->conf.amd_version;
 	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", cwmp_main->conf.amd_version);
-	if (cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]) {
+
+	if (cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE])
 		cwmp_main->conf.default_wan_iface = strdup(get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]));
-	} else {
+	else
 		cwmp_main->conf.default_wan_iface = strdup("wan");
-	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", cwmp_main->conf.default_wan_iface);
+
+	if (cpe_tb[UCI_CPE_DEFAULT_WAN6_IFACE])
+		cwmp_main->conf.default_wan6_iface = strdup(get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN6_IFACE]));
+	else
+		cwmp_main->conf.default_wan6_iface = strdup("wan6");
+	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan ipv6 interface: %s", cwmp_main->conf.default_wan6_iface);
 }
 
 static void config_get_acs_elements(struct uci_section *s)
 {
 	enum {
-		UCI_ACS_IPV6_ENABLE,
 		UCI_ACS_SSL_CAPATH,
 		HTTP_DISABLE_100CONTINUE,
 		UCI_ACS_INSECURE_ENABLE,
@@ -110,7 +117,6 @@ static void config_get_acs_elements(struct uci_section *s)
 	};
 
 	const struct uci_parse_option acs_opts[] = {
-		{ .name = "ipv6_enable", .type = UCI_TYPE_STRING },
 		{ .name = "ssl_capath", .type = UCI_TYPE_STRING },
 		{ .name = "http_disable_100continue", .type = UCI_TYPE_STRING },
 		{ .name = "insecure_enable", .type = UCI_TYPE_STRING },
@@ -119,9 +125,6 @@ static void config_get_acs_elements(struct uci_section *s)
 	struct uci_option *acs_tb[__MAX_NUM_UCI_ACS_ATTRS];
 	memset(acs_tb, 0, sizeof(acs_tb));
 	uci_parse_section(s, acs_opts, __MAX_NUM_UCI_ACS_ATTRS, acs_tb);
-
-	cwmp_main->conf.ipv6_enable = uci_str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_IPV6_ENABLE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - ipv6 enable: %d", cwmp_main->conf.ipv6_enable);
 
 	cwmp_main->conf.acs_ssl_capath = CWMP_STRDUP(get_value_from_uci_option(acs_tb[UCI_ACS_SSL_CAPATH]));
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs ssl cpath: %s", cwmp_main->conf.acs_ssl_capath ? cwmp_main->conf.acs_ssl_capath : "");
@@ -187,12 +190,6 @@ int get_global_config()
 		}
 	}
 	FREE(value);
-
-	error = get_connection_interface(cwmp_main->conf.default_wan_iface);
-	if (error != CWMP_OK) {
-		CWMP_LOG(DEBUG, "Failed to get interface [%s] details", cwmp_main->conf.default_wan_iface);
-		return error;
-	}
 
 	bool discovery_enable = false;
 	error = uci_get_value(UCI_DHCP_DISCOVERY_PATH, &value);

@@ -76,13 +76,6 @@
           "description": "The retry interval multiplier for session retry session as described in the standard."
         },
         {
-          "name": "ipv6_enable",
-          "type": "boolean",
-          "required": "no",
-          "default": "",
-          "description": "Enables IPv6 in cwmp"
-        },
-        {
           "name": "ssl_capath",
           "type": "string",
           "required": "no",
@@ -109,13 +102,6 @@
           "required": "no",
           "default": "",
           "description": "the **url** of ACS server received from the DHCP server via Option 43. This parameter is automatically updated by daemon, When **'dhcp_discovery'** option is enabled."
-        },
-        {
-          "name": "ip_version",
-          "type": "string",
-          "required": "no",
-          "default": "",
-          "description": "ip_version of ConnectionRequestURL"
         },
         {
           "name": "get_rpc_methods",
@@ -188,18 +174,25 @@
           "description": "Overwrite DeviceId parameter"
         },
         {
-          "name": "default_wan_interface",
-          "type": "string",
-          "required": "no",
-          "default": "",
-          "description": "Configure the default wan interface of the device."
-        },
-        {
           "name": "default_lan_interface",
           "type": "string",
           "required": "no",
-          "default": "",
+          "default": "lan",
           "description": "Configure the default lan interface of the device."
+        },
+        {
+          "name": "default_wan_interface",
+          "type": "string",
+          "required": "no",
+          "default": "wan",
+          "description": "Configure the default wan interface that will be used for IPv4 connection."
+        },
+        {
+          "name": "default_wan6_interface",
+          "type": "string",
+          "required": "no",
+          "default": "wan6",
+          "description": "Configure the default wan interface that will be used for IPv6 connection."
         },
         {
           "name": "log_to_console",

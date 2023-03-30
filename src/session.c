@@ -32,6 +32,7 @@
 #include "heartbeat.h"
 #include "sched_inform.h"
 #include "cwmp_du_state.h"
+#include "cwmp_http.h"
 
 pthread_mutex_t cwmp_session_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -335,6 +336,14 @@ void start_cwmp_session()
 
 	if (cwmp_main->session->session_status.last_status == SESSION_FAILURE)
 		cwmp_config_load();
+
+	if (check_connection_attributes_change()) {
+		if (get_connection_parameters() != CWMP_OK || cwmp_stop) {
+			CWMP_LOG(INFO, "cwmp fails to get connection parameters");
+			return;
+		}
+	}
+
 	/*
 	 * Value changes
 	 */

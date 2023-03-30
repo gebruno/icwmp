@@ -13,6 +13,8 @@
 #ifndef _FREECWMP_HTTP_H__
 #define _FREECWMP_HTTP_H__
 
+#include <curl/curl.h>
+
 #include "common.h"
 
 extern char *fc_cookies;
