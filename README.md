@@ -40,7 +40,7 @@ config lwn 'lwn'
 
 !!! note
     
-    `icwmpd` depends on usp.raw for all datamodel parameters, some `DeviceId` related parameters can be overwritten by writing them directly on `/etc/config/cwmp` file.
+    `icwmpd` depends on bbf for all datamodel parameters, some `DeviceId` related parameters can be overwritten by writing them directly on `/etc/config/cwmp` file.
 
 ```bash
 uci set cwmp.cpe.manufacturer="ABC"

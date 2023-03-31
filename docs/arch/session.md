@@ -81,7 +81,7 @@ The RPC ACS call starts by preparing needed data after executing some features i
 
 - **Inform**
 
-    Data present in the Inform call message are gotten form runtime variables and lists like events and also by execting internal get value (ubus usp.raw call) of some parameters for DeviceId and ParameterList.
+    Data present in the Inform call message are gotten form runtime variables and lists like events and also by execting internal get value (ubus call bbf) of some parameters for DeviceId and ParameterList.
 
 - **TransferComplete**
 

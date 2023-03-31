@@ -1,6 +1,6 @@
 # Handling of SPV and restart services
 
-In case `icwmpd` receives SetParameterValues Request from the ACS, it will use the `setm_values` ubus method of usp daemon(usp.raw ubus object), for all requested parameters.
+In case `icwmpd` receives SetParameterValues Request from the ACS, it will use the `setm_values` ubus method of bbfd daemon(bbf ubus object), for all requested parameters.
 
 Based on the response of setm_values the icwmp will do the following:
 

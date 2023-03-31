@@ -253,7 +253,7 @@ bool cwmp_transaction_start(char *app)
 	blob_buf_init(&b, 0);
 	bb_add_string(&b, "app", app);
 
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_start", b.head, ubus_transaction_callback, &status);
+	int e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "transaction_start", b.head, ubus_transaction_callback, &status);
 	if (e != 0) {
 		CWMP_LOG(INFO, "Transaction start failed: Ubus err code: %d", e);
 		status = false;
@@ -277,7 +277,7 @@ bool cwmp_transaction_commit(bool rest_serv)
 	blobmsg_add_u32(&b, "transaction_id", transaction_id);
 	blobmsg_add_u8(&b, "restart_services", false);
 
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_commit", b.head, ubus_transaction_commit_callback, &trans_commit);
+	int e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "transaction_commit", b.head, ubus_transaction_commit_callback, &trans_commit);
 	if (e != 0) {
 		CWMP_LOG(INFO, "Transaction commit failed: Ubus err code: %d", e);
 		trans_commit.status = false;
@@ -301,7 +301,7 @@ bool cwmp_transaction_abort()
 	blob_buf_init(&b, 0);
 	blobmsg_add_u32(&b, "transaction_id", transaction_id);
 
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_abort", b.head, ubus_transaction_callback, &status);
+	int e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "transaction_abort", b.head, ubus_transaction_callback, &status);
 	if (e != 0) {
 		CWMP_LOG(INFO, "Transaction abort failed: Ubus err code: %d", e);
 		status = false;
@@ -325,7 +325,7 @@ bool cwmp_transaction_status()
 	blob_buf_init(&b, 0);
 	blobmsg_add_u32(&b, "transaction_id", transaction_id);
 
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_status", b.head, ubus_transaction_status_callback, &status);
+	int e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "transaction_status", b.head, ubus_transaction_status_callback, &status);
 	blob_buf_free(&b);
 
 	if (e != 0) {
@@ -384,7 +384,7 @@ char *cwmp_get_single_parameter_value(char *parameter_name, struct cwmp_dm_param
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "get", b.head, ubus_get_single_parameter_callback, dm_parameter);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "get", b.head, ubus_get_single_parameter_callback, dm_parameter);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -481,7 +481,7 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "get", b.head, ubus_get_parameter_callback, &get_result);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "get", b.head, ubus_get_parameter_callback, &get_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -520,7 +520,7 @@ char *cwmp_get_multiple_parameters_values(struct list_head *arg_params_list, str
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "getm_values", b.head, ubus_get_parameter_callback, &get_result );
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "getm_values", b.head, ubus_get_parameter_callback, &get_result );
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -554,7 +554,7 @@ char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_h
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "object_names", b.head, ubus_get_parameter_callback, &get_result);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "object_names", b.head, ubus_get_parameter_callback, &get_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -631,7 +631,7 @@ int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "setm_values", b.head, ubus_setm_values_callback, &set_result);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "setm_values", b.head, ubus_setm_values_callback, &set_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -708,7 +708,7 @@ char *cwmp_add_object(char *object_name, char **instance)
 	blob_buf_init(&b, 0);
 	prepare_add_delete_blobmsg(&b, object_name);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "add_object", b.head, ubus_objects_callback, &add_result);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "add_object", b.head, ubus_objects_callback, &add_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -732,7 +732,7 @@ char *cwmp_delete_object(char *object_name)
 	blob_buf_init(&b, 0);
 	prepare_add_delete_blobmsg(&b, object_name);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "del_object", b.head, ubus_objects_callback, &add_result);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "del_object", b.head, ubus_objects_callback, &add_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {

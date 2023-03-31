@@ -15,7 +15,7 @@ echo "Starting dependent services"
 supervisorctl status all
 supervisorctl update
 supervisorctl restart all
-exec_cmd ubus wait_for usp.raw tr069
+exec_cmd ubus wait_for bbf tr069
 supervisorctl status all
 
 # wait until cwmp status is up
