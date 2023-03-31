@@ -15,13 +15,7 @@
 #include "ubus_utils.h"
 #include "log.h"
 
-int transaction_id = 0;
-
-enum get_results_types
-{
-	LIST,
-	FAULT
-};
+unsigned int transaction_id = 0;
 
 struct object_result {
 	char **instance;
@@ -31,8 +25,7 @@ struct object_result {
 
 struct list_params_result {
 	struct list_head *parameters_list;
-	char fault[5];
-	enum get_results_types type;
+	int error;
 };
 
 struct setm_values_res {
@@ -40,434 +33,280 @@ struct setm_values_res {
 	struct list_head *faults_list;
 };
 
-struct transaction_commit_info {
+struct transaction_info {
 	bool status;
 	bool restart_services;
 };
+
 /*
  * Common functions
  */
-struct blob_attr *get_parameters_array(struct blob_attr *msg)
+static struct blob_attr *get_parameters_array(struct blob_attr *msg)
 {
-	struct blob_attr *parameters = NULL;
-	struct blob_attr *cur;
-	int rem;
+	struct blob_attr *tb[1] = {0};
+	const struct blobmsg_policy p[1] = {
+			{ "parameters", BLOBMSG_TYPE_ARRAY }
+	};
 
 	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		CWMP_LOG(ERROR, "Ubus transaction callback msg is empty");
 		return NULL;
 	}
 
-	blobmsg_for_each_attr(cur, msg, rem)
-	{
-		if (blobmsg_type(cur) == BLOBMSG_TYPE_ARRAY) {
-			parameters = cur;
-			break;
-		}
-	}
-	return parameters;
-}
-
-char *get_status(struct blob_attr *msg)
-{
-	char *status = NULL;
-
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
-		return NULL;
-	}
-
-	const struct blobmsg_policy p[1] = { { "status", BLOBMSG_TYPE_STRING } };
-	struct blob_attr *tb[1] = { NULL };
 	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
-	if (tb[0])
-		status = blobmsg_get_string(tb[0]);
-	return status;
+
+	return tb[0];
 }
 
-int get_fault(struct blob_attr *msg)
+int get_fault_value(struct blob_attr *msg)
 {
-	int fault = FAULT_CPE_NO_FAULT;
+	struct blob_attr *tb[1] = {0};
+	const struct blobmsg_policy p[1] = {
+			{ "fault", BLOBMSG_TYPE_INT32 }
+	};
 
 	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		CWMP_LOG(ERROR, "Ubus transaction callback msg is empty");
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
-	const struct blobmsg_policy p[1] = { { "fault", BLOBMSG_TYPE_INT32 } };
-	struct blob_attr *tb[1] = { NULL };
 	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
-	if (tb[0])
-		fault = blobmsg_get_u32(tb[0]);
-	return fault;
+
+	return tb[0] ? blobmsg_get_u32(tb[0]) : FAULT_CPE_NO_FAULT;
 }
 
-int get_parameters_list_from_parameters_blob_array(struct blob_attr *parameters, struct list_head *parameters_list)
+static void prepare_optional_table(struct blob_buf *b)
 {
-	const struct blobmsg_policy p[5] = { { "parameter", BLOBMSG_TYPE_STRING }, { "value", BLOBMSG_TYPE_STRING }, { "type", BLOBMSG_TYPE_STRING }, { "notification", BLOBMSG_TYPE_STRING }, { "writable", BLOBMSG_TYPE_STRING } };
-	struct blob_attr *cur;
-	int rem;
-	blobmsg_for_each_attr(cur, parameters, rem)
-	{
-		int fault_code = get_fault(cur);
-		if (fault_code != FAULT_CPE_NO_FAULT) {
-			cwmp_free_all_dm_parameter_list(parameters_list);
-			return fault_code;
-		}
-		struct blob_attr *tb[5] = { NULL, NULL, NULL, NULL, NULL };
-		blobmsg_parse(p, 5, tb, blobmsg_data(cur), blobmsg_len(cur));
-		if (!tb[0])
-			continue;
-		int notification = 0;
-		bool writable = 0;
-		if (tb[1] && strncmp(blobmsg_get_string(tb[1]), "1", 1) == 0)
-			notification = 1;
-		else if (tb[1] && strncmp(blobmsg_get_string(tb[1]), "2", 1) == 0)
-			notification = 2;
-		if (tb[4] && (strncmp(blobmsg_get_string(tb[4]), "1", 1) == 0 || strcasecmp(blobmsg_get_string(tb[4]), "true") == 0))
-			writable = true;
-		add_dm_parameter_to_list(parameters_list, blobmsg_get_string(tb[0]), tb[1] ? blobmsg_get_string(tb[1]) : "", tb[2] ? blobmsg_get_string(tb[2]) : "", notification, writable);
-	}
-	return FAULT_CPE_NO_FAULT;
-}
-
-int get_single_fault_from_blob_attr(struct blob_attr *msg)
-{
-	int fault_code = FAULT_CPE_NO_FAULT;
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
-		return FAULT_CPE_INTERNAL_ERROR;
-	}
-	fault_code = get_fault(msg);
-	if (fault_code != FAULT_CPE_NO_FAULT)
-		return fault_code;
-	struct blob_attr *faults_array = get_parameters_array(msg);
-	if (faults_array == NULL)
-		return FAULT_CPE_NO_FAULT;
-	struct blob_attr *cur;
-	int rem;
-	blobmsg_for_each_attr(cur, faults_array, rem)
-	{
-		fault_code = get_fault(cur);
-		if (fault_code != FAULT_CPE_NO_FAULT)
-			break;
-	}
-	return fault_code;
+	void *table = blobmsg_open_table(b, "optional");
+	bb_add_string(b, "proto", "cwmp");
+	bb_add_string(b, "format", "raw");
+	blobmsg_add_u32(b, "instance_mode", cwmp_main->conf.instance_mode);
+	blobmsg_add_u32(b, "transaction_id", transaction_id);
+	blobmsg_close_table(b, table);
 }
 
 /*
  * Transaction Functions
  */
-void ubus_transaction_commit_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
+static void ubus_transaction_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+	struct blob_attr *tb[3] = {0};
+	const struct blobmsg_policy p[3] = {
+			{ "status", BLOBMSG_TYPE_BOOL },
+			{ "transaction_id", BLOBMSG_TYPE_INT32 },
+			{ "updated_services", BLOBMSG_TYPE_ARRAY }
+	};
+
+	if (msg == NULL || req == NULL) {
+		CWMP_LOG(ERROR, "Ubus transaction callback failed");
 		return;
 	}
-	struct transaction_commit_info *trans_commit = (struct transaction_commit_info*)req->priv;
-	const struct blobmsg_policy p[1] = { { "status", BLOBMSG_TYPE_BOOL } };
-	struct blob_attr *cur;
-	int rem;
 
-	struct blob_attr *tb[1] = { NULL };
-	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
+	struct transaction_info *trans_info = (struct transaction_info *)req->priv;
+
+	blobmsg_parse(p, 3, tb, blobmsg_data(msg), blobmsg_len(msg));
+
 	if (!tb[0]) {
-		trans_commit->status = false;
+		trans_info->status = false;
 		return;
 	}
-	trans_commit->status = blobmsg_get_u8(tb[0]);
-	if (trans_commit->status == false)
+
+	trans_info->status = blobmsg_get_u8(tb[0]);
+	if (trans_info->status == false)
 		return;
 
-	if (trans_commit->restart_services == false)
-		return;
-
-	struct blob_attr *updated_services = NULL;
-
-	blobmsg_for_each_attr(cur, msg, rem)
-	{
-		if (blobmsg_type(cur) == BLOBMSG_TYPE_ARRAY) {
-			updated_services = cur;
-			break;
-		}
-	}
-	if (updated_services) {
-		blobmsg_for_each_attr(cur, updated_services, rem)
-		{
-			char *service_name = blobmsg_get_string(cur);
-			if (!service_name || strlen(service_name) == 0 || strcmp(service_name, "cwmp") == 0)
-				continue;
-			CWMP_LOG(INFO, "Detected service: %s will be restarted in the end session", service_name);
-			/*Add the service to the list*/
-			if (strcmp(service_name, "cwmp") != 0)
-				icwmp_add_service(service_name);
-		}
-	}
-}
-
-void ubus_transaction_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
-{
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
-		return;
-	}
-	bool *status = (bool *)req->priv;
-	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_BOOL }, { "transaction_id", BLOBMSG_TYPE_INT32 } };
-	struct blob_attr *tb[2] = { NULL, NULL };
-	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
-	*status = blobmsg_get_u8(tb[0]);
-	if (*status == true && tb[1])
+	if (tb[1]) {
 		transaction_id = blobmsg_get_u32(tb[1]);
-}
+	}
 
-void ubus_transaction_status_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
-{
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+	if (trans_info->restart_services == false)
 		return;
-	}
 
-	bool *status = (bool *)req->priv;
-	char *status_str = NULL;
-	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_STRING } };
-	struct blob_attr *tb[2] = { NULL, NULL };
-	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
-	status_str = blobmsg_get_string(tb[0]);
-	if (status_str && strcmp(status_str, "on-going") == 0)
-		*status = true;
-	else
-		*status = false;
+	if (tb[2]) {
+		struct blob_attr *updated_services = tb[2];
+		struct blob_attr *service = NULL;
+		size_t rem;
+
+		blobmsg_for_each_attr(service, updated_services, rem) {
+			char *service_name = blobmsg_get_string(service);
+
+			if (CWMP_STRLEN(service_name) == 0 || strcmp(service_name, "cwmp") == 0)
+				continue;
+
+			CWMP_LOG(DEBUG, "Detected service: %s will be restarted in the end session", service_name);
+			icwmp_add_service(service_name);
+		}
+	}
 }
 
-bool cwmp_transaction_start(char *app)
+bool cwmp_transaction(const char *cmd, bool restart_services)
 {
-	CWMP_LOG(INFO, "Starting transaction ...");
-	if (app == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: app is null", __FUNCTION__);
+	struct blob_buf b = {0};
+	struct transaction_info trans_info = {
+			.status = false,
+			.restart_services = restart_services
+	};
+
+	if (CWMP_STRLEN(cmd) == 0)
 		return false;
-	}
-	bool status = false;
-	struct blob_buf b = { 0 };
+
+	int start_cmp = strcmp(cmd, "start");
+	int commit_cmp = strcmp(cmd, "commit");
+	int abort_cmp = strcmp(cmd, "abort");
+
+	if (start_cmp != 0 && commit_cmp != 0 && abort_cmp != 0)
+		return false;
+
+	if ((start_cmp == 0 && transaction_id != 0) ||
+			((commit_cmp == 0 || abort_cmp == 0) && transaction_id == 0))
+		return false;
+
+	CWMP_LOG(INFO, "Transaction %s ...", cmd);
 
 	memset(&b, 0, sizeof(struct blob_buf));
+
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "app", app);
-
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_start", b.head, ubus_transaction_callback, &status);
-	if (e != 0) {
-		CWMP_LOG(INFO, "Transaction start failed: Ubus err code: %d", e);
-		status = false;
-	}
-	if (!status) {
-		CWMP_LOG(INFO, "Transaction Start doesn't success\n");
-	}
-
-	blob_buf_free(&b);
-	return status;
-}
-
-bool cwmp_transaction_commit(bool rest_serv)
-{
-	CWMP_LOG(INFO, "Transaction Commit ...");
-	struct transaction_commit_info trans_commit = {.status = false, .restart_services = rest_serv};
-	struct blob_buf b = { 0 };
-
-	memset(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
-	blobmsg_add_u32(&b, "transaction_id", transaction_id);
+	bb_add_string(&b, "cmd", cmd);
 	blobmsg_add_u8(&b, "restart_services", false);
+	prepare_optional_table(&b);
 
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_commit", b.head, ubus_transaction_commit_callback, &trans_commit);
-	if (e != 0) {
-		CWMP_LOG(INFO, "Transaction commit failed: Ubus err code: %d", e);
-		trans_commit.status = false;
-	}
-	if (!trans_commit.status) {
-		CWMP_LOG(INFO, "Transaction Commit with id: %d doesn't success\n", transaction_id);
-	}
+	int e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "transaction", b.head, ubus_transaction_callback, &trans_info);
 
 	blob_buf_free(&b);
-	transaction_id = 0;
-	return trans_commit.status;
-}
 
-bool cwmp_transaction_abort()
-{
-	CWMP_LOG(INFO, "Transaction Abort ...");
-	bool status = false;
-	struct blob_buf b = { 0 };
-
-	memset(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
-	blobmsg_add_u32(&b, "transaction_id", transaction_id);
-
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_abort", b.head, ubus_transaction_callback, &status);
-	if (e != 0) {
-		CWMP_LOG(INFO, "Transaction abort failed: Ubus err code: %d", e);
-		status = false;
-	}
-	if (!status) {
-		CWMP_LOG(INFO, "Transaction Abort of transaction with id: %d failed\n", transaction_id);
-	}
-
-	blob_buf_free(&b);
-	transaction_id = 0;
-	return status;
-}
-
-bool cwmp_transaction_status()
-{
-	CWMP_LOG(INFO, "Transaction Status");
-	bool status = false;
-	struct blob_buf b = { 0 };
-
-	memset(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
-	blobmsg_add_u32(&b, "transaction_id", transaction_id);
-
-	int e = icwmp_ubus_invoke(USP_OBJECT_NAME, "transaction_status", b.head, ubus_transaction_status_callback, &status);
-	blob_buf_free(&b);
+	if (commit_cmp == 0 || abort_cmp == 0)
+		transaction_id = 0;
 
 	if (e != 0) {
-		CWMP_LOG(INFO, "Transaction status failed: Ubus err code: %d", e);
+		CWMP_LOG(INFO, "Transaction %s failed: Ubus err code: %d", cmd, e);
 		return false;
 	}
-	if (!status) {
-		CWMP_LOG(INFO, "Transaction with id: %d is not available anymore\n", transaction_id);
-	}
-	return status;
-}
-/*
- * Get single _parameter value
- */
 
-void ubus_get_single_parameter_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
+	if (!trans_info.status) {
+		CWMP_LOG(INFO, "Transaction %s failed: Status => false", cmd);
+		return false;
+	}
+
+	return true;
+}
+
+/*
+ * Get parameter value
+ */
+static void ubus_get_single_parameter_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+	struct blob_attr *cur = NULL;
+	int rem = 0;
+
+	if (msg == NULL || req == NULL)
 		return;
-	}
-	struct blob_attr *parameters = get_parameters_array(msg);
+
 	struct cwmp_dm_parameter *result = (struct cwmp_dm_parameter *)req->priv;
+	struct blob_attr *parameters = get_parameters_array(msg);
+
 	if (parameters == NULL) {
-		int fault_code = get_fault(msg);
-		CWMP_LOG(ERROR, "dm_iface %s: returned parameters is null fault: %d", __FUNCTION__, fault_code);
-		result->name = NULL;
-		result->type = NULL;
-		icwmp_asprintf(&result->value, "%d", fault_code);
+		result->notification = get_fault_value(msg);
 		return;
 	}
-	const struct blobmsg_policy p[3] = { { "parameter", BLOBMSG_TYPE_STRING }, { "value", BLOBMSG_TYPE_STRING }, { "type", BLOBMSG_TYPE_STRING } };
-	struct blob_attr *cur;
-	int rem;
-	blobmsg_for_each_attr(cur, parameters, rem)
-	{
-		struct blob_attr *tb[3] = { NULL, NULL, NULL };
+
+	blobmsg_for_each_attr(cur, parameters, rem) {
+		struct blob_attr *tb[3] = {0};
+		const struct blobmsg_policy p[3] = {
+				{ "parameter", BLOBMSG_TYPE_STRING },
+				{ "value", BLOBMSG_TYPE_STRING },
+				{ "type", BLOBMSG_TYPE_STRING }
+		};
+
 		blobmsg_parse(p, 3, tb, blobmsg_data(cur), blobmsg_len(cur));
-		if (!tb[0])
-			continue;
-		result->name = icwmp_strdup(blobmsg_get_string(tb[0]));
+
+		result->name = icwmp_strdup(tb[0] ? blobmsg_get_string(tb[0]) : "");
 		result->value = icwmp_strdup(tb[1] ? blobmsg_get_string(tb[1]) : "");
 		result->type = icwmp_strdup(tb[2] ? blobmsg_get_string(tb[2]) : "");
+
 		break;
 	}
 }
 
-char *cwmp_get_single_parameter_value(char *parameter_name, struct cwmp_dm_parameter *dm_parameter)
+bool cwmp_get_parameter_value(char *parameter_name, struct cwmp_dm_parameter *dm_parameter)
 {
-	int e;
-	struct blob_buf b = { 0 };
+	struct blob_buf b = {0};
+	int len = CWMP_STRLEN(parameter_name);
+
+	if (len == 0 || parameter_name[len - 1] == '.')
+		return false;
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "path", !parameter_name || parameter_name[0] == '\0' ? DM_ROOT_OBJ : parameter_name);
-	bb_add_string(&b, "proto", "cwmp");
-	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "get", b.head, ubus_get_single_parameter_callback, dm_parameter);
+	bb_add_string(&b, "path", parameter_name);
+	prepare_optional_table(&b);
+
+	int e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "get", b.head, ubus_get_single_parameter_callback, dm_parameter);
+
 	blob_buf_free(&b);
 
 	if (e < 0) {
 		CWMP_LOG(INFO, "get ubus method failed: Ubus err code: %d", e);
-		return "9002";
+		return false;
 	}
 
-	if (dm_parameter->name == NULL) {
-		CWMP_LOG(INFO, "Get parameter_values failed: fault_code: %s", dm_parameter->value); // the value is the fault
-		return dm_parameter->value;
-	}
-	return NULL;
-}
-
-int cwmp_get_leaf_value(char *leaf, char **value)
-{
-	struct cwmp_dm_parameter dm_param = {0};
-	size_t llen;
-
-	if (leaf == NULL || value == NULL) {
-		CWMP_LOG(INFO, "Empty parameter/value in arguments")
-		return FAULT_CPE_INVALID_ARGUMENTS;
+	if (dm_parameter->notification) {
+		CWMP_LOG(INFO, "Get parameter value of %s failed, fault_code: %d", parameter_name, dm_parameter->notification);
+		return false;
 	}
 
-	llen = strlen(leaf);
-	if (llen == 0) {
-		CWMP_LOG(INFO, "Empty parameter in arguments")
-		return FAULT_CPE_INVALID_ARGUMENTS;
-	}
-
-	if (leaf[llen - 1] == '.') {
-		CWMP_LOG(INFO, "Non-leaf parameter parameter")
-		return FAULT_CPE_INVALID_ARGUMENTS;
-	}
-
-	cwmp_get_single_parameter_value(leaf, &dm_param);
-	if (dm_param.name == NULL) {
-		CWMP_LOG(INFO, "Fault in getting the parameter %s", leaf)
-		return FAULT_CPE_INTERNAL_ERROR;
-	}
-
-	if (strncmp(leaf, dm_param.name, llen) == 0) {
-		*value = (dm_param.value) ? strdup(dm_param.value) : strdup("");
-	} else {
-		CWMP_LOG(WARNING, "Param %s, does not return a value", leaf);
-		return FAULT_CPE_INTERNAL_ERROR;
-	}
-
-	return 0;
+	return true;
 }
 
 /*
- * Get parameter Values/Names/Notify
+ * Get parameter Values/Names
  */
 static void ubus_get_parameter_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+	struct blob_attr *cur = NULL;
+	int rem = 0;
+	const struct blobmsg_policy p[4] = {
+			{ "parameter", BLOBMSG_TYPE_STRING },
+			{ "value", BLOBMSG_TYPE_STRING },
+			{ "type", BLOBMSG_TYPE_STRING },
+			{ "writable", BLOBMSG_TYPE_STRING }
+	};
+
+	if (msg == NULL || req == NULL)
 		return;
-	}
-	struct blob_attr *parameters = get_parameters_array(msg);
+
 	struct list_params_result *result = (struct list_params_result *)req->priv;
-	int fault_code = FAULT_CPE_NO_FAULT;
+	struct blob_attr *parameters = get_parameters_array(msg);
+
 	if (parameters == NULL) {
-		fault_code = get_fault(msg);
-		CWMP_LOG(INFO, "dm_iface %s: parameters is null fault: %d", __FUNCTION__, fault_code);
-		snprintf(result->fault, 5, "%d", fault_code);
-		result->type = FAULT;
+		result->error = get_fault_value(msg);
 		return;
 	}
-	result->type = LIST;
-	fault_code = get_parameters_list_from_parameters_blob_array(parameters, result->parameters_list);
-	if (fault_code != FAULT_CPE_NO_FAULT) {
-		snprintf(result->fault, 5, "%d", fault_code);
-		result->type = FAULT;
+
+	blobmsg_for_each_attr(cur, parameters, rem) {
+		struct blob_attr *tb[4] = {0};
+
+		blobmsg_parse(p, 4, tb, blobmsg_data(cur), blobmsg_len(cur));
+
+		if (!tb[0]) continue;
+
+		char *param_name = blobmsg_get_string(tb[0]);
+		char *param_value = tb[1] ? blobmsg_get_string(tb[1]) : "";
+		char *param_type = tb[2] ? blobmsg_get_string(tb[2]) : "";
+		char *param_per = tb[3] ? blobmsg_get_string(tb[3]) : "0";;
+		bool writable = strcmp(param_per, "1") == 0 ? true : false;
+
+		add_dm_parameter_to_list(result->parameters_list, param_name, param_value, param_type, 0, writable);
 	}
 }
 
 char *cwmp_get_parameter_values(char *parameter_name, struct list_head *parameters_list)
 {
-	int e;
-	struct list_params_result get_result = { .parameters_list = parameters_list };
-	struct blob_buf b = { 0 };
+	struct blob_buf b = {0};
+	struct list_params_result get_result = {
+			.parameters_list = parameters_list,
+			.error = FAULT_CPE_NO_FAULT
+	};
 	unsigned int len = CWMP_STRLEN(parameter_name);
 
 	if (len > 2 && parameter_name[len - 1] == '.' && parameter_name[len - 2] == '*')
@@ -477,11 +316,11 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "path", param);
-	bb_add_string(&b, "proto", "cwmp");
-	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "get", b.head, ubus_get_parameter_callback, &get_result);
+	bb_add_string(&b, "path", param);
+	prepare_optional_table(&b);
+
+	int e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "get", b.head, ubus_get_parameter_callback, &get_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -489,72 +328,40 @@ char *cwmp_get_parameter_values(char *parameter_name, struct list_head *paramete
 		return "9002";
 	}
 
-	if (get_result.type == FAULT) {
-		CWMP_LOG(WARNING, "Get parameter values (%s) failed: fault_code: %s", param, get_result.fault);
-		return icwmp_strdup(get_result.fault);
+	if (get_result.error) {
+		char buf[8] = {0};
+
+		CWMP_LOG(WARNING, "Get parameter values (%s) failed: fault_code: %d", param, get_result.error);
+
+		snprintf(buf, sizeof(buf), "%d", get_result.error);
+		return icwmp_strdup(buf);
 	}
+
 	return NULL;
 }
 
-char *cwmp_get_multiple_parameters_values(struct list_head *arg_params_list, struct list_head *parameters_list)
+char *cwmp_get_parameter_names(char *parameter_name, bool next_level, struct list_head *parameters_list)
 {
-	int e;
-	struct cwmp_dm_parameter *param_value = NULL;
-	struct list_params_result get_result = { .parameters_list = parameters_list };
-	struct blob_buf b = { 0 };
+	struct blob_buf b = {0};
+	struct list_params_result get_result = {
+			.parameters_list = parameters_list,
+			.error = FAULT_CPE_NO_FAULT
+	};
+	unsigned int len = CWMP_STRLEN(parameter_name);
 
-	memset(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
-
-	void *arr = blobmsg_open_array(&b, "paths");
-	list_for_each_entry (param_value, arg_params_list, list) {
-		unsigned int len = CWMP_STRLEN(param_value->name);
-
-		if (len == 0 || (len > 2 && param_value->name[len - 1] == '.' && param_value->name[len - 2] == '*'))
-			continue;
-
-		blobmsg_add_string(&b, NULL, param_value->name);
-	}
-	blobmsg_close_array(&b, arr);
-
-	bb_add_string(&b, "proto", "cwmp");
-	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
-
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "getm_values", b.head, ubus_get_parameter_callback, &get_result );
-	blob_buf_free(&b);
-
-	if (e < 0) {
-		CWMP_LOG(INFO, "getm_values ubus method failed: Ubus err code: %d", e);
-		return "9002";
-	}
-
-	if (get_result.type == FAULT) {
-		CWMP_LOG(INFO, "Get multiple parameters values failed: fault_code: %s", get_result.fault);
-		return strdup(get_result.fault);
-	}
-	return NULL;
-}
-
-char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_head *parameters_list)
-{
-	int e;
-	struct list_params_result get_result = { .parameters_list = parameters_list };
-	struct blob_buf b = { 0 };
-	unsigned int len = CWMP_STRLEN(object_name);
-
-	if (len > 2 && object_name[len - 1] == '.' && object_name[len - 2] == '*')
+	if (len > 2 && parameter_name[len - 1] == '.' && parameter_name[len - 2] == '*')
 		return "9005";
 
-	char *object = object_name ? object_name : "";
+	char *object = parameter_name ? parameter_name : "";
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "path", object);
-	blobmsg_add_u8(&b, "next-level", next_level);
-	bb_add_string(&b, "proto", "cwmp");
-	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "object_names", b.head, ubus_get_parameter_callback, &get_result);
+	bb_add_string(&b, "path", object);
+	blobmsg_add_u8(&b, "first_level", next_level);
+	prepare_optional_table(&b);
+
+	int e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "get_instances", b.head, ubus_get_parameter_callback, &get_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -562,9 +369,13 @@ char *cwmp_get_parameter_names(char *object_name, bool next_level, struct list_h
 		return "9002";
 	}
 
-	if (get_result.type == FAULT) {
-		CWMP_LOG(INFO, "GetParameterNames failed: fault_code: %s", get_result.fault);
-		return icwmp_strdup(get_result.fault);
+	if (get_result.error) {
+		char buf[8] = {0};
+
+		CWMP_LOG(WARNING, "Get parameter Names (%s) failed: fault_code: %d", object, get_result.error);
+
+		snprintf(buf, sizeof(buf), "%d", get_result.error);
+		return icwmp_strdup(buf);
 	}
 
 	return NULL;
@@ -631,7 +442,7 @@ int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list
 	bb_add_string(&b, "proto", "cwmp");
 	blobmsg_add_u32(&b, "instance_mode", cwmp_main->conf.instance_mode);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "setm_values", b.head, ubus_setm_values_callback, &set_result);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "setm_values", b.head, ubus_setm_values_callback, &set_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -649,6 +460,29 @@ int cwmp_set_multiple_parameters_values(struct list_head *parameters_values_list
 /*
  * Add Delete object
  */
+int get_single_fault_from_blob_attr(struct blob_attr *msg)
+{
+	int fault_code = FAULT_CPE_NO_FAULT;
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "dm_iface %s: msg is null", __FUNCTION__);
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
+	fault_code = get_fault_value(msg);
+	if (fault_code != FAULT_CPE_NO_FAULT)
+		return fault_code;
+	struct blob_attr *faults_array = get_parameters_array(msg);
+	if (faults_array == NULL)
+		return FAULT_CPE_NO_FAULT;
+	struct blob_attr *cur;
+	int rem;
+	blobmsg_for_each_attr(cur, faults_array, rem)
+	{
+		fault_code = get_fault_value(cur);
+		if (fault_code != FAULT_CPE_NO_FAULT)
+			break;
+	}
+	return fault_code;
+}
 
 void ubus_objects_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
@@ -708,7 +542,7 @@ char *cwmp_add_object(char *object_name, char **instance)
 	blob_buf_init(&b, 0);
 	prepare_add_delete_blobmsg(&b, object_name);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "add_object", b.head, ubus_objects_callback, &add_result);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "add_object", b.head, ubus_objects_callback, &add_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -732,7 +566,7 @@ char *cwmp_delete_object(char *object_name)
 	blob_buf_init(&b, 0);
 	prepare_add_delete_blobmsg(&b, object_name);
 
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "del_object", b.head, ubus_objects_callback, &add_result);
+	e = icwmp_ubus_invoke(BBF_OBJECT_NAME, "del_object", b.head, ubus_objects_callback, &add_result);
 	blob_buf_free(&b);
 
 	if (e < 0) {

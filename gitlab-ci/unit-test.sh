@@ -23,7 +23,7 @@ supervisorctl status all
 supervisorctl update
 supervisorctl restart all
 supervisorctl stop icwmpd
-ubus wait_for usp.raw
+ubus wait_for bbf
 supervisorctl status all
 
 echo "Clean cmocka"

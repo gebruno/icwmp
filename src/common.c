@@ -871,20 +871,24 @@ bool match_reg_exp(char *reg_exp, char *param_name)
 
 void cwmp_invoke_intf_reset(char *path)
 {
-	if (path == NULL)
+	struct blob_buf b = {0};
+	char command[256] = {0};
+
+	if (CWMP_STRLEN(path) == 0)
 		return;
 
-	CWMP_LOG(INFO, "Reset interface: %s", path);
-	struct blob_buf b = { 0 };
+	snprintf(command, sizeof(command), "%sReset()", path);
+
+	CWMP_LOG(DEBUG, "Reset interface: %s", path);
+
 	memset(&b, 0, sizeof(struct blob_buf));
+
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "path", path);
-	bb_add_string(&b, "action", "Reset()");
+	bb_add_string(&b, "command", command);
+	bb_add_string(&b, "command_key", "cwmp_reset_intf");
 
-	icwmp_ubus_invoke(USP_OBJECT_NAME, "operate", b.head, NULL, NULL);
+	icwmp_ubus_invoke(BBF_OBJECT_NAME, "operate", b.head, NULL, NULL);
 	blob_buf_free(&b);
-
-	return;
 }
 
 int get_month_days(struct tm time)

@@ -134,7 +134,7 @@ static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 		return;
 
 	path = blobmsg_data(attr);
-	if (path && strcmp(path, USP_OBJECT_NAME) == 0) {
+	if (path && strcmp(path, BBF_OBJECT_NAME) == 0) {
 		g_usp_object_available = true;
 		uloop_end();
 	}
@@ -171,7 +171,7 @@ static int wait_for_usp_raw_object()
 	ubus_register_event_handler(uctx, &add_event, "ubus.object.add");
 
 	// check if object already present
-	ret = ubus_lookup_id(uctx, USP_OBJECT_NAME, &ubus_id);
+	ret = ubus_lookup_id(uctx, BBF_OBJECT_NAME, &ubus_id);
 	if (ret == 0) {
 		g_usp_object_available = true;
 		goto end;
@@ -189,7 +189,7 @@ end:
 	ubus_free(uctx);
 
 	if (g_usp_object_available == false) {
-		CWMP_LOG(ERROR, "%s object not found", USP_OBJECT_NAME);
+		CWMP_LOG(ERROR, "%s object not found", BBF_OBJECT_NAME);
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 

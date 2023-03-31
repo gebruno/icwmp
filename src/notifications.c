@@ -690,7 +690,8 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 
 	if (cr_url_retry) {
 		struct cwmp_dm_parameter cwmp_dm_param = {0};
-		if (NULL != cwmp_get_single_parameter_value("Device.ManagementServer.ConnectionRequestURL", &cwmp_dm_param)) {
+
+		if (!cwmp_get_parameter_value("Device.ManagementServer.ConnectionRequestURL", &cwmp_dm_param)) {
 			uloop_timeout_set(&check_notify_timer, UPSTREAM_STABILITY_CHECK_TIMESPAN * 1000);
 			cr_url_retry = cr_url_retry - 1;
 			return;

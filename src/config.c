@@ -641,11 +641,23 @@ void cwmp_config_load()
 
 int cwmp_get_deviceid()
 {
-	cwmp_get_leaf_value("Device.DeviceInfo.Manufacturer", &cwmp_main->deviceid.manufacturer);
-	cwmp_get_leaf_value("Device.DeviceInfo.SerialNumber", &cwmp_main->deviceid.serialnumber);
-	cwmp_get_leaf_value("Device.DeviceInfo.ProductClass", &cwmp_main->deviceid.productclass);
-	cwmp_get_leaf_value("Device.DeviceInfo.ManufacturerOUI", &cwmp_main->deviceid.oui);
-	cwmp_get_leaf_value("Device.DeviceInfo.SoftwareVersion", &cwmp_main->deviceid.softwareversion);
+	struct cwmp_dm_parameter dm_param = {0};
+
+	cwmp_get_parameter_value("Device.DeviceInfo.Manufacturer", &dm_param);
+	cwmp_main->deviceid.manufacturer = strdup(dm_param.value ? dm_param.value : "");
+
+	cwmp_get_parameter_value("Device.DeviceInfo.SerialNumber", &dm_param);
+	cwmp_main->deviceid.serialnumber = strdup(dm_param.value ? dm_param.value : "");
+
+	cwmp_get_parameter_value("Device.DeviceInfo.ProductClass", &dm_param);
+	cwmp_main->deviceid.productclass = strdup(dm_param.value ? dm_param.value : "");
+
+	cwmp_get_parameter_value("Device.DeviceInfo.ManufacturerOUI", &dm_param);
+	cwmp_main->deviceid.oui = strdup(dm_param.value ? dm_param.value : "");
+
+	cwmp_get_parameter_value("Device.DeviceInfo.SoftwareVersion", &dm_param);
+	cwmp_main->deviceid.softwareversion = strdup(dm_param.value ? dm_param.value : "");
+
 	return CWMP_OK;
 }
 
