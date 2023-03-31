@@ -455,19 +455,14 @@ static int network_get_ipaddr(char *iface, int ipver, char **value)
 
 static void get_management_ip_port(char **listen_addr)
 {
-	char *ip = NULL, *port = NULL, *interface = NULL, *if_name = NULL, *version = NULL;
+	char *ip = NULL, *port = NULL, *interface = NULL, *version = NULL;
 
-	dmuci_get_option_value_string_varstate("cwmp", "cpe", "interface", &if_name);
 	dmuci_get_option_value_string_varstate("cwmp", "acs", "ip_version", &version);
 	dmuci_get_option_value_string("cwmp", "cpe", "port", &port);
 	dmuci_get_option_value_string("cwmp", "cpe", *version == '6' ? "default_wan6_interface" : "default_wan_interface", &interface);
 
-	if (network_get_ipaddr(interface, *version == '6' ? 6 : 4, &ip) == -1) {
-		if (if_name[0] == '\0')
-			return;
-
-		ip = (*version == '6') ? get_ipv6(if_name) : ioctl_get_ipv4(if_name);
-	}
+	if (network_get_ipaddr(interface, *version == '6' ? 6 : 4, &ip) == -1)
+		return;
 
 	if (ip[0] != '\0' && port[0] != '\0') {
 		dmasprintf(listen_addr, (*version == '6') ? "[%s]:%s" : "%s:%s", ip, port);
