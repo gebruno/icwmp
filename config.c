@@ -224,21 +224,24 @@ int get_global_config(struct config *conf)
 	char *url = get_alternate_option_value(discovery_enable, value2, value3);
 	global_string_param_write(&conf->acsurl, url);
 
-	FREE(value2);
-	FREE(value3);
-
 	global_string_param_read(&conf->acsurl, &temp);
-	if (CWMP_STRLEN(url) == 0) {
+	if (CWMP_STRLEN(temp) == 0) {
+		CWMP_LOG(DEBUG, "Failed to get acs url: (%s) dhcp_url: (%s)", value2, value3);
 		FREE(temp);
+		FREE(value2);
+		FREE(value3);
 		return CWMP_GEN_ERR;
 	}
 	FREE(temp);
+	FREE(value2);
+	FREE(value3);
 
-	if ((error = uci_get_value(UCI_ACS_GETRPC, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_ACS_GETRPC, &value) == CWMP_OK) {
 		global_bool_param_write(&conf->acs_getrpc, uci_str_to_bool(value));
 		FREE(value);
 	} else {
-		return error;
+		global_bool_param_write(&conf->acs_getrpc, false);
+		CWMP_LOG(DEBUG, "Failed to get ACS get_rpc_methods setting false by default");
 	}
 
 	if ((error = uci_get_value(UCI_ACS_USERID_PATH, &value)) == CWMP_OK) {
@@ -248,6 +251,7 @@ int get_global_config(struct config *conf)
 			FREE(value);
 		}
 	} else {
+		CWMP_LOG(DEBUG, "Failed to get ACS user id");
 		return error;
 	}
 
@@ -258,10 +262,11 @@ int get_global_config(struct config *conf)
 			FREE(value);
 		}
 	} else {
+		CWMP_LOG(DEBUG, "Failed to get ACS password");
 		return error;
 	}
 
-	if ((error = uci_get_value(UCI_ACS_COMPRESSION, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_ACS_COMPRESSION, &value) == CWMP_OK) {
 		global_int_param_write(&conf->compression, COMP_NONE);
 		if (global_int_param_read(&conf->amd_version) >= AMD_5 && value != NULL) {
 			if (0 == strcasecmp(value, "gzip")) {
@@ -311,7 +316,7 @@ int get_global_config(struct config *conf)
 	FREE(value2);
 	FREE(value3);
 
-	if ((error = uci_get_value(UCI_CPE_USERID_PATH, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_CPE_USERID_PATH, &value) == CWMP_OK) {
 		global_string_param_free(&conf->cpe_userid);
 		if (value != NULL) {
 			global_string_param_write(&conf->cpe_userid, value);
@@ -320,10 +325,11 @@ int get_global_config(struct config *conf)
 			global_string_param_write(&conf->cpe_userid, "");
 		}
 	} else {
-		return error;
+		global_string_param_write(&conf->cpe_userid, "");
+		CWMP_LOG(DEBUG, "Failed to get CPE user id, setting empty by default");
 	}
 
-	if ((error = uci_get_value(UCI_CPE_PASSWD_PATH, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_CPE_PASSWD_PATH, &value) == CWMP_OK) {
 		global_string_param_free(&conf->cpe_passwd);
 		if (value != NULL) {
 			global_string_param_write(&conf->cpe_passwd, value);
@@ -332,10 +338,11 @@ int get_global_config(struct config *conf)
 			global_string_param_write(&conf->cpe_passwd, "");
 		}
 	} else {
-		return error;
+		global_string_param_write(&conf->cpe_passwd, "");
+		CWMP_LOG(DEBUG, "Failed to get CPE password, setting empty by default");
 	}
 
-	if ((error = uci_get_value(UCI_CPE_PORT_PATH, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_CPE_PORT_PATH, &value) == CWMP_OK) {
 		int a = 0;
 
 		if (value != NULL) {
@@ -350,10 +357,11 @@ int get_global_config(struct config *conf)
 			global_int_param_write(&conf->connection_request_port, a);
 		}
 	} else {
-		return error;
+		global_int_param_write(&conf->connection_request_port, DEFAULT_CONNECTION_REQUEST_PORT);
+		CWMP_LOG(DEBUG, "Failed to get CPE port, setting default %d", DEFAULT_CONNECTION_REQUEST_PORT);
 	}
 
-	if ((error = uci_get_value(UCI_CPE_CRPATH_PATH, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_CPE_CRPATH_PATH, &value) == CWMP_OK) {
 		global_string_param_free(&conf->connection_request_path);
 		if (value == NULL)
 			global_string_param_write(&conf->connection_request_path, "/");
@@ -368,10 +376,11 @@ int get_global_config(struct config *conf)
 			FREE(value);
 		}
 	} else {
-		return error;
+		global_string_param_write(&conf->connection_request_path, "/");
+		CWMP_LOG(DEBUG, "Failed to get CPE CR path, setting \'/\' by default");
 	}
 
-	if ((error = uci_get_value(UCI_CPE_NOTIFY_PERIODIC_ENABLE, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_CPE_NOTIFY_PERIODIC_ENABLE, &value) == CWMP_OK) {
 		bool a = true;
 		if (value != NULL) {
 			a = uci_str_to_bool(value);
@@ -379,10 +388,11 @@ int get_global_config(struct config *conf)
 		}
 		global_bool_param_write(&conf->periodic_notify_enable, a);
 	} else {
-		return error;
+		global_bool_param_write(&conf->periodic_notify_enable, true);
+		CWMP_LOG(DEBUG, "Failed to get periodic notify enable, setting true by default");
 	}
 
-	if ((error = uci_get_value(UCI_CPE_NOTIFY_PERIOD, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_CPE_NOTIFY_PERIOD, &value) == CWMP_OK) {
 		int a = 0;
 
 		if (value != NULL) {
@@ -397,10 +407,11 @@ int get_global_config(struct config *conf)
 			global_int_param_write(&conf->periodic_notify_interval, a);
 		}
 	} else {
-		return error;
+		global_int_param_write(&conf->periodic_notify_interval, DEFAULT_NOTIFY_PERIOD);
+		CWMP_LOG(DEBUG, "Failed to get notify interval, setting default %d", DEFAULT_NOTIFY_PERIOD);
 	}
 
-	if ((error = uci_get_value(UCI_PERIODIC_INFORM_TIME_PATH, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_PERIODIC_INFORM_TIME_PATH, &value) == CWMP_OK) {
 		if (value != NULL) {
 			global_time_param_write(&conf->time, convert_datetime_to_timestamp(value));
 			FREE(value);
@@ -408,7 +419,8 @@ int get_global_config(struct config *conf)
 			global_time_param_write(&conf->time, 0);
 		}
 	} else {
-		return error;
+		global_time_param_write(&conf->time, 0);
+		CWMP_LOG(DEBUG, "Failed to get periodic inform time, setting default 0");
 	}
 
 	char *entropy = generate_random_string(sizeof(unsigned int));
@@ -417,7 +429,7 @@ int get_global_config(struct config *conf)
 		free(entropy);
 	}
 
-	if ((error = uci_get_value(UCI_PERIODIC_INFORM_INTERVAL_PATH, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_PERIODIC_INFORM_INTERVAL_PATH, &value) == CWMP_OK) {
 		int a = 0;
 
 		if (value != NULL) {
@@ -432,17 +444,19 @@ int get_global_config(struct config *conf)
 			global_int_param_write(&conf->period, PERIOD_INFORM_DEFAULT);
 		}
 	} else {
-		return error;
+		global_int_param_write(&conf->period, PERIOD_INFORM_DEFAULT);
+		CWMP_LOG(DEBUG, "Failed to get periodic inform interval, setting default: %ds", PERIOD_INFORM_DEFAULT);
 	}
 
-	if ((error = uci_get_value(UCI_PERIODIC_INFORM_ENABLE_PATH, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_PERIODIC_INFORM_ENABLE_PATH, &value) == CWMP_OK) {
 		global_bool_param_write(&conf->periodic_enable, uci_str_to_bool(value));
 		FREE(value);
 	} else {
-		return error;
+		global_bool_param_write(&conf->periodic_enable, true);
+		CWMP_LOG(DEBUG, "Failed to get periodic inform enable, setting true by default");
 	}
 
-	if ((error = uci_get_value(UCI_CPE_INSTANCE_MODE, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_CPE_INSTANCE_MODE, &value) == CWMP_OK) {
 		if (value != NULL) {
 			if (0 == strcmp(value, "InstanceNumber")) {
 				global_uint_param_write(&conf->instance_mode, INSTANCE_MODE_NUMBER);
@@ -454,10 +468,11 @@ int get_global_config(struct config *conf)
 			global_uint_param_write(&conf->instance_mode, DEFAULT_INSTANCE_MODE);
 		}
 	} else {
-		return error;
+		global_uint_param_write(&conf->instance_mode, DEFAULT_INSTANCE_MODE);
+		CWMP_LOG(DEBUG, "Failed to get CPE instance mode, setting default %u", DEFAULT_INSTANCE_MODE);
 	}
 
-	if ((error = uci_get_value(UCI_CPE_SESSION_TIMEOUT, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_CPE_SESSION_TIMEOUT, &value) == CWMP_OK) {
 		global_uint_param_write(&conf->session_timeout, DEFAULT_SESSION_TIMEOUT);
 		if (value != NULL) {
 			int a = atoi(value);
@@ -467,17 +482,19 @@ int get_global_config(struct config *conf)
 			FREE(value);
 		}
 	} else {
-		return error;
+		global_uint_param_write(&conf->session_timeout, DEFAULT_SESSION_TIMEOUT);
+		CWMP_LOG(DEBUG, "Failed to get CPE session timeout, setting default %ds", DEFAULT_SESSION_TIMEOUT);
 	}
 
-	if ((error = uci_get_value(LW_NOTIFICATION_ENABLE, &value)) == CWMP_OK) {
+	if (uci_get_value(LW_NOTIFICATION_ENABLE, &value) == CWMP_OK) {
 		global_bool_param_write(&conf->lw_notification_enable, uci_str_to_bool(value));
 		FREE(value);
 	} else {
-		return error;
+		global_bool_param_write(&conf->lw_notification_enable, false);
+		CWMP_LOG(DEBUG, "Failed to get LW notification enable, setting false by default");
 	}
 
-	if ((error = uci_get_value(LW_NOTIFICATION_HOSTNAME, &value)) == CWMP_OK) {
+	if (uci_get_value(LW_NOTIFICATION_HOSTNAME, &value) == CWMP_OK) {
 		global_string_param_free(&conf->lw_notification_hostname);
 		if (value != NULL) {
 			global_string_param_write(&conf->lw_notification_hostname, value);
@@ -488,10 +505,13 @@ int get_global_config(struct config *conf)
 			FREE(temp);
 		}
 	} else {
-		return error;
+		global_string_param_read(&conf->acsurl, &temp);
+		global_string_param_write(&conf->lw_notification_hostname, temp);
+		CWMP_LOG(DEBUG, "Failed to get LWN hostname, setting %s", temp);
+		FREE(temp);
 	}
 
-	if ((error = uci_get_value(LW_NOTIFICATION_PORT, &value)) == CWMP_OK) {
+	if (uci_get_value(LW_NOTIFICATION_PORT, &value) == CWMP_OK) {
 		if (value != NULL) {
 			int a = atoi(value);
 			global_int_param_write(&conf->lw_notification_port, a);
@@ -500,7 +520,8 @@ int get_global_config(struct config *conf)
 			global_int_param_write(&conf->lw_notification_port, DEFAULT_LWN_PORT);
 		}
 	} else {
-		return error;
+		global_int_param_write(&conf->lw_notification_port, DEFAULT_LWN_PORT);
+		CWMP_LOG(DEBUG, "Failed to get LWN port, setting default %d", DEFAULT_LWN_PORT);
 	}
 
 	if (uci_get_value(UCI_CPE_SCHEDULE_REBOOT, &value) == CWMP_OK) {
@@ -511,7 +532,8 @@ int get_global_config(struct config *conf)
 			global_time_param_write(&conf->schedule_reboot, 0);
 		}
 	} else {
-		return error;
+		global_time_param_write(&conf->schedule_reboot, 0);
+		CWMP_LOG(DEBUG, "Failed to get CPE schedule reboot, setting default 0");
 	}
 
 	if (uci_get_value(UCI_CPE_DELAY_REBOOT, &value) == CWMP_OK) {
@@ -524,7 +546,8 @@ int get_global_config(struct config *conf)
 
 		global_int_param_write(&conf->delay_reboot, delay);
 	} else {
-		return error;
+		global_int_param_write(&conf->delay_reboot, -1);
+		CWMP_LOG(DEBUG, "Failed to get CPE delay reboot, setting default -1");
 	}
 
 	if (uci_get_value(UCI_CPE_FORCED_INFORM_JSON, &value) == CWMP_OK) {
@@ -555,14 +578,15 @@ int get_global_config(struct config *conf)
 		}
 	}
 
-	if ((error = uci_get_value(UCI_ACS_HEARTBEAT_ENABLE, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_ACS_HEARTBEAT_ENABLE, &value) == CWMP_OK) {
 		global_bool_param_write(&conf->heart_beat_enable, uci_str_to_bool(value));
 		FREE(value);
 	} else {
-		return error;
+		global_bool_param_write(&conf->heart_beat_enable, false);
+		CWMP_LOG(DEBUG, "Failed to get ACS heartbeat enable, setting false by default");
 	}
 
-	if ((error = uci_get_value(UCI_ACS_HEARTBEAT_INTERVAL, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_ACS_HEARTBEAT_INTERVAL, &value) == CWMP_OK) {
 		int a = 30;
 
 		if (value != NULL) {
@@ -571,10 +595,11 @@ int get_global_config(struct config *conf)
 		}
 		global_int_param_write(&conf->heartbeat_interval, a);
 	} else {
-		return error;
+		global_int_param_write(&conf->heartbeat_interval, 30);
+		CWMP_LOG(DEBUG, "Failed to get ACS heartbeat interval, setting default 30s");
 	}
 
-	if ((error = uci_get_value(UCI_ACS_HEARTBEAT_TIME, &value)) == CWMP_OK) {
+	if (uci_get_value(UCI_ACS_HEARTBEAT_TIME, &value) == CWMP_OK) {
 		if (value != NULL) {
 			global_time_param_write(&conf->heart_time, convert_datetime_to_timestamp(value));
 			FREE(value);
@@ -582,7 +607,8 @@ int get_global_config(struct config *conf)
 			global_time_param_write(&conf->heart_time, 0);
 		}
 	} else {
-		return error;
+		global_time_param_write(&conf->heart_time, 0);
+		CWMP_LOG(DEBUG, "Failed to get ACS heartbeat time, setting 0 by default");
 	}
 	return CWMP_OK;
 }
