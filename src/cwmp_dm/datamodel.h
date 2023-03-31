@@ -14,11 +14,13 @@
 
 #include <libbbf_api/dmcommon.h>
 
+extern DMOBJ tCWMPObj[];
+extern DMOBJ tManagementServerObj[];
 extern DMLEAF tManagementServerParams[];
 extern DMLEAF tHeartbeatPolicyParams[];
 extern DMLEAF tInformParameterParams[];
 extern DMLEAF tManageableDeviceParams[];
 extern DMLEAF tTransferComplPolicyParams[];
 extern DMLEAF tDUStateChangeComplPolicyParams[];
-extern DMOBJ tManagementServerObj[];
+
 #endif

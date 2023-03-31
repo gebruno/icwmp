@@ -17,11 +17,10 @@
 #define TRANSFER_COMPL_SEC_NAME "transfer_complete"
 
 static char *CWMP_EVENTS[] = {"0 BOOTSTRAP", "1 BOOT", "2 PERIODIC", "3 SCHEDULED", "5 KICKED", "6 CONNECTION REQUEST", "7 TRANSFER COMPLETE", "8 DIAGNOSTICS COMPLETE", "9 REQUEST DOWNLOAD", "10 AUTONOMOUS TRANSFER COMPLETE", "11 DU STATE CHANGE COMPLETE", "M Reboot", "M ScheduleInform", "M Download", "M ScheduleDownload", "M Upload", "M ChangeDUState", "14 HEARTBEAT", NULL};
-static char *Forced_Inform_Parmeters[] = {"Device.RootDataModelVersion", "Device.DeviceInfo.HardwareVersion", "Device.DeviceInfo.SoftwareVersion", "Device.DeviceInfo.ProvisioningCode", "Device.ManagementServer.ParameterKey", "Device.ManagementServer.ConnectionRequestURL", "Device.ManagementServer.AliasBasedAddressing"};
+static char *Forced_Inform_Parmeters[] = {"Device.RootDataModelVersion", "Device.DeviceInfo.HardwareVersion", "Device.DeviceInfo.SoftwareVersion", "Device.DeviceInfo.ProvisioningCode", "Device.ManagementServer.ParameterKey", "Device.ManagementServer.ConnectionRequestURL", "Device.ManagementServer.AliasBasedAddressing", NULL};
 static char *DUStateOperationType[] = {"Install", "Update", "Uninstall", NULL};
 static char *DUStateResultType[] = {"Success", "Failure", "Both", NULL};
 static char *DUStateFaultCode[] = {"9001", "9003", "9012", "9013", "9015", "9016", "9017", "9018","9022", "9023", "9024", "9025", "9026", "9027", "9028", "9029", "9030", "9031", "9032", NULL};
-
 
 static char *TCTransferType[] = {"Upload", "Download", "Both", NULL};
 static char *TCResultType[] = {"Success", "Failure", "Both", NULL};
@@ -1294,6 +1293,21 @@ static int set_du_state_change_compl_policy_fault_code_filter(char *refparam, st
 /**********************************************************************************************************************************
 *                                            OBJ & PARAM DEFINITION
 ***********************************************************************************************************************************/
+/* ********** DynamicObj ********** */
+DM_MAP_OBJ tDynamicObj[] = {
+/* parentobj, nextobject, parameter */
+{"Device.", tCWMPObj, NULL},
+{0}
+};
+
+/*** Device. ***/
+DMOBJ tCWMPObj[] = {
+/* OBJ, permission, addobj, delobj, checkdep, browseinstobj, nextdynamicobj, dynamicleaf, nextobj, leaf, linker, bbfdm_type, uniqueKeys*/
+{"ManagementServer", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, tManagementServerObj, tManagementServerParams, NULL, BBFDM_CWMP},
+{0}
+};
+
+/*** Device.ManagementServer. ***/
 DMOBJ tManagementServerObj[] = {
 /* OBJ, permission, addobj, delobj, checkdep, browseinstobj, nextdynamicobj, dynamicleaf, nextobj, leaf, linker, bbfdm_type, uniqueKeys, version*/
 {"HeartbeatPolicy", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, NULL, tHeartbeatPolicyParams, NULL, BBFDM_CWMP, NULL, "2.12"},
@@ -1304,7 +1318,6 @@ DMOBJ tManagementServerObj[] = {
 {0}
 };
 
-/*** ManagementServer. ***/
 DMLEAF tManagementServerParams[] = {
 /* PARAM, permission, type, getvalue, setvalue, bbfdm_type, version*/
 {"URL", &DMWRITE, DMT_STRING, get_management_server_url, set_management_server_url, BBFDM_CWMP},
@@ -1378,19 +1391,5 @@ DMLEAF tDUStateChangeComplPolicyParams[] = {
 {"OperationTypeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_operation_type_filter, set_du_state_change_compl_policy_operation_type_filter, BBFDM_CWMP, "2.1"},
 {"ResultTypeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_result_type_filter, set_du_state_change_compl_policy_result_type_filter, BBFDM_CWMP, "2.1"},
 {"FaultCodeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_fault_code_filter, set_du_state_change_compl_policy_fault_code_filter, BBFDM_CWMP, "2.1"},
-{0}
-};
-
-//{"ManagementServer", &DMREAD, NULL, NULL, "file:/etc/config/cwmp", NULL, NULL, NULL, tManagementServerObj, tManagementServerParams, NULL, BBFDM_CWMP, NULL, "2.1"},
-DMOBJ tCWMPObj[] = {
-/* OBJ, permission, addobj, delobj, checkdep, browseinstobj, nextdynamicobj, dynamicleaf, nextobj, leaf, linker, bbfdm_type, uniqueKeys*/
-{"ManagementServer", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, tManagementServerObj, tManagementServerParams, NULL, BBFDM_CWMP},
-{0}
-};
-
-/* ********** DynamicObj ********** */
-DM_MAP_OBJ tDynamicObj[] = {
-/* parentobj, nextobject, parameter */
-{"Device.", tCWMPObj, NULL},
 {0}
 };
