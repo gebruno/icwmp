@@ -264,13 +264,11 @@ error:
 static void http_success_cr(void)
 {
 	CWMP_LOG(INFO, "Connection Request triggering ...");
-	pthread_mutex_lock(&cwmp_session_mutex);
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 	icwmp_ubus_invoke("tr069", "inform", b.head, NULL, NULL);
 	blob_buf_free(&b);
-	pthread_mutex_unlock(&cwmp_session_mutex);
 }
 
 static void http_cr_new_client(int client, bool service_available)

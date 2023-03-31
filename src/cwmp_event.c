@@ -14,8 +14,6 @@
 #include "backupSession.h"
 #include "log.h"
 
-pthread_mutex_t add_event_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 static struct event_container *__cwmp_add_event_container(int event_code, char *command_key)
 {
 	struct event_container *event_container = NULL;
@@ -46,9 +44,7 @@ static struct event_container *__cwmp_add_event_container(int event_code, char *
 
 struct event_container *cwmp_add_event_container(int event_code, char *command_key)
 {
-	pthread_mutex_lock(&add_event_mutex);
 	struct event_container *event = __cwmp_add_event_container(event_code, command_key);
-	pthread_mutex_unlock(&add_event_mutex);
 	return event;
 }
 

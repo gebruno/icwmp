@@ -34,7 +34,6 @@
 #include "cwmp_du_state.h"
 #include "cwmp_http.h"
 
-pthread_mutex_t cwmp_session_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void cwmp_periodic_session_timer(struct uloop_timeout *timeout);
 struct uloop_timeout session_timer = { .cb = cwmp_schedule_session };
@@ -258,7 +257,6 @@ static void set_cwmp_session_status_state(int status)
 	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
 		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-	cwmp_uci_reinit();
 	cwmp_uci_add_section_with_specific_name("cwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
 
 	switch (status) {
@@ -328,9 +326,11 @@ void start_cwmp_session()
 		CWMP_LOG(ERROR, "Not able to init a CWMP session");
 		t = cwmp_get_retry_interval(0);
 		CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
+		cwmp_uci_reinit();
 		set_cwmp_session_status(SESSION_FAILURE, t);
 		cwmp_config_load();
 		trigger_periodic_notify_check();
+		cwmp_uci_exit();
 		return;
 	}
 
@@ -451,19 +451,15 @@ void trigger_cwmp_throttle_session_timer(unsigned int delay)
 
 void cwmp_schedule_session(struct uloop_timeout *timeout  __attribute__((unused)))
 {
-	pthread_mutex_lock(&cwmp_session_mutex);
 	cwmp_main->throttle_session = false;
 	start_cwmp_session();
-	pthread_mutex_unlock(&cwmp_session_mutex);
 }
 
 
 void cwmp_schedule_throttle_session(struct uloop_timeout *timeout  __attribute__((unused)))
 {
-	pthread_mutex_lock(&cwmp_session_mutex);
 	cwmp_main->throttle_session = true;
 	start_cwmp_session();
-	pthread_mutex_unlock(&cwmp_session_mutex);
 }
 
 void trigger_cwmp_session_timer_with_event(struct uloop_timeout *timeout)
@@ -475,11 +471,9 @@ void trigger_cwmp_session_timer_with_event(struct uloop_timeout *timeout)
 
 void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 {
-	pthread_mutex_lock(&cwmp_session_mutex);
 	struct session_timer_event *session_event = container_of(timeout, struct session_timer_event, session_timer_evt);
 	if (session_event == NULL) {
 		CWMP_LOG(ERROR, "session %s: session_event is null", __FUNCTION__);
-		pthread_mutex_unlock(&cwmp_session_mutex);
 		return;
 	}
 	FREE(global_session_event);
@@ -514,7 +508,6 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 	}
 
 	start_cwmp_session();
-	pthread_mutex_unlock(&cwmp_session_mutex);
 }
 
 static void cwmp_periodic_session_timer(struct uloop_timeout *timeout  __attribute__((unused)))
@@ -610,6 +603,7 @@ int cwmp_apply_acs_changes(void)
 
 	old_heartbeat_enable = cwmp_main->conf.heart_beat_enable;
 
+	cwmp_uci_reinit();
 	if ((error = cwmp_config_reload(&cwmp_main)))
 		return error;
 
@@ -646,7 +640,6 @@ int run_session_end_func(void)
 
 	if (end_session_flag & END_SESSION_RELOAD) {
 		CWMP_LOG(INFO, "Config reload: end session request");
-		cwmp_uci_reinit();
 		if (cwmp_apply_acs_changes() != CWMP_OK) {
 			CWMP_LOG(ERROR, "config reload failed at session end");
 		}

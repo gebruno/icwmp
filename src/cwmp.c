@@ -196,6 +196,22 @@ end:
 	return 0;
 }
 
+static void configure_var_state()
+{
+	char *zone_name = NULL;
+
+	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
+		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+	cwmp_uci_add_section_with_specific_name("cwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
+	cwmp_uci_add_section_with_specific_name("cwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
+
+	get_firewall_zone_name_by_wan_iface(cwmp_main->conf.default_wan_iface, &zone_name);
+	cwmp_uci_set_varstate_value("cwmp", "acs", "zonename", zone_name ? zone_name : "wan");
+
+	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+}
+
 static int cwmp_init()
 {
 	int error;
@@ -208,9 +224,8 @@ static int cwmp_init()
 	cwmp_main->net.interface = NULL;
 	cwmp_main->net.connection_wan_iface = NULL;
 	error = get_preinit_config();
-	if (error) {
+	if (error)
 		return error;
-	}
 
 	icwmp_init_list_services();
 	/* Only One instance should run*/
@@ -237,6 +252,8 @@ static int cwmp_init()
 		return error;
 
 	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
+	cwmp_uci_init();
+	configure_var_state();
 	cwmp_config_load();
 
 	cwmp_main->prev_periodic_enable = cwmp_main->conf.periodic_enable;
@@ -278,6 +295,7 @@ static int cwmp_init()
 	cwmp_main->cwmp_period = 0;
 	cwmp_main->cwmp_periodic_time = 0;
 	cwmp_main->cwmp_periodic_enable = false;
+	cwmp_uci_exit();
 	sleep(15);
 	cwmp_main->net.ipv6_status = check_ipv6_enabled();
 	error = get_connection_parameters();
@@ -352,23 +370,6 @@ void cwmp_exit()
 	cwmp_free();
 }
 
-static void configure_var_state()
-{
-	char *zone_name = NULL;
-
-	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
-		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-	cwmp_uci_reinit();
-	cwmp_uci_add_section_with_specific_name("cwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
-	cwmp_uci_add_section_with_specific_name("cwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
-
-	get_firewall_zone_name_by_wan_iface(cwmp_main->net.connection_wan_iface, &zone_name);
-	cwmp_uci_set_varstate_value("cwmp", "acs", "zonename", zone_name ? zone_name : "wan");
-
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
-}
-
 int main(int argc, char **argv)
 {
 	int error;
@@ -393,7 +394,6 @@ int main(int argc, char **argv)
 	if ((error = cwmp_root_cause_events()))
 		return error;
 
-	configure_var_state();
 	icwmp_http_server_init();
 
 	uloop_init();

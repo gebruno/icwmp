@@ -357,7 +357,6 @@ void create_list_param_obj_notify()
 	struct uci_element *e = NULL;
 	int i;
 
-	cwmp_uci_reinit();
 	for (i = 0; i < 7; i++) {
 		int option_type;
 		option_type = cwmp_uci_get_option_value_list("cwmp_notifications", "@notifications[0]", notifications[i], UCI_ETCICWMPD_CONFIG, &list_notif);
@@ -417,6 +416,7 @@ void clean_list_param_notify()
 
 void reinit_list_param_notify()
 {
+	cwmp_uci_reinit();
 	clean_list_param_notify();
 	init_list_param_notify();
 }

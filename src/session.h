@@ -15,7 +15,6 @@
 #include <mxml.h>
 #include "common.h"
 
-extern pthread_mutex_t cwmp_session_mutex;
 extern struct uloop_timeout retry_session_timer;
 
 typedef struct session_status {
