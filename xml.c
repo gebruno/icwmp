@@ -140,9 +140,19 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 	mxml_node_t *b;
 	int compression = global_int_param_read(&cwmp->conf.compression);
 
+	if (session == NULL) {
+		CWMP_LOG(ERROR, "Received session is NULL");
+		return -1;
+	}
+
 	if (session->tree_out) {
 		unsigned char *zmsg_out;
 		msg_out = mxmlSaveAllocString(session->tree_out, whitespace_cb);
+		if (msg_out == NULL) {
+			CWMP_LOG(ERROR, "Received tree_out is empty");
+			return -1;
+		}
+
 		CWMP_LOG_XML_MSG(DEBUG, msg_out, XML_MSG_OUT);
 		if (compression != COMP_NONE) {
 			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, compression)) {

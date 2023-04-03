@@ -163,6 +163,10 @@ void puts_log_xmlmsg(int severity, char *msg, int msgtype)
 	char buf[1024];
 	char *description, *separator;
 
+	if (msg == NULL) {
+		return;
+	}
+
 	pthread_mutex_lock(&mutex_log);
 
 	if (severity > log_severity) {

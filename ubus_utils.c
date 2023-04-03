@@ -397,16 +397,33 @@ int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg
 {
 	uint32_t id;
 	int rc = 0;
+	int retry = 0;
 
 	struct ubus_context *ubus_ctx = NULL;
 
 	ubus_ctx = ubus_connect(NULL);
+	while (ubus_ctx == NULL && retry < 5) {
+		retry ++;
+		CWMP_LOG(DEBUG, "Failed to connect ubus retry after 1 sec");
+		sleep(1);
+		ubus_ctx = ubus_connect(NULL);
+	}
+
 	if (ubus_ctx == NULL) {
-		CWMP_LOG(ERROR, "Failed to connect with ubus");
+		CWMP_LOG(ERROR, "Failed to connect with ubus err: %d", errno);
 		return -1;
 	}
 
-	if (!ubus_lookup_id(ubus_ctx, obj, &id)) {
+	retry = 0;
+	rc = ubus_lookup_id(ubus_ctx, obj, &id);
+	while (rc != 0 && retry < 5) {
+		retry ++;
+		CWMP_LOG(DEBUG, "Failed to ubus lookup %s, retry after 1 sec", obj);
+		sleep(1);
+		rc = ubus_lookup_id(ubus_ctx, obj, &id);
+	}
+
+	if (!rc) {
 		rc = ubus_invoke(ubus_ctx, id, method, msg, icwmp_callback, callback_arg, 60000);
 	} else {
 		CWMP_LOG(ERROR, "Failed to ubus lookup %s", obj);
