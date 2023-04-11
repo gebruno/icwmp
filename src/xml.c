@@ -1364,9 +1364,19 @@ int xml_send_message(struct rpc *rpc)
 	int msg_out_len = 0, f, r = 0;
 	mxml_node_t *b;
 
+	if (cwmp_main->session == NULL) {
+		CWMP_LOG(ERROR, "cwmp session not exist");
+		return -1;
+	}
+
 	if (cwmp_main->session->tree_out) {
 		unsigned char *zmsg_out;
 		msg_out = mxmlSaveAllocString(cwmp_main->session->tree_out, whitespace_cb);
+		if (msg_out == NULL) {
+			CWMP_LOG(ERROR, "Received tree_out is empty");
+			return -1;
+		}
+
 		CWMP_LOG_XML_MSG(DEBUG, msg_out, XML_MSG_OUT);
 		if (cwmp_main->conf.compression != COMP_NONE) {
 			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, cwmp_main->conf.compression)) {
@@ -1375,7 +1385,7 @@ int xml_send_message(struct rpc *rpc)
 			FREE(msg_out);
 			msg_out = (char *)zmsg_out;
 		} else {
-			msg_out_len = msg_out ? strlen(msg_out) : 0;
+			msg_out_len = strlen(msg_out);
 		}
 	}
 	while (1) {

@@ -400,8 +400,10 @@ int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg
 	struct ubus_context *ctx = NULL;
 
 	ctx = ubus_connect(NULL);
-	if (ctx == NULL)
+	if (ctx == NULL) {
+		CWMP_LOG(ERROR, "Failed to connect with ubus err: %d", errno);
 		return -1;
+	}
 
 	if (!ubus_lookup_id(ctx, obj, &id))
 		rc = ubus_invoke(ctx, id, method, msg, icwmp_callback, callback_arg, 20000);

@@ -355,35 +355,46 @@ static void http_cr_new_client(int client, bool service_available)
 http_end:
 	if (!service_available || !method_is_get) {
 		CWMP_LOG(INFO, "Receive Connection Request: Return 503 Service Unavailable");
-		fputs("HTTP/1.1 503 Service Unavailable\r\n", fp);
-		fputs("Connection: close\r\n", fp);
-		fputs("Content-Length: 0\r\n", fp);
-		fputs("\r\n", fp);
-		fclose(fp);
+		if (fp) {
+			fputs("HTTP/1.1 503 Service Unavailable\r\n", fp);
+			fputs("Connection: close\r\n", fp);
+			fputs("Content-Length: 0\r\n", fp);
+			fputs("\r\n", fp);
+			fclose(fp);
+		}
 		close(client);
 	} else if (auth_status) {
 		CWMP_LOG(INFO, "Receive Connection Request: success authentication");
-		fputs("HTTP/1.1 200 OK\r\n", fp);
-		fputs("Connection: close\r\n", fp);
-		fputs("Content-Length: 0\r\n", fp);
-		fputs("\r\n", fp);
-		fclose(fp);
+		if (fp) {
+			fputs("HTTP/1.1 200 OK\r\n", fp);
+			fputs("Connection: close\r\n", fp);
+			fputs("Content-Length: 0\r\n", fp);
+			fputs("\r\n", fp);
+			fclose(fp);
+		}
 		close(client);
 		http_success_cr();
 	} else if (internal_error) {
 		CWMP_LOG(INFO, "Receive Connection Request: Return 500 Internal Error");
-		fputs("HTTP/1.1 500 Internal Server Error\r\n", fp);
-		fputs("Connection: close\r\n", fp);
-		fputs("Content-Length: 0\r\n", fp);
+		if (fp) {
+			fputs("HTTP/1.1 500 Internal Server Error\r\n", fp);
+			fputs("Connection: close\r\n", fp);
+			fputs("Content-Length: 0\r\n", fp);
+			fputs("\r\n", fp);
+			fclose(fp);
+		}
+		close(client);
 	}
 	else {
 		CWMP_LOG(INFO, "Receive Connection Request: Return 401 Unauthorized");
-		fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
-		fputs("Connection: close\r\n", fp);
-		http_authentication_failure_resp(fp, "GET", cwmp_main->conf.connection_request_path, REALM, OPAQUE);
-		fputs("\r\n", fp);
-		fputs("\r\n", fp);
-		fclose(fp);
+		if (fp) {
+			fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
+			fputs("Connection: close\r\n", fp);
+			http_authentication_failure_resp(fp, "GET", cwmp_main->conf.connection_request_path, REALM, OPAQUE);
+			fputs("\r\n", fp);
+			fputs("\r\n", fp);
+			fclose(fp);
+		}
 		close(client);
 	}
 }
@@ -392,11 +403,15 @@ void icwmp_http_server_init(void)
 {
 	struct sockaddr_in6 server = { 0 };
 	unsigned short cr_port;
+	unsigned short prev_cr_port = (unsigned short)(cwmp_main->conf.connection_request_port);
 
 	for (;;) {
 		cr_port = (unsigned short)(cwmp_main->conf.connection_request_port);
 		unsigned short i = (DEFAULT_CONNECTION_REQUEST_PORT == cr_port) ? 1 : 0;
 		//Create socket
+		if (cwmp_stop)
+			return;
+
 		cwmp_main->cr_socket_desc = socket(AF_INET6, SOCK_STREAM, 0);
 		if (cwmp_main->cr_socket_desc == -1) {
 			CWMP_LOG(ERROR, "Could not open server socket for Connection Requests, Error no is : %d, Error description is : %s", errno, strerror(errno));
@@ -416,6 +431,9 @@ void icwmp_http_server_init(void)
 		server.sin6_addr = in6addr_any;
 
 		for (;; i++) {
+			if (cwmp_stop)
+				return;
+
 			server.sin6_port = htons(cr_port);
 			//Bind
 			if (bind(cwmp_main->cr_socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
@@ -429,20 +447,24 @@ void icwmp_http_server_init(void)
 		}
 		break;
 	}
-	char cr_port_str[6];
-	snprintf(cr_port_str, 6, "%hu", cr_port);
-	cr_port_str[5] = '\0';
-	cwmp_uci_init();
-	cwmp_uci_set_value("cwmp", "cpe", "port", cr_port_str);
-	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
-	connection_request_port_value_change(cr_port);
-	cwmp_uci_exit();
+
+	if (cr_port != prev_cr_port) {
+		char cr_port_str[6];
+		snprintf(cr_port_str, 6, "%hu", cr_port);
+		cr_port_str[5] = '\0';
+		cwmp_uci_init();
+		cwmp_uci_set_value("cwmp", "cpe", "port", cr_port_str);
+		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+		connection_request_port_value_change(cr_port);
+		cwmp_uci_exit();
+	}
+
 	CWMP_LOG(INFO, "Connection Request server initiated with the port: %d", cr_port);
 }
 
 void icwmp_http_server_listen(void)
 {
-	int client_sock, c;
+	int c;
 	int cr_request = 0;
 	time_t restrict_start_time = 0;
 	struct sockaddr_in6 client;
@@ -452,12 +474,23 @@ void icwmp_http_server_listen(void)
 
 	//Accept and incoming connection
 	c = sizeof(struct sockaddr_in);
-	while ((client_sock = accept(cwmp_main->cr_socket_desc, (struct sockaddr *)&client, (socklen_t *)&c))) {
-		bool service_available;
-		time_t current_time;
-		
+	do {
 		if (cwmp_stop)
 			return;
+
+		int client_sock = accept(cwmp_main->cr_socket_desc, (struct sockaddr *)&client, (socklen_t *)&c);
+		if (client_sock < 0) {
+			CWMP_LOG(ERROR, "Could not accept connections for Connection Request!");
+			shutdown(cwmp_main->cr_socket_desc, SHUT_RDWR);
+			icwmp_http_server_init();
+			listen(cwmp_main->cr_socket_desc, 3);
+			cr_request = 0;
+			restrict_start_time = 0;
+			continue;
+		}
+
+		bool service_available;
+		time_t current_time;
 
 		current_time = time(NULL);
 		service_available = true;
@@ -472,10 +505,5 @@ void icwmp_http_server_listen(void)
 			}
 		}
 		http_cr_new_client(client_sock, service_available);
-	}
-
-	if (client_sock < 0) {
-		CWMP_LOG(ERROR, "Could not accept connections for Connection Requests!");
-		return;
-	}
+	} while (1);
 }
