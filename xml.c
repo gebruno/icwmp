@@ -149,14 +149,14 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 	if (session->tree_out) {
 		CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 		unsigned char *zmsg_out;
-		msg_out = mxmlSaveAllocString(session->tree_out, whitespace_cb);
+		msg_out = mxmlSaveAllocString(session->tree_out, MXML_NO_CALLBACK);
 		if (msg_out == NULL) {
 			CWMP_LOG(ERROR, "Received tree_out is empty");
 			return -1;
 		}
 
-		CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 		CWMP_LOG_XML_MSG(DEBUG, msg_out, XML_MSG_OUT);
+		CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 		if (compression != COMP_NONE) {
 			CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, compression)) {
@@ -318,6 +318,7 @@ int xml_set_cwmp_id_rpc_cpe(struct session *session)
 
 const char *get_node_tab_space(mxml_node_t *node)
 {
+	CWMP_LOG(INFO, "#### %s start %d ####", __FUNCTION__, __LINE__);
 	static char tab_space[10 * sizeof(CWMP_MXML_TAB_SPACE) + 1];
 	int count = 0;
 
@@ -330,33 +331,52 @@ const char *get_node_tab_space(mxml_node_t *node)
 		snprintf(tab_space, sizeof(tab_space), "%*s", (int)(count * sizeof(CWMP_MXML_TAB_SPACE)), "");
 	}
 
+	CWMP_LOG(INFO, "#### %s exit %d count %d ####", __FUNCTION__, __LINE__, count);
 	return tab_space;
 }
 
-const char *whitespace_cb(mxml_node_t *node, int where __attribute__((unused)))
+const char *whitespace_cb(mxml_node_t *node, int where)
 {
-	if (mxmlGetType(node) != MXML_ELEMENT)
-		return NULL;
-
-	switch (where) {
-	case MXML_WS_BEFORE_CLOSE:
-		if (mxmlGetFirstChild(node) && mxmlGetType(mxmlGetFirstChild(node)) != MXML_ELEMENT)
-			return NULL;
-
-		return get_node_tab_space(node);
-	case MXML_WS_BEFORE_OPEN:
-		if (where == MXML_WS_BEFORE_CLOSE && mxmlGetFirstChild(node) && mxmlGetType(mxmlGetFirstChild(node)) != MXML_ELEMENT)
-			return NULL;
-
-		return get_node_tab_space(node);
-	case MXML_WS_AFTER_OPEN:
-		return ((mxmlGetFirstChild(node) == NULL || mxmlGetType(mxmlGetFirstChild(node)) == MXML_ELEMENT) ? "\n" : NULL);
-	case MXML_WS_AFTER_CLOSE:
-		return "\n";
-	default:
+	CWMP_LOG(INFO, "#### %s start ####", __FUNCTION__);
+	if (node == NULL) {
+		CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
 		return NULL;
 	}
 
+	if (mxmlGetType(node) != MXML_ELEMENT) {
+		CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
+		return NULL;
+	}
+
+	switch (where) {
+	case MXML_WS_BEFORE_CLOSE:
+		if (mxmlGetFirstChild(node) && mxmlGetType(mxmlGetFirstChild(node)) != MXML_ELEMENT) {
+			CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
+			return NULL;
+		}
+
+		CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
+		return get_node_tab_space(node);
+	case MXML_WS_BEFORE_OPEN:
+		if (where == MXML_WS_BEFORE_CLOSE && mxmlGetFirstChild(node) && mxmlGetType(mxmlGetFirstChild(node)) != MXML_ELEMENT) {
+			CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
+			return NULL;
+		}
+
+		CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
+		return get_node_tab_space(node);
+	case MXML_WS_AFTER_OPEN:
+		CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
+		return ((mxmlGetFirstChild(node) == NULL || mxmlGetType(mxmlGetFirstChild(node)) == MXML_ELEMENT) ? "\n" : NULL);
+	case MXML_WS_AFTER_CLOSE:
+		CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
+		return "\n";
+	default:
+		CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
+		return NULL;
+	}
+
+	CWMP_LOG(INFO, "#### %s exit %d ####", __FUNCTION__, __LINE__);
 	return NULL;
 }
 
