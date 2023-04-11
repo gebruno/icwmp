@@ -30,7 +30,7 @@
 static struct http_client http_c;
 
 static CURL *curl = NULL;
-
+static bool curl_glob_init = false;
 char *fc_cookies = "/tmp/icwmp_cookies";
 
 void http_set_timeout(void)
@@ -87,6 +87,7 @@ int http_client_init(struct cwmp *cwmp)
 	/* TODO debug ssl config from freecwmp*/
 
 	curl_global_init(CURL_GLOBAL_SSL);
+	curl_glob_init = true;
 	curl = curl_easy_init();
 	if (!curl) {
 		CWMP_LOG(DEBUG, "#### exit func: %s, line: %d error", __FUNCTION__, __LINE__);
@@ -126,7 +127,12 @@ void http_client_exit(void)
 		curl_easy_cleanup(curl);
 		curl = NULL;
 	}
-	curl_global_cleanup();
+
+	if (curl_glob_init) {
+		curl_global_cleanup();
+		curl_glob_init = false;
+	}
+
 	CWMP_LOG(DEBUG, "#### exit func: %s, line: %d", __FUNCTION__, __LINE__);
 }
 
@@ -371,7 +377,9 @@ static void http_cr_new_client(int client, bool service_available)
 	global_string_param_read(&cwmp_main.conf.connection_request_path, &temp);
 	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", temp);
 	FREE(temp);
+	CWMP_LOG(INFO, "#### HTTP Head: (%s)", cr_http_get_head);
 	while (fgets(buffer, sizeof(buffer), fp)) {
+		CWMP_LOG(INFO, "#### BUFFER: (%s)", buffer);
 		if (buffer[0] == '\r' || buffer[0] == '\n') {
 			/* end of http request (empty line) */
 			break;
