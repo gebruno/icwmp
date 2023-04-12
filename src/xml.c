@@ -1371,7 +1371,7 @@ int xml_send_message(struct rpc *rpc)
 
 	if (cwmp_main->session->tree_out) {
 		unsigned char *zmsg_out;
-		msg_out = mxmlSaveAllocString(cwmp_main->session->tree_out, whitespace_cb);
+		msg_out = mxmlSaveAllocString(cwmp_main->session->tree_out, MXML_NO_CALLBACK);
 		if (msg_out == NULL) {
 			CWMP_LOG(ERROR, "Received tree_out is empty");
 			return -1;
@@ -1534,50 +1534,6 @@ int xml_set_cwmp_id_rpc_cpe()
 	return 0;
 }
 
-const char *get_node_tab_space(mxml_node_t *node)
-{
-	static char tab_space[10 * sizeof(CWMP_MXML_TAB_SPACE) + 1];
-	int count = 0;
-
-	memset(tab_space, 0, sizeof(tab_space));
-	while ((node = mxmlGetParent(node))) {
-		count = count + 1;
-	}
-
-	if (count) {
-		snprintf(tab_space, sizeof(tab_space), "%*s", (int)(count * sizeof(CWMP_MXML_TAB_SPACE)), "");
-	}
-
-	return tab_space;
-}
-
-const char *whitespace_cb(mxml_node_t *node, int where __attribute__((unused)))
-{
-	if (mxmlGetType(node) != MXML_ELEMENT)
-		return NULL;
-
-	switch (where) {
-	case MXML_WS_BEFORE_CLOSE:
-		if (mxmlGetFirstChild(node) && mxmlGetType(mxmlGetFirstChild(node)) != MXML_ELEMENT)
-			return NULL;
-
-		return get_node_tab_space(node);
-	case MXML_WS_BEFORE_OPEN:
-		if (where == MXML_WS_BEFORE_CLOSE && mxmlGetFirstChild(node) && mxmlGetType(mxmlGetFirstChild(node)) != MXML_ELEMENT)
-			return NULL;
-
-		return get_node_tab_space(node);
-	case MXML_WS_AFTER_OPEN:
-		return ((mxmlGetFirstChild(node) == NULL || mxmlGetType(mxmlGetFirstChild(node)) == MXML_ELEMENT) ? "\n" : NULL);
-	case MXML_WS_AFTER_CLOSE:
-		return "\n";
-	default:
-		return NULL;
-	}
-
-	return NULL;
-}
-
 char *xml_get_cwmp_version(int version)
 {
 	static char versions[60];
@@ -1638,7 +1594,7 @@ int xml_prepare_lwnotification_message(char **msg_out)
 	if (!lw_tree)
 		goto error;
 
-	*msg_out = mxmlSaveAllocString(lw_tree, whitespace_cb);
+	*msg_out = mxmlSaveAllocString(lw_tree, MXML_NO_CALLBACK);
 
 	mxmlDelete(lw_tree);
 	return 0;

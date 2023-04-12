@@ -30,7 +30,7 @@
 static struct http_client http_c;
 
 static CURL *curl = NULL;
-
+static bool curl_glob_init = false;
 char *fc_cookies = "/tmp/icwmp_cookies";
 
 void http_set_timeout(void)
@@ -48,6 +48,7 @@ int icwmp_http_client_init()
 	CWMP_LOG(INFO, "ACS url: %s", http_c.url);
 
 	curl_global_init(CURL_GLOBAL_SSL);
+	curl_glob_init = true;
 	curl = curl_easy_init();
 	if (!curl)
 		return -1;
@@ -69,7 +70,11 @@ void icwmp_http_client_exit(void)
 		curl_easy_cleanup(curl);
 		curl = NULL;
 	}
-	curl_global_cleanup();
+
+	if (curl_glob_init) {
+		curl_global_cleanup();
+		curl_glob_init = false;
+	}
 }
 
 static size_t http_get_response(void *buffer, size_t size, size_t rxed, char **msg_in)
