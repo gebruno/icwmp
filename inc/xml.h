@@ -21,7 +21,6 @@ int xml_prepare_msg_out(struct session *session);
 int xml_prepare_lwnotification_message(char **msg_out);
 int xml_set_cwmp_id_rpc_cpe(struct session *session);
 int xml_recreate_namespace(mxml_node_t *tree);
-const char *whitespace_cb(mxml_node_t *node, int where);
 int xml_set_cwmp_id(struct session *session);
 int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc);
 mxml_node_t *mxmlFindElementOpaque(mxml_node_t *node, mxml_node_t *top, const char *text, int descend);

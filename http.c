@@ -28,7 +28,7 @@
 #define HTTP_GET_HDR_LEN 512
 
 static struct http_client http_c;
-
+static bool curl_glob_init = false;
 static CURL *curl = NULL;
 
 char *fc_cookies = "/tmp/icwmp_cookies";
@@ -81,6 +81,7 @@ int http_client_init(struct cwmp *cwmp)
 	/* TODO debug ssl config from freecwmp*/
 
 	curl_global_init(CURL_GLOBAL_SSL);
+	curl_glob_init = true;
 	curl = curl_easy_init();
 	if (!curl)
 		return -1;
@@ -116,7 +117,11 @@ void http_client_exit(void)
 		curl_easy_cleanup(curl);
 		curl = NULL;
 	}
-	curl_global_cleanup();
+
+	if (curl_glob_init) {
+		curl_global_cleanup();
+		curl_glob_init = false;
+	}
 }
 
 static size_t http_get_response(void *buffer, size_t size, size_t rxed, char **msg_in)
