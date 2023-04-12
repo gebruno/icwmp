@@ -28,7 +28,6 @@
 #define HTTP_GET_HDR_LEN 512
 
 static struct http_client http_c;
-
 static CURL *curl = NULL;
 static bool curl_glob_init = false;
 char *fc_cookies = "/tmp/icwmp_cookies";

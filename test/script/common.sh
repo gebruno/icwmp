@@ -68,6 +68,7 @@ function print_tag_value()
 	tag=$2
 	output=$(sed -n "/<"$rpc_method">/,/<\/"$rpc_method">/p" $icwmp_log_file)
 	xml_data=$(echo $output | grep -o "<"$rpc_method">.*<\/"$rpc_method">")
+
 	tag_value=`grep -oPm1 "(?<=<$tag>)[^<]+" <<< "$xml_data"`
 	echo $tag_value
 }
