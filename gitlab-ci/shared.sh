@@ -75,10 +75,10 @@ function configure_download_firmware()
 
 function check_cwmp_status()
 {
+	echo "icwmp status"
 	iter=0
 	state=0
-	while [ $iter -lt 10 ]
-	do
+	while [ $iter -lt 10 ]; do
 		status=`ubus call tr069 status | jq -r ".cwmp.status"`
 		if [ "${status}" == "up" ]; then
 			state=1
@@ -90,7 +90,7 @@ function check_cwmp_status()
 	done
 
 	if [ $state -eq 0 ]; then
-		echo "icwmpd is not started correctly, (the current status=$status)"
+		echo "icwmpd is not started correctly, (the current status=${status})"
 		exit 1
 	fi
 }
@@ -132,17 +132,19 @@ function build_icwmp()
 	cd ..
 }
 
-function install_uspd()
+function install_bbfdmd()
 {
-	# install uspd
-	cd /opt/dev
-	rm -rf uspd
-	exec_cmd git clone https://dev.iopsys.eu/iopsys/uspd.git
-	cd /opt/dev/uspd
-	exec_cmd ./gitlab-ci/install-dependencies.sh
-	exec_cmd ./gitlab-ci/setup.sh
-	exec_cmd make
-	exec_cmd cp uspd /usr/sbin/uspd
+	[ -d "/opt/dev/bbfdm" ] && rm -rf /opt/dev/bbfdm
+
+	if [ -n "${BBFDM_BRANCH}" ]; then
+		exec_cmd git clone -b ${BBFDM_BRANCH} https://dev.iopsys.eu/bbf/bbfdm.git /opt/dev/bbfdm
+	else
+		exec_cmd git clone https://dev.iopsys.eu/bbf/bbfdm.git /opt/dev/bbfdm
+	fi
+
+	cd /opt/dev/bbfdm
+	cmake CMakeLists.txt -DBBFDMD_ENABLED=ON -DBBF_TR181=ON -DBBF_TR104=ON -DBBF_TR143=ON -DWITH_OPENSSL=ON -DBBF_JSON_PLUGIN=ON -DBBF_DOTSO_PLUGIN=ON -DBBF_VENDOR_EXTENSION=ON -DBBF_VENDOR_LIST="iopsys" -DBBF_VENDOR_PREFIX="X_IOPSYS_EU_" -DBBF_MAX_OBJECT_INSTANCES=255  -DCMAKE_INSTALL_PREFIX=/
+	make && make install
 }
 
 function check_valgrind_xml() {

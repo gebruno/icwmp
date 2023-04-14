@@ -737,7 +737,7 @@ static int set_management_server_retry_interval_multiplier(char *refparam, struc
 static int get_alias_based_addressing(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
 	char *res = dmuci_get_option_value_fallback_def("cwmp", "cpe", "amd_version", "5");
-	*value = (DM_STRTOL(res) <= AMD_4) ? "false" : "true";
+	*value = (DM_STRTOL(res) <= 4) ? "false" : "true";
 	return 0;
 }
 

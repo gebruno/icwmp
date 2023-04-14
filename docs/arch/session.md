@@ -81,7 +81,7 @@ The RPC ACS call starts by preparing needed data after executing some features i
 
 - **Inform**
 
-    Data present in the Inform call message are gotten form runtime variables and lists like events and also by execting internal get value (ubus usp.raw call) of some parameters for DeviceId and ParameterList.
+    Data present in the Inform call message are gotten form runtime variables and lists like events and also by execting internal get value (ubus call bbf) of some parameters for DeviceId and ParameterList.
 
 - **TransferComplete**
 
@@ -89,7 +89,7 @@ The RPC ACS call starts by preparing needed data after executing some features i
 
 - **AutonomousTransferComplete and AutonomousDUStateChangeComplete**
 
-    Corresponding data are gotten from when receiving the ubus event usp.event.
+    Corresponding data are gotten from when receiving the ubus event bbfdm.event.
 
 After getting needed data, the corresponding RPC ACS prepare_message prepare the SOAP message that will be after that integrating as a body of a HTTP Request message. Then using curl library the HTTP layer part sends the HTTP Request to the ACS..
 In the next step after the CPE receive the HTTP response from the ACS, it extracts the SOAP message and then needed data from the SOAP message.

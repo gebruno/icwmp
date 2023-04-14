@@ -31,6 +31,6 @@ all: libunit ${UNIT_TESTS}
 	echo "All test done"
 
 clean:
-	rm -fv *.o libicwmp.so ${UNIT_TESTS}
+	rm -rf *.o libicwmp.so ${UNIT_TESTS} memory-report.xml
 
 .PHONY: clean unit-test

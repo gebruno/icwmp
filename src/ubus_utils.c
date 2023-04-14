@@ -427,7 +427,7 @@ int initiate_autonomous_complpolicy(void)
 	memset(cwmp_main->ev, 0, sizeof(struct ubus_event_handler));
 	cwmp_main->ev->cb = autonomous_notification_handler;
 
-	int ret = ubus_register_event_handler(ubus_ctx, cwmp_main->ev, "usp.event");
+	int ret = ubus_register_event_handler(ubus_ctx, cwmp_main->ev, "bbfdm.event");
 	if (ret) {
 		return -1;
 	}

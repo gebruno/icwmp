@@ -100,7 +100,7 @@ char *check_valid_parameter_path(char *parameter_name)
 	LIST_HEAD(parameters_list);
 
 	/*check if parameter name is valid parameter path*/
-	error = cwmp_get_parameter_names(parameter_name, true, &parameters_list);
+	error = cwmp_get_parameter_names(parameter_name, false, &parameters_list);
 
 	if (error != NULL && strcmp(error, "9003") == 0)
 		error = cwmp_get_parameter_values(parameter_name, &parameters_list);
@@ -526,16 +526,16 @@ void load_custom_notify_json()
 
 void set_default_forced_active_parameters_notifications()
 {
-	int i;
-	int nbre_default_active_parameters = (int)ARRAY_SIZE(default_active_notifications_parameters);
-	for (i = 0; i < nbre_default_active_parameters; i++) {
+	for (size_t i = 0; i < ARRAY_SIZE(default_active_notifications_parameters); i++) {
 		char *fault = cwmp_set_parameter_attributes(default_active_notifications_parameters[i], 2);
 		if (fault == NULL)
 			continue;
+
 		if (strcmp(fault, "9005") == 0) {
 			CWMP_LOG(WARNING, "The parameter %s is wrong path", default_active_notifications_parameters[i]);
 			continue;
 		}
+
 		if (strcmp(fault, "9009") == 0) {
 			CWMP_LOG(WARNING, "This parameter %s is forced notification parameter, can't be changed", default_active_notifications_parameters[i]);
 			continue;
@@ -690,7 +690,8 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 
 	if (cr_url_retry) {
 		struct cwmp_dm_parameter cwmp_dm_param = {0};
-		if (NULL != cwmp_get_single_parameter_value("Device.ManagementServer.ConnectionRequestURL", &cwmp_dm_param)) {
+
+		if (!cwmp_get_parameter_value("Device.ManagementServer.ConnectionRequestURL", &cwmp_dm_param)) {
 			uloop_timeout_set(&check_notify_timer, UPSTREAM_STABILITY_CHECK_TIMESPAN * 1000);
 			cr_url_retry = cr_url_retry - 1;
 			return;

@@ -40,7 +40,7 @@ config lwn 'lwn'
 
 !!! note
     
-    `icwmpd` depends on usp.raw for all datamodel parameters, some `DeviceId` related parameters can be overwritten by writing them directly on `/etc/config/cwmp` file.
+    `icwmpd` depends on bbf for all datamodel parameters, some `DeviceId` related parameters can be overwritten by writing them directly on `/etc/config/cwmp` file.
 
 ```bash
 uci set cwmp.cpe.manufacturer="ABC"
@@ -57,7 +57,7 @@ uci commit cwmp
     
     Complete UCI for `cwmp` configuration available in [link](./docs/api/uci/cwmp.md) or [raw schema](https://dev.iopsys.eu/iopsys/icwmp/-/blob/devel/schemas/uci/cwmp.json)
     
-    icwmpd gets the datamodel from the DUT via ubus using uspd, and also it registers `tr069` ubus namespace to expose some debug and cwmp client rpc funtionalities, so it is required to start it after starting `ubusd` and `uspd`.
+    icwmpd gets the datamodel from the DUT via ubus using bbfdmd, and also it registers `tr069` ubus namespace to expose some debug and cwmp client rpc funtionalities, so it is required to start it after starting `ubusd` and `bbfdmd`.
 
 ## Important topics
 * [icwmp design](./docs/arch/design.md)
@@ -90,6 +90,4 @@ Runtime dependencies:
 | Dependency  | Link                                        | License        |
 | ----------- | ------------------------------------------- | -------------- |
 | ubus        | https://git.openwrt.org/project/ubus.git    | LGPL 2.1       |
-| bbf         | https://dev.iopsys.eu/iopsys/bbf.git        | LGPLv2.1       |
-| uspd        | https://dev.iopsys.eu/iopsys/uspd.git       | GPL v2.0       |
-
+| bbfdm       | https://dev.iopsys.eu/bbf/bbfdm.git         | LGPLv2.1       |

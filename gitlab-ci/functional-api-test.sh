@@ -12,11 +12,12 @@ build_icwmp
 
 mkdir -p /var/state/icwmpd
 echo "Starting dependent services"
-supervisorctl status all
 supervisorctl update
+sleep 2
 supervisorctl restart all
-exec_cmd ubus wait_for usp.raw tr069
+sleep 10
 supervisorctl status all
+exec_cmd ubus wait_for bbfdm tr069
 
 # wait until cwmp status is up
 check_cwmp_status

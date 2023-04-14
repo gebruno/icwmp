@@ -30,5 +30,5 @@ char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 char *cmd_get_notif_exec_func(struct cmd_input in, union cmd_result *res);
 char *cmd_set_notif_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)));
 char *cmd_get_names_exec_func(struct cmd_input in, union cmd_result *res);
-char* execute_cwmp_cli_command(char *cmd, char *args[]);
+char *execute_cwmp_cli_command(char *cmd, char *args[]);
 #endif

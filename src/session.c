@@ -545,10 +545,10 @@ void initiate_cwmp_periodic_session_feature()
 	uloop_timeout_cancel(&periodic_session_timer);
 	if (cwmp_main->conf.periodic_enable && cwmp_main->conf.period > 0) {
 		if (cwmp_main->conf.time > 0){
-			CWMP_LOG(INFO, "Init periodic inform: periodic_inform time = %ld, interval = %d\n", cwmp_main->conf.time, cwmp_main->conf.period);
+			CWMP_LOG(INFO, "Init periodic inform: periodic_inform time = %ld, interval = %d", cwmp_main->conf.time, cwmp_main->conf.period);
 			uloop_timeout_set(&periodic_session_timer, cwmp_periodic_session_time() * 1000);
 		} else {
-			CWMP_LOG(INFO, "Init periodic inform: interval = %d\n", cwmp_main->conf.period);
+			CWMP_LOG(INFO, "Init periodic inform: interval = %d", cwmp_main->conf.period);
 			cwmp_main->session->session_status.next_periodic = time(NULL) + cwmp_main->conf.period;
 			uloop_timeout_set(&periodic_session_timer, cwmp_main->conf.period * 1000);
 		}

@@ -12,10 +12,12 @@ echo "Compiling icmwp"
 build_icwmp
 
 echo "Starting dependent services"
-supervisorctl status all
 supervisorctl update
+sleep 2
 supervisorctl restart all
+sleep 2
 supervisorctl stop icwmpd
+sleep 2
 supervisorctl status all
 
 echo "Configuring genieacs"
@@ -25,7 +27,7 @@ mkdir -p /var/state/icwmpd
 
 echo "Starting icwmpd deamon"
 supervisorctl start icwmpd
-sleep 5
+sleep 10
 
 echo "Checking cwmp status"
 check_cwmp_status
@@ -37,8 +39,9 @@ echo "## Running script verification of functionalities ##"
 echo > ./funl-test-result.log
 echo > ./funl-test-debug.log
 test_num=0
-for test in `cat test/script/test_seq.txt`; do
-	ret=0
+
+for test in $(ls test/script/0*.sh); do
+	test=$(basename ${test})
 	test_num=$(( test_num + 1 ))
 
 	echo "#### Start $test ####" >> "$icwmp_master_log"
@@ -47,13 +50,13 @@ for test in `cat test/script/test_seq.txt`; do
 		echo "ok ${test_num} - ${test}" >> ./funl-test-result.log
 		remove_icwmp_log
 		echo "#### $test Done ####" >> "$icwmp_master_log"
+		echo "#### $test Done ####"
 	else
 		echo "not ok ${test_num} - ${test}" >> ./funl-test-result.log
 		remove_icwmp_log
 		echo "#### $test Ended with error ####" >> "$icwmp_master_log"
-		ret=1
+		echo "#### $test Ended with error ####"
 	fi
-	echo "########### $test result $ret ##########"
 done
 
 echo "Stop all services"

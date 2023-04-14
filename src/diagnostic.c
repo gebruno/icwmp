@@ -1,10 +1,10 @@
 /*
  * diagnostic.c - Manage Diagnostics parameters from icwmp
  *
- * Copyright (C) 2021-2022, IOPSYS Software Solutions AB.
+ * Copyright (C) 2021-2023, IOPSYS Software Solutions AB.
  *
  *	  Author Imen Bhiri <imen.bhiri@pivasoftware.com>
- *	  Author: Amin Ben Ramdhane <amin.benramdhane@pivasoftware.com>
+ *	  Author: Amin Ben Romdhane <amin.benromdhane@iopsys.eu>
  *	  Author: Omar Kallel <omar.kallel@pivasoftware.com>
  *
  * See LICENSE file for license related information.
@@ -26,31 +26,17 @@ struct diagnostic_input {
 	char *value;
 };
 
-#define DOWNLOAD_NUMBER_INPUTS 7
-#define UPLOAD_NUMBER_INPUTS 8
-#define IPPING_NUMBER_INPUTS 7
-#define SESERVERSELECT_NUMBER_INPUTS 6
-#define TRACEROUTE_NUMBER_INPUTS 8
-#define UDPECHO_NUMBER_INPUTS 9
-#define NSLKUP_NUMBER_INPUTS 5
-#define WIFINEIGHB_NUMBER_INPUTS 0
-#define IPLAYER_CAPACITY_INPUTS 22
+#define DOWNLOAD_DIAG_CMD "Device.IP.Diagnostics.DownloadDiagnostics()"
+#define UPLOAD_DIAG_CMD "Device.IP.Diagnostics.UploadDiagnostics()"
+#define IPPING_DIAG_CMD "Device.IP.Diagnostics.IPPing()"
+#define SERVER_SELECTION_DIAG_CMD "Device.IP.Diagnostics.ServerSelectionDiagnostics()"
+#define TRACE_ROUTE_DIAG_CMD "Device.IP.Diagnostics.TraceRoute()"
+#define UDPECHO_DIAG_CMD "Device.IP.Diagnostics.UDPEchoDiagnostics()"
+#define IPLAYER_CAPACITY_DIAG_CMD "Device.IP.Diagnostics.IPLayerCapacity()"
+#define NSLOOKUP_DIAG_CMD "Device.DNS.Diagnostics.NSLookupDiagnostics()"
+#define WIFINEIBORING_DIAG_CMD "Device.WiFi.NeighboringWiFiDiagnostic()"
 
-#define IP_DIAGNOSTICS_OBJECT "Device.IP.Diagnostics."
-#define DNS_DIAGNOSTICS_OBJECT "Device.DNS.Diagnostics."
-#define WIFI_DIAGNOSTCS_OBJECT "Device.WiFi."
-
-#define DOWNLOAD_DIAG_ACT_NAME "DownloadDiagnostics()"
-#define UPLOAD_DIAG_ACT_NAME "UploadDiagnostics()"
-#define IPPING_DIAG_ACT_NAME "IPPing()"
-#define SERVER_SELECTION_DIAG_ACT_NAME "ServerSelectionDiagnostics()"
-#define TRACE_ROUTE_DIAG_ACT_NAME "TraceRoute()"
-#define UDPECHO_DIAG_ACT_NAME "UDPEchoDiagnostics()"
-#define NSLOOKUP_DIAG_ACT_NAME "NSLookupDiagnostics()"
-#define WIFINEIBORING_DIAG_ACT_NAME "NeighboringWiFiDiagnostic()"
-#define IPLAYER_CAPACITY_ACT_NAME "IPLayerCapacity()"
-
-struct diagnostic_input iplayer_capacity_array[IPLAYER_CAPACITY_INPUTS] = {
+struct diagnostic_input iplayer_capacity[] = {
 	{ "Interface", "Device.IP.Diagnostics.IPLayerCapacityMetrics.Interface", NULL },
 	{ "Role", "Device.IP.Diagnostics.IPLayerCapacityMetrics.Role", NULL },
 	{ "Host", "Device.IP.Diagnostics.IPLayerCapacityMetrics.Host", NULL },
@@ -75,7 +61,7 @@ struct diagnostic_input iplayer_capacity_array[IPLAYER_CAPACITY_INPUTS] = {
 	{ "RateAdjAlgorithm", "Device.IP.Diagnostics.IPLayerCapacityMetrics.RateAdjAlgorithm", NULL },
 };
 
-struct diagnostic_input download_diagnostics_array[DOWNLOAD_NUMBER_INPUTS] = {
+struct diagnostic_input download_diagnostics[] = {
 	{ "Interface", "Device.IP.Diagnostics.DownloadDiagnostics.Interface", NULL },
 	{ "DownloadURL", "Device.IP.Diagnostics.DownloadDiagnostics.DownloadURL", NULL },
 	{ "DSCP", "Device.IP.Diagnostics.DownloadDiagnostics.DSCP", NULL },
@@ -88,7 +74,7 @@ struct diagnostic_input download_diagnostics_array[DOWNLOAD_NUMBER_INPUTS] = {
 	//{"TimeBasedTestMeasurementOffset","Device.IP.Diagnostics.DownloadDiagnostics.TimeBasedTestMeasurementOffset",NULL}
 };
 
-struct diagnostic_input upload_diagnostics_array[UPLOAD_NUMBER_INPUTS] = {
+struct diagnostic_input upload_diagnostics[] = {
 	{ "Interface", "Device.IP.Diagnostics.UploadDiagnostics.Interface", NULL },
 	{ "UploadURL", "Device.IP.Diagnostics.UploadDiagnostics.UploadURL", NULL },
 	{ "TestFileLength", "Device.IP.Diagnostics.UploadDiagnostics.TestFileLength", NULL },
@@ -102,7 +88,7 @@ struct diagnostic_input upload_diagnostics_array[UPLOAD_NUMBER_INPUTS] = {
 	//{"TimeBasedTestMeasurementOffset","Device.IP.Diagnostics.UploadDiagnostics.TimeBasedTestMeasurementOffset",NULL}
 };
 
-struct diagnostic_input ipping_diagnostics_array[IPPING_NUMBER_INPUTS] = { //
+struct diagnostic_input ipping_diagnostics[] = {
 	{ "Host", "Device.IP.Diagnostics.IPPing.Host", NULL },
 	{ "NumberOfRepetitions", "Device.IP.Diagnostics.IPPing.NumberOfRepetitions", NULL },
 	{ "Timeout", "Device.IP.Diagnostics.IPPing.Timeout", NULL },
@@ -112,7 +98,7 @@ struct diagnostic_input ipping_diagnostics_array[IPPING_NUMBER_INPUTS] = { //
 	{ "DataBlockSize", "Device.IP.Diagnostics.IPPing.DataBlockSize", NULL }
 };
 
-struct diagnostic_input seserverselection_diagnostics_array[SESERVERSELECT_NUMBER_INPUTS] = { //
+struct diagnostic_input serverselection_diagnostics[] = {
 	{ "Interface", "Device.IP.Diagnostics.ServerSelectionDiagnostics.Interface", NULL },
 	{ "Protocol", "Device.IP.Diagnostics.ServerSelectionDiagnostics.Protocol", NULL },
 	{ "HostList", "Device.IP.Diagnostics.ServerSelectionDiagnostics.HostList", NULL },
@@ -121,7 +107,7 @@ struct diagnostic_input seserverselection_diagnostics_array[SESERVERSELECT_NUMBE
 	{ "Timeout", "Device.IP.Diagnostics.ServerSelectionDiagnostics.Timeout", NULL }
 };
 
-struct diagnostic_input traceroute_diagnostics_array[TRACEROUTE_NUMBER_INPUTS] = { //
+struct diagnostic_input traceroute_diagnostics[] = {
 	{ "Interface", "Device.IP.Diagnostics.TraceRoute.Interface", NULL },
 	{ "Host", "Device.IP.Diagnostics.TraceRoute.Host", NULL },
 	{ "NumberOfTries", "Device.IP.Diagnostics.TraceRoute.NumberOfTries", NULL },
@@ -132,7 +118,7 @@ struct diagnostic_input traceroute_diagnostics_array[TRACEROUTE_NUMBER_INPUTS] =
 	{ "MaxHopCount", "Device.IP.Diagnostics.TraceRoute.MaxHopCount", NULL }
 };
 
-struct diagnostic_input udpecho_diagnostics_array[UDPECHO_NUMBER_INPUTS] = {
+struct diagnostic_input udpecho_diagnostics[] = {
 	{ "Interface", "Device.IP.Diagnostics.UDPEchoDiagnostics.Interface", NULL },
 	{ "Host", "Device.IP.Diagnostics.UDPEchoDiagnostics.Host", NULL },
 	{ "Port", "Device.IP.Diagnostics.UDPEchoDiagnostics.Port", NULL },
@@ -145,7 +131,7 @@ struct diagnostic_input udpecho_diagnostics_array[UDPECHO_NUMBER_INPUTS] = {
 	//{"EnableIndividualPacketResults","Device.IP.Diagnostics.UDPEchoDiagnostics.EnableIndividualPacketResults",NULL}
 };
 
-struct diagnostic_input nslookup_diagnostics_array[NSLKUP_NUMBER_INPUTS] = { //
+struct diagnostic_input nslookup_diagnostics[] = {
 	{ "Interface", "Device.DNS.Diagnostics.NSLookupDiagnostics.Interface", NULL },
 	{ "HostName", "Device.DNS.Diagnostics.NSLookupDiagnostics.HostName", NULL },
 	{ "DNSServer", "Device.DNS.Diagnostics.NSLookupDiagnostics.DNSServer", NULL },
@@ -153,97 +139,121 @@ struct diagnostic_input nslookup_diagnostics_array[NSLKUP_NUMBER_INPUTS] = { //
 	{ "Timeout", "Device.DNS.Diagnostics.NSLookupDiagnostics.Timeout", NULL }
 };
 
-int get_diagnostic_state_flag(char *parameter_name, char *value)
+void set_diagnostic_state_end_session_flag(char *parameter_name, char *value)
 {
+	if (CWMP_STRLEN(parameter_name) == 0 || CWMP_STRLEN(value) == 0)
+		return;
+
 	if (strcmp(value, "Requested") != 0)
-		return 0;
+		return;
 
-	if (strcmp(parameter_name, "Device.IP.Diagnostics.DownloadDiagnostics.DiagnosticsState") == 0)
-		return END_SESSION_DOWNLOAD_DIAGNOSTIC;
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.DownloadDiagnostics.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_DOWNLOAD_DIAGNOSTIC);
+		return;
+	}
 
-	if (strcmp(parameter_name, "Device.IP.Diagnostics.UploadDiagnostics.DiagnosticsState") == 0)
-		return END_SESSION_UPLOAD_DIAGNOSTIC;
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.UploadDiagnostics.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_UPLOAD_DIAGNOSTIC);
+		return;
+	}
 
-	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPPing.DiagnosticsState") == 0)
-		return END_SESSION_IPPING_DIAGNOSTIC;
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPPing.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_IPPING_DIAGNOSTIC);
+		return;
+	}
 
-	if (strcmp(parameter_name, "Device.IP.Diagnostics.ServerSelectionDiagnostics.DiagnosticsState") == 0)
-		return END_SESSION_SERVERSELECTION_DIAGNOSTIC;
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.ServerSelectionDiagnostics.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_SERVERSELECTION_DIAGNOSTIC);
+		return;
+	}
 
-	if (strcmp(parameter_name, "Device.IP.Diagnostics.TraceRoute.DiagnosticsState") == 0)
-		return END_SESSION_TRACEROUTE_DIAGNOSTIC;
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.TraceRoute.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_TRACEROUTE_DIAGNOSTIC);
+		return;
+	}
 
-	if (strcmp(parameter_name, "Device.IP.Diagnostics.UDPEchoDiagnostics.DiagnosticsState") == 0)
-		return END_SESSION_UDPECHO_DIAGNOSTIC;
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.UDPEchoDiagnostics.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_UDPECHO_DIAGNOSTIC);
+		return;
+	}
 
-	if (strcmp(parameter_name, "Device.DNS.Diagnostics.NSLookupDiagnostics.DiagnosticsState") == 0)
-		return END_SESSION_NSLOOKUP_DIAGNOSTIC;
+	if (strcmp(parameter_name, "Device.DNS.Diagnostics.NSLookupDiagnostics.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_NSLOOKUP_DIAGNOSTIC);
+		return;
+	}
 
-	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPLayerCapacityMetrics.DiagnosticsState") == 0)
-		return END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC;
+	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPLayerCapacityMetrics.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC);
+		return;
+	}
 
-	if (strcmp(parameter_name, "Device.​WiFi.​NeighboringWiFiDiagnostic.DiagnosticsState") == 0)
-		return END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC;
-
-	return 0;
+	if (strcmp(parameter_name, "Device.​WiFi.​NeighboringWiFiDiagnostic.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC);
+		return;
+	}
 }
 
 static bool set_specific_diagnostic_object_parameter_structure_value(struct diagnostic_input (*diagnostics_array)[], int number_inputs, char *parameter, char *value)
 {
-	int i;
-	if (parameter == NULL)
+	if (CWMP_STRLEN(parameter) == 0)
 		return false;
-	for (i = 0; i < number_inputs; i++) {
+
+	for (int i = 0; i < number_inputs; i++) {
 		if (strcmp((*diagnostics_array)[i].parameter_name, parameter) == 0) {
 			FREE((*diagnostics_array)[i].value);
-			(*diagnostics_array)[i].value = strdup(value);
+			(*diagnostics_array)[i].value = strdup(value ? value : "");
 			return true;
 		}
 	}
+
 	return false;
 }
 
 bool set_diagnostic_parameter_structure_value(char *parameter_name, char *value) //returns false in case the parameter is not among diagnostics parameters
 {
-	return set_specific_diagnostic_object_parameter_structure_value(&download_diagnostics_array, DOWNLOAD_NUMBER_INPUTS, parameter_name, value) || set_specific_diagnostic_object_parameter_structure_value(&upload_diagnostics_array, UPLOAD_NUMBER_INPUTS, parameter_name, value) ||
-	       set_specific_diagnostic_object_parameter_structure_value(&ipping_diagnostics_array, IPPING_NUMBER_INPUTS, parameter_name, value) || set_specific_diagnostic_object_parameter_structure_value(&nslookup_diagnostics_array, NSLKUP_NUMBER_INPUTS, parameter_name, value) ||
-	       set_specific_diagnostic_object_parameter_structure_value(&traceroute_diagnostics_array, TRACEROUTE_NUMBER_INPUTS, parameter_name, value) || set_specific_diagnostic_object_parameter_structure_value(&udpecho_diagnostics_array, UDPECHO_NUMBER_INPUTS, parameter_name, value) ||
-	       set_specific_diagnostic_object_parameter_structure_value(&seserverselection_diagnostics_array, SESERVERSELECT_NUMBER_INPUTS, parameter_name, value) || set_specific_diagnostic_object_parameter_structure_value(&iplayer_capacity_array, IPLAYER_CAPACITY_INPUTS, parameter_name, value);
+	return set_specific_diagnostic_object_parameter_structure_value(&download_diagnostics, ARRAY_SIZE(download_diagnostics), parameter_name, value) ||
+		   set_specific_diagnostic_object_parameter_structure_value(&upload_diagnostics, ARRAY_SIZE(upload_diagnostics), parameter_name, value) ||
+	       set_specific_diagnostic_object_parameter_structure_value(&ipping_diagnostics, ARRAY_SIZE(ipping_diagnostics), parameter_name, value) ||
+		   set_specific_diagnostic_object_parameter_structure_value(&nslookup_diagnostics, ARRAY_SIZE(nslookup_diagnostics), parameter_name, value) ||
+	       set_specific_diagnostic_object_parameter_structure_value(&traceroute_diagnostics, ARRAY_SIZE(traceroute_diagnostics), parameter_name, value) ||
+		   set_specific_diagnostic_object_parameter_structure_value(&udpecho_diagnostics, ARRAY_SIZE(udpecho_diagnostics), parameter_name, value) ||
+	       set_specific_diagnostic_object_parameter_structure_value(&serverselection_diagnostics, ARRAY_SIZE(serverselection_diagnostics), parameter_name, value) ||
+		   set_specific_diagnostic_object_parameter_structure_value(&iplayer_capacity, ARRAY_SIZE(iplayer_capacity), parameter_name, value);
 }
 
-void empty_ubus_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg __attribute__((unused))) {}
-
-static int cwmp_diagnostics_operate(char *diagnostics_object, char *action_name, struct diagnostic_input diagnostics_array[], int number_inputs)
+static int cwmp_diagnostics_operate(char *command, char *command_key, struct diagnostic_input diagnostics[], int number_inputs)
 {
-	int e;
-	struct blob_buf b = { 0 };
+	struct blob_buf b = {0};
 
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "path", diagnostics_object);
-	bb_add_string(&b, "action", action_name);
+
+	bb_add_string(&b, "command", command);
+	bb_add_string(&b, "command_key", command_key);
+
 	if (number_inputs > 0) {
-		int i;
 		void *tbl = blobmsg_open_table(&b, "input");
-		for (i = 0; i < number_inputs; i++) {
-			if (diagnostics_array[i].value == NULL || diagnostics_array[i].value[0] == '\0')
+
+		for (int i = 0; i < number_inputs; i++) {
+
+			if (CWMP_STRLEN(diagnostics[i].value) == 0)
 				continue;
-			bb_add_string(&b, diagnostics_array[i].input_name, diagnostics_array[i].value);
+
+			bb_add_string(&b, diagnostics[i].input_name, diagnostics[i].value);
 		}
+
 		blobmsg_close_table(&b, tbl);
 	}
-	e = icwmp_ubus_invoke(USP_OBJECT_NAME, "operate", b.head, empty_ubus_callback, NULL);
+
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "operate", b.head, NULL, NULL);
 	blob_buf_free(&b);
 
-	if (e)
-		return -1;
-	return 0;
+	return e;
 }
 
-int cwmp_wifi_neighboring__diagnostics()
+int cwmp_wifi_neighboring__diagnostics(void)
 {
-	struct diagnostic_input empty_array[1] = {{}};
-	if (cwmp_diagnostics_operate(WIFI_DIAGNOSTCS_OBJECT, WIFINEIBORING_DIAG_ACT_NAME, empty_array, WIFINEIGHB_NUMBER_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(WIFINEIBORING_DIAG_CMD, "cwmp_wifi_neig_diag", NULL, 0) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "WiFi neighboring diagnostic is successfully executed");
@@ -251,9 +261,9 @@ int cwmp_wifi_neighboring__diagnostics()
 	return 0;
 }
 
-int cwmp_ip_layer_capacity_diagnostics()
+int cwmp_ip_layer_capacity_diagnostics(void)
 {
-	if (cwmp_diagnostics_operate(IP_DIAGNOSTICS_OBJECT, IPLAYER_CAPACITY_ACT_NAME, iplayer_capacity_array, IPLAYER_CAPACITY_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(IPLAYER_CAPACITY_DIAG_CMD, "cwmp_ip_layer_diag", iplayer_capacity, ARRAY_SIZE(iplayer_capacity)) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "IP layer capacity diagnostic is successfully executed");
@@ -261,9 +271,9 @@ int cwmp_ip_layer_capacity_diagnostics()
 	return 0;
 }
 
-int cwmp_download_diagnostics()
+int cwmp_download_diagnostics(void)
 {
-	if (cwmp_diagnostics_operate(IP_DIAGNOSTICS_OBJECT, DOWNLOAD_DIAG_ACT_NAME, download_diagnostics_array, DOWNLOAD_NUMBER_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(DOWNLOAD_DIAG_CMD, "cwmp_ip_download_diag", download_diagnostics, ARRAY_SIZE(download_diagnostics)) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "Download diagnostic is successfully executed");
@@ -271,9 +281,9 @@ int cwmp_download_diagnostics()
 	return 0;
 }
 
-int cwmp_upload_diagnostics()
+int cwmp_upload_diagnostics(void)
 {
-	if (cwmp_diagnostics_operate(IP_DIAGNOSTICS_OBJECT, UPLOAD_DIAG_ACT_NAME, upload_diagnostics_array, UPLOAD_NUMBER_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(UPLOAD_DIAG_CMD, "cwmp_ip_upload_diag", upload_diagnostics, ARRAY_SIZE(upload_diagnostics)) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "Upload diagnostic is successfully executed");
@@ -281,9 +291,9 @@ int cwmp_upload_diagnostics()
 	return 0;
 }
 
-int cwmp_ip_ping_diagnostics()
+int cwmp_ip_ping_diagnostics(void)
 {
-	if (cwmp_diagnostics_operate(IP_DIAGNOSTICS_OBJECT, IPPING_DIAG_ACT_NAME, ipping_diagnostics_array, IPPING_NUMBER_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(IPPING_DIAG_CMD, "cwmp_ip_ping_diag", ipping_diagnostics, ARRAY_SIZE(ipping_diagnostics)) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "IPPing diagnostic is successfully executed");
@@ -291,9 +301,9 @@ int cwmp_ip_ping_diagnostics()
 	return 0;
 }
 
-int cwmp_nslookup_diagnostics()
+int cwmp_nslookup_diagnostics(void)
 {
-	if (cwmp_diagnostics_operate(DNS_DIAGNOSTICS_OBJECT, NSLOOKUP_DIAG_ACT_NAME, nslookup_diagnostics_array, NSLKUP_NUMBER_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(NSLOOKUP_DIAG_CMD, "cwmp_dns_nslookup_diag", nslookup_diagnostics, ARRAY_SIZE(nslookup_diagnostics)) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "Nslookup diagnostic is successfully executed");
@@ -301,9 +311,9 @@ int cwmp_nslookup_diagnostics()
 	return 0;
 }
 
-int cwmp_traceroute_diagnostics()
+int cwmp_traceroute_diagnostics(void)
 {
-	if (cwmp_diagnostics_operate(IP_DIAGNOSTICS_OBJECT, TRACE_ROUTE_DIAG_ACT_NAME, traceroute_diagnostics_array, TRACEROUTE_NUMBER_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(TRACE_ROUTE_DIAG_CMD, "cwmp_ip_trace_route_diag", traceroute_diagnostics, ARRAY_SIZE(traceroute_diagnostics)) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "Trace Route diagnostic is successfully executed");
@@ -311,9 +321,9 @@ int cwmp_traceroute_diagnostics()
 	return 0;
 }
 
-int cwmp_udp_echo_diagnostics()
+int cwmp_udp_echo_diagnostics(void)
 {
-	if (cwmp_diagnostics_operate(IP_DIAGNOSTICS_OBJECT, UDPECHO_DIAG_ACT_NAME, udpecho_diagnostics_array, UDPECHO_NUMBER_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(UDPECHO_DIAG_CMD, "cwmp_ip_udpecho_diag", udpecho_diagnostics, ARRAY_SIZE(udpecho_diagnostics)) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "UDPEcho diagnostic is successfully executed");
@@ -321,9 +331,9 @@ int cwmp_udp_echo_diagnostics()
 	return 0;
 }
 
-int cwmp_serverselection_diagnostics()
+int cwmp_serverselection_diagnostics(void)
 {
-	if (cwmp_diagnostics_operate(IP_DIAGNOSTICS_OBJECT, SERVER_SELECTION_DIAG_ACT_NAME, seserverselection_diagnostics_array, SESERVERSELECT_NUMBER_INPUTS) == -1)
+	if (cwmp_diagnostics_operate(SERVER_SELECTION_DIAG_CMD, "cwmp_ip_srv_selection_diag", serverselection_diagnostics, ARRAY_SIZE(serverselection_diagnostics)) == -1)
 		return -1;
 
 	CWMP_LOG(INFO, "Server Selection diagnostic is successfully executed");

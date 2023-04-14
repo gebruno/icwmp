@@ -66,17 +66,19 @@ void ubus_du_state_callback(struct ubus_request *req, int type __attribute__((un
 
 static void prepare_blob_msg(struct blob_buf *b, char *url, char *uuid, char *user, char *pass, char *path, char *env_ref, int op)
 {
-	if (b == NULL)
-		return;
+	char command[256] = {0};
+	void *tbl = NULL;
 
-	void *tbl;
-	bb_add_string(b, "path", path);
+	if (b == NULL || CWMP_STRLEN(path) == 0)
+		return;
 
 	switch (op) {
 	case DU_INSTALL:
-		bb_add_string(b, "action", "InstallDU()");
+		snprintf(command, sizeof(command), "%sInstallDU()", path);
+		bb_add_string(b, "command", command);
+		bb_add_string(b, "command_key", "cwmp_install_du");
 		tbl = blobmsg_open_table(b, "input");
-		bb_add_string(b, "UUID", uuid);
+		bb_add_string(b, "UUID", uuid ? uuid : "");
 		bb_add_string(b, "ExecutionEnvRef", env_ref ? env_ref : "");
 		bb_add_string(b, "URL", url ? url : "");
 		bb_add_string(b, "Username", user ? user : "");
@@ -84,7 +86,9 @@ static void prepare_blob_msg(struct blob_buf *b, char *url, char *uuid, char *us
 		blobmsg_close_table(b, tbl);
 		break;
 	case DU_UPDATE:
-		bb_add_string(b, "action", "Update()");
+		snprintf(command, sizeof(command), "%sUpdate()", path);
+		bb_add_string(b, "command", command);
+		bb_add_string(b, "command_key", "cwmp_update_du");
 		tbl = blobmsg_open_table(b, "input");
 		bb_add_string(b, "URL", url ? url : "");
 		bb_add_string(b, "Username", user ? user : "");
@@ -92,7 +96,9 @@ static void prepare_blob_msg(struct blob_buf *b, char *url, char *uuid, char *us
 		blobmsg_close_table(b, tbl);
 		break;
 	case DU_UNINSTALL:
-		bb_add_string(b, "action", "Uninstall()");
+		snprintf(command, sizeof(command), "%sUninstall()", path);
+		bb_add_string(b, "command", command);
+		bb_add_string(b, "command_key", "cwmp_uninstall_du");
 		break;
 	default:
 		CWMP_LOG(ERROR, "Invalid DU operation");
@@ -111,7 +117,7 @@ int cwmp_du_install(char *url, char *uuid, char *user, char *pass, char *path, c
 		env_ref[len - 1] = '\0';
 
 	prepare_blob_msg(&b, url, uuid, user, pass, path, env_ref, DU_INSTALL);
-	e = icwmp_ubus_invoke("usp.raw", "operate", b.head, ubus_du_state_callback, fault_code);
+	e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "operate", b.head, ubus_du_state_callback, fault_code);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -123,13 +129,14 @@ int cwmp_du_install(char *url, char *uuid, char *user, char *pass, char *path, c
 
 int cwmp_du_update(char *url, char *user, char *pass, char *du_path, char **fault_code)
 {
-	int e;
-	struct blob_buf b = { 0 };
+	struct blob_buf b = {0};
+
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	prepare_blob_msg(&b, url, 0, user, pass, du_path, "", DU_UPDATE);
-	e = icwmp_ubus_invoke("usp.raw", "operate", b.head, ubus_du_state_callback, fault_code);
+
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "operate", b.head, ubus_du_state_callback, fault_code);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -141,14 +148,14 @@ int cwmp_du_update(char *url, char *user, char *pass, char *du_path, char **faul
 
 int cwmp_du_uninstall(char *du_path, char **fault_code)
 {
-	int e;
-	struct blob_buf b = { 0 };
+	struct blob_buf b = {0};
+
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	prepare_blob_msg(&b, "", 0, "", "", du_path, "", DU_UNINSTALL);
 
-	e = icwmp_ubus_invoke("usp.raw", "operate", b.head, ubus_du_state_callback, fault_code);
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "operate", b.head, ubus_du_state_callback, fault_code);
 	blob_buf_free(&b);
 
 	if (e < 0) {
@@ -380,13 +387,6 @@ char *get_package_name_by_url(char *url)
         return slash+1;
 }
 
-int get_du_version(char *du_ref, char **version)
-{
-	char version_param_path[126];
-	snprintf(version_param_path, sizeof(version_param_path), "%s.Version", du_ref);
-	return cwmp_get_leaf_value(version_param_path, version);
-}
-
 int change_du_state_fault(struct change_du_state *pchange_du_state, struct du_state_change_complete **pdu_state_change_complete)
 {
 	int error = FAULT_CPE_NO_FAULT;
@@ -534,10 +534,15 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 			res->uuid = strdup(p->uuid);
 
 			if (error != FAULT_CPE_NO_FAULT) {
+				struct cwmp_dm_parameter dm_param = {0};
+				char version_param_path[128] = {0};
+
+				snprintf(version_param_path, sizeof(version_param_path), "%s.Version", du_ref);
+				cwmp_get_parameter_value(version_param_path, &dm_param);
+
 				res->current_state = strdup("Failed");
 				res->resolved = 0;
-				get_du_version(du_path, &package_version);
-				res->version = strdup(package_version ? package_version : "");
+				res->version = strdup(dm_param.value ? dm_param.value : "");
 				res->du_ref = strdup(du_path);
 				res->complete_time = strdup(get_time(time(NULL)));
 				res->fault = error;
@@ -546,7 +551,6 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 			}
 
 			FREE(du_ref);
-			FREE(package_version);
 			break;
 
 		case DU_UNINSTALL:

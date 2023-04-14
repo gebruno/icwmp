@@ -1,15 +1,12 @@
 #!/bin/bash
-if [ -d "/opt/dev/bbf" ]; then
-	cd /opt/dev/bbf
-	./gitlab-ci/setup.sh
-	cd -
-fi
 
 echo "preparation script"
 pwd
 
+[ -d "/opt/dev/bbfdm" ] && cd /opt/dev/bbfdm && ./gitlab-ci/setup.sh && cd -
 rm -rf /etc/supervisor/conf.d/*.conf
 cp ./gitlab-ci/iopsys-supervisord.conf /etc/supervisor/conf.d/
+
 cp -rf ./test/files/* /
 
 echo "set acs url in cwmp uci"

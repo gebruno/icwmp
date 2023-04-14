@@ -93,7 +93,7 @@ void set_interface_reset_request(char *param_name, char *value)
 	list_add_tail(&node->list, &intf_reset_list);
 }
 
-int create_cwmp_temporary_files()
+static int create_cwmp_temporary_files(void)
 {
 	/*
 	 * Create Notifications empty uci package
@@ -105,16 +105,18 @@ int create_cwmp_temporary_files()
 		else
 			return CWMP_GEN_ERR;
 	}
+
 	if (!folder_exists("/var/run/icwmpd")) {
 		if (mkdir("/var/run/icwmpd", S_IRWXU | S_IRWXG | S_IRWXO) == -1) {
 			CWMP_LOG(INFO, "Not able to create the folder /var/run/icwmpd");
 			return CWMP_GEN_ERR;
 		}
 	}
+
 	return CWMP_OK;
 }
 
-static bool g_usp_object_available = false;
+static bool g_bbf_object_available = false;
 
 static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 		struct ubus_event_handler *ev __attribute__((unused)),
@@ -134,8 +136,8 @@ static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 		return;
 
 	path = blobmsg_data(attr);
-	if (path && strcmp(path, USP_OBJECT_NAME) == 0) {
-		g_usp_object_available = true;
+	if (path && strcmp(path, BBFDM_OBJECT_NAME) == 0) {
+		g_bbf_object_available = true;
 		uloop_end();
 	}
 }
@@ -145,9 +147,9 @@ static void lookup_timeout_cb(struct uloop_timeout *timeout __attribute__((unuse
 	uloop_end();
 }
 
-static int wait_for_usp_raw_object()
+static int wait_for_bbf_object()
 {
-#define USP_RAW_WAIT_TIMEOUT 60
+#define BBF_WAIT_TIMEOUT 60
 
 	struct ubus_context *uctx;
 	int ret;
@@ -155,7 +157,7 @@ static int wait_for_usp_raw_object()
 	struct ubus_event_handler add_event;
 	struct uloop_timeout u_timeout;
 
-	g_usp_object_available = false;
+	g_bbf_object_available = false;
 	uctx = ubus_connect(NULL);
 	if (uctx == NULL) {
 		CWMP_LOG(ERROR, "Can't create ubus context");
@@ -171,16 +173,16 @@ static int wait_for_usp_raw_object()
 	ubus_register_event_handler(uctx, &add_event, "ubus.object.add");
 
 	// check if object already present
-	ret = ubus_lookup_id(uctx, USP_OBJECT_NAME, &ubus_id);
+	ret = ubus_lookup_id(uctx, BBFDM_OBJECT_NAME, &ubus_id);
 	if (ret == 0) {
-		g_usp_object_available = true;
+		g_bbf_object_available = true;
 		goto end;
 	}
 
 	// Set timeout to expire lookup
 	memset(&u_timeout, 0, sizeof(struct uloop_timeout));
 	u_timeout.cb = lookup_timeout_cb;
-	uloop_timeout_set(&u_timeout, USP_RAW_WAIT_TIMEOUT * 1000);
+	uloop_timeout_set(&u_timeout, BBF_WAIT_TIMEOUT * 1000);
 
 	uloop_run();
 	uloop_done();
@@ -188,8 +190,8 @@ static int wait_for_usp_raw_object()
 end:
 	ubus_free(uctx);
 
-	if (g_usp_object_available == false) {
-		CWMP_LOG(ERROR, "%s object not found", USP_OBJECT_NAME);
+	if (g_bbf_object_available == false) {
+		CWMP_LOG(ERROR, "%s object not found", BBFDM_OBJECT_NAME);
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
@@ -212,27 +214,27 @@ static void configure_var_state()
 	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
 }
 
-static int cwmp_init()
+static int cwmp_init(void)
 {
-	int error;
+	int error = 0;
 
 	openlog("cwmp", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
-	CWMP_LOG(INFO, "STARTING ICWMP with PID :%d", getpid());
 
-	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
-	cwmp_main->init_complete = false;
-	cwmp_main->net.interface = NULL;
-	cwmp_main->net.connection_wan_iface = NULL;
+	cwmp_main = (struct cwmp *)calloc(1, sizeof(struct cwmp));
+
+	memset(cwmp_main, 0, sizeof(struct cwmp));
+
 	error = get_preinit_config();
 	if (error)
 		return error;
+
+	CWMP_LOG(INFO, "STARTING ICWMP with PID :%d", getpid());
 
 	icwmp_init_list_services();
 	/* Only One instance should run*/
 	cwmp_main->pid_file = fopen("/var/run/icwmpd.pid", "w+");
 	fcntl(fileno(cwmp_main->pid_file), F_SETFD, fcntl(fileno(cwmp_main->pid_file), F_GETFD) | FD_CLOEXEC);
 	int rc = flock(fileno(cwmp_main->pid_file), LOCK_EX | LOCK_NB);
-
 	if (rc) {
 		if (EWOULDBLOCK != errno) {
 			char *piderr = "PID file creation failed: Quit the daemon!";
@@ -242,6 +244,7 @@ static int cwmp_init()
 		} else
 			exit(EXIT_SUCCESS);
 	}
+
 	if (cwmp_main->pid_file)
 		fclose(cwmp_main->pid_file);
 
@@ -251,9 +254,10 @@ static int cwmp_init()
 	if ((error = create_cwmp_notifications_package()))
 		return error;
 
-	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
 	cwmp_uci_init();
 	configure_var_state();
+
+	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
 	cwmp_config_load();
 
 	cwmp_main->prev_periodic_enable = cwmp_main->conf.periodic_enable;
@@ -262,11 +266,7 @@ static int cwmp_init()
 	cwmp_main->prev_heartbeat_enable = cwmp_main->conf.heart_beat_enable;
 	cwmp_main->prev_heartbeat_interval = cwmp_main->conf.heartbeat_interval;
 	cwmp_main->prev_heartbeat_time = cwmp_main->conf.heart_time;
-	cwmp_main->heart_session = false;
-	cwmp_main->diag_session = false;
-	cwmp_main->throttle_session = false;
-	cwmp_main->throttle_session_triggered = false;
-	cwmp_main->md_value_change_last_time = 0;
+
 	if (cwmp_stop == true)
 		return CWMP_GEN_ERR;
 
@@ -282,21 +282,10 @@ static int cwmp_init()
 	memset(&du_uuid_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&du_uuid_list);
 	cwmp_main->start_time = time(NULL);
-	cwmp_main->event_id = 0;
-	cwmp_main->sched_inform_id = 0;
-	cwmp_main->download_id = 0;
-	cwmp_main->sched_download_id = 0;
-	cwmp_main->cdu_id = 0;
-	cwmp_main->upload_id = 0;
-	cwmp_main->auto_cdu_id = 0;
-	cwmp_main->auto_tc_id = 0;
-	cwmp_main->cdu_complete_id = 0;
-	cwmp_main->tc_id = 0;
-	cwmp_main->cwmp_period = 0;
-	cwmp_main->cwmp_periodic_time = 0;
-	cwmp_main->cwmp_periodic_enable = false;
+
 	cwmp_uci_exit();
 	sleep(15);
+
 	cwmp_main->net.ipv6_status = check_ipv6_enabled();
 	error = get_connection_parameters();
 	if (error != CWMP_OK) {
@@ -375,7 +364,7 @@ int main(int argc, char **argv)
 	int error;
 	struct env env;
 
-	error = wait_for_usp_raw_object();
+	error = wait_for_bbf_object();
 	if (error)
 		return error;
 

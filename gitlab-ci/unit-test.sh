@@ -7,7 +7,7 @@ pwd
 trap cleanup EXIT
 trap cleanup SIGINT
 
-if [ ! -f /etc/icwmpd/cwmp_notifications ]; then touch /etc/icwmpd/cwmp_notifications; fi
+[ -f /etc/icwmpd/cwmp_notifications ] && echo "" >/etc/icwmpd/cwmp_notifications || touch /etc/icwmpd/cwmp_notifications
 
 echo "Configure download server"
 configure_download_firmware
@@ -19,12 +19,14 @@ echo "Compiling icmwp"
 build_icwmp
 
 echo "Starting dependent services"
-supervisorctl status all
 supervisorctl update
+sleep 2
 supervisorctl restart all
+sleep 2
 supervisorctl stop icwmpd
-ubus wait_for usp.raw
+sleep 5
 supervisorctl status all
+ubus wait_for bbfdm
 
 echo "Clean cmocka"
 make clean -C test/cmocka/

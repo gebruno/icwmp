@@ -43,7 +43,7 @@
 		DST[SIZE - 1] = '\0'; \
 	} while (0)
 
-#define USP_OBJECT_NAME "usp.raw"
+#define BBFDM_OBJECT_NAME "bbfdm"
 #define MAX_EVENTS 64
 #define MAX_INT32 2147483646
 #define MAX_INT_ID MAX_INT32

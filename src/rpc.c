@@ -31,7 +31,6 @@
 
 #define PROCESSING_DELAY (1) // In download/upload the message enqueued before sending the response, which cause the download/upload
 			     // to start just before the time. This delay is to compensate the time lapsed during the message enqueue and response
-#define DM_CONN_REQ_URL "Device.ManagementServer.ConnectionRequestURL"
 
 struct cwmp_namespaces ns;
 const struct rpc_cpe_method rpc_cpe_methods[] = {
@@ -64,13 +63,13 @@ struct rpc_acs_method rpc_acs_methods[] = {
 		[RPC_ACS_AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "AutonomousDUStateChangeComplete", cwmp_rpc_acs_prepare_autonomous_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete, NOT_KNOWN }
 };
 
-char *forced_inform_parameters[] = {
+static char *forced_inform_parameters[] = {
 	"Device.RootDataModelVersion",
 	"Device.DeviceInfo.HardwareVersion",
 	"Device.DeviceInfo.SoftwareVersion",
 	"Device.DeviceInfo.ProvisioningCode",
 	"Device.ManagementServer.ParameterKey",
-	DM_CONN_REQ_URL,
+	"Device.ManagementServer.ConnectionRequestURL",
 	"Device.ManagementServer.AliasBasedAddressing"
 };
 
@@ -325,16 +324,14 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		}
 	}
 
-	size_t inform_parameters_nbre = sizeof(forced_inform_parameters) / sizeof(forced_inform_parameters[0]);
-	size_t i;
-	struct cwmp_dm_parameter cwmp_dm_param = { 0 };
-	LIST_HEAD(list_inform);
-	for (i = 0; i < inform_parameters_nbre; i++) {
-		if (NULL != cwmp_get_single_parameter_value(forced_inform_parameters[i], &cwmp_dm_param))
+	struct cwmp_dm_parameter cwmp_dm_param = {0};
+	for (size_t i = 0; i < ARRAY_SIZE(forced_inform_parameters); i++) {
+		if (!cwmp_get_parameter_value(forced_inform_parameters[i], &cwmp_dm_param))
 			continue;
 
 		// An empty connection url cause CDR test to break
-		if (strcmp(forced_inform_parameters[i], DM_CONN_REQ_URL) == 0 && cwmp_dm_param.value != NULL && strlen(cwmp_dm_param.value) == 0) {
+		if (strcmp(forced_inform_parameters[i], "Device.ManagementServer.ConnectionRequestURL") == 0 &&
+				CWMP_STRLEN(cwmp_dm_param.value) == 0) {
 			CWMP_LOG(ERROR, "# Empty CR URL[%s] value", forced_inform_parameters[i]);
 			MXML_DELETE(xml);
 			return;
@@ -402,19 +399,19 @@ end:
 static int validate_inform_parameter_name(struct list_head *parameters_values_list)
 {
 	struct cwmp_dm_parameter *param_value = NULL;
-	char reg_exp[100] = {0};
+	char reg_exp[128] = {0};
+
 	snprintf(reg_exp, sizeof(reg_exp), "^Device\\.ManagementServer\\.InformParameter\\.[0-9]+\\.ParameterName$");
 
 	list_for_each_entry(param_value, parameters_values_list, list) {
+
 		if (param_value->name == NULL || param_value->value == NULL)
 			continue;
 
 		if (match_reg_exp(reg_exp, param_value->name) == false)
 			continue;
 
-		size_t inform_parameters_nbr = sizeof(forced_inform_parameters) / sizeof(forced_inform_parameters[0]);
-		size_t i;
-		for (i = 0; i < inform_parameters_nbr; i++) {
+		for (size_t i = 0; i < ARRAY_SIZE(forced_inform_parameters); i++) {
 			if (strcmp(forced_inform_parameters[i], param_value->value) == 0)
 				return FAULT_CPE_INVALID_PARAMETER_VALUE;
 		}
@@ -999,11 +996,9 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 	xml_data_list_to_dm_parameter_list(&xml_list_set_param_value, &list_set_param_value);
 
-	if (transaction_id == 0) {
-		if (!cwmp_transaction_start("cwmp")) {
-			fault_code = FAULT_CPE_INTERNAL_ERROR;
-			goto fault;
-		}
+	if (!cwmp_transaction("start", false)) {
+		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		goto fault;
 	}
 
 	/* Before set check if exists Device.ManagementServer.InformParameter.{i}.ParameterName with ForcedInform Parameter */
@@ -1011,18 +1006,18 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	if (fault_code != FAULT_CPE_NO_FAULT)
 		goto fault;
 
-	fault_code = cwmp_set_multiple_parameters_values(&list_set_param_value, rpc->list_set_value_fault);
+	fault_code = cwmp_set_multi_parameters_value(&list_set_param_value, rpc->list_set_value_fault);
 	if (fault_code != FAULT_CPE_NO_FAULT)
 		goto fault;
 
 	set_rpc_parameter_key(parameter_key);
 	FREE(parameter_key);
+
 	struct cwmp_dm_parameter *param_value = NULL;
 	list_for_each_entry (param_value, &list_set_param_value, list) {
 		set_interface_reset_request(param_value->name, param_value->value);
 		set_diagnostic_parameter_structure_value(param_value->name, param_value->value);
-		int diag_flag = get_diagnostic_state_flag(param_value->name, param_value->value);
-		cwmp_set_end_session(diag_flag);
+		set_diagnostic_state_end_session_flag(param_value->name, param_value->value);
 	}
 
 	cwmp_free_all_xml_data_list(&xml_list_set_param_value);
@@ -1042,7 +1037,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	if (fault_code)
 		goto fault;
 
-	if (!cwmp_transaction_commit(true)) {
+	if (!cwmp_transaction("commit", true)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
@@ -1056,10 +1051,8 @@ fault:
 		ret = -1;
 
 	cwmp_free_all_list_param_fault(rpc->list_set_value_fault);
-	if (transaction_id) {
-		cwmp_transaction_abort();
-		transaction_id = 0;
-	}
+
+	cwmp_transaction("abort", false);
 	return ret;
 }
 
@@ -1142,10 +1135,8 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	if (fault_code)
 		goto fault;
 
-	if (transaction_id == 0) {
-		if (!cwmp_transaction_start("cwmp"))
-			goto fault;
-	}
+	if (!cwmp_transaction("start", false))
+		goto fault;
 
 	if (object_name) {
 		char *err = cwmp_add_object(object_name, &instance);
@@ -1176,7 +1167,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	if (fault_code != CWMP_OK)
 		goto fault;
 
-	if (!cwmp_transaction_commit(false))
+	if (!cwmp_transaction("commit", false))
 		goto fault;
 
 	char *object_path = NULL;
@@ -1194,10 +1185,8 @@ fault:
 	FREE(instance);
 	if (cwmp_create_fault_message(rpc, fault_code))
 		ret = -1;
-	if (transaction_id) {
-		cwmp_transaction_abort();
-		transaction_id = 0;
-	}
+
+	cwmp_transaction("abort", false);
 	return ret;
 }
 
@@ -1223,10 +1212,9 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	if (fault_code)
 		goto fault;
 
-	if (transaction_id == 0) {
-		if (!cwmp_transaction_start("cwmp"))
-			goto fault;
-	}
+	if (!cwmp_transaction("start", false))
+		goto fault;
+
 	if (object_name) {
 		char *err = cwmp_delete_object(object_name);
 		if (err) {
@@ -1253,7 +1241,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	if (fault_code != CWMP_OK)
 		goto fault;
 
-	if (!cwmp_transaction_commit(true)) {
+	if (!cwmp_transaction("commit", true)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
@@ -1267,10 +1255,8 @@ fault:
 	FREE(parameter_key);
 	if (cwmp_create_fault_message(rpc, fault_code))
 		ret = -1;
-	if (transaction_id) {
-		cwmp_transaction_abort();
-		transaction_id = 0;
-	}
+
+	cwmp_transaction("abort", false);
 	return ret;
 }
 
