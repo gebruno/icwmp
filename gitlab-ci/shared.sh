@@ -143,8 +143,8 @@ function install_bbfdmd()
 	fi
 
 	cd /opt/dev/bbfdm
-	cmake CMakeLists.txt -DBBFDMD_ENABLED=ON -DBBF_TR181=ON -DBBF_TR104=ON -DBBF_TR143=ON -DWITH_OPENSSL=ON -DBBF_JSON_PLUGIN=ON -DBBF_DOTSO_PLUGIN=ON -DBBF_VENDOR_EXTENSION=ON -DBBF_VENDOR_LIST="iopsys" -DBBF_VENDOR_PREFIX="X_IOPSYS_EU_" -DBBF_MAX_OBJECT_INSTANCES=255  -DCMAKE_INSTALL_PREFIX=/
-	make && make install
+	./gitlab-ci/install-dependencies.sh install
+	./gitlab-ci/setup.sh install
 }
 
 function check_valgrind_xml() {

@@ -1,6 +1,7 @@
-title: "CWMP Agent documentation"
+title: "CWMP Client"
 
 nav:
+    - "arch"
     - "api"
     - "guide"
     - "spec"
