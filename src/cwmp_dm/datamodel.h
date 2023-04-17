@@ -12,7 +12,7 @@
 #ifndef __MANAGEMENT_SERVER_H
 #define __MANAGEMENT_SERVER_H
 
-#include <libbbf_api/dmcommon.h>
+#include <libbbfdm-api/dmcommon.h>
 
 extern DMOBJ tCWMPObj[];
 extern DMOBJ tManagementServerObj[];
