@@ -116,6 +116,7 @@ function build_icwmp()
 	COV_CFLAGS='-g -O0 -fprofile-arcs -ftest-coverage'
 	COV_LDFLAGS='--coverage'
 
+	BINP="${PWD}"
 	# clean icwmp
 	clean_icwmp
 
@@ -129,6 +130,8 @@ function build_icwmp()
 	exec_cmd cp icwmpd ../
 	exec_cmd cp libcwmpdm.so ../
 	exec_cmd make install
+	[ -f "/usr/sbin/icwmpd" ] && rm /usr/sbin/icwmpd
+	exec_cmd ln -s ${BINP}/icwmpd /usr/sbin/icwmpd
 	cd ..
 }
 
@@ -150,18 +153,18 @@ function install_bbfdmd()
 function check_valgrind_xml() {
 	echo "Checking memory leaks..."
 	echo "checking UninitCondition"
-	grep -q "<kind>UninitCondition</kind>" memory-report.xml
+	grep -q "<kind>UninitCondition</kind>" /tmp/memory-report.xml
 	error_on_zero $?
 
 	echo "checking Leak_PossiblyLost"
-	grep -q "<kind>Leak_PossiblyLost</kind>" memory-report.xml
+	grep -q "<kind>Leak_PossiblyLost</kind>" /tmp/memory-report.xml
 	error_on_zero $?
 
 	echo "checking Leak_DefinitelyLost"
-	grep -q "<kind>Leak_DefinitelyLost</kind>" memory-report.xml
+	grep -q "<kind>Leak_DefinitelyLost</kind>" /tmp/memory-report.xml
 	error_on_zero $?
 
 	echo "checking Leak_StillReachable"
-	grep -q "<kind>Leak_StillReachable</kind>" memory-report.xml
+	grep -q "<kind>Leak_StillReachable</kind>" /tmp/memory-report.xml
 	error_on_zero $?
 }

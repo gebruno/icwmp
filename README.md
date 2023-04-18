@@ -90,4 +90,4 @@ Runtime dependencies:
 | Dependency  | Link                                        | License        |
 | ----------- | ------------------------------------------- | -------------- |
 | ubus        | https://git.openwrt.org/project/ubus.git    | LGPL 2.1       |
-| bbfdm       | https://dev.iopsys.eu/bbf/bbfdm.git         | LGPLv2.1       |
+| bbfdm       | https://dev.iopsys.eu/bbf/bbfdm.git         | BSD-3          |

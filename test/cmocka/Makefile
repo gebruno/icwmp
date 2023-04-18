@@ -6,7 +6,7 @@ LIB_LDFLAGS:= -lmxml -luci -lblobmsg_json -lubox\
 LIB_CFLAGS:= -fPIC -I../../ -DLOPENSSL -g -O0
 UNIT_TESTS:= icwmp_unit_testd
 
-VALGRIND = /usr/bin/valgrind --xml=yes --xml-file=memory-report.xml --leak-check=full --show-reachable=yes --show-leak-kinds=all --errors-for-leak-kinds=all
+VALGRIND = /usr/bin/valgrind --xml=yes --xml-file=/tmp/memory-report.xml --leak-check=full --show-reachable=yes --show-leak-kinds=all --errors-for-leak-kinds=all
 
 ICWMP_OBJS=$(patsubst ../../src/%.c, %.o, $(wildcard ../../src/*.c))
 TEST_SRCS =  $(wildcard *.c)
@@ -27,10 +27,9 @@ icwmp_unit_testd:
 	
 all: libunit ${UNIT_TESTS}
 	$(VALGRIND) ./${UNIT_TESTS}
-	mv memory-report.xml ../../
 	echo "All test done"
 
 clean:
-	rm -rf *.o libicwmp.so ${UNIT_TESTS} memory-report.xml
+	rm -rf *.o libicwmp.so ${UNIT_TESTS} /tmp/memory-report.xml
 
 .PHONY: clean unit-test

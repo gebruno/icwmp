@@ -13,7 +13,6 @@ build_icwmp
 mkdir -p /var/state/icwmpd
 echo "Starting dependent services"
 supervisorctl update
-sleep 2
 supervisorctl restart all
 sleep 10
 supervisorctl status all
@@ -35,8 +34,6 @@ supervisorctl stop icwmpd
 gcovr -r . 2> /dev/null --xml -o ./api-test-coverage.xml
 #GitLab-CI output
 gcovr -r . 2> /dev/null
-
-cp ./memory-report.xml ./api-test-memory-report.xml
 
 #report part
 exec_cmd tap-junit --input ./api-test-result.log --output report

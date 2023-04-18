@@ -34,7 +34,7 @@ run_unit_test:
       when: always
       paths:
          - timestamp
-         - memory-report.xml
+         - /tmp/memory-report.xml
          - unit-test-coverage.xml
 
 run_api_test:
@@ -53,7 +53,7 @@ run_api_test:
         paths:
             - timestamp
             - api-test-coverage.xml
-            - api-test-memory-report.xml
+            - /tmp/memory-report.xml
             - api-test-result.log
 
 run_functional_test:
@@ -72,9 +72,8 @@ run_functional_test:
         paths:
             - timestamp
             - funl-test-coverage.xml
-            - funl-test-memory-report.xml
             - funl-test-result.log
             - funl-test-debug.log
-            - memory-report.xml
+            - /tmp/memory-report.xml
             - memory-report-download.xml
             - icwmpd_debug.txt

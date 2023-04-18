@@ -89,8 +89,6 @@ gcovr -r . 2> /dev/null --xml -o ./funl-test-coverage.xml
 #GitLab-CI output
 gcovr -r . 2> /dev/null
 
-cp ./memory-report.xml ./funl-test-memory-report.xml
-
 #report part
 exec_cmd tap-junit --input ./funl-test-result.log --output report
 
