@@ -354,14 +354,12 @@ static void http_cr_new_client(int client, bool service_available)
 	char *temp = NULL;
 	char *username = NULL;
 	char *password = NULL;
+	fd_set rfds;
+	struct timeval tv;
+	int line_no = 0;
+	int status = 0;
 
 	CWMP_LOG(INFO, "#### Received a new CR from ACS, service_available: %d", service_available);
-	fp = fdopen(client, "r+");
-	if (fp == NULL) {
-		CWMP_LOG(INFO, "#### Failed to open client socket");
-		service_available = false;
-		goto http_end;
-	}
 	global_string_param_read(&cwmp_main.conf.cpe_userid, &username);
 	global_string_param_read(&cwmp_main.conf.cpe_passwd, &password);
 
@@ -377,10 +375,27 @@ static void http_cr_new_client(int client, bool service_available)
 	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", temp);
 	FREE(temp);
 	CWMP_LOG(INFO, "#### HTTP Head: (%s)", cr_http_get_head);
-	while (fgets(buffer, sizeof(buffer), fp)) {
+
+	tv.tv_sec = 5; //TODO config
+	tv.tv_usec = 0;
+	FD_ZERO(&rfds);
+	FD_SET(client, &rfds);
+
+	status = select(client+1, &rfds, NULL, NULL, &tv);
+	if (status <= 0) {
+		CWMP_LOG(INFO, "#### TIMEOUT occured or select failed");
+		goto http_end;
+	}
+
+	while ((read(client, buffer, sizeof(buffer)) > 0) && (line_no < 50)) {
 		CWMP_LOG(INFO, "#### BUFFER: (%s)", buffer);
 		if (buffer[0] == '\r' || buffer[0] == '\n') {
 			/* end of http request (empty line) */
+			break;
+		}
+
+		if (line_no == 0 && (strstr(buffer, "GET ") == NULL || strstr(buffer, "HTTP/1.1") == NULL)) {
+			CWMP_LOG(INFO, "#### GET or HTTP/1.1 not found at 1st line");
 			break;
 		}
 
@@ -413,7 +428,11 @@ static void http_cr_new_client(int client, bool service_available)
 			auth_digest_checked = true;
 			CWMP_STRNCPY(auth_digest_buffer, buffer, BUFSIZ);
 		}
+
+		line_no++;
+		memset(buffer, 0, sizeof(buffer));
 	}
+
 	if (!service_available || !method_is_get) {
 		goto http_end;
 	}
@@ -430,6 +449,8 @@ static void http_cr_new_client(int client, bool service_available)
 http_end:
 	FREE(username);
 	FREE(password);
+
+	fp = fdopen(client, "w");
 	if (!service_available || !method_is_get) {
 		CWMP_LOG(WARNING, "#### Receive Connection Request: Return 503 Service Unavailable");
 		if (fp) {
