@@ -387,24 +387,24 @@ int cwmp_get_leaf_value(char *leaf, char **value)
 	size_t llen;
 
 	if (leaf == NULL || value == NULL) {
-		CWMP_LOG(INFO, "Empty parameter/value in arguments")
+		CWMP_LOG(INFO, "Empty parameter/value in arguments");
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	}
 
 	llen = strlen(leaf);
 	if (llen == 0) {
-		CWMP_LOG(INFO, "Empty parameter in arguments")
+		CWMP_LOG(INFO, "Empty parameter in arguments");
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	}
 
 	if (leaf[llen - 1] == '.') {
-		CWMP_LOG(INFO, "Non-leaf parameter parameter")
+		CWMP_LOG(INFO, "Non-leaf parameter parameter");
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	}
 
 	cwmp_get_single_parameter_value(leaf, &dm_param);
 	if (dm_param.name == NULL) {
-		CWMP_LOG(INFO, "Fault in getting the parameter %s", leaf)
+		CWMP_LOG(INFO, "Fault in getting the parameter %s", leaf);
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 

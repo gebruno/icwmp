@@ -134,6 +134,7 @@ void xml_exit(void)
 
 int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc)
 {
+	CWMP_LOG(INFO, "#### %s start ####", __FUNCTION__);
 	char *s, *msg_out = NULL, *msg_in = NULL;
 	char c[512];
 	int msg_out_len = 0, f, r = 0;
@@ -146,6 +147,7 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 	}
 
 	if (session->tree_out) {
+		CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 		unsigned char *zmsg_out;
 		msg_out = mxmlSaveAllocString(session->tree_out, MXML_NO_CALLBACK);
 		if (msg_out == NULL) {
@@ -153,9 +155,13 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 			return -1;
 		}
 
+		CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 		CWMP_LOG_XML_MSG(DEBUG, msg_out, XML_MSG_OUT);
+		CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 		if (compression != COMP_NONE) {
+			CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, compression)) {
+				CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 				return -1;
 			}
 			FREE(msg_out);
@@ -163,6 +169,7 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 		} else {
 			msg_out_len = msg_out ? strlen(msg_out) : 0;
 		}
+		CWMP_LOG(INFO, "#### %s line: %d ####", __FUNCTION__, __LINE__);
 	}
 	while (1) {
 		f = 0;
@@ -223,11 +230,13 @@ int xml_send_message(struct cwmp *cwmp, struct session *session, struct rpc *rpc
 end:
 	FREE(msg_out);
 	FREE(msg_in);
+	CWMP_LOG(INFO, "#### %s return ####", __FUNCTION__);
 	return 0;
 
 error:
 	FREE(msg_out);
 	FREE(msg_in);
+	CWMP_LOG(INFO, "#### %s return ####", __FUNCTION__);
 	return -1;
 }
 

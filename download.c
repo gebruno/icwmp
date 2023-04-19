@@ -261,6 +261,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 		if (cwmp_check_image() == 0) {
 			long int file_size = get_file_size(FIRMWARE_UPGRADE_IMAGE);
 			if (file_size > flashsize) {
+				CWMP_LOG(ERROR, "download %s failed: file size %ld > flash size %ld", __FUNCTION__, file_size, flashsize);
 				error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 				remove(FIRMWARE_UPGRADE_IMAGE);
 				goto end_download;
@@ -269,6 +270,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 				goto end_download;
 			}
 		} else {
+			CWMP_LOG(ERROR, "download %s, failed in cwmp_check_image", __FUNCTION__);
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 			remove(FIRMWARE_UPGRADE_IMAGE);
 		}

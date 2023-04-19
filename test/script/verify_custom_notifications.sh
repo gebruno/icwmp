@@ -26,7 +26,7 @@ sleep 5
 check_cwmp_status
 
 supervisorctl stop icwmpd
-
+sleep 5
 check_valgrind_xml
 
 notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`

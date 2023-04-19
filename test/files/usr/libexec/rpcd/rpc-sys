@@ -18,6 +18,10 @@ case "$1" in
                         ;;
                         upgrade_start)
                                 cat /tmp/rpc_sys.data 2>/dev/null
+				sleep 10
+				supervisorctl stop icwmpd
+				sleep 5
+				supervisorctl start icwmpd
                         ;;
                 esac
         ;;
