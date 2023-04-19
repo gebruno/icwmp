@@ -90,9 +90,8 @@ typedef struct env {
 } env;
 
 struct connection {
-	char *connection_wan_iface;
 	char *interface;
-	int ip_resolve;
+	long ip_resolve;
 	bool ipv6_status;
 };
 
@@ -104,8 +103,6 @@ typedef struct config {
 	char *cpe_userid;
 	char *cpe_passwd;
 	char *custom_notify_json;
-	char *ip;
-	char *ipv6;
 	char *ubus_socket;
 	char *connection_request_path;
 	char *auto_tc_transfer_type;
@@ -115,7 +112,6 @@ typedef struct config {
 	char *auto_cdu_result_type;
 	char *auto_cdu_fault_code;
 	char *default_wan_iface;
-	char *default_wan6_iface;
 	int connection_request_port;
 	int period;
 	int periodic_notify_interval;
@@ -613,11 +609,9 @@ bool icwmp_validate_unsignedint(char *arg);
 bool icwmp_validate_int_in_range(char *arg, int min, int max);
 char *string_to_hex(const unsigned char *str, size_t size);
 int copy_file(char *source_file, char *target_file);
-int get_connection_interface();
-int get_connection_parameters();
-int icwmp_check_http_connection();
-bool check_ipv6_enabled();
-bool check_connection_attributes_change();
+int icwmp_check_http_connection(void);
+bool is_ipv6_enabled(void);
+bool is_ipv6_status_changed(void);
 char *get_time(time_t t_time);
 bool is_obj_excluded(const char *object_name);
 bool is_reload_parameter(const char *object_name);

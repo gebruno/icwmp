@@ -183,16 +183,9 @@
         {
           "name": "default_wan_interface",
           "type": "string",
-          "required": "no",
+          "required": "yes",
           "default": "wan",
-          "description": "Configure the default wan interface that will be used for IPv4 connection."
-        },
-        {
-          "name": "default_wan6_interface",
-          "type": "string",
-          "required": "no",
-          "default": "wan6",
-          "description": "Configure the default wan interface that will be used for IPv6 connection."
+          "description": "Configure the default wan interface that will be used for IPv4/IPv6 connection."
         },
         {
           "name": "log_to_console",

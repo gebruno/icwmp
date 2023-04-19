@@ -16,6 +16,8 @@
 #include <getopt.h>
 #include <stdarg.h>
 #include <regex.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
 #include <mxml.h>
 
 #include "common.h"
@@ -743,130 +745,110 @@ int copy_file(char *source_file, char *target_file)
 	return 0;
 }
 
-void ubus_network_interface_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
+static void ubus_network_interface_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
 {
-	const struct blobmsg_policy p[1] = { { "l3_device", BLOBMSG_TYPE_STRING } };
-	struct blob_attr *tb[1] = { NULL };
-	char *l3_device = NULL;
-	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
-	if (tb[0] != NULL) {
-		l3_device = blobmsg_get_string(tb[0]);
-	}
+	struct blob_attr *tb[1] = {0};
+	struct blobmsg_policy p[1] = {
+			{ "l3_device", BLOBMSG_TYPE_STRING }
+	};
 
-	// Only update the interface if its not empty
-	if (CWMP_STRLEN(l3_device)) {
-		cwmp_main->net.interface = strdup(l3_device);
-	}
-
-	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s", cwmp_main->net.interface);
-}
-
-void set_uci_connection_interface(char* interface)
-{
-	if (interface == NULL) {
-		CWMP_LOG(WARNING, "%s interface is NULL", __FUNCTION__);
+	if (msg == NULL)
 		return;
-	}
-	cwmp_uci_set_varstate_value("cwmp", "cpe", "interface", interface);
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
-}
 
-int get_connection_interface()
-{
-	struct blob_buf b = { 0 };
-	memset(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
-
-	char ubus_obj[100] = {0};
-	if (cwmp_main->net.ipv6_status)
-		snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", cwmp_main->conf.default_wan6_iface);
-	else
-		snprintf(ubus_obj, sizeof(ubus_obj), "network.interface.%s", cwmp_main->conf.default_wan_iface);
-
-	FREE(cwmp_main->net.interface);
-
-	int e = icwmp_ubus_invoke(ubus_obj, "status", b.head, ubus_network_interface_callback, NULL);
-	blob_buf_free(&b);
-
-	if (e != 0) {
-		return -1;
-	}
-	if (cwmp_main->net.interface == NULL) {
-		return -1;
-	}
-	set_uci_connection_interface(cwmp_main->net.interface);
-	return CWMP_OK;
-}
-
-int get_connection_parameters()
-{
-	int error = get_connection_interface();
-	if (error != CWMP_OK) {
-		CWMP_LOG(DEBUG, "Failed to get interface [%s] details", cwmp_main->net.connection_wan_iface);
-		return error;
-	}
-
-	error = icwmp_check_http_connection();
-	if (error != CWMP_OK || !cwmp_main->net.connection_wan_iface) {
-		CWMP_LOG(DEBUG, "Failed to check http connection");
-		return error;
-	}
-	return CWMP_OK;
-}
-
-void ubus_network_interface_status_callback(struct ubus_request *req __attribute__((unused)), int type __attribute__((unused)), struct blob_attr *msg)
-{
-	bool *up = (bool *)req->priv;
-
-	const struct blobmsg_policy p[1] = { { "up", BLOBMSG_TYPE_BOOL } };
-	struct blob_attr *tb[1] = { NULL };
 	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
-	if (tb[0] != NULL)
-		*up = blobmsg_get_bool(tb[0]);
+
+	if (!tb[0])
+		return;
+
+	char *l3_device = blobmsg_get_string(tb[0]);
+	if (!CWMP_STRLEN(l3_device))
+		return;
+
+	cwmp_main->net.interface = strdup(l3_device);
+
+	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s && device: %s", cwmp_main->conf.default_wan_iface, cwmp_main->net.interface);
 }
 
-bool check_ipv6_enabled()
+static bool is_ipv6_addr_available(const char *device)
 {
-	bool up=false;
-	struct blob_buf b = { 0 };
-	memset(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
+	struct ifaddrs *ifaddr = NULL,*ifa = NULL;
+	void *in_addr = NULL;
+	bool ipv6_addr_available = false;
+	int family, err = 0;
 
-	char ubus_network_interface[512];
-	snprintf(ubus_network_interface, sizeof(ubus_network_interface), "network.interface.%s", cwmp_main->conf.default_wan6_iface);
-	icwmp_ubus_invoke(ubus_network_interface, "status", b.head, ubus_network_interface_status_callback, &up);
+	if (CWMP_STRLEN(device) == 0)
+		return false;
 
-	blob_buf_free(&b);
+	err = getifaddrs(&ifaddr);
+	if (err != 0)
+		return false;
 
-	return up;
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+
+		if (ifa->ifa_addr == NULL || ifa->ifa_name == NULL || strcmp(ifa->ifa_name, device) != 0)
+			continue;
+
+		family = ifa->ifa_addr->sa_family;
+
+		// Skip this result, if it is not an IPv6 node
+		if (family != AF_INET6)
+		    continue;
+
+		#define NOT_GLOBAL_UNICAST(addr) \
+            		( (IN6_IS_ADDR_UNSPECIFIED(addr)) || (IN6_IS_ADDR_LOOPBACK(addr))  ||   \
+              		(IN6_IS_ADDR_MULTICAST(addr))   || (IN6_IS_ADDR_LINKLOCAL(addr)) ||   \
+              		(IN6_IS_ADDR_SITELOCAL(addr)) )
+
+		if (family == AF_INET6) {
+
+			in_addr = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+
+			// Skip this result, if it is an IPv6 address, but not globally routable
+			if (NOT_GLOBAL_UNICAST((struct in6_addr *)in_addr))
+				continue;
+
+			ipv6_addr_available = true;
+			break;
+		}
+	}
+
+	freeifaddrs(ifaddr);
+
+	return ipv6_addr_available;
 }
 
-bool check_connection_attributes_change()
+bool is_ipv6_enabled(void)
 {
-	cwmp_uci_reinit();
+	if (cwmp_main->net.interface == NULL) {
+		struct blob_buf b = {0};
+		char network_interface[64];
 
-	char *actual_wan_interface = NULL, *actual_wan6_interface = NULL;
-	uci_get_value("cwmp.cpe.default_wan_interface", &actual_wan_interface);
-	uci_get_value("cwmp.cpe.default_wan6_interface", &actual_wan6_interface);
-	bool wan_interface_changed = CWMP_STRCMP(actual_wan_interface, cwmp_main->conf.default_wan_iface);
-	bool wan6_interface_changed = CWMP_STRCMP(actual_wan6_interface, cwmp_main->conf.default_wan_iface);
+		memset(&b, 0, sizeof(struct blob_buf));
+		blob_buf_init(&b, 0);
 
-	if (wan_interface_changed)
-	{
-		FREE(cwmp_main->conf.default_wan_iface);
-		cwmp_main->conf.default_wan_iface = strdup(actual_wan_interface);
+		snprintf(network_interface, sizeof(network_interface), "network.interface.%s", cwmp_main->conf.default_wan_iface);
+
+		int e = icwmp_ubus_invoke(network_interface, "status", b.head, ubus_network_interface_callback, NULL);
+
+		blob_buf_free(&b);
+
+		if (e != 0 || cwmp_main->net.interface == NULL)
+			return false;
 	}
-	if (wan6_interface_changed)
-	{
-		FREE(cwmp_main->conf.default_wan6_iface);
-		cwmp_main->conf.default_wan6_iface = strdup(actual_wan6_interface);
-	}
-	FREE(actual_wan_interface);
-	FREE(actual_wan6_interface);
-	bool actual_ipv6_status = check_ipv6_enabled();
-	bool ipv6_status_changed = (actual_ipv6_status != cwmp_main->net.ipv6_status);
-	cwmp_main->net.ipv6_status = actual_ipv6_status;
-	return ipv6_status_changed || wan_interface_changed || wan6_interface_changed;
+
+	if (!is_ipv6_addr_available(cwmp_main->net.interface))
+		return false;
+
+	return true;
+}
+
+bool is_ipv6_status_changed(void)
+{
+	bool curr_ipv6_status = is_ipv6_enabled();
+	bool ipv6_status_changed = (curr_ipv6_status != cwmp_main->net.ipv6_status);
+	cwmp_main->net.ipv6_status = curr_ipv6_status;
+
+	return ipv6_status_changed;
 }
 
 char *get_time(time_t t_time)

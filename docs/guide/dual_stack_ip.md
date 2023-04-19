@@ -22,7 +22,4 @@ While the CPE must prioritize the IPv6, so it starts by checking if IPv6 is work
 
 ### Dual Stack configuration
 
-Two uci options are present to configure dual stack:
-
-- cwmp.cpe.default_wan_interface: that is the network interface that is used to check the connection with IPv4.
-- cwmp.cpe.default_wan6_interface: that is the network interface that is used to check the connection with IPv6.
+- cwmp.cpe.default_wan_interface: this is the interface name that is used to check the connection with IPv4/IPv6.

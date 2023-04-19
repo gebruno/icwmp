@@ -45,8 +45,6 @@ static void clean_config()
 	FREE(cwmp_main->deviceid.oui);
 	FREE(cwmp_main->deviceid.softwareversion);
 	FREE(cwmp_main->conf.lw_notification_hostname);
-	FREE(cwmp_main->conf.ip);
-	FREE(cwmp_main->conf.ipv6);
 	FREE(cwmp_main->conf.acsurl);
 	FREE(cwmp_main->conf.acs_userid);
 	FREE(cwmp_main->conf.acs_passwd);
@@ -55,7 +53,6 @@ static void clean_config()
 	FREE(cwmp_main->conf.ubus_socket);
 	FREE(cwmp_main->conf.connection_request_path);
 	FREE(cwmp_main->conf.default_wan_iface);
-	FREE(cwmp_main->conf.default_wan6_iface);
 }
 
 static void clean_name_space()

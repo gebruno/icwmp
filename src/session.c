@@ -337,9 +337,9 @@ void start_cwmp_session()
 	if (cwmp_main->session->session_status.last_status == SESSION_FAILURE)
 		cwmp_config_load();
 
-	if (check_connection_attributes_change()) {
-		if (get_connection_parameters() != CWMP_OK || cwmp_stop) {
-			CWMP_LOG(INFO, "cwmp fails to get connection parameters");
+	if (is_ipv6_status_changed()) {
+		if (icwmp_check_http_connection() != CWMP_OK || cwmp_stop) {
+			CWMP_LOG(INFO, "Failed to check http connection");
 			return;
 		}
 	}

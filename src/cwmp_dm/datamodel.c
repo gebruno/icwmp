@@ -431,56 +431,40 @@ static int set_management_server_periodic_inform_time(char *refparam, struct dmc
 	return 0;
 }
 
-static int network_get_ipaddr(char *iface, int ipver, char **value)
-{
-	json_object *res = NULL, *jobj = NULL;
-
-	dmubus_call("network.interface", "status", UBUS_ARGS{{"interface", iface, String}}, 1, &res);
-	DM_ASSERT(res, *value = "");
-
-
-	if (ipver == 6)
-		jobj = dmjson_select_obj_in_array_idx(res, 0, 1, "ipv6-address");
-	else
-		jobj = dmjson_select_obj_in_array_idx(res, 0, 1, "ipv4-address");
-
-	*value = dmjson_get_value(jobj, 1, "address");
-
-	if ((*value)[0] == '\0')
-		return -1;
-
-	return 0;
-}
-
 static void get_management_ip_port(char **listen_addr)
 {
-	char *ip = NULL, *port = NULL, *interface = NULL, *if_name = NULL, *version = NULL;
+	char *ip = NULL, *port = NULL, *interface = NULL, *ip_version = NULL;
 
-	dmuci_get_option_value_string_varstate("cwmp", "cpe", "interface", &if_name);
-	dmuci_get_option_value_string_varstate("cwmp", "acs", "ip_version", &version);
+	dmuci_get_option_value_string("cwmp", "cpe", "default_wan_interface", &interface);
 	dmuci_get_option_value_string("cwmp", "cpe", "port", &port);
-	dmuci_get_option_value_string("cwmp", "cpe", *version == '6' ? "default_wan6_interface" : "default_wan_interface", &interface);
+	dmuci_get_option_value_string_varstate("cwmp", "acs", "ip_version", &ip_version);
 
-	if (network_get_ipaddr(interface, *version == '6' ? 6 : 4, &ip) == -1) {
-		if (if_name[0] == '\0')
-			return;
+	if (!DM_STRLEN(interface))
+		return;
 
-		ip = (*version == '6') ? get_ipv6(if_name) : ioctl_get_ipv4(if_name);
-	}
+	char *l3_device = get_l3_device(interface);
+	if (!DM_STRLEN(l3_device))
+		return;
 
-	if (ip[0] != '\0' && port[0] != '\0') {
-		dmasprintf(listen_addr, (*version == '6') ? "[%s]:%s" : "%s:%s", ip, port);
-	}
+	if (DM_STRCMP(ip_version, "6") == 0)
+		ip = ifaddrs_get_global_ipv6(l3_device);
+	else
+		ip = ioctl_get_ipv4(l3_device);
+
+	if (DM_STRLEN(ip) && DM_STRLEN(port))
+		dmasprintf(listen_addr, !DM_STRCMP(ip_version, "6") ? "[%s]:%s" : "%s:%s", ip, port);
 }
 
 /*#Device.ManagementServer.ConnectionRequestURL!UCI:cwmp/cpe,cpe/port*/
 static int get_management_server_connection_request_url(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
 	char *mgmt_addr = NULL;
+
 	get_management_ip_port(&mgmt_addr);
 
-	if (mgmt_addr != NULL) {
-		char *path;
+	if (DM_STRLEN(mgmt_addr)) {
+		char *path = NULL;
+
 		dmuci_get_option_value_string("cwmp", "cpe", "path", &path);
 		dmasprintf(value, "http://%s/%s", mgmt_addr, path ? path : "");
 	}

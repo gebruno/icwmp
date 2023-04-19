@@ -123,14 +123,12 @@ static void http_set_connection_options()
 	curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
 	curl_easy_setopt(curl, CURLOPT_NOBODY, 0);
 	curl_easy_setopt(curl, CURLOPT_IPRESOLVE, cwmp_main->net.ip_resolve);
-#ifdef DEVEL
-	curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-#endif
 
 	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, fc_cookies);
 	curl_easy_setopt(curl, CURLOPT_COOKIEJAR, fc_cookies);
 
-	curl_easy_setopt(curl, CURLOPT_INTERFACE, cwmp_main->net.interface);
+	if (CWMP_STRLEN(cwmp_main->net.interface))
+		curl_easy_setopt(curl, CURLOPT_INTERFACE, cwmp_main->net.interface);
 }
 
 static void http_set_header_list_options()
@@ -213,7 +211,7 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 		FREE(*msg_in);
 
 	curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);
-	if (ip && ip[0] != '\0') {
+	if (CWMP_STRLEN(ip)) {
 		if (ip_acs[0] == '\0' || strcmp(ip_acs, ip) != 0) {
 			CWMP_STRNCPY(ip_acs, ip, sizeof(ip_acs));
 			tmp = inet_pton(AF_INET, ip, buf);

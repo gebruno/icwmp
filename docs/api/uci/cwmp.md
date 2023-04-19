@@ -228,8 +228,15 @@
                     <td class="td_row_odd"><div class="td_row_odd">default_lan_interface</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">string</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>
-                    <td class="td_row_odd"><div class="td_row_odd"></div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">lan</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">Configure the default lan interface of the device.</div></td>
+                  </tr>
+                  <tr>
+                    <td class="td_row_odd"><div class="td_row_odd">default_wan_interface</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">string</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">yes</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">wan</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">Configure the default wan interface that will be used for IPv4/IPv6 connection.</div></td>
                   </tr>
                   <tr>
                     <td class="td_row_even"><div class="td_row_even">log_to_console</div></td>

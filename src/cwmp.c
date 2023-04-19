@@ -283,15 +283,15 @@ static int cwmp_init(void)
 	INIT_LIST_HEAD(&du_uuid_list);
 	cwmp_main->start_time = time(NULL);
 
-	cwmp_uci_exit();
-	sleep(15);
-
-	cwmp_main->net.ipv6_status = check_ipv6_enabled();
-	error = get_connection_parameters();
+	cwmp_main->net.ipv6_status = is_ipv6_enabled();
+	error = icwmp_check_http_connection();
 	if (error != CWMP_OK) {
-		CWMP_LOG(DEBUG, "Failed to get connection parameters");
+		CWMP_LOG(DEBUG, "Init: failed to check http connection");
 		return error;
 	}
+
+	cwmp_uci_exit();
+
 	return CWMP_OK;
 }
 
@@ -304,17 +304,13 @@ static void cwmp_free()
 	FREE(cwmp_main->deviceid.oui);
 	FREE(cwmp_main->deviceid.softwareversion);
 	FREE(cwmp_main->conf.lw_notification_hostname);
-	FREE(cwmp_main->conf.ip);
-	FREE(cwmp_main->conf.ipv6);
 	FREE(cwmp_main->conf.acsurl);
 	FREE(cwmp_main->conf.acs_userid);
 	FREE(cwmp_main->conf.acs_passwd);
-	FREE(cwmp_main->net.interface);
 	FREE(cwmp_main->conf.cpe_userid);
 	FREE(cwmp_main->conf.cpe_passwd);
 	FREE(cwmp_main->conf.ubus_socket);
 	FREE(cwmp_main->conf.connection_request_path);
-	FREE(cwmp_main->net.connection_wan_iface);
 	FREE(cwmp_main->conf.custom_notify_json);
 	FREE(cwmp_main->conf.auto_cdu_fault_code);
 	FREE(cwmp_main->conf.auto_cdu_oprt_type);
@@ -323,7 +319,7 @@ static void cwmp_free()
 	FREE(cwmp_main->conf.auto_tc_result_type);
 	FREE(cwmp_main->conf.auto_tc_transfer_type);
 	FREE(cwmp_main->conf.default_wan_iface);
-	FREE(cwmp_main->conf.default_wan6_iface);
+	FREE(cwmp_main->net.interface);
 	FREE(nonce_key);
 	clean_list_param_notify();
 	bkp_tree_clean();

@@ -320,38 +320,6 @@ int cwmp_root_cause_event_periodic()
 	return CWMP_OK;
 }
 
-void connection_request_ip_value_change(int version)
-{
-	char *bip = NULL;
-	char *ip_version = (version == IPv6) ? "ipv6" : "ip";
-	char *ip_value = (version == IPv6) ? cwmp_main->conf.ipv6 : cwmp_main->conf.ip;
-
-	if (version == IPv6)
-		cwmp_load_saved_session(&bip, CR_IPv6);
-	else
-		cwmp_load_saved_session(&bip, CR_IP);
-
-	if (bip == NULL) {
-		CWMP_LOG(ERROR, "event %s: bip is null", __FUNCTION__);
-		bkp_session_simple_insert_in_parent("connection_request", ip_version, ip_value);
-		bkp_session_save();
-		return;
-	}
-	if (ip_value && strcmp(bip, ip_value) != 0) {
-		struct event_container *event_container;
-		event_container = cwmp_add_event_container(EVENT_IDX_4VALUE_CHANGE, "");
-		if (event_container == NULL) {
-			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
-			FREE(bip);
-			return;
-		}
-		cwmp_save_event_container(event_container);
-		bkp_session_simple_insert_in_parent("connection_request", ip_version, ip_value);
-		bkp_session_save();
-	}
-	FREE(bip);
-}
-
 void connection_request_port_value_change(int port)
 {
 	char *bport = NULL;
