@@ -465,7 +465,7 @@ int cwmp_set_multi_parameters_value(struct list_head *parameters_values_list, st
 
 	list_for_each_entry (param_value, parameters_values_list, list) {
 
-		if (CWMP_STRLEN(param_value->name) == 0 || CWMP_STRLEN(param_value->value) == 0)
+		if (CWMP_STRLEN(param_value->name) == 0)
 			continue;
 
 		int res = cwmp_set_parameter_value(param_value->name, param_value->value, faults_list);
