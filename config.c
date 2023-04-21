@@ -46,6 +46,7 @@ static void config_get_cpe_elements(struct config *conf, struct uci_section *s)
 		UCI_CPE_ENABLE_SYSLOG,
 		UCI_CPE_AMD_VERSION,
 		UCI_CPE_DEFAULT_WAN_IFACE,
+		UCI_CPE_CON_REQ_TIMEOUT,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -59,6 +60,7 @@ static void config_get_cpe_elements(struct config *conf, struct uci_section *s)
 		{ .name = "log_to_syslog", .type = UCI_TYPE_STRING },
 		{ .name = "amd_version", .type = UCI_TYPE_STRING },
 		{ .name = "default_wan_interface", .type = UCI_TYPE_STRING },
+		{ .name = "cr_timeout", .type = UCI_TYPE_STRING },
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS] = {0};
@@ -103,6 +105,16 @@ static void config_get_cpe_elements(struct config *conf, struct uci_section *s)
 	global_string_param_read(&conf->default_wan_iface, &val);
 	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", val);
 	FREE(val);
+
+	global_int_param_write(&conf->cr_timeout, DEFAULT_CR_TIMEOUT);
+	char *tm_out = get_value_from_uci_option(cpe_tb[UCI_CPE_CON_REQ_TIMEOUT]);
+	if (tm_out != NULL) {
+		int a = strtod(tm_out, NULL);
+		if (a > 0) {
+			global_int_param_write(&conf->cr_timeout, a);
+		}
+	}
+
 }
 
 static void config_get_acs_elements(struct config *conf, struct uci_section *s)
