@@ -13,10 +13,10 @@ echo "Compiling icmwp"
 build_icwmp
 
 echo "Starting dependent services"
-supervisorctl status all
 supervisorctl update
 supervisorctl restart all
 supervisorctl stop icwmpd
+sleep 5
 supervisorctl status all
 
 echo "Configuring genieacs"
@@ -25,6 +25,8 @@ configure_genieacs
 mkdir -p /var/state/icwmpd 
 
 echo "Starting icwmpd deamon"
+echo "Starting icwmpd deamon" >> icwmpd_debug.txt
+rm /etc/icwmpd/icwmpd_backup_session.xml
 supervisorctl start icwmpd
 sleep 5
 
@@ -38,10 +40,11 @@ echo "## Running script verification of functionalities ##"
 echo > ./funl-test-result.log
 echo > ./funl-test-debug.log
 test_num=0
-for test in $(ls -I "common.sh" -I "verify_custom_notifications.sh" test/script/); do
+for test in $(ls -I "common.sh" -I "verify_custom_notifications.sh" -I "verify_download_method.sh" test/script/); do
 	ret=0
 	test_num=$(( test_num + 1 ))
 
+	sleep 5
 	echo "#### Start $test ####" >> "$icwmp_master_log"
 	if ./test/script/"${test}"; then
 		echo "ok ${test_num} - ${test}" >> ./funl-test-result.log
@@ -74,12 +77,13 @@ fi
 test_num=$(( test_num + 1 ))
 echo "1..${test_num}" >> ./funl-test-result.log
 
+supervisorctl stop all
 # Artefact
 gcovr -r . 2> /dev/null --xml -o ./funl-test-coverage.xml
 #GitLab-CI output
 gcovr -r . 2> /dev/null
 
-cp ./memory-report.xml ./funl-test-memory-report.xml
+cp /tmp/memory-report.xml ./funl-test-memory-report.xml
 
 #report part
 exec_cmd tap-junit --input ./funl-test-result.log --output report

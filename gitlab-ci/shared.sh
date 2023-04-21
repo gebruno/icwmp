@@ -108,6 +108,7 @@ function clean_icwmp()
 		find -name '*.so' -exec rm {} -fv \;
 		rm -f *.o *.log *.xml vgcore.* firmware_v1.0.bin
 		rm -rf report
+		unlink /usr/sbin/icwmpd
 	fi
 }
 
@@ -124,6 +125,7 @@ function build_icwmp()
 	./configure CFLAGS="$COV_CFLAGS" LDFLAGS="$COV_LDFLAGS" --enable-libopenssl >/dev/null 2>&1
 	make CFLAGS="$COV_CFLAGS" LDFLAGS="$COV_LDFLAGS"
 	check_ret $?
+	exec_cmd ln -s ${PWD}/icwmpd /usr/sbin/icwmpd
 }
 
 function install_uspd()
@@ -131,7 +133,7 @@ function install_uspd()
 	# install uspd
 	cd /opt/dev
 	rm -rf uspd
-	exec_cmd git clone -b release-6.5 https://dev.iopsys.eu/iopsys/uspd.git
+	exec_cmd git clone -b release-6.5 https://dev.iopsys.eu/bbf/uspd.git
 	cd /opt/dev/uspd
 	exec_cmd ./gitlab-ci/install-dependencies.sh
 	exec_cmd ./gitlab-ci/setup.sh
@@ -141,15 +143,15 @@ function install_uspd()
 
 function check_valgrind_xml() {
 	echo "Checking memory leaks..."
-	grep -q "<kind>UninitCondition</kind>" memory-report.xml
+	grep -q "<kind>UninitCondition</kind>" /tmp/memory-report.xml
 	error_on_zero $?
 
-	grep -q "<kind>Leak_PossiblyLost</kind>" memory-report.xml
+	grep -q "<kind>Leak_PossiblyLost</kind>" /tmp/memory-report.xml
 	error_on_zero $?
 
-	grep -q "<kind>Leak_DefinitelyLost</kind>" memory-report.xml
+	grep -q "<kind>Leak_DefinitelyLost</kind>" /tmp/memory-report.xml
 	error_on_zero $?
 
-	grep -q "<kind>Leak_StillReachable</kind>" memory-report.xml
+	grep -q "<kind>Leak_StillReachable</kind>" /tmp/memory-report.xml
 	error_on_zero $?
 }
