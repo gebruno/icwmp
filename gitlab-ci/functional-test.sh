@@ -9,28 +9,25 @@ trap cleanup EXIT
 trap cleanup SIGINT
 
 date +%s > timestamp.log
-echo "Compiling icmwp"
-build_icwmp
 
-echo "Starting dependent services"
+echo "### Updating supervisor config ..."
 supervisorctl update
-supervisorctl restart all
-supervisorctl stop icwmpd
 sleep 5
 supervisorctl status all
 
-echo "Configuring genieacs"
+echo "### Configuring genieacs ...."
 configure_genieacs
 
 mkdir -p /var/state/icwmpd 
+echo "### Compiling icmwp ...."
+build_icwmp
 
-echo "Starting icwmpd deamon"
-echo "Starting icwmpd deamon" >> icwmpd_debug.txt
-rm /etc/icwmpd/icwmpd_backup_session.xml
-supervisorctl start icwmpd
+echo "### Starting icwmp again ...."
+supervisorctl start all
 sleep 5
+supervisorctl status all
 
-echo "Checking cwmp status"
+echo "### Checking cwmp status ..."
 check_cwmp_status
 
 [ -f funl-test-result.log ] && rm -f funl-test-result.log
