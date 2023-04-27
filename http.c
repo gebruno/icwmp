@@ -14,6 +14,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include "http.h"
 #include "cwmp_uci.h"
@@ -26,6 +27,7 @@
 #define REALM "authenticate@cwmp"
 #define OPAQUE "11733b200778ce33060f31c9af70a870ba96ddd4"
 #define HTTP_GET_HDR_LEN 512
+#define HTTP_FD_FEEDS_COUNT 10 /* Maximum number of lines to be read from HTTP header */
 
 static struct http_client http_c;
 static bool curl_glob_init = false;
@@ -314,6 +316,7 @@ void http_success_cr(void)
 static void http_cr_new_client(int client, bool service_available)
 {
 	FILE *fp = NULL;
+	char data[BUFSIZ] = {0};
 	char buffer[BUFSIZ] = {0};
 	char auth_digest_buffer[BUFSIZ] = {0};
 	int8_t auth_status = 0;
@@ -345,14 +348,22 @@ static void http_cr_new_client(int client, bool service_available)
 	global_string_param_read(&cwmp_main.conf.connection_request_path, &temp);
 	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", temp);
 	FREE(temp);
+
+	/* Initialize timeout of select, so that it will wait for specific time
+	 * period before timed out to receive data from client. Otherwise if
+	 * client will not send any data after a successful connection then server
+	 * will wait forever and not entertain any other connection requests
+	 */
 	tv.tv_sec = global_int_param_read(&cwmp_main.conf.cr_timeout);
 	tv.tv_usec = 0;
 	FD_ZERO(&rfds);
 	FD_SET(client, &rfds);
 
-	status = select(client+1, &rfds, NULL, NULL, &tv);
-	if (status <= 0) {
-		CWMP_LOG(DEBUG, "TIMEOUT occurred or select failed");
+	/* Make FD non blocking, so that no operation on FD will block and make the
+	 * server halt forever.
+	 */
+	if (fcntl(client, F_SETFL, O_NONBLOCK) < 0) {
+		CWMP_LOG(ERROR, "Failed to set NONBLOCK");
 		goto http_end;
 	}
 
@@ -362,48 +373,112 @@ static void http_cr_new_client(int client, bool service_available)
 		goto http_end;
 	}
 
-	while ((fgets(buffer, sizeof(buffer), fp) != NULL) && (fd_feed < 50)) {
-		if (buffer[0] == '\r' || buffer[0] == '\n') {
-			/* end of http request (empty line) */
+	bool read_done = false;
+	/* Perform read from FD until all required data are collected or
+	 * HTTP_FD_FEEDS_COUNT number of read operation has been performed.
+	 * So that flooding of data not blocks the server.
+	 */
+	while (!read_done && fd_feed < HTTP_FD_FEEDS_COUNT) {
+		status = select(client+1, &rfds, NULL, NULL, &tv);
+		if (status <= 0) {
+			CWMP_LOG(INFO, "TIMEOUT occurred or select failed");
 			break;
 		}
 
-		if (fd_feed == 0 && (strstr(buffer, "GET ") == NULL || strstr(buffer, "HTTP/1.1") == NULL)) {
-			CWMP_LOG(DEBUG, "GET HTTP/1.1 not found at initial");
+		/* Check how many bytes available in the FD */
+		int read_bytes = 0;
+		if (ioctl(client, FIONREAD, &read_bytes) == -1) {
+			CWMP_LOG(INFO, "ioctl failed");
 			break;
 		}
 
-		if (strstr(buffer, "GET ") != NULL && strstr(buffer, "HTTP/1.1") != NULL) {
-			// check if extra url parameter then ignore extra params
-			int j = 0;
-			bool ignore = false;
-			char rec_http_get_head[HTTP_GET_HDR_LEN] = {0};
+		if (read_bytes == 0) {
+			/* it means the client has been disconnected */
+			CWMP_LOG(INFO, "client disconnected");
+			break;
+		}
 
-			memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
-			for (size_t i = 0; i < strlen(buffer) && j < (HTTP_GET_HDR_LEN - 1); i++) {
-				if (buffer[i] == '?')
-					ignore = true;
-				if (buffer[i] == ' ')
-					ignore = false;
-				if (ignore == false) {
-					rec_http_get_head[j] = buffer[i];
-					j++;
+		/* Read upto the number of bytes or HTTP_FD_FEEDS_COUNT number of
+		 * read operation whichever is earlier, to avoid halt on data flooding
+		 */
+		while (read_bytes > 0 && fd_feed < HTTP_FD_FEEDS_COUNT) {
+			if (fgets(buffer, sizeof(buffer), fp) == NULL) {
+				CWMP_LOG(INFO, "No more data from FD");
+				break;
+			}
+
+			size_t buf_len = strlen(buffer);
+			read_bytes = read_bytes - buf_len;
+			fd_feed = fd_feed + 1;
+
+			/* Check if a whole line has been read, since a non blocking FD so
+			 * possible to have fewer bytes than its in whole line based on the
+			 * availability of data in the FD
+			 */
+			if (buffer[buf_len - 1] != '\n') {
+				/* there should be more data in current line, store the current
+				 * data and wait for next read if max data length not exceeded
+				 */
+				size_t avail_space = (size_t)(sizeof(data) - strlen(data));
+				if (buf_len < avail_space) {
+					strcat(data, buffer);
+					continue;
+				}
+			} else {
+				/* A whole line has been read, so store it if max data length is
+				 * not exceeded and process the data
+				 */
+				size_t avail_space = (size_t)(sizeof(data) - strlen(data));
+				if (buf_len < avail_space) {
+					strcat(data, buffer);
 				}
 			}
 
-			if (!strncasecmp(rec_http_get_head, cr_http_get_head, strlen(cr_http_get_head)))
-				method_is_get = true;
+			strip_lead_trail_char(data, '\r');
+			strip_lead_trail_char(data, '\n');
+			if (strlen(data) == 0) {
+				/* empty line reached */
+				CWMP_LOG(DEBUG, "Empty line found in packet");
+				read_done = true;
+				break;
+			}
+
+			if (fd_feed == 1 && (strstr(data, "GET ") == NULL || strstr(data, "HTTP/1.1") == NULL)) {
+				CWMP_LOG(INFO, "GET not found at initial:: %s", data);
+				read_done = true;
+				break;
+			}
+
+			CWMP_LOG(DEBUG, "Data:: %s", data);
+			if (strstr(data, "GET ") != NULL && strstr(data, "HTTP/1.1") != NULL) {
+				// check if extra url parameter then ignore extra params
+				int j = 0;
+				bool ignore = false;
+				char rec_http_get_head[HTTP_GET_HDR_LEN] = {0};
+
+				memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
+				for (size_t i = 0; i < strlen(data) && j < (HTTP_GET_HDR_LEN - 1); i++) {
+					if (data[i] == '?')
+						ignore = true;
+					if (data[i] == ' ')
+						ignore = false;
+					if (ignore == false) {
+						rec_http_get_head[j] = data[i];
+						j++;
+					}
+				}
+
+				if (!strncasecmp(rec_http_get_head, cr_http_get_head, strlen(cr_http_get_head)))
+					method_is_get = true;
+			}
+
+			if (!strncasecmp(data, "Authorization: Digest ", strlen("Authorization: Digest "))) {
+				auth_digest_checked = true;
+				CWMP_STRNCPY(auth_digest_buffer, data, BUFSIZ);
+			}
+
+			memset(data, 0, sizeof(data));
 		}
-
-		strip_lead_trail_char(buffer, '\n');
-		strip_lead_trail_char(buffer, '\r');
-
-		if (!strncasecmp(buffer, "Authorization: Digest ", strlen("Authorization: Digest "))) {
-			auth_digest_checked = true;
-			CWMP_STRNCPY(auth_digest_buffer, buffer, BUFSIZ);
-		}
-
-		fd_feed++;
 	}
 
 	if (!service_available || !method_is_get) {
