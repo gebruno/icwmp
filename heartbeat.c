@@ -87,13 +87,17 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			struct rpc *rpc_acs;
 			rpc_acs = cwmp_add_session_rpc_acs_head(heartbeat_session, RPC_ACS_INFORM);
 			if (rpc_acs == NULL) {
+				pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 				cwmp_session_destructor(heartbeat_session);
+				pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 				pthread_mutex_unlock(&mutex_heartbeat_session);
 				pthread_mutex_unlock(&mutex_heartbeat);
 				continue;
 			}
 			if (add_heart_beat_event(heartbeat_session) != 0) {
+				pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 				cwmp_session_destructor(heartbeat_session);
+				pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 				pthread_mutex_unlock(&mutex_heartbeat_session);
 				pthread_mutex_unlock(&mutex_heartbeat);
 				continue;
@@ -102,7 +106,9 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			if (heart_beat_session_status.last_status == SESSION_FAILURE) {
 				cwmp_config_load(&cwmp_main);
 				if (thread_end) {
+					pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 					cwmp_session_destructor(heartbeat_session);
+					pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 					pthread_mutex_unlock(&mutex_heartbeat_session);
 					pthread_mutex_unlock(&mutex_heartbeat);
 					continue;
@@ -124,7 +130,9 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			if (thread_end) {
 				event_remove_all_event_container(heartbeat_session, RPC_SEND);
 				run_session_end_func();
+				pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 				cwmp_session_destructor(heartbeat_session);
+				pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 				pthread_mutex_unlock(&(cwmp_main.mutex_session_send));
 				pthread_mutex_unlock(&mutex_heartbeat);
 				// Exiting to avoid race conditions
@@ -147,7 +155,9 @@ void *thread_heartbeat_session(void *v __attribute__((unused)))
 			}
 			event_remove_all_event_container(heartbeat_session, RPC_SEND);
 			run_session_end_func();
+			pthread_mutex_lock(&(cwmp_main.mutex_session_queue));
 			cwmp_session_destructor(heartbeat_session);
+			pthread_mutex_unlock(&(cwmp_main.mutex_session_queue));
 			heart_beat_retry_count_session = 0;
 			heart_beat_session_status.last_end_time = time(NULL);
 			heart_beat_session_status.last_status = SESSION_SUCCESS;

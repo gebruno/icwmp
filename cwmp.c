@@ -542,7 +542,9 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		if (thread_end) {
 			event_remove_all_event_container(session, RPC_SEND);
 			run_session_end_func();
+			pthread_mutex_lock(&(cwmp->mutex_session_queue));
 			cwmp_session_destructor(session);
+			pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 			pthread_mutex_unlock(&mutex_heartbeat_session);
 			pthread_mutex_unlock(&(cwmp->mutex_session_send));
 			return;
@@ -553,7 +555,9 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 			if (thread_end) {
 				event_remove_all_event_container(session, RPC_SEND);
 				run_session_end_func();
+				pthread_mutex_lock(&(cwmp->mutex_session_queue));
 				cwmp_session_destructor(session);
+				pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 				pthread_mutex_unlock(&mutex_heartbeat_session);
 				pthread_mutex_unlock(&(cwmp->mutex_session_send));
 				return;
@@ -574,7 +578,9 @@ static void cwmp_schedule_session(struct cwmp *cwmp)
 		}
 		event_remove_all_event_container(session, RPC_SEND);
 		run_session_end_func();
+		pthread_mutex_lock(&(cwmp->mutex_session_queue));
 		cwmp_session_destructor(session);
+		pthread_mutex_unlock(&(cwmp->mutex_session_queue));
 		cwmp->session_send = NULL;
 		cwmp->retry_count_session = 0;
 		cwmp->session_status.last_end_time = time(NULL);
