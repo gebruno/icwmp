@@ -67,6 +67,7 @@
 #define CWMP_VARSTATE_UCI_PACKAGE "/var/state/cwmp"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
 #define DM_IP_INTERFACE_PATH "Device\\.IP\\.Interface\\."
+#define DEFAULT_CR_TIMEOUT 5 /* In Seconds */
 
 #define foreach_elt_in_strlist(elt, str, delim) \
         char *tmpchr; \
@@ -142,6 +143,7 @@ typedef struct config {
 	unsigned int instance_mode;
 	unsigned int session_timeout;
 	bool http_disable_100continue;
+	int cr_timeout;
 } config;
 
 struct deviceid {

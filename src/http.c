@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include "http.h"
 #include "cwmp_uci.h"
@@ -26,6 +27,7 @@
 #define REALM "authenticate@cwmp"
 #define OPAQUE "11733b200778ce33060f31c9af70a870ba96ddd4"
 #define HTTP_GET_HDR_LEN 512
+#define HTTP_FD_FEEDS_COUNT 10 /* Maximum number of lines to be read from HTTP header */
 
 static struct http_client http_c;
 
@@ -276,7 +278,8 @@ static void http_success_cr(void)
 
 static void http_cr_new_client(int client, bool service_available)
 {
-	FILE *fp;
+	FILE *fp = NULL;
+	char data[BUFSIZ] = {0};
 	char buffer[BUFSIZ] = {0};
 	char auth_digest_buffer[BUFSIZ] = {0};
 	int8_t auth_status = 0;
@@ -284,68 +287,173 @@ static void http_cr_new_client(int client, bool service_available)
 	bool method_is_get = false;
 	bool internal_error = false;
 	char request_host[2049] = {0};
-
 	char cr_http_get_head[HTTP_GET_HDR_LEN] = {0};
+	fd_set rfds;
+	struct timeval tv;
+	int fd_feed = 0;
+	int status = 0;
 
 	pthread_mutex_lock(&mutex_config_load);
-	fp = fdopen(client, "r+");
-	char *username = cwmp_main->conf.cpe_userid;
-	char *password = cwmp_main->conf.cpe_passwd;
+	char *username = (cwmp_main->conf.cpe_userid != NULL) ? strdup(cwmp_main->conf.cpe_userid) : NULL;
+	char *password = (cwmp_main->conf.cpe_passwd != NULL) ? strdup(cwmp_main->conf.cpe_passwd) : NULL;
+	char *cr_path = (cwmp_main->conf.connection_request_path != NULL) ? strdup(cwmp_main->conf.connection_request_path) : NULL;
+	int cr_timeout = cwmp_main->conf.cr_timeout;
+	pthread_mutex_unlock(&mutex_config_load);
 
-	memset(auth_digest_buffer, 0, BUFSIZ);
 	if (!username || !password) {
 		// if we dont have username or password configured proceed with connecting to ACS
 		service_available = false;
 		goto http_end;
 	}
-	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", cwmp_main->conf.connection_request_path);
-	pthread_mutex_unlock(&mutex_config_load);
-	while (fgets(buffer, sizeof(buffer), fp)) {
-		if (buffer[0] == '\r' || buffer[0] == '\n') {
-			/* end of http request (empty line) */
+
+	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", cr_path);
+	memset(auth_digest_buffer, 0, BUFSIZ);
+
+	/* Initialize timeout of select, so that it will wait for specific time
+	 * period before timed out to receive data from client. Otherwise if client
+	 * will not send any data after a successful connection then server will
+	 * wait forever and not entertain any other connection requests
+	 */
+	tv.tv_sec = cr_timeout;
+	tv.tv_usec = 0;
+	FD_ZERO(&rfds);
+	FD_SET(client, &rfds);
+
+	/* Make FD non blocking, so that no operation on FD will block and make the
+	 * server halt forever.
+	 */
+	if (fcntl(client, F_SETFL, O_NONBLOCK) < 0) {
+		CWMP_LOG(ERROR, "Failed to set NONBLOCK");
+		goto http_end;
+	}
+
+	fp = fdopen(client, "r+");
+	if (fp == NULL) {
+		CWMP_LOG(ERROR, "Failed to open client socket");
+		goto http_end;
+	}
+
+	bool read_done = false;
+	/* Perform read from FD until all required data are collected or
+	 * HTTP_FD_FEEDS_COUNT number of read operation has been performed.
+	 * So that flooding of data not blocks the server.
+	 */
+	while (!read_done && fd_feed < HTTP_FD_FEEDS_COUNT) {
+		CWMP_LOG(INFO, "#####wait in select");
+		status = select(client+1, &rfds, NULL, NULL, &tv);
+		if (status <= 0) {
+			CWMP_LOG(INFO, "TIMEOUT occurred or select failed");
 			break;
 		}
 
-		if (strstr(buffer, "GET ") != NULL && strstr(buffer, "HTTP/1.1") != NULL) {
-			// check if extra url parameter then ignore extra params
-			int j = 0;
-			bool ignore = false;
-			char rec_http_get_head[HTTP_GET_HDR_LEN] = {0};
+		/* Check how many bytes available in the FD */
+		int read_bytes = 0;
+		if (ioctl(client, FIONREAD, &read_bytes) == -1) {
+			CWMP_LOG(INFO, "ioctl failed");
+			break;
+		}
 
-			memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
-			for (size_t i = 0; i < strlen(buffer) && j < (HTTP_GET_HDR_LEN - 1); i++) {
-				if (buffer[i] == '?')
-					ignore = true;
-				if (buffer[i] == ' ')
-					ignore = false;
-				if (ignore == false) {
-					rec_http_get_head[j] = buffer[i];
-					j++;
+		if (read_bytes == 0) {
+			/* It means the client has been disconnected */
+			CWMP_LOG(INFO, "client disconnected");
+			break;
+		}
+
+		/* Read upto the number of bytes or HTTP_FD_FEEDS_COUNT number of
+		 * read operation whichever is earlier, to avoid halt on data flooding
+		 */
+		while (read_bytes > 0 && fd_feed < HTTP_FD_FEEDS_COUNT) {
+			if (fgets(buffer, sizeof(buffer), fp) == NULL) {
+				CWMP_LOG(INFO, "No more data from FD");
+				break;
+			}
+
+			size_t buf_len = strlen(buffer);
+			read_bytes = read_bytes - buf_len;
+			fd_feed = fd_feed + 1;
+
+			/* Check if a whole line has been read, since a non blocking FD so
+			 * possible to have fewer bytes than its in whole line based on the
+			 * availability of data in the FD
+			 */
+			if (buffer[buf_len - 1] != '\n') {
+				/* there should be more data in current line, store the current
+				 * data and wait for next read if max data length not exceeded
+				 */
+				size_t avail_space = (size_t)(sizeof(data) - strlen(data));
+				if (buf_len < avail_space) {
+					strcat(data, buffer);
+					continue;
+				}
+			} else {
+				/* A whole line has been read, so store it if max data length is
+				 * not exceeded and process the data
+				 */
+				size_t avail_space = (size_t)(sizeof(data) - strlen(data));
+				if (buf_len < avail_space) {
+					strcat(data, buffer);
 				}
 			}
 
-			if (!strncasecmp(rec_http_get_head, cr_http_get_head, strlen(cr_http_get_head)))
-				method_is_get = true;
-		}
+			strip_lead_trail_char(data, '\n');
+			strip_lead_trail_char(data, '\r');
 
-		strip_lead_trail_char(buffer, '\n');
-		strip_lead_trail_char(buffer, '\r');
+			if (strlen(data) == 0) {
+				/* empty line reached */
+				CWMP_LOG(DEBUG, "Empty line found in packet");
+				read_done = true;
+				break;
+			}
 
-		if (!strncasecmp(buffer, "Authorization: Digest ", strlen("Authorization: Digest "))) {
-			auth_digest_checked = true;
-			CWMP_STRNCPY(auth_digest_buffer, buffer, BUFSIZ);
-		}
+			if (fd_feed == 1 && (strstr(data, "GET ") == NULL || strstr(data, "HTTP/1.1") == NULL)) {
+				CWMP_LOG(INFO, "GET not found at initial:: %s", data);
+				read_done = true;
+				break;
+			}
 
-		if (strncasecmp(buffer, "Host: ", strlen("Host: ")) == 0 && strlen(buffer) > strlen("Host: ")) {
-			snprintf(request_host, sizeof(request_host), "http://%s", buffer + strlen("Host: "));
+			CWMP_LOG(DEBUG, "Data:: (%s)", data);
+
+			if (strstr(data, "GET ") != NULL && strstr(data, "HTTP/1.1") != NULL) {
+				// check if extra url parameter then ignore extra params
+				int j = 0;
+				bool ignore = false;
+				char rec_http_get_head[HTTP_GET_HDR_LEN] = {0};
+
+				memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
+				for (size_t i = 0; i < strlen(data) && j < (HTTP_GET_HDR_LEN - 1); i++) {
+					if (data[i] == '?')
+						ignore = true;
+					if (data[i] == ' ')
+						ignore = false;
+					if (ignore == false) {
+						rec_http_get_head[j] = data[i];
+						j++;
+					}
+				}
+
+				if (!strncasecmp(rec_http_get_head, cr_http_get_head, strlen(cr_http_get_head)))
+					method_is_get = true;
+			}
+
+			if (!strncasecmp(data, "Authorization: Digest ", strlen("Authorization: Digest "))) {
+				auth_digest_checked = true;
+				CWMP_STRNCPY(auth_digest_buffer, data, BUFSIZ);
+			}
+
+			if (strncasecmp(data, "Host: ", strlen("Host: ")) == 0 && strlen(data) > strlen("Host: ")) {
+				snprintf(request_host, sizeof(request_host), "http://%s", data + strlen("Host: "));
+			}
+
+			memset(data, 0, sizeof(data));
 		}
 	}
+
 	if (!service_available || !method_is_get) {
 		goto http_end;
 	}
 
 	CWMP_LOG(DEBUG, "Received host: (%s)", request_host);
-	int auth_check = validate_http_digest_auth("GET", cwmp_main->conf.connection_request_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, cwmp_main->conf.session_timeout, request_host);
+	int auth_check = validate_http_digest_auth("GET", cr_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, cwmp_main->conf.session_timeout, request_host);
 
 	if (auth_check == -1) { /* invalid nonce */
 		internal_error = true;
@@ -356,6 +464,10 @@ static void http_cr_new_client(int client, bool service_available)
 	else
 		auth_status = 0;
 http_end:
+	if (fp) {
+		fflush(fp);
+	}
+
 	if (!service_available || !method_is_get) {
 		CWMP_LOG(INFO, "Receive Connection Request: Return 503 Service Unavailable");
 		if (fp) {
@@ -393,13 +505,17 @@ http_end:
 		if (fp) {
 			fputs("HTTP/1.1 401 Unauthorized\r\n", fp);
 			fputs("Connection: close\r\n", fp);
-			http_authentication_failure_resp(fp, "GET", cwmp_main->conf.connection_request_path, REALM, OPAQUE);
+			http_authentication_failure_resp(fp, "GET", cr_path, REALM, OPAQUE);
 			fputs("\r\n", fp);
 			fputs("\r\n", fp);
 			fclose(fp);
 		}
 		close(client);
 	}
+
+	FREE(username);
+	FREE(password);
+	FREE(cr_path);
 }
 
 void icwmp_http_server_init(void)
