@@ -339,7 +339,6 @@ static void http_cr_new_client(int client, bool service_available)
 	 * So that flooding of data not blocks the server.
 	 */
 	while (!read_done && fd_feed < HTTP_FD_FEEDS_COUNT) {
-		CWMP_LOG(INFO, "#####wait in select");
 		status = select(client+1, &rfds, NULL, NULL, &tv);
 		if (status <= 0) {
 			CWMP_LOG(INFO, "TIMEOUT occurred or select failed");
