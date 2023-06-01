@@ -437,7 +437,7 @@ static void get_management_ip_port(char **listen_addr)
 
 	dmuci_get_option_value_string("cwmp", "cpe", "default_wan_interface", &interface);
 	dmuci_get_option_value_string("cwmp", "cpe", "port", &port);
-	dmuci_get_option_value_string_varstate("cwmp", "acs", "ip_version", &ip_version);
+	dmuci_get_option_value_string_varstate("icwmp", "acs", "ip_version", &ip_version);
 
 	if (!DM_STRLEN(interface))
 		return;
@@ -964,7 +964,7 @@ static int set_inform_parameter_enable(char *refparam, struct dmctx *ctx, void *
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section_varstate(inform_param_args->config_section, "enable", value);
+			dmuci_set_value_by_section(inform_param_args->config_section, "enable", value);
 			return 0;
 	}
 	return 0;
@@ -988,7 +988,7 @@ static int set_inform_parameter_alias(char *refparam, struct dmctx *ctx, void *d
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section_varstate(inform_param_args->config_section, "informparam_alias", value);
+			dmuci_set_value_by_section(inform_param_args->config_section, "informparam_alias", value);
 			return 0;
 	}
 	return 0;
@@ -1010,7 +1010,7 @@ static int set_inform_parameter_parameter_name(char *refparam, struct dmctx *ctx
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section_bbfdm(inform_param_args->config_section, "parameter_name", value);
+			dmuci_set_value_by_section(inform_param_args->config_section, "parameter_name", value);
 			return 0;
 	}
 	return 0;
@@ -1031,7 +1031,7 @@ static int set_inform_parameter_event_list(char *refparam, struct dmctx *ctx, vo
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section_bbfdm(inform_param_args->config_section, "events_list", value);
+			dmuci_set_value_by_section(inform_param_args->config_section, "events_list", value);
 			return 0;
 	}
 	return 0;

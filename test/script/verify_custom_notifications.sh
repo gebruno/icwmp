@@ -27,9 +27,9 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
-if [[ $notif1 != *"Device.Users."* ]]; then
-	echo "FAIL: active notifications list doesn't contain Device.Users. parameter"
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.SSH."`
+if [[ $notif1 != *"Device.SSH."* ]]; then
+	echo "FAIL: active notifications list doesn't contain Device.SSH. parameter"
 	exit 1
 fi
 notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SSID"`
@@ -61,8 +61,8 @@ supervisorctl stop icwmpd
 check_valgrind_xml
 
 notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
-if [[ $notif1 == *"Device.Users."* ]]; then
-	echo "FAIL: the json file is invalid, the active notifcation list shouldn't contain Device.Users. parameter"
+if [[ $notif1 == *"Device.SSH."* ]]; then
+	echo "FAIL: the json file is invalid, the active notifcation list shouldn't contain Device.SSH. parameter"
 	exit 1
 fi
 notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SSID"`
@@ -98,9 +98,9 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
-if [[ $notif1 != *"Device.Users."* ]]; then
-	echo "FAIL: active notifications list doesn't contain Device.Users. parameter"
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.SSH."`
+if [[ $notif1 != *"Device.SSH."* ]]; then
+	echo "FAIL: active notifications list doesn't contain Device.SSH. parameter"
 	exit 1
 fi
 notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.DeviceInfo.ProvisioningCode"`
@@ -136,9 +136,9 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
-if [[ $notif1 != *"Device.Users."* ]]; then
-	echo "FAIL: active notifications list doesn't contain Device.Users. parameter"
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.SSH."`
+if [[ $notif1 != *"Device.SSH."* ]]; then
+	echo "FAIL: active notifications list doesn't contain Device.SSH. parameter"
 	exit 1
 fi
 notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SD"`

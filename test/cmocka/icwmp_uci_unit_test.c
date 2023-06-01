@@ -20,6 +20,7 @@
 #include "cwmp_uci.h"
 
 #define UCI_WRONG_PATH "cwmp.wrong_section.wrong_option"
+#define UCI_VAR_WRONG_PATH "icwmp.wrong_section.wrong_option"
 static struct uci_list *list = NULL;
 
 static int cwmp_uci_unit_tests_init(void **state)
@@ -51,15 +52,15 @@ static void cwmp_uci_get_tests(void **state)
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	assert_null(value);
 
-	error = uci_get_state_value(UCI_DHCP_ACS_URL, &value);
+	error = uci_get_state_value("icwmp.acs.dhcp_url", &value);
 	assert_int_equal(error, UCI_OK);
 	assert_string_equal(value, "http://192.168.103.160:8080/openacs/acs");
 
-	error = uci_get_state_value(UCI_WRONG_PATH, &value);
+	error = uci_get_state_value(UCI_VAR_WRONG_PATH, &value);
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	assert_null(value);
 
-	error = cwmp_uci_get_option_value_string("cwmp", "acs", "dhcp_url", UCI_VARSTATE_CONFIG, &value);
+	error = cwmp_uci_get_option_value_string("icwmp", "acs", "dhcp_url", UCI_VARSTATE_CONFIG, &value);
 	assert_int_equal(error, UCI_OK);
 	assert_string_equal(value, "http://192.168.103.160:8080/openacs/acs");
 
@@ -95,10 +96,10 @@ static void cwmp_uci_set_tests(void **state)
 	assert_string_equal(value, "1");
 	value = NULL;
 
-	error = cwmp_uci_set_varstate_value("cwmp", "acs", "varstatopt", "varstatval");
+	error = cwmp_uci_set_varstate_value("icwmp", "acs", "varstatopt", "varstatval");
 	assert_int_equal(error, UCI_OK);
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
-	error = cwmp_uci_get_option_value_string("cwmp", "acs", "varstatopt", UCI_VARSTATE_CONFIG, &value);
+	cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
+	error = cwmp_uci_get_option_value_string("icwmp", "acs", "varstatopt", UCI_VARSTATE_CONFIG, &value);
 	assert_int_equal(error, UCI_OK);
 	assert_string_equal(value, "varstatval");
 	value = NULL;
@@ -106,7 +107,7 @@ static void cwmp_uci_set_tests(void **state)
 	error = cwmp_uci_set_value("cwmp", "wrong_section", "wrong_option", "wrong_value");
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
-	error = cwmp_uci_get_option_value_string("cwmp", "wront_section", "wrong_option", UCI_VARSTATE_CONFIG, &value);
+	error = cwmp_uci_get_option_value_string("icwmp", "wrong_section", "wrong_option", UCI_VARSTATE_CONFIG, &value);
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	assert_null(value);
 	value = NULL;
@@ -118,9 +119,9 @@ static void cwmp_uci_set_tests(void **state)
 	assert_string_equal(value, "usertest");
 	value = NULL;
 
-	cwmp_uci_set_varstate_value_by_path("cwmp.acs.opt1", "varstatval1");
-	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
-	error = cwmp_uci_get_option_value_string("cwmp", "acs", "opt1", UCI_VARSTATE_CONFIG, &value);
+	cwmp_uci_set_varstate_value_by_path("icwmp.acs.opt1", "varstatval1");
+	cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
+	error = cwmp_uci_get_option_value_string("icwmp", "acs", "opt1", UCI_VARSTATE_CONFIG, &value);
 	assert_int_equal(error, UCI_OK);
 	assert_string_equal(value, "varstatval1");
 	value = NULL;
@@ -128,14 +129,14 @@ static void cwmp_uci_set_tests(void **state)
 	error = cwmp_uci_set_value_by_path("cwmp.wront_section.wrong_option", "wrong_value");
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
-	error = cwmp_uci_get_option_value_string("cwmp", "wront_section", "wrong_option", UCI_VARSTATE_CONFIG, &value);
+	error = cwmp_uci_get_option_value_string("icwmp", "wront_section", "wrong_option", UCI_VARSTATE_CONFIG, &value);
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	assert_null(value);
 
-	error = cwmp_uci_set_varstate_value_by_path("cwmp.wront_section.wrong_option", "wrong_value");
+	error = cwmp_uci_set_varstate_value_by_path("icwmp.wront_section.wrong_option", "wrong_value");
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
-	error = cwmp_uci_get_option_value_string("cwmp", "wront_section", "wrong_option", UCI_VARSTATE_CONFIG, &value);
+	error = cwmp_uci_get_option_value_string("icwmp", "wront_section", "wrong_option", UCI_VARSTATE_CONFIG, &value);
 	assert_int_equal(error, UCI_ERR_NOTFOUND);
 	assert_null(value);
 

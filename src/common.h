@@ -64,7 +64,7 @@
 #define DEFAULT_SESSION_TIMEOUT 60
 #define MAX_NBRE_SERVICES 256
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
-#define CWMP_VARSTATE_UCI_PACKAGE "/var/state/cwmp"
+#define CWMP_VARSTATE_UCI_PACKAGE "/var/state/icwmp"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
 #define DM_IP_INTERFACE_PATH "Device\\.IP\\.Interface\\."
 #define DEFAULT_CR_TIMEOUT 5 /* In Seconds */

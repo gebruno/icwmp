@@ -8,13 +8,13 @@ TEST_NAME="GET RPC Method"
 echo "Running: $TEST_NAME"
 
 remove_icwmp_log
-curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.Users.User.1.Username"] }' >/dev/null 2>&1
+curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.SSH.Server.1.Alias"] }' >/dev/null 2>&1
 check_ret $?
 sleep 2
 check_session "GetParameterValues"
 param_value=$(print_tag_value "cwmp:GetParameterValuesResponse" "Value xsi:type=\"xsd:string\"")
-if [ "$param_value" != "user" ]; then
-	echo "Error: Default value of 'Device.Users.User.1.Username' is wrong, current_value($param_value) expected_value(user)" >> ./funl-test-debug.log
+if [ "$param_value" != "cpe-1" ]; then
+	echo "Error: Default value of 'Device.SSH.Server.1.Alias' is wrong, current_value($param_value) expected_value(cpe-1)" >> ./funl-test-debug.log
 	exit 1
 fi
 

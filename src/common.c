@@ -306,8 +306,8 @@ void check_firewall_restart_state()
 	g_firewall_restart = false;
 	if (init == false) { // In case of timeout reset the firewall_restart flag
 		CWMP_LOG(ERROR, "Firewall restart took longer than usual");
-		cwmp_uci_set_varstate_value("cwmp", "cpe", "firewall_restart", "init");
-		cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+		cwmp_uci_set_varstate_value("icwmp", "cpe", "firewall_restart", "init");
+		cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
 	}
 }
 
@@ -640,8 +640,8 @@ void icwmp_restart_services()
 	}
 	if (g_firewall_restart) {
 			CWMP_LOG(INFO, "Initiating Firewall restart");
-			cwmp_uci_set_varstate_value("cwmp", "cpe", "firewall_restart", "in_progress");
-			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+			cwmp_uci_set_varstate_value("icwmp", "cpe", "firewall_restart", "in_progress");
+			cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
 	}
 	icwmp_free_list_services();
 }

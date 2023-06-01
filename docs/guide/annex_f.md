@@ -61,6 +61,6 @@ root@iopsys-44d43771b000:~# ifstatus wan
 ```
 
 ICWMPD package adds a [DHCP client hook script](https://dev.iopsys.eu/iopsys/icwmp/-/blob/devel/files/etc/udhcpc.user.d/udhcpc_icwmp_opt125.user), which parses DHCP option 125 to extract gateway identity based on Enterprise ID `3561`.
-This script then writes the gateway identity in `/var/state/cwmp` if CWMP is enabled in the device.
+This script then writes the gateway identity in `/var/state/icwmp` if CWMP is enabled in the device.
 
-Datamodel (libbbf) API's reads the gateway information from `/var/state/cwmp` to populate Device.GatewayInfo. object. If gateway information is not available in `/var/state/cwmp` then it reads the 'db' (Same source used for Device.DeviceInfo. object) and maps that data to populate Device.GatewayInfo. object.
+Datamodel (libbbf) API's reads the gateway information from `/var/state/icwmp` to populate Device.GatewayInfo. object. If gateway information is not available in `/var/state/icwmp` then it reads the 'db' (Same source used for Device.DeviceInfo. object) and maps that data to populate Device.GatewayInfo. object.

@@ -222,8 +222,8 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 			else
 				tmp = inet_pton(AF_INET6, ip, buf);
 
-			cwmp_uci_set_varstate_value("cwmp", "acs", tmp ? "ip6" : "ip", ip_acs);
-			cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+			cwmp_uci_set_varstate_value("icwmp", "acs", tmp ? "ip6" : "ip", ip_acs);
+			cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
 
 			// Trigger firewall to reload firewall.cwmp
 			struct blob_buf b = { 0 };

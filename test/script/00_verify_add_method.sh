@@ -8,7 +8,7 @@ TEST_NAME="ADD RPC Method"
 echo "Running: $TEST_NAME"
 
 remove_icwmp_log
-curl $connection_request_path -X POST --data '{"name": "addObject","objectName":"Device.Users.User"}' >/dev/null 2>&1
+curl $connection_request_path -X POST --data '{"name": "addObject","objectName":"Device.SSH.Server"}' >/dev/null 2>&1
 check_ret $?
 sleep 2
 check_session "AddObject"
@@ -20,7 +20,7 @@ if [ "$obj_instance" != "2" -o $status != "0" ]; then
 fi
 
 remove_icwmp_log
-curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.Users.User.2"] }' >/dev/null 2>&1
+curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.SSH.Server.2"] }' >/dev/null 2>&1
 check_ret $?
 sleep 2
 check_session "GetParameterValues"

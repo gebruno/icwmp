@@ -119,15 +119,15 @@ if [ "${wan_intf}" == "${INTERFACE}" ]; then
 	fi
 
 	mkdir -p /var/state
-	touch /var/state/cwmp
-	sec=$(uci -q -c /var/state get cwmp.gatewayinfo)
+	touch /var/state/icwmp
+	sec=$(uci -q -c /var/state get icwmp.gatewayinfo)
 	if [ -z "${sec}" ]; then
-		sec=$(uci -q -c /var/state add cwmp gatewayinfo)
-		uci -q -c /var/state rename cwmp."${sec}"="gatewayinfo"
+		sec=$(uci -q -c /var/state add icwmp gatewayinfo)
+		uci -q -c /var/state rename icwmp."${sec}"="gatewayinfo"
 	fi
 
-	uci -q -c /var/state set cwmp.gatewayinfo.class="$CLASS"
-	uci -q -c /var/state set cwmp.gatewayinfo.oui="$OUI"
-	uci -q -c /var/state set cwmp.gatewayinfo.serial="$SERIAL"
-	uci -q -c /var/state commit cwmp
+	uci -q -c /var/state set icwmp.gatewayinfo.class="$CLASS"
+	uci -q -c /var/state set icwmp.gatewayinfo.oui="$OUI"
+	uci -q -c /var/state set icwmp.gatewayinfo.serial="$SERIAL"
+	uci -q -c /var/state commit icwmp
 fi

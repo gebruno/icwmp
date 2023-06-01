@@ -1,7 +1,7 @@
 {
   "custom_notification": [
     {
-      "parameter": "Device.Users.",
+      "parameter": "Device.SSH.",
       "notify_type": "2"
     },
     {

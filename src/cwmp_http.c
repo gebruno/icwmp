@@ -55,8 +55,8 @@ static void set_http_ip_resolve(long ip_resolve)
 {
 	cwmp_main->net.ip_resolve = ip_resolve;
 
-	cwmp_uci_set_varstate_value("cwmp", "acs", "ip_version", (ip_resolve == CURL_IPRESOLVE_V6) ? "6" : "4");
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+	cwmp_uci_set_varstate_value("icwmp", "acs", "ip_version", (ip_resolve == CURL_IPRESOLVE_V6) ? "6" : "4");
+	cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
 }
 
 int icwmp_check_http_connection(void)

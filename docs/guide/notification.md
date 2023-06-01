@@ -18,10 +18,10 @@ As per the cwmp inform requirements, cwmp client has list of parameters defined 
 
 In addition to the above defined forced inform parameters as specified in datamodel standard, TR-181 datamodel defines the multi instance object Device.ManagementServer.InformParameter.{i}. 
 So new inform parameter can be added through the ACS by the call of the RPC method AddObject for the object Device.ManagementServer.InformParameter.{i}. and then set its parameters values.
-icwmpd defines those new inform parameters in uci sections under the package /var/state/cwmp as below:
+icwmpd defines those new inform parameters in uci sections under the package /var/state/icwmp as below:
 
 ```bash
-root@iopsys-44d43771aff0:~# cat /var/state/cwmp 
+root@iopsys-44d43771aff0:~# cat /var/state/icwmp 
 
 config inform_parameter
 	option enable '1'

@@ -254,10 +254,10 @@ static void set_cwmp_session_status_state(int status)
 {
 	char *state = NULL;
 
-	if (!file_exists(VARSTATE_CONFIG"/cwmp"))
-		creat(VARSTATE_CONFIG"/cwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if (!file_exists(VARSTATE_CONFIG"/icwmp"))
+		creat(VARSTATE_CONFIG"/icwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-	cwmp_uci_add_section_with_specific_name("cwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
+	cwmp_uci_add_section_with_specific_name("icwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
 
 	switch (status) {
 	case SESSION_WAITING:
@@ -274,9 +274,9 @@ static void set_cwmp_session_status_state(int status)
 		break;
 	}
 
-	cwmp_uci_set_varstate_value("cwmp", "sess_status", "current_status", state ? state : "N/A");
+	cwmp_uci_set_varstate_value("icwmp", "sess_status", "current_status", state ? state : "N/A");
 
-	cwmp_commit_package("cwmp", UCI_VARSTATE_CONFIG);
+	cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
 }
 
 void set_cwmp_session_status(int status, int retry_time)
