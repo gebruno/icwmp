@@ -187,7 +187,7 @@ void set_diagnostic_state_end_session_flag(char *parameter_name, char *value)
 		return;
 	}
 
-	if (strcmp(parameter_name, "Device.​WiFi.​NeighboringWiFiDiagnostic.DiagnosticsState") == 0) {
+	if (strcmp(parameter_name, "Device.WiFi.NeighboringWiFiDiagnostic.DiagnosticsState") == 0) {
 		cwmp_set_end_session(END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC);
 		return;
 	}
