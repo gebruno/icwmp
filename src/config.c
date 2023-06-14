@@ -22,6 +22,7 @@
 #include "ssl_utils.h"
 #include "datamodel_interface.h"
 #include "heartbeat.h"
+#include "cwmp_http.h"
 
 pthread_mutex_t mutex_config_load = PTHREAD_MUTEX_INITIALIZER;
 
@@ -628,14 +629,33 @@ end:
 
 void cwmp_config_load()
 {
-	int ret;
+	int ret = CWMP_GEN_ERR;
+	int error = CWMP_GEN_ERR;
 
 	ret = global_conf_init();
-	while (ret != CWMP_OK && cwmp_stop != true) {
-		CWMP_LOG(DEBUG, "Error reading uci ret = %d", ret);
+
+	if (cwmp_stop == true)
+		return;
+
+	if (ret == CWMP_OK) {
+		cwmp_main->net.ipv6_status = is_ipv6_enabled();
+		error = icwmp_check_http_connection();
+	}
+
+	while (error != CWMP_OK && cwmp_stop != true) {
+		if (ret != CWMP_OK) {
+			CWMP_LOG(DEBUG, "Error reading uci ret = %d", ret);
+		} else {
+			CWMP_LOG(DEBUG, "Init: failed to check http connection");
+		}
+
 		sleep(UCI_OPTION_READ_INTERVAL);
 		cwmp_uci_reinit();
 		ret = global_conf_init();
+		if (ret == CWMP_OK) {
+			cwmp_main->net.ipv6_status = is_ipv6_enabled();
+			error = icwmp_check_http_connection();
+		}
 	}
 }
 

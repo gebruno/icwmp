@@ -283,13 +283,6 @@ static int cwmp_init(void)
 	INIT_LIST_HEAD(&du_uuid_list);
 	cwmp_main->start_time = time(NULL);
 
-	cwmp_main->net.ipv6_status = is_ipv6_enabled();
-	error = icwmp_check_http_connection();
-	if (error != CWMP_OK) {
-		CWMP_LOG(DEBUG, "Init: failed to check http connection");
-		return error;
-	}
-
 	cwmp_uci_exit();
 
 	return CWMP_OK;

@@ -334,8 +334,11 @@ void start_cwmp_session()
 		return;
 	}
 
-	if (cwmp_main->session->session_status.last_status == SESSION_FAILURE)
+	if (cwmp_main->session->session_status.last_status == SESSION_FAILURE) {
+		cwmp_uci_reinit();
 		cwmp_config_load();
+		cwmp_uci_exit();
+	}
 
 	if (is_ipv6_status_changed()) {
 		if (icwmp_check_http_connection() != CWMP_OK || cwmp_stop) {
