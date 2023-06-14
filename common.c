@@ -677,8 +677,10 @@ void icwmp_free(void *m)
 		return;
 	struct cwmp_mem *rm;
 	rm = container_of(m, struct cwmp_mem, mem);
-	list_del(&rm->list);
-	free(rm);
+	if (rm != NULL) {
+		list_del(&rm->list);
+		free(rm);
+	}
 }
 
 void icwmp_cleanmem()
@@ -686,8 +688,10 @@ void icwmp_cleanmem()
 	struct cwmp_mem *mem;
 	while (cwmp_memory_list.next != &cwmp_memory_list) {
 		mem = list_entry(cwmp_memory_list.next, struct cwmp_mem, list);
-		list_del(&mem->list);
-		free(mem);
+		if (mem != NULL) {
+			list_del(&mem->list);
+			free(mem);
+		}
 	}
 }
 
