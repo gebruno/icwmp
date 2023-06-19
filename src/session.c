@@ -316,21 +316,34 @@ void rpc_exit()
 	FREE(cwmp_main->session->rpc_cpe);
 }
 
+static void schedule_session_retry(void)
+{
+	cwmp_main->retry_count_session++;
+	int t = cwmp_get_retry_interval(0);
+	CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
+	cwmp_uci_reinit();
+	cwmp_config_load();
+	trigger_periodic_notify_check();
+	cwmp_uci_exit();
+
+	if (!cwmp_main->session->session_status.is_heartbeat) {
+		set_cwmp_session_status(SESSION_FAILURE, t);
+		uloop_timeout_set(&retry_session_timer, 1000 * t);
+	} else {
+		uloop_timeout_cancel(&heartbeat_session_timer);
+		uloop_timeout_set(&heartbeat_session_timer, 1000 * t);
+	}
+}
+
 void start_cwmp_session()
 {
-	int t, error;
+	int error;
 	char *exec_download = NULL;
 
 	uloop_timeout_cancel(&check_notify_timer);
 	if (cwmp_session_init() != CWMP_OK) {
 		CWMP_LOG(ERROR, "Not able to init a CWMP session");
-		t = cwmp_get_retry_interval(0);
-		CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
-		cwmp_uci_reinit();
-		set_cwmp_session_status(SESSION_FAILURE, t);
-		cwmp_config_load();
-		trigger_periodic_notify_check();
-		cwmp_uci_exit();
+		schedule_session_retry();
 		return;
 	}
 
@@ -343,6 +356,8 @@ void start_cwmp_session()
 	if (is_ipv6_status_changed()) {
 		if (icwmp_check_http_connection() != CWMP_OK || cwmp_stop) {
 			CWMP_LOG(INFO, "Failed to check http connection");
+			if (!cwmp_stop)
+				schedule_session_retry();
 			return;
 		}
 	}
@@ -397,9 +412,11 @@ void start_cwmp_session()
 	}
 
 	if (cwmp_main->session->error == CWMP_RETRY_SESSION && (!list_empty(&(cwmp_main->session->events)) || (list_empty(&(cwmp_main->session->events)) && cwmp_main->cwmp_cr_event == 0))) { //CWMP Retry session
+		cwmp_uci_reinit();
 		cwmp_config_load();
+		cwmp_uci_exit();
 		cwmp_main->retry_count_session++;
-		t = cwmp_get_retry_interval(0);
+		int t = cwmp_get_retry_interval(0);
 		CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
 		if (!cwmp_main->session->session_status.is_heartbeat) {
 			set_cwmp_session_status(SESSION_FAILURE, t);

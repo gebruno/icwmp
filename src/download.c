@@ -111,7 +111,10 @@ char *download_file_task_function(char *task)
 
 int download_file_in_subprocess(const char *file_path, const char *url, const char *username, const char *password)
 {
-	subprocess_start(download_file_task_function);
+	if (CWMP_OK != subprocess_start(download_file_task_function)) {
+		CWMP_LOG(ERROR, "Failed to spawn subprocess to start download");
+		return 500;
+	}
 
 	if (url == NULL) {
 		CWMP_LOG(ERROR, "download %s: url is null");

@@ -94,7 +94,7 @@ int subprocess_start(task_function task_fun)
     		struct blob_buf bbuf;
     		memset(&bbuf, 0, sizeof(struct blob_buf));
     		blob_buf_init(&bbuf, 0);
-    		blobmsg_add_string(&bbuf, "ret", to_child);
+		blobmsg_add_string(&bbuf, "ret", to_child ? to_child : "500");
     		char *to_child_json = blobmsg_format_json(bbuf.head, true);
     		write(pipefd2[1], to_child_json, strlen(to_child_json)+1);
     		FREE(to_child);

@@ -263,14 +263,36 @@ error:
 	return -1;
 }
 
+static void inform_status_check_cb(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
+{
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "inform ubus call resp msg is null");
+		return;
+	}
+
+	int *status = (int *)req->priv;
+	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_INT32 }, { "info", BLOBMSG_TYPE_STRING } };
+	struct blob_attr *tb[2] = { NULL, NULL };
+	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
+
+	*status = tb[0] ? blobmsg_get_u32(tb[0]) : -1;
+}
+
 static void http_success_cr(void)
 {
 	CWMP_LOG(INFO, "Connection Request triggering ...");
+	int status = -1, retry = 0, rc = -1;
 	struct blob_buf b = { 0 };
 	memset(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	icwmp_ubus_invoke("tr069", "inform", b.head, NULL, NULL);
+	while ((rc < 0 || status != 1) && retry < 5) {
+		rc = icwmp_ubus_invoke("tr069", "inform", b.head, inform_status_check_cb, &status);
+		retry = retry + 1;
+	}
+
 	blob_buf_free(&b);
+	if (rc < 0 || status != 1)
+		CWMP_LOG(ERROR, "Failed to send Inform message after 5 retry");
 }
 
 static void http_cr_new_client(int client, bool service_available)
@@ -495,8 +517,7 @@ http_end:
 			fclose(fp);
 		}
 		close(client);
-	}
-	else {
+	} else {
 		CWMP_LOG(INFO, "Receive Connection Request: Return 401 Unauthorized");
 		if (fp) {
 			fputs("HTTP/1.1 401 Unauthorized\r\n", fp);

@@ -269,7 +269,7 @@ static int icwmp_inform_event(struct blob_buf *bb, char *event)
 	int event_code = cwmp_get_int_event_code(event);
 	if (event_code != -1) {
 		if (cwmp_main->session->session_status.last_status == SESSION_RUNNING) {
-			blobmsg_add_u32(bb, "status", -1);
+			blobmsg_add_u32(bb, "status", 1);
 			blobmsg_add_string(bb, "info", "Session already running, event will be sent at the end of the session");
 		} else {
 			blobmsg_add_u32(bb, "status", 1);
