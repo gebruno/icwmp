@@ -615,7 +615,6 @@ int icwmp_check_http_connection(void);
 bool is_ipv6_enabled(void);
 bool is_ipv6_status_changed(void);
 char *get_time(time_t t_time);
-bool is_obj_excluded(const char *object_name);
 bool is_reload_parameter(const char *object_name);
 time_t convert_datetime_to_timestamp(char *value);
 int run_session_end_func(void);

@@ -577,22 +577,26 @@ error:
 
 int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *xml_attrs)
 {
+	char *err = NULL;
+
 	LIST_HEAD(parameters_list);
 
-	char *err = NULL;
 	if (xml_attrs->parameter_name == NULL)
 		return CWMP_OK;
+
 	if (xml_attrs->rpc_enum == SOAP_PARAM_STRUCT)
 		err = cwmp_get_parameter_values(*(xml_attrs->parameter_name), &parameters_list);
 	else if (xml_attrs->rpc_enum == SOAP_GPA_STRUCT)
 		err = cwmp_get_parameter_attributes(*(xml_attrs->parameter_name), &parameters_list);
 	else
 		return FAULT_CPE_INTERNAL_ERROR;
-	if (err && !is_obj_excluded(*(xml_attrs->parameter_name))) {
+
+	if (err) {
 		int fault_code = cwmp_get_fault_code_by_string(err);
 		cwmp_free_all_dm_parameter_list(&parameters_list);
 		return fault_code;
 	}
+
 	LIST_HEAD(prameters_xml_list);
 	dm_parameter_list_to_xml_data_list(&parameters_list, &prameters_xml_list);
 
@@ -600,13 +604,13 @@ int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *x
 	prmvalstrct_resp_xml_attrs.data_list = &prameters_xml_list;
 	prmvalstrct_resp_xml_attrs.counter = xml_attrs->counter;
 	prmvalstrct_resp_xml_attrs.inc_counter = true;
+
 	int fault = build_xml_node_data(xml_attrs->rpc_enum, param_list, &prmvalstrct_resp_xml_attrs);
-	if (fault != CWMP_OK)
-		return fault;
 
 	cwmp_free_all_dm_parameter_list(&parameters_list);
 	cwmp_free_all_xml_data_list(&prameters_xml_list);
-	return FAULT_CPE_NO_FAULT;
+
+	return (fault != CWMP_OK) ? fault : FAULT_CPE_NO_FAULT;
 }
 
 int build_backup_cdu_option(mxml_node_t *cdu, struct xml_data_struct *xml_attrs)

@@ -41,11 +41,6 @@ struct cwmp_mem {
 	char mem[0];
 };
 
-static char *Obj_Excluded[] = {
-		"Device.DeviceInfo.ProcessStatus.Process.",
-		"Device.Hosts.Host."
-};
-
 struct option cwmp_long_options[] = {
 	{ "boot-event", no_argument, NULL, 'b' },
 	{ "get-rpc-methods", no_argument, NULL, 'g' },
@@ -873,19 +868,6 @@ char *get_time(time_t t_time)
 	local_time[26] = '\0';
 
 	return local_time;
-}
-
-bool is_obj_excluded(const char *object_name)
-{
-	unsigned int i = 0;
-
-	if (object_name == NULL)
-		return false;
-	for (i = 0; i < ARRAY_SIZE(Obj_Excluded); i++) {
-		if (strncmp(Obj_Excluded[i], object_name, strlen(Obj_Excluded[i])) == 0)
-			return true;
-	}
-	return false;
 }
 
 time_t convert_datetime_to_timestamp(char *value)

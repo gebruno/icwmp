@@ -282,14 +282,15 @@ char *cwmp_get_parameter_attributes(char *parameter_name, struct list_head *para
 {
 	char *error = NULL;
 
-	if (parameters_list == NULL) {
+	if (parameter_name == NULL || parameters_list == NULL) {
 		CWMP_LOG(ERROR, "notifications %s: childs_list is null", __FUNCTION__);
 		return NULL;
 	}
-	error = check_valid_parameter_path(parameter_name);
 
+	error = check_valid_parameter_path(parameter_name);
 	if (error != NULL)
 		return error;
+
 	LIST_HEAD(childs_notifs);
 	int notification = get_parameter_family_notifications(parameter_name, &childs_notifs);
 	LIST_HEAD(params_list);
