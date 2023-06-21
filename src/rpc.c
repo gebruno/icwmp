@@ -75,22 +75,20 @@ static char *forced_inform_parameters[] = {
 
 int xml_handle_message()
 {
-	char *c = NULL;
+	char buf[128] = {0};
 	int i;
 	mxml_node_t *b;
 	struct config *conf = &(cwmp_main->conf);
 
 	/* get method */
-	if (icwmp_asprintf(&c, "%s:%s", ns.soap_env, "Body") == -1) {
-		CWMP_LOG(INFO, "Internal error");
+	snprintf(buf, sizeof(buf), "%s:%s", ns.soap_env, "Body");
+
+	if (strlen(buf) == 0) {
 		cwmp_main->session->fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
-	if (c == NULL) {
-		cwmp_main->session->fault_code = FAULT_CPE_INTERNAL_ERROR;
-		goto fault;
-	}
-	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+
+	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, buf, NULL, NULL, MXML_DESCEND);
 
 	if (!b) {
 		CWMP_LOG(INFO, "Invalid received message");
@@ -107,7 +105,7 @@ int xml_handle_message()
 			break;
 	}
 
-	c = (char *)mxmlGetElement(b);
+	char *c = (char *)mxmlGetElement(b);
 
 	if (c == NULL) {
 		CWMP_LOG(INFO, "Could not get element from received message");
@@ -783,7 +781,7 @@ error:
  */
 int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 {
-	mxml_node_t *b;
+	mxml_node_t *b = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR;
 	int counter = 0;
 
@@ -791,7 +789,6 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 		goto fault;
 
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "GetParameterValues");
-
 	if (b == NULL)
 		goto fault;
 
@@ -814,8 +811,8 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	char *soap_array_type = NULL;
 	gpv_xml_attrs.xsi_type = &xsi_type;
 	gpv_xml_attrs.soap_enc_array_type = &soap_array_type;
-	mxml_node_t *resp = b;
-	fault_code = build_xml_node_data(SOAP_RESP_GET, resp, &gpv_xml_attrs);
+
+	fault_code = build_xml_node_data(SOAP_RESP_GET, b, &gpv_xml_attrs);
 
 	cwmp_free_all_xml_data_list(&gpv_xml_data_list);
 
@@ -1170,8 +1167,8 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	if (!cwmp_transaction("commit", false))
 		goto fault;
 
-	char *object_path = NULL;
-	icwmp_asprintf(&object_path, "%s%s.", object_name, instance);
+	char object_path[1024] = {0};
+	snprintf(object_path, sizeof(object_path), "%s%s.", object_name, instance);
 	cwmp_set_parameter_attributes(object_path, 0);
 	FREE(object_name);
 	FREE(parameter_key);

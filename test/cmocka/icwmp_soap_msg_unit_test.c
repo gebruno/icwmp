@@ -177,9 +177,9 @@ static void soap_inform_message_test(void **state)
 static void prepare_session_for_rpc_method_call()
 {
 	mxml_node_t *b;
-	char *c;
+	char c[128];
 
-	icwmp_asprintf(&c, "%s:%s", ns.soap_env, "Body");
+	snprintf(c, sizeof(c), "%s:%s", ns.soap_env, "Body");
 	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
 	cwmp_main->session->body_in = b;
 	xml_prepare_msg_out();

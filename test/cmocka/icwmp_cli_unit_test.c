@@ -295,8 +295,8 @@ static void cwmp_del_cli_unit_test(void **state)
 	/*
 	 * Delete: input is valid object path
 	 */
-	char *del_object = NULL;
-	icwmp_asprintf(&del_object, "Device.WiFi.SSID.%s.", add_instance);
+	char del_object[32] = {0};
+	snprintf(del_object, sizeof(del_object), "Device.WiFi.SSID.%s.", add_instance);
 	struct cmd_input input_valid = {del_object, NULL};
 	union cmd_result cmd_del_out_2 = { 0 };
 	fault = cmd_del_exec_func(input_valid, &cmd_del_out_2);
