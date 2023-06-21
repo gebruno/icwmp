@@ -21,11 +21,6 @@ extern char *fc_cookies;
 
 #define HTTP_TIMEOUT 60
 
-struct http_client {
-	struct curl_slist *header_list;
-	char *url;
-};
-
 void http_set_timeout(void);
 
 int icwmp_http_client_init();

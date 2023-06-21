@@ -29,7 +29,7 @@
 #define HTTP_GET_HDR_LEN 512
 #define HTTP_FD_FEEDS_COUNT 10 /* Maximum number of lines to be read from HTTP header */
 
-static struct http_client http_c;
+static struct curl_slist *header_list = NULL;
 
 static CURL *curl = NULL;
 static bool curl_glob_init = false;
@@ -43,11 +43,10 @@ void http_set_timeout(void)
 
 int icwmp_http_client_init()
 {
-	if (cwmp_main->conf.acsurl == NULL || icwmp_asprintf(&http_c.url, "%s", cwmp_main->conf.acsurl) == -1) {
+	if (cwmp_main->conf.acsurl == NULL)
 		return -1;
-	}
 
-	CWMP_LOG(INFO, "ACS url: %s", http_c.url);
+	CWMP_LOG(INFO, "ACS url: %s", cwmp_main->conf.acsurl);
 
 	curl_global_init(CURL_GLOBAL_SSL);
 	curl_glob_init = true;
@@ -60,11 +59,9 @@ int icwmp_http_client_init()
 
 void icwmp_http_client_exit(void)
 {
-	icwmp_free(http_c.url);
-
-	if (http_c.header_list) {
-		curl_slist_free_all(http_c.header_list);
-		http_c.header_list = NULL;
+	if (header_list) {
+		curl_slist_free_all(header_list);
+		header_list = NULL;
 	}
 	if (file_exists(fc_cookies))
 		remove(fc_cookies);
@@ -115,7 +112,7 @@ static void http_set_security_options()
 
 static void http_set_connection_options()
 {
-	curl_easy_setopt(curl, CURLOPT_URL, http_c.url);
+	curl_easy_setopt(curl, CURLOPT_URL, cwmp_main->conf.acsurl);
 
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, HTTP_TIMEOUT);
@@ -140,14 +137,14 @@ static void http_set_header_list_options()
 		break;
 	case COMP_GZIP:
 		curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "gzip");
-		http_c.header_list = curl_slist_append(http_c.header_list, "Content-Encoding: gzip");
+		header_list = curl_slist_append(header_list, "Content-Encoding: gzip");
 		break;
 	case COMP_DEFLATE:
 		curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "deflate");
-		http_c.header_list = curl_slist_append(http_c.header_list, "Content-Encoding: deflate");
+		header_list = curl_slist_append(header_list, "Content-Encoding: deflate");
 		break;
 	}
-	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, http_c.header_list);
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
 }
 
 static void http_set_inout_options(char *msg_out, int msg_out_len, char **msg_in)
@@ -172,18 +169,18 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 	char *ip = NULL;
 	char errbuf[CURL_ERROR_SIZE];
 
-	http_c.header_list = NULL;
-	http_c.header_list = curl_slist_append(http_c.header_list, "User-Agent: iopsys-cwmp");
-	if (!http_c.header_list)
+	header_list = NULL;
+	header_list = curl_slist_append(header_list, "User-Agent: iopsys-cwmp");
+	if (!header_list)
 		return -1;
 
-	http_c.header_list = curl_slist_append(http_c.header_list, "Content-Type: text/xml");
-	if (!http_c.header_list)
+	header_list = curl_slist_append(header_list, "Content-Type: text/xml");
+	if (!header_list)
 		return -1;
 
 	if (cwmp_main->conf.http_disable_100continue) {
-		http_c.header_list = curl_slist_append(http_c.header_list, "Expect:");
-		if (!http_c.header_list)
+		header_list = curl_slist_append(header_list, "Expect:");
+		if (!header_list)
 			return -1;
 	}
 
@@ -247,9 +244,9 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 	if (http_code != 200 && http_code != 204)
 		goto error;
 
-	if (http_c.header_list) {
-		curl_slist_free_all(http_c.header_list);
-		http_c.header_list = NULL;
+	if (header_list) {
+		curl_slist_free_all(header_list);
+		header_list = NULL;
 	}
 
 	if (res)
@@ -259,9 +256,9 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 
 error:
 	FREE(*msg_in);
-	if (http_c.header_list) {
-		curl_slist_free_all(http_c.header_list);
-		http_c.header_list = NULL;
+	if (header_list) {
+		curl_slist_free_all(header_list);
+		header_list = NULL;
 	}
 	return -1;
 }
