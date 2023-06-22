@@ -39,21 +39,6 @@ static int dm_iface_unit_tests_init(void **state)
 static int dm_iface_unit_tests_clean(void **state)
 {
 	icwmp_free_list_services();
-	FREE(cwmp_main->deviceid.manufacturer);
-	FREE(cwmp_main->deviceid.serialnumber);
-	FREE(cwmp_main->deviceid.productclass);
-	FREE(cwmp_main->deviceid.oui);
-	FREE(cwmp_main->deviceid.softwareversion);
-	FREE(cwmp_main->conf.lw_notification_hostname);
-	FREE(cwmp_main->conf.acsurl);
-	FREE(cwmp_main->conf.acs_userid);
-	FREE(cwmp_main->conf.acs_passwd);
-	FREE(cwmp_main->conf.cpe_userid);
-	FREE(cwmp_main->conf.cpe_passwd);
-	FREE(cwmp_main->conf.ubus_socket);
-	FREE(cwmp_main->conf.connection_request_path);
-	FREE(cwmp_main->conf.default_wan_iface);
-	FREE(cwmp_main->conf.custom_notify_json);
 	cwmp_free_all_list_param_fault(&faults_array);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	cwmp_session_exit();

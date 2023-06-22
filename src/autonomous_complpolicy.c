@@ -58,7 +58,7 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 		CWMP_LOG(INFO, "Autonomous Change DU State is disabled");
 		return;
 	}
-	if (cwmp_main->conf.auto_cdu_oprt_type == NULL) {
+	if (strlen(cwmp_main->conf.auto_cdu_oprt_type) == 0) {
 		CWMP_LOG(INFO, "Autonomous Change DU State OperationTypeFilter is empty");
 		return;
 	}

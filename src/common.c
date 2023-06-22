@@ -245,7 +245,7 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 int get_firewall_restart_state(char **state)
 {
 	cwmp_uci_reinit();
-	return uci_get_state_value(UCI_CPE_FIREWALL_RESTART_STATE, state);
+	return uci_get_state_value("cwmp.cpe.firewall_restart", state);
 }
 
 // wait till firewall restart is not complete or 5 sec, whichever is less
@@ -737,7 +737,7 @@ static void ubus_network_interface_callback(struct ubus_request *req __attribute
 	if (!CWMP_STRLEN(l3_device))
 		return;
 
-	cwmp_main->net.interface = strdup(l3_device);
+	snprintf(cwmp_main->net.interface, sizeof(cwmp_main->net.interface), "%s", l3_device);
 
 	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s && device: %s", cwmp_main->conf.default_wan_iface, cwmp_main->net.interface);
 }
@@ -792,7 +792,7 @@ static bool is_ipv6_addr_available(const char *device)
 
 bool is_ipv6_enabled(void)
 {
-	if (cwmp_main->net.interface == NULL) {
+	if (CWMP_STRLEN(cwmp_main->net.interface) == 0) {
 		struct blob_buf b = {0};
 		char network_interface[64];
 
@@ -805,7 +805,7 @@ bool is_ipv6_enabled(void)
 
 		blob_buf_free(&b);
 
-		if (e != 0 || cwmp_main->net.interface == NULL)
+		if (e != 0 || CWMP_STRLEN(cwmp_main->net.interface) == 0)
 			return false;
 	}
 

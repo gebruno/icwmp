@@ -208,7 +208,6 @@ char *cwmp_set_parameter_attributes(char *parameter_name, int notification)
 
 	/*Check if the parameter name is present in TR-181 datamodel*/
 	error = check_valid_parameter_path(parameter_name);
-
 	if (error != NULL)
 		return error;
 
@@ -460,15 +459,15 @@ void cwmp_update_enabled_notify_file(void)
 /*
  * Load custom notify json file
  */
-void load_custom_notify_json()
+void load_custom_notify_json(void)
 {
-	struct blob_buf bbuf;
-	struct blob_attr *cur;
+	struct blob_buf bbuf = {0};
+	struct blob_attr *cur = NULL;
 	struct blob_attr *custom_notify_list = NULL;
-	int rem;
+	int rem = 0;
 
 	cwmp_main->custom_notify_active = false;
-	if (cwmp_main->conf.custom_notify_json == NULL || !file_exists(cwmp_main->conf.custom_notify_json))
+	if (!file_exists(cwmp_main->conf.custom_notify_json))
 		return;
 
 	// Check for custom notification success import marker
@@ -486,8 +485,11 @@ void load_custom_notify_json()
 		return;
 	}
 
-	const struct blobmsg_policy p_notif[1] = { { "custom_notification", BLOBMSG_TYPE_ARRAY } };
-	struct blob_attr *tb_notif[1] = { NULL};
+	struct blob_attr *tb_notif[1] = {0};
+	const struct blobmsg_policy p_notif[1] = {
+			{ "custom_notification", BLOBMSG_TYPE_ARRAY }
+	};
+
 	blobmsg_parse(p_notif, 1, tb_notif, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 	if (tb_notif[0] == NULL) {
 		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a notify parameters list", cwmp_main->conf.custom_notify_json);
@@ -495,26 +497,35 @@ void load_custom_notify_json()
 		creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 		return;
 	}
+
 	custom_notify_list = tb_notif[0];
 
-	const struct blobmsg_policy p[2] = { { "parameter", BLOBMSG_TYPE_STRING }, { "notify_type", BLOBMSG_TYPE_STRING } };
-	blobmsg_for_each_attr(cur, custom_notify_list, rem)
-	{
-		struct blob_attr *tb[2] = { NULL, NULL };
+	const struct blobmsg_policy p[2] = {
+			{ "parameter", BLOBMSG_TYPE_STRING },
+			{ "notify_type", BLOBMSG_TYPE_STRING }
+	};
+
+	blobmsg_for_each_attr(cur, custom_notify_list, rem) {
+		struct blob_attr *tb[2] = { 0, 0 };
+
 		blobmsg_parse(p, 2, tb, blobmsg_data(cur), blobmsg_len(cur));
 		if (!tb[0] || !tb[1])
 			continue;
+
 		if (!icwmp_validate_int_in_range(blobmsg_get_string(tb[1]), 0, 6)) {
 			CWMP_LOG(WARNING, "Wrong notification value: %s", blobmsg_get_string(tb[1]));
 			continue;
 		}
+
 		char *fault = cwmp_set_parameter_attributes(blobmsg_get_string(tb[0]), atoi(blobmsg_get_string(tb[1])));
 		if (fault == NULL)
 			continue;
+
 		if (strcmp(fault, "9005") == 0) {
 			CWMP_LOG(WARNING, "The parameter %s is wrong path", blobmsg_get_string(tb[0]));
 			continue;
 		}
+
 		if (strcmp(fault, "9009") == 0) {
 			CWMP_LOG(WARNING, "This parameter %s is forced notification parameter, can't be changed", blobmsg_get_string(tb[0]));
 			continue;
@@ -770,8 +781,8 @@ static void udplw_server_param(struct addrinfo **res)
 
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
-	snprintf(port, sizeof(port), "%d", conf->lw_notification_port);
-	getaddrinfo(conf->lw_notification_hostname, port, &hints, res);
+	snprintf(port, sizeof(port), "%d", conf->lwn_port);
+	getaddrinfo(conf->lwn_hostname, port, &hints, res);
 }
 
 char *calculate_lwnotification_cnonce()
@@ -840,7 +851,7 @@ void cwmp_lwnotification()
 		return;
 	}
 	message_compute_signature(msg_out, signature, sizeof(signature));
-	snprintf(msg, sizeof(msg), "%s \n %s: %s \n %s: %s \n %s: %zu\n %s: %s\n\n%s", "POST /HTTPS/1.1", "HOST", conf->lw_notification_hostname, "Content-Type", "test/xml; charset=utf-8", "Content-Lenght", strlen(msg_out), "Signature", signature, msg_out);
+	snprintf(msg, sizeof(msg), "%s \n %s: %s \n %s: %s \n %s: %zu\n %s: %s\n\n%s", "POST /HTTPS/1.1", "HOST", conf->lwn_hostname, "Content-Type", "test/xml; charset=utf-8", "Content-Lenght", strlen(msg_out), "Signature", signature, msg_out);
 
 	send_udp_message(servaddr, msg);
 	free_all_list_lw_notify();

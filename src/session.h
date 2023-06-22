@@ -110,7 +110,6 @@ void set_cwmp_session_status(int status, int retry_time);
 int cwmp_session_init();
 int cwmp_session_exit();
 int cwmp_schedule_rpc();
-int cwmp_get_retry_interval(bool heart_beat);
 int cwmp_apply_acs_changes(void);
 void rpc_exit();
 #endif /* SRC_INC_SESSION_H_ */

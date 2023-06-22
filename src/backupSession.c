@@ -28,11 +28,10 @@ static mxml_node_t *bkp_tree = NULL;
 
 int cwmp_init_backup_session(char **ret, enum backup_loading load)
 {
-	int error;
 	if (bkp_session_check_file())
 		return 0;
-	error = cwmp_load_saved_session(ret, load);
-	return error;
+
+	return cwmp_load_saved_session(ret, load);
 }
 
 void bkp_tree_clean(void)
@@ -93,7 +92,7 @@ int bkp_session_check_file()
 
 int save_acs_bkp_config()
 {
-	bkp_session_simple_insert("acs", "URL", cwmp_main->conf.acsurl);
+	bkp_session_simple_insert("acs", "URL", cwmp_main->conf.acs_url);
 	bkp_session_save();
 	return CWMP_OK;
 }
@@ -394,7 +393,7 @@ void bkp_session_insert_transfer_complete(struct transfer_complete *ptransfer_co
 /*
  * Load backup session
  */
-char *load_child_value(mxml_node_t *tree, char *sub_name)
+static char *load_child_value(mxml_node_t *tree, char *sub_name)
 {
 	char *value = NULL;
 	mxml_node_t *b = tree;
@@ -411,10 +410,11 @@ char *load_child_value(mxml_node_t *tree, char *sub_name)
 			}
 		}
 	}
+
 	return value;
 }
 
-void load_queue_event(mxml_node_t *tree)
+static void load_queue_event(mxml_node_t *tree)
 {
 	int idx = -1, id = -1;
 
@@ -424,7 +424,7 @@ void load_queue_event(mxml_node_t *tree)
 	load_xml_node_data(BKP_EVT_LOAD, tree, &bkp_xml_evt);
 }
 
-void load_schedule_inform(mxml_node_t *tree)
+static void load_schedule_inform(mxml_node_t *tree)
 {
 	char *command_key = NULL;
 	time_t scheduled_time = 0;
@@ -450,7 +450,7 @@ void load_schedule_inform(mxml_node_t *tree)
 	}
 }
 
-void load_download(mxml_node_t *tree)
+static void load_download(mxml_node_t *tree)
 {
 	struct download *download_request = NULL;
 	struct list_head *ilist = NULL;
@@ -491,7 +491,7 @@ void load_download(mxml_node_t *tree)
 	cwmp_set_end_session(END_SESSION_DOWNLOAD);
 }
 
-void load_schedule_download(mxml_node_t *tree)
+static void load_schedule_download(mxml_node_t *tree)
 {
 	struct download *download_request = NULL;
 	struct list_head *ilist = NULL;
@@ -540,7 +540,7 @@ void load_schedule_download(mxml_node_t *tree)
 	cwmp_set_end_session(END_SESSION_SCHEDULE_DOWNLOAD);
 }
 
-void load_upload(mxml_node_t *tree)
+static void load_upload(mxml_node_t *tree)
 {
 	struct upload *upload_request = NULL;
 	struct list_head *ilist = NULL;
@@ -578,7 +578,7 @@ void load_upload(mxml_node_t *tree)
 	cwmp_set_end_session(END_SESSION_UPLOAD);
 }
 
-void load_change_du_state(mxml_node_t *tree)
+static void load_change_du_state(mxml_node_t *tree)
 {
 	if (tree == NULL) {
 		CWMP_LOG(ERROR, "backup %s: tree is null", __FUNCTION__);
@@ -617,7 +617,7 @@ void load_du_state_change_complete(mxml_node_t *tree)
 	cwmp_root_cause_changedustate_complete(du_state_change_complete_request);
 }
 
-void load_transfer_complete(mxml_node_t *tree)
+static void load_transfer_complete(mxml_node_t *tree)
 {
 	struct transfer_complete *ptransfer_complete;
 
@@ -637,7 +637,7 @@ void load_transfer_complete(mxml_node_t *tree)
 	sotfware_version_value_change(ptransfer_complete);
 }
 
-void load_autonomous_du_state_change_complete(mxml_node_t *tree)
+static void load_autonomous_du_state_change_complete(mxml_node_t *tree)
 {
 	auto_du_state_change_compl *p;
 
@@ -659,7 +659,7 @@ void load_autonomous_du_state_change_complete(mxml_node_t *tree)
 	cwmp_root_cause_autonomous_cdu_complete(p);
 }
 
-void load_autonomous_transfer_complete(mxml_node_t *tree)
+static void load_autonomous_transfer_complete(mxml_node_t *tree)
 {
 	auto_transfer_complete *p;
 

@@ -1702,7 +1702,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(pclass, cwmp_main->deviceid.productclass ? cwmp_main->deviceid.productclass : "")) {
+	if (NULL == mxmlNewOpaque(pclass, cwmp_main->deviceid.productclass)) {
 		MXML_DELETE(xml);
 		return;
 	}
@@ -1713,7 +1713,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(slno, cwmp_main->deviceid.serialnumber ? cwmp_main->deviceid.serialnumber : "")) {
+	if (NULL == mxmlNewOpaque(slno, cwmp_main->deviceid.serialnumber)) {
 		MXML_DELETE(xml);
 		return;
 	}

@@ -23,9 +23,6 @@
 #include "http.h"
 #include "cwmp_event.h"
 
-bool old_heartbeat_enable = false;
-int heart_beat_retry_count_session = 0;
-
 struct uloop_timeout heartbeat_session_timer = { .cb = cwmp_heartbeat_session_timer };
 
 long int cwmp_heartbeat_session_time(void)

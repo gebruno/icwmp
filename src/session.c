@@ -223,22 +223,21 @@ end:
 	return cwmp_main->session->error;
 }
 
-int cwmp_get_retry_interval(bool heart_beat)
+static int cwmp_get_retry_interval(void)
 {
 	unsigned int retry_count = 0;
 	double min = 0;
 	double max = 0;
 	int m = cwmp_main->conf.retry_min_wait_interval;
 	int k = cwmp_main->conf.retry_interval_multiplier;
-	int exp;
-	if (heart_beat)
-		exp = heart_beat_retry_count_session;
-	else
-		exp = cwmp_main->retry_count_session;
+	int exp = cwmp_main->retry_count_session;
+
 	if (exp == 0)
 		return MAX_INT32;
+
 	if (exp > 10)
 		exp = 10;
+
 	min = pow(((double)k / 1000), (double)(exp - 1)) * m;
 	max = pow(((double)k / 1000), (double)exp) * m;
 	char *rand = generate_random_string(4);
@@ -247,6 +246,7 @@ int cwmp_get_retry_interval(bool heart_beat)
 		retry_count = dividend % ((unsigned int)max + 1 - (unsigned int)min) + (unsigned int)min;
 		free(rand);
 	}
+
 	return (retry_count);
 }
 
@@ -319,12 +319,10 @@ void rpc_exit()
 static void schedule_session_retry(void)
 {
 	cwmp_main->retry_count_session++;
-	int t = cwmp_get_retry_interval(0);
+	int t = cwmp_get_retry_interval();
 	CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
-	cwmp_uci_reinit();
 	cwmp_config_load();
 	trigger_periodic_notify_check();
-	cwmp_uci_exit();
 
 	if (!cwmp_main->session->session_status.is_heartbeat) {
 		set_cwmp_session_status(SESSION_FAILURE, t);
@@ -335,7 +333,7 @@ static void schedule_session_retry(void)
 	}
 }
 
-void start_cwmp_session()
+void start_cwmp_session(void)
 {
 	int error;
 	char *exec_download = NULL;
@@ -348,9 +346,7 @@ void start_cwmp_session()
 	}
 
 	if (cwmp_main->session->session_status.last_status == SESSION_FAILURE) {
-		cwmp_uci_reinit();
 		cwmp_config_load();
-		cwmp_uci_exit();
 	}
 
 	if (is_ipv6_status_changed()) {
@@ -384,7 +380,7 @@ void start_cwmp_session()
 
 	CWMP_LOG(INFO, "Start session");
 
-	uci_get_value(UCI_CPE_EXEC_DOWNLOAD, &exec_download);
+	uci_get_value("cwmp.cpe.exec_download", &exec_download);
 	if (exec_download && strcmp(exec_download, "1") == 0) {
 		CWMP_LOG(INFO, "Firmware downloaded and applied successfully");
 		cwmp_uci_set_value("cwmp", "cpe", "exec_download", "0");
@@ -412,11 +408,9 @@ void start_cwmp_session()
 	}
 
 	if (cwmp_main->session->error == CWMP_RETRY_SESSION && (!list_empty(&(cwmp_main->session->events)) || (list_empty(&(cwmp_main->session->events)) && cwmp_main->cwmp_cr_event == 0))) { //CWMP Retry session
-		cwmp_uci_reinit();
 		cwmp_config_load();
-		cwmp_uci_exit();
 		cwmp_main->retry_count_session++;
-		int t = cwmp_get_retry_interval(0);
+		int t = cwmp_get_retry_interval();
 		CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
 		if (!cwmp_main->session->session_status.is_heartbeat) {
 			set_cwmp_session_status(SESSION_FAILURE, t);
@@ -621,13 +615,12 @@ int cwmp_apply_acs_changes(void)
 {
 	int error;
 
-	old_heartbeat_enable = cwmp_main->conf.heart_beat_enable;
-
 	cwmp_uci_reinit();
-	if ((error = cwmp_config_reload(&cwmp_main)))
+
+	if ((error = cwmp_config_reload()))
 		return error;
 
-	if ((error = cwmp_root_cause_events(&cwmp_main)))
+	if ((error = cwmp_root_cause_events()))
 		return error;
 
 	return CWMP_OK;

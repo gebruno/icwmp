@@ -43,10 +43,10 @@ void http_set_timeout(void)
 
 int icwmp_http_client_init()
 {
-	if (cwmp_main->conf.acsurl == NULL)
+	if (strlen(cwmp_main->conf.acs_url) == 0)
 		return -1;
 
-	CWMP_LOG(INFO, "ACS url: %s", cwmp_main->conf.acsurl);
+	CWMP_LOG(INFO, "ACS url: %s", cwmp_main->conf.acs_url);
 
 	curl_global_init(CURL_GLOBAL_SSL);
 	curl_glob_init = true;
@@ -102,8 +102,8 @@ static void http_set_security_options()
 	curl_easy_setopt(curl, CURLOPT_PASSWORD, cwmp_main->conf.acs_passwd);
 	curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC | CURLAUTH_DIGEST);
 
-	if (cwmp_main->conf.acs_ssl_capath)
-		curl_easy_setopt(curl, CURLOPT_CAPATH, cwmp_main->conf.acs_ssl_capath);
+	curl_easy_setopt(curl, CURLOPT_CAPATH, cwmp_main->conf.acs_ssl_capath);
+
 	if (cwmp_main->conf.insecure_enable) {
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
@@ -112,7 +112,7 @@ static void http_set_security_options()
 
 static void http_set_connection_options()
 {
-	curl_easy_setopt(curl, CURLOPT_URL, cwmp_main->conf.acsurl);
+	curl_easy_setopt(curl, CURLOPT_URL, cwmp_main->conf.acs_url);
 
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, HTTP_TIMEOUT);
@@ -310,9 +310,9 @@ static void http_cr_new_client(int client, bool service_available)
 	int status = 0;
 
 	pthread_mutex_lock(&mutex_config_load);
-	char *username = (cwmp_main->conf.cpe_userid != NULL) ? strdup(cwmp_main->conf.cpe_userid) : NULL;
-	char *password = (cwmp_main->conf.cpe_passwd != NULL) ? strdup(cwmp_main->conf.cpe_passwd) : NULL;
-	char *cr_path = (cwmp_main->conf.connection_request_path != NULL) ? strdup(cwmp_main->conf.connection_request_path) : NULL;
+	char *username = (strlen(cwmp_main->conf.cpe_userid) != 0) ? strdup(cwmp_main->conf.cpe_userid) : NULL;
+	char *password = (strlen(cwmp_main->conf.cpe_passwd) != 0) ? strdup(cwmp_main->conf.cpe_passwd) : NULL;
+	char *cr_path = (strlen(cwmp_main->conf.connection_request_path) != 0) ? strdup(cwmp_main->conf.connection_request_path) : NULL;
 	int cr_timeout = cwmp_main->conf.cr_timeout;
 	pthread_mutex_unlock(&mutex_config_load);
 

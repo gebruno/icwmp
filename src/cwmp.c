@@ -198,17 +198,6 @@ end:
 	return 0;
 }
 
-static void configure_var_state()
-{
-	if (!file_exists(VARSTATE_CONFIG"/icwmp"))
-		creat(VARSTATE_CONFIG"/icwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-	cwmp_uci_add_section_with_specific_name("icwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
-	cwmp_uci_add_section_with_specific_name("icwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
-
-	cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
-}
-
 static int cwmp_init(void)
 {
 	int error = 0;
@@ -219,13 +208,12 @@ static int cwmp_init(void)
 
 	memset(cwmp_main, 0, sizeof(struct cwmp));
 
-	error = get_preinit_config();
-	if (error)
-		return error;
+	get_preinit_config();
 
 	CWMP_LOG(INFO, "STARTING ICWMP with PID :%d", getpid());
 
 	icwmp_init_list_services();
+
 	/* Only One instance should run*/
 	cwmp_main->pid_file = fopen("/var/run/icwmpd.pid", "w+");
 	fcntl(fileno(cwmp_main->pid_file), F_SETFD, fcntl(fileno(cwmp_main->pid_file), F_GETFD) | FD_CLOEXEC);
@@ -249,11 +237,9 @@ static int cwmp_init(void)
 	if ((error = create_cwmp_notifications_package()))
 		return error;
 
-	cwmp_uci_init();
-	configure_var_state();
-
 	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
 	cwmp_config_load();
+	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
 
 	cwmp_main->prev_periodic_enable = cwmp_main->conf.periodic_enable;
 	cwmp_main->prev_periodic_interval = cwmp_main->conf.period;
@@ -265,20 +251,24 @@ static int cwmp_init(void)
 	if (cwmp_stop == true)
 		return CWMP_GEN_ERR;
 
-	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
 	cwmp_get_deviceid();
+
+	cwmp_uci_init();
 	load_custom_notify_json();
 	set_default_forced_active_parameters_notifications();
 	init_list_param_notify();
+	cwmp_uci_exit();
+
 	create_cwmp_session_structure();
 	get_nonce_key();
+
 	memset(&intf_reset_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&intf_reset_list);
+
 	memset(&du_uuid_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&du_uuid_list);
-	cwmp_main->start_time = time(NULL);
 
-	cwmp_uci_exit();
+	cwmp_main->start_time = time(NULL);
 
 	return CWMP_OK;
 }
@@ -286,28 +276,6 @@ static int cwmp_init(void)
 static void cwmp_free()
 {
 	http_server_stop();
-	FREE(cwmp_main->deviceid.manufacturer);
-	FREE(cwmp_main->deviceid.serialnumber);
-	FREE(cwmp_main->deviceid.productclass);
-	FREE(cwmp_main->deviceid.oui);
-	FREE(cwmp_main->deviceid.softwareversion);
-	FREE(cwmp_main->conf.lw_notification_hostname);
-	FREE(cwmp_main->conf.acsurl);
-	FREE(cwmp_main->conf.acs_userid);
-	FREE(cwmp_main->conf.acs_passwd);
-	FREE(cwmp_main->conf.cpe_userid);
-	FREE(cwmp_main->conf.cpe_passwd);
-	FREE(cwmp_main->conf.ubus_socket);
-	FREE(cwmp_main->conf.connection_request_path);
-	FREE(cwmp_main->conf.custom_notify_json);
-	FREE(cwmp_main->conf.auto_cdu_fault_code);
-	FREE(cwmp_main->conf.auto_cdu_oprt_type);
-	FREE(cwmp_main->conf.auto_cdu_result_type);
-	FREE(cwmp_main->conf.auto_tc_file_type);
-	FREE(cwmp_main->conf.auto_tc_result_type);
-	FREE(cwmp_main->conf.auto_tc_transfer_type);
-	FREE(cwmp_main->conf.default_wan_iface);
-	FREE(cwmp_main->net.interface);
 	FREE(nonce_key);
 	clean_list_param_notify();
 	bkp_tree_clean();

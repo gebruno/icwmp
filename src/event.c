@@ -23,27 +23,29 @@
 
 //#include <libubox/list.h>
 
-const struct EVENT_CONST_STRUCT EVENT_CONST[] = {[EVENT_IDX_0BOOTSTRAP] = { "0 BOOTSTRAP", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_1BOOT] = { "1 BOOT", EVENT_RETRY_AFTER_TRANSMIT_FAIL },
-						 [EVENT_IDX_2PERIODIC] = { "2 PERIODIC", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_3SCHEDULED] = { "3 SCHEDULED", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_4VALUE_CHANGE] = { "4 VALUE CHANGE", EVENT_RETRY_AFTER_TRANSMIT_FAIL },
-						 [EVENT_IDX_5KICKED] = { "5 KICKED", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_6CONNECTION_REQUEST] = { "6 CONNECTION REQUEST", 0 },
-						 [EVENT_IDX_7TRANSFER_COMPLETE] = { "7 TRANSFER COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_8DIAGNOSTICS_COMPLETE] = { "8 DIAGNOSTICS COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL },
-						 [EVENT_IDX_9REQUEST_DOWNLOAD] = { "9 REQUEST DOWNLOAD", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE] = { "10 AUTONOMOUS TRANSFER COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_11DU_STATE_CHANGE_COMPLETE] = { "11 DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "12 AUTONOMOUS DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_13WAKEUP] = { "13 WAKEUP", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_14HEARTBEAT] = { "14 HEARTBEAT", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_M_Reboot] = { "M Reboot", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_M_ScheduleInform] = { "M ScheduleInform", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_M_Download] = { "M Download", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_M_Schedule_Download] = { "M ScheduleDownload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_M_Upload] = { "M Upload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
-						 [EVENT_IDX_M_ChangeDUState] = { "M ChangeDUState", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT } };
+const struct EVENT_CONST_STRUCT EVENT_CONST[] = {
+		[EVENT_IDX_0BOOTSTRAP] = { "0 BOOTSTRAP", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_1BOOT] = { "1 BOOT", EVENT_RETRY_AFTER_TRANSMIT_FAIL },
+		[EVENT_IDX_2PERIODIC] = { "2 PERIODIC", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_3SCHEDULED] = { "3 SCHEDULED", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_4VALUE_CHANGE] = { "4 VALUE CHANGE", EVENT_RETRY_AFTER_TRANSMIT_FAIL },
+		[EVENT_IDX_5KICKED] = { "5 KICKED", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_6CONNECTION_REQUEST] = { "6 CONNECTION REQUEST", 0 },
+		[EVENT_IDX_7TRANSFER_COMPLETE] = { "7 TRANSFER COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_8DIAGNOSTICS_COMPLETE] = { "8 DIAGNOSTICS COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL },
+		[EVENT_IDX_9REQUEST_DOWNLOAD] = { "9 REQUEST DOWNLOAD", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE] = { "10 AUTONOMOUS TRANSFER COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_11DU_STATE_CHANGE_COMPLETE] = { "11 DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "12 AUTONOMOUS DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_13WAKEUP] = { "13 WAKEUP", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_14HEARTBEAT] = { "14 HEARTBEAT", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_M_Reboot] = { "M Reboot", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_M_ScheduleInform] = { "M ScheduleInform", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_M_Download] = { "M Download", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_M_Schedule_Download] = { "M ScheduleDownload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_M_Upload] = { "M Upload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+		[EVENT_IDX_M_ChangeDUState] = { "M ChangeDUState", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT }
+};
 
 void cwmp_save_event_container(struct event_container *event_container)
 {
@@ -51,6 +53,7 @@ void cwmp_save_event_container(struct event_container *event_container)
 		CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 		return;
 	}
+
 	if (EVENT_CONST[event_container->code].RETRY & EVENT_RETRY_AFTER_REBOOT) {
 		struct list_head *ilist;
 		mxml_node_t *b;
@@ -66,11 +69,12 @@ void cwmp_save_event_container(struct event_container *event_container)
 	}
 }
 
-int cwmp_root_cause_event_boot()
+static int cwmp_root_cause_event_boot(void)
 {
 	if (cwmp_main->env.boot == CWMP_START_BOOT) {
 		struct event_container *event_container;
 		cwmp_main->env.boot = 0;
+
 		event_container = cwmp_add_event_container(EVENT_IDX_1BOOT, "");
 		if (event_container == NULL) {
 			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
@@ -104,14 +108,14 @@ int event_remove_noretry_event_container()
 	return CWMP_OK;
 }
 
-int cwmp_root_cause_event_bootstrap()
+static int cwmp_root_cause_event_bootstrap(void)
 {
 	char *acsurl = NULL;
 	int cmp = 0;
 
 	cwmp_load_saved_session(&acsurl, ACS);
 
-	if (acsurl == NULL || ((cmp = strcmp(cwmp_main->conf.acsurl, acsurl)) != 0)) {
+	if (acsurl == NULL || ((cmp = strcmp(cwmp_main->conf.acs_url, acsurl)) != 0)) {
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(EVENT_IDX_0BOOTSTRAP, "");
 		FREE(acsurl);
@@ -124,17 +128,20 @@ int cwmp_root_cause_event_bootstrap()
 			struct event_container *value_change_event = cwmp_add_event_container(EVENT_IDX_4VALUE_CHANGE, "");
 			if (value_change_event == NULL)
 				return CWMP_MEM_ERR;
-			char buf[64] = "Device.ManagementServer.URL";
+
+			char buf[] = "Device.ManagementServer.URL";
 			add_dm_parameter_to_list(&(value_change_event->head_dm_parameter), buf, NULL, NULL, 0, false);
 			cwmp_save_event_container(value_change_event);
 		}
+
 		cwmp_save_event_container(event_container);
 		cwmp_scheduleInform_remove_all();
 		cwmp_scheduledDownload_remove_all();
 		cwmp_scheduled_Download_remove_all();
 		cwmp_scheduledUpload_remove_all();
-	} else
+	} else {
 		FREE(acsurl);
+	}
 
 	return CWMP_OK;
 }
@@ -263,7 +270,7 @@ int cwmp_root_cause_schedule_inform(struct schedule_inform *schedule_inform)
 	return CWMP_OK;
 }
 
-int cwmp_root_cause_get_rpc_method()
+static int cwmp_root_cause_get_rpc_method(void )
 {
 	if (cwmp_main->env.periodic == CWMP_START_PERIODIC) {
 		struct event_container *event_container;
@@ -291,7 +298,7 @@ bool event_exist_in_list(int event)
 	return false;
 }
 
-int cwmp_root_cause_event_periodic()
+static int cwmp_root_cause_event_periodic(void)
 {
 	char local_time[27] = { 0 };
 	struct tm *t_tm;
@@ -349,7 +356,7 @@ void connection_request_port_value_change(int port)
 	FREE(bport);
 }
 
-int cwmp_root_cause_events()
+int cwmp_root_cause_events(void)
 {
 	int error;
 

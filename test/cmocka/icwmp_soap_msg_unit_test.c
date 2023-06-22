@@ -37,23 +37,6 @@ static int instance = 0;
 /*
  * End test clean
  */
-static void clean_config()
-{
-	FREE(cwmp_main->deviceid.manufacturer);
-	FREE(cwmp_main->deviceid.serialnumber);
-	FREE(cwmp_main->deviceid.productclass);
-	FREE(cwmp_main->deviceid.oui);
-	FREE(cwmp_main->deviceid.softwareversion);
-	FREE(cwmp_main->conf.lw_notification_hostname);
-	FREE(cwmp_main->conf.acsurl);
-	FREE(cwmp_main->conf.acs_userid);
-	FREE(cwmp_main->conf.acs_passwd);
-	FREE(cwmp_main->conf.cpe_userid);
-	FREE(cwmp_main->conf.cpe_passwd);
-	FREE(cwmp_main->conf.ubus_socket);
-	FREE(cwmp_main->conf.connection_request_path);
-	FREE(cwmp_main->conf.default_wan_iface);
-}
 
 static void clean_name_space()
 {
@@ -98,7 +81,6 @@ static int soap_unit_tests_clean(void **state)
 {
 	icwmp_free_list_services();
 	clean_name_space();
-	clean_config();
 	cwmp_session_exit();
 	FREE(cwmp_main->session);
 	FREE(cwmp_main);
@@ -171,7 +153,6 @@ static void soap_inform_message_test(void **state)
 	MXML_DELETE(cwmp_main->session->tree_out);
 
 	unit_test_end_test_destruction();
-	clean_config();
 }
 
 static void prepare_session_for_rpc_method_call()

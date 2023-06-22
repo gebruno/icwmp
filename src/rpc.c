@@ -274,10 +274,10 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 
 	struct xml_data_struct inform_xml_attrs = {0};
 
-	char *manufacturer = cwmp_main->deviceid.manufacturer ? cwmp_main->deviceid.manufacturer : "";
-	char *oui = cwmp_main->deviceid.oui ? cwmp_main->deviceid.oui : "";
-	char *product_class = cwmp_main->deviceid.productclass ? cwmp_main->deviceid.productclass : "";
-	char *serial_number = cwmp_main->deviceid.serialnumber ? cwmp_main->deviceid.serialnumber : "";
+	char *manufacturer = cwmp_main->deviceid.manufacturer;
+	char *oui = cwmp_main->deviceid.oui;
+	char *product_class = cwmp_main->deviceid.productclass;
+	char *serial_number = cwmp_main->deviceid.serialnumber;
 	int max_env = 1;
 	char *current_time = get_time(time(NULL));
 
@@ -495,7 +495,6 @@ int cwmp_rpc_acs_parse_response_inform(struct rpc *this __attribute__((unused)))
 			else
 				cwmp_main->conf.amd_version = i + 1;
 			break;
-		//(cwmp_main->supported_conf.amd_version < i+1) ?"cwmp_main->conf.amd_version":"i+1";
 		case 5:
 			cwmp_main->conf.amd_version = i + 1;
 			break;

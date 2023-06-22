@@ -285,11 +285,12 @@ char *execute_cwmp_cli_command(char *cmd, char *args[])
 	if (strcmp(cmd, "help") == 0)
 		goto cli_help;
 
-	struct cmd_input cmd_in = { args[0] ? args[0] : NULL, args[0] && args[1] ? args[1] : NULL,  args[0] && args[1] && args[2] ? args[2] : NULL };
+	struct cmd_input cmd_in = {
+			args[0] ? args[0] : NULL,
+			args[0] && args[1] ? args[1] : NULL,
+			args[0] && args[1] && args[2] ? args[2] : NULL };
 	union cmd_result cmd_out = { 0 };
 	char *fault = NULL, *fault_ret = NULL;
-
-	cwmp_uci_init();
 
 	for (size_t i = 0; i < ARRAY_SIZE(icwmp_commands); i++) {
 		if (strcmp(icwmp_commands[i].command_name, cmd) == 0) {
@@ -308,7 +309,6 @@ cli_help:
 
 cli_end:
 	icwmp_cleanmem();
-	cwmp_uci_exit();
 
 	return fault_ret;
 }

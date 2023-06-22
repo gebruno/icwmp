@@ -43,8 +43,7 @@ static int reload_cmd(struct blob_buf *b)
 		blobmsg_add_u32(b, "status", 0);
 		blobmsg_add_string(b, "info", "Session running, reload at the end of the session");
 	} else {
-		int error = CWMP_OK;
-		error = cwmp_apply_acs_changes();
+		int error = cwmp_apply_acs_changes();
 		if (error != CWMP_OK) {
 			// Failed to load cwmp config
 			CWMP_LOG(ERROR, "cwmp failed to reload the configuration");
@@ -186,7 +185,7 @@ static void bb_add_icwmp_status(struct blob_buf *bb)
 	void *tbl = blobmsg_open_table(bb, "cwmp");
 	bb_add_string(bb, "status", cwmp_main->init_complete ? "up" : "init");
 	bb_add_string(bb, "start_time", get_time(cwmp_main->start_time));
-	bb_add_string(bb, "acs_url", cwmp_main->conf.acsurl);
+	bb_add_string(bb, "acs_url", cwmp_main->conf.acs_url);
 	blobmsg_close_table(bb, tbl);
 }
 
@@ -371,7 +370,9 @@ void bb_add_string(struct blob_buf *bb, const char *name, const char *value)
 
 int icwmp_uloop_ubus_init()
 {
-	ubus_ctx = ubus_connect(cwmp_main->conf.ubus_socket);
+	char *u_sock_path = strlen(cwmp_main->conf.ubus_socket) ? cwmp_main->conf.ubus_socket : NULL;
+
+	ubus_ctx = ubus_connect(u_sock_path);
 	if (!ubus_ctx)
 		return -1;
 

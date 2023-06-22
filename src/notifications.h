@@ -35,18 +35,6 @@ extern struct list_head list_value_change;
 extern struct list_head list_param_obj_notify;
 extern struct uloop_timeout check_notify_timer;
 
-/*#define foreach_parameter_notification(function, parameter, notification) \
-	#ifndef NOTIF_VARIABLES_##function \
-	#define NOTIF_VARIABLES_##function \
-	struct uci_list *list_notif; \
-	struct uci_element *e = NULL; \
-	#endif \
-	for (notification = 1; notification < 7; i++) { \
-		cwmp_uci_get_option_value_list("cwmp", "@notifications[0]", notifications[notification], &list_notif); \
-			if (list_notif) { \
-				uci_foreach_element(list_notif, e) { \*/
-
-
 #define DM_ENABLED_NOTIFY "/var/run/icwmpd/dm_enabled_notify"
 #define NOTIFY_MARKER "/etc/icwmpd/icwmpd_notify_import_marker"
 #define RUN_NOTIFY_MARKER "/var/run/icwmpd/icwmpd_notify_import_marker"
@@ -63,7 +51,7 @@ void add_list_value_change(char *param_name, char *param_data, char *param_type)
 void clean_list_value_change();
 char *cwmp_set_parameter_attributes(char *parameter_name, int notification);
 char *cwmp_get_parameter_attributes(char *parameter_name, struct list_head *parameters_list);
-void load_custom_notify_json();
+void load_custom_notify_json(void);
 void set_default_forced_active_parameters_notifications();
 void add_lw_list_value_change(char *param_name, char *param_data, char *param_type);
 char *calculate_lwnotification_cnonce();

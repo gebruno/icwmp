@@ -64,6 +64,14 @@
 #define DEFAULT_INSTANCE_MODE 0
 #define DEFAULT_SESSION_TIMEOUT 60
 #define MAX_NBRE_SERVICES 256
+
+#define BUF_SIZE_8 (8 + 1)
+#define BUF_SIZE_16 (16 + 1)
+#define BUF_SIZE_32 (32 + 1)
+#define BUF_SIZE_64 (64 + 1)
+#define BUF_SIZE_256 (256 + 1)
+#define BUF_SIZE_2048 (2048 + 1)
+
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
 #define CWMP_VARSTATE_UCI_PACKAGE "/var/state/icwmp"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
@@ -88,32 +96,32 @@ extern struct list_head intf_reset_list;
 typedef struct env {
 	unsigned short boot;
 	unsigned short periodic;
-	long int max_firmware_size;
 } env;
 
 struct connection {
-	char *interface;
+	char interface[BUF_SIZE_16];
 	long ip_resolve;
 	bool ipv6_status;
 };
 
 typedef struct config {
-	char *acsurl;
-	char *acs_userid;
-	char *acs_passwd;
-	char *acs_ssl_capath;
-	char *cpe_userid;
-	char *cpe_passwd;
-	char *custom_notify_json;
-	char *ubus_socket;
-	char *connection_request_path;
-	char *auto_tc_transfer_type;
-	char *auto_tc_result_type;
-	char *auto_tc_file_type;
-	char *auto_cdu_oprt_type;
-	char *auto_cdu_result_type;
-	char *auto_cdu_fault_code;
-	char *default_wan_iface;
+	char acs_url[BUF_SIZE_2048];
+	char acs_userid[BUF_SIZE_256];
+	char acs_passwd[BUF_SIZE_256];
+	char acs_ssl_capath[BUF_SIZE_256];
+	char cpe_userid[BUF_SIZE_256];
+	char cpe_passwd[BUF_SIZE_256];
+	char custom_notify_json[BUF_SIZE_256];
+	char ubus_socket[BUF_SIZE_256];
+	char connection_request_path[BUF_SIZE_256];
+	char auto_tc_transfer_type[BUF_SIZE_16];
+	char auto_tc_result_type[BUF_SIZE_16];
+	char auto_tc_file_type[BUF_SIZE_16];
+	char auto_cdu_oprt_type[BUF_SIZE_16];
+	char auto_cdu_result_type[BUF_SIZE_16];
+	char auto_cdu_fault_code[BUF_SIZE_16];
+	char default_wan_iface[BUF_SIZE_32];
+
 	int connection_request_port;
 	int period;
 	int periodic_notify_interval;
@@ -126,7 +134,8 @@ typedef struct config {
 
 	unsigned int active_notif_throttle;
 	unsigned int md_notif_limit;
-	unsigned int periodic_entropy;
+
+	bool dhcp_discovery;
 	bool periodic_enable;
 	bool periodic_notify_enable;
 	bool insecure_enable;
@@ -136,9 +145,11 @@ typedef struct config {
 	bool auto_cdu_enable;
 	int retry_min_wait_interval;
 	int retry_interval_multiplier;
-	bool lw_notification_enable;
-	char *lw_notification_hostname;
-	int lw_notification_port;
+
+	bool lwn_enable;
+	char lwn_hostname[BUF_SIZE_256];
+	int lwn_port;
+
 	int amd_version;
 	int supported_amd_version;
 	unsigned int instance_mode;
@@ -148,11 +159,11 @@ typedef struct config {
 } config;
 
 struct deviceid {
-	char *manufacturer;
-	char *oui;
-	char *serialnumber;
-	char *productclass;
-	char *softwareversion;
+	char manufacturer[BUF_SIZE_64];
+	char oui[BUF_SIZE_8];
+	char serialnumber[BUF_SIZE_64];
+	char productclass[BUF_SIZE_64];
+	char softwareversion[BUF_SIZE_64];
 };
 
 enum firewall_cr_policy {

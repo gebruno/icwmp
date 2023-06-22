@@ -12,11 +12,11 @@
 #define HEARTBEAT_H
 
 #include <stdbool.h>
+
 extern struct uloop_timeout heartbeat_session_timer;
-extern int heart_beat_retry_count_session;
-extern bool old_heartbeat_enable;
 
 void cwmp_heartbeat_session_timer(struct uloop_timeout *timeout);
 void intiate_heartbeat_procedures();
 void reinit_heartbeat_procedures();
+
 #endif

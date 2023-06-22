@@ -72,7 +72,7 @@ int icwmp_check_http_connection(void)
 		if(c) {
 			CURLcode ret;
 			curl_easy_setopt(c, CURLOPT_FAILONERROR, true);
-			curl_easy_setopt(c, CURLOPT_URL, cwmp_main->conf.acsurl);
+			curl_easy_setopt(c, CURLOPT_URL, cwmp_main->conf.acs_url);
 			curl_easy_setopt(c, CURLOPT_CONNECT_ONLY, 1L);
 			curl_easy_setopt(c, CURLOPT_IPRESOLVE, resolve);
 
