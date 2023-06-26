@@ -1489,9 +1489,10 @@ int xml_set_cwmp_id()
 {
 	char c[32];
 	mxml_node_t *b;
+	int pid_t = getpid();
 
 	/* define cwmp id */
-	if (snprintf(c, sizeof(c), "%u", ++(cwmp_main->cwmp_id)) == -1)
+	if (snprintf(c, sizeof(c), "%d.%u", pid_t, ++(cwmp_main->cwmp_id)) == -1)
 		return -1;
 
 	b = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
