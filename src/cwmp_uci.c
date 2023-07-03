@@ -315,7 +315,7 @@ int cwmp_uci_set_value(char *package, char *section, char *option, char *value)
 	return cwmp_uci_set_value_string(package, section, option, value, UCI_STANDARD_CONFIG);
 }
 
-int cwmp_uci_set_varstate_value(char *package, char*section, char *option, char *value)
+int cwmp_uci_set_varstate_value(char *package, char *section, char *option, char *value)
 {
 	return cwmp_uci_set_value_string(package, section, option, value, UCI_VARSTATE_CONFIG);
 }

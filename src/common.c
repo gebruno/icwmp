@@ -242,32 +242,6 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	return written;
 }
 
-void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name)
-{
-	struct uci_section *s;
-	char *network = NULL;
-
-	if (zone_name == NULL)
-		return;
-	if (if_wan == NULL)
-		if_wan = "wan";
-	cwmp_uci_foreach_sections("firewall", "zone", UCI_STANDARD_CONFIG, s)
-	{
-		cwmp_uci_get_value_by_section_string(s, "network", &network);
-		char *net = strtok(network, " ");
-		while (net != NULL) {
-			if (strcmp(net, if_wan) == 0) {
-				cwmp_uci_get_value_by_section_string(s, "name", zone_name);
-				icwmp_free(network);
-				return;
-			}
-			net = strtok(NULL, " ");
-		}
-		icwmp_free(network);
-	}
-}
-
-
 int get_firewall_restart_state(char **state)
 {
 	cwmp_uci_reinit();

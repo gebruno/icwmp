@@ -37,6 +37,17 @@ static char* get_value_from_uci_option(struct uci_option *tb) {
 	return NULL;
 }
 
+static void set_cr_incoming_rule(const char *rule)
+{
+	if (CWMP_LSTRCASECMP(rule, "ip_only") == 0) {
+		cwmp_main->cr_policy = CR_POLICY_IP_Only;
+	} else if (CWMP_LSTRCASECMP(rule, "ip_port") == 0) {
+		cwmp_main->cr_policy = CR_POLICY_BOTH;
+	} else {
+		cwmp_main->cr_policy = CR_POLICY_Port_Only; // Default case
+	}
+}
+
 static void config_get_cpe_elements(struct uci_section *s)
 {
 	enum {
@@ -50,6 +61,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_AMD_VERSION,
 		UCI_CPE_DEFAULT_WAN_IFACE,
 		UCI_CPE_CON_REQ_TIMEOUT,
+		UCI_CPE_FIREWALL_INCOMING_RULE,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -63,7 +75,8 @@ static void config_get_cpe_elements(struct uci_section *s)
 		{ .name = "log_to_syslog", .type = UCI_TYPE_STRING },
 		{ .name = "amd_version", .type = UCI_TYPE_STRING },
 		{ .name = "default_wan_interface", .type = UCI_TYPE_STRING },
-		{ .name = "cr_timeout", .type = UCI_TYPE_STRING }
+		{ .name = "cr_timeout", .type = UCI_TYPE_STRING },
+		{ .name = "incoming_rule", .type = UCI_TYPE_STRING }
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS] = {0};
@@ -83,6 +96,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 	log_set_severity_idx(get_value_from_uci_option(cpe_tb[UCI_LOG_SEVERITY_PATH]));
 
 	log_set_on_syslog(get_value_from_uci_option(cpe_tb[UCI_CPE_ENABLE_SYSLOG]));
+	set_cr_incoming_rule(get_value_from_uci_option(cpe_tb[UCI_CPE_FIREWALL_INCOMING_RULE]));
 
 	cwmp_main->conf.amd_version = DEFAULT_AMD_VERSION;
 	char *version = get_value_from_uci_option(cpe_tb[UCI_CPE_AMD_VERSION]);

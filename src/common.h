@@ -34,6 +34,7 @@
 #endif
 
 #define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : (S1 == S2))
+#define CWMP_LSTRCASECMP(S1, S2) ((S1 != NULL) ? strcasecmp(S1, S2) : -1)
 #define CWMP_STRDUP(S1) ((S1 != NULL) ? strdup(S1) : NULL)
 #define CWMP_STRLEN(S1) ((S1 != NULL) ? strlen(S1) : 0)
 
@@ -154,6 +155,12 @@ struct deviceid {
 	char *softwareversion;
 };
 
+enum firewall_cr_policy {
+	CR_POLICY_Port_Only = 0,
+	CR_POLICY_IP_Only,
+	CR_POLICY_BOTH,
+};
+
 typedef struct cwmp {
 	struct env env;
 	struct config conf;
@@ -194,6 +201,7 @@ typedef struct cwmp {
 	bool custom_notify_active;
 	struct ubus_event_handler *ev;
 	bool throttle_session_triggered;
+	enum firewall_cr_policy cr_policy;
 } cwmp;
 
 enum action {

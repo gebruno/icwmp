@@ -223,12 +223,9 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 			cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
 
 			// Trigger firewall to reload firewall.cwmp
-			struct blob_buf b = { 0 };
-			memset(&b, 0, sizeof(struct blob_buf));
-			blob_buf_init(&b, 0);
-			bb_add_string(&b, "config", "firewall");
-			icwmp_ubus_invoke("uci", "commit", b.head, NULL, NULL);
-			blob_buf_free(&b);
+			if (cwmp_main->cr_policy != CR_POLICY_Port_Only) {
+				system(FIREWALL_CWMP);
+			}
 		}
 	}
 
@@ -591,6 +588,7 @@ void icwmp_http_server_init(void)
 		cwmp_uci_init();
 		cwmp_uci_set_value("cwmp", "cpe", "port", cr_port_str);
 		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+		system(FIREWALL_CWMP);
 		connection_request_port_value_change(cr_port);
 		cwmp_uci_exit();
 	}

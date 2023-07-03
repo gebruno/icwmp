@@ -200,16 +200,11 @@ end:
 
 static void configure_var_state()
 {
-	char *zone_name = NULL;
-
 	if (!file_exists(VARSTATE_CONFIG"/icwmp"))
 		creat(VARSTATE_CONFIG"/icwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 	cwmp_uci_add_section_with_specific_name("icwmp", "acs", "acs", UCI_VARSTATE_CONFIG);
 	cwmp_uci_add_section_with_specific_name("icwmp", "cpe", "cpe", UCI_VARSTATE_CONFIG);
-
-	get_firewall_zone_name_by_wan_iface(cwmp_main->conf.default_wan_iface, &zone_name);
-	cwmp_uci_set_varstate_value("icwmp", "acs", "zonename", zone_name ? zone_name : "wan");
 
 	cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
 }
