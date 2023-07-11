@@ -58,6 +58,10 @@ get_vivsoi() {
 
 		# read the length of enterprise data
 		len_val=${data:8:2}
+		data_len=$(printf "%d\n" "0x$len_val")
+		# add 4 byte for ent_id and 1 byte for len
+		data_len=$(( data_len * 2 + 10 ))
+
 		opt_len=$(printf "%d\n" "0x$len_val")
 		[ $opt_len -eq 0 ] && return
 
@@ -93,14 +97,16 @@ get_vivsoi() {
 			# add 2 bytes for sub_opt id and sub_opt len field
 			sub_opt_end=$(( sub_opt_len + 4 ))
 
-			# fetch next sub option hex string
-			sub_data=${sub_data:${sub_opt_end}:${sub_data_len}}
-
 			# update the remaining sub option hex string length
 			sub_data_len=$((sub_data_len - sub_opt_end))
+
+			# fetch next sub option hex string
+			sub_data=${sub_data:${sub_opt_end}:${sub_data_len}}
 		done
 
-		break
+		# move ahead data to next enterprise id
+		data=${data:"${data_len}":"${rem_len}"}
+		rem_len=$(( rem_len - data_len ))
 	done
 }
 
