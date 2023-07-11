@@ -821,6 +821,11 @@ bool is_ipv6_status_changed(void)
 	bool ipv6_status_changed = (curr_ipv6_status != cwmp_main->net.ipv6_status);
 	cwmp_main->net.ipv6_status = curr_ipv6_status;
 
+	if (ipv6_status_changed) {
+		CWMP_LOG(INFO, "IPv6 status (%d) changed for interface: (%s) && device: (%s)",
+				cwmp_main->net.ipv6_status, cwmp_main->conf.default_wan_iface, cwmp_main->net.interface);
+	}
+
 	return ipv6_status_changed;
 }
 

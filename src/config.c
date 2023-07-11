@@ -570,6 +570,7 @@ int global_conf_init()
 	}
 
 	cwmp_main->init_complete = true;
+
 	/* Launch reboot methods if needed */
 	launch_reboot_methods();
 

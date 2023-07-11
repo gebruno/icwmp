@@ -280,7 +280,12 @@ static int icwmp_inform_event(struct blob_buf *bb, char *event)
 
 static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
+	struct blob_attr *tb[__INFORM_MAX] = {0};
 	struct blob_buf bb;
+	int event_code = -1, ret = -1;
+	bool is_get_rpc = false;
+	char *event = "";
+
 	memset(&bb, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bb, 0);
 
@@ -290,13 +295,6 @@ static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *ob
 		blobmsg_add_string(&bb, "info", "icwmpd is still in init state");
 		goto end;
 	}
-
-
-	struct blob_attr *tb[__INFORM_MAX] = {0};
-	bool is_get_rpc = false;
-	char *event = "";
-	int ret = -1;
-	int event_code = -1;
 
 	ret = blobmsg_parse(icwmp_inform_policy, ARRAY_SIZE(icwmp_inform_policy), tb, blob_data(msg), blob_len(msg));
 
@@ -313,6 +311,7 @@ static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *ob
 	} else {
 		event_code = icwmp_inform_event(&bb, event);
 	}
+
 	if (event_code == -1) {
 		CWMP_LOG(WARNING, "tr069 ubus: ubus inform method not able to get the event code");
 		blobmsg_add_u32(&bb, "status", -1);
@@ -387,7 +386,7 @@ int icwmp_uloop_ubus_init()
 void icwmp_uloop_ubus_exit()
 {
 	if (ubus_ctx) {
-		ubus_remove_object(ubus_ctx, &tr069_object);
+		icwmp_delete_object(ubus_ctx);
 		ubus_free(ubus_ctx);
 		ubus_ctx = NULL;
 	}

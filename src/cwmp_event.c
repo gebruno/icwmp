@@ -14,21 +14,24 @@
 #include "backupSession.h"
 #include "log.h"
 
-static struct event_container *__cwmp_add_event_container(int event_code, char *command_key)
+struct event_container *cwmp_add_event_container(int event_code, char *command_key)
 {
 	struct event_container *event_container = NULL;
+
 	list_for_each_entry(event_container, &cwmp_main->session->events, list) {
-		if (event_container->code == event_code) {
+
+		if (event_container->code == event_code)
 			return event_container;
-		}
-		if (event_container->code > event_code) {
+
+		if (event_container->code > event_code)
 			break;
-		}
 	}
+
 	event_container = calloc(1, sizeof(struct event_container));
 	if (event_container == NULL) {
 		return NULL;
 	}
+
 	INIT_LIST_HEAD(&(event_container->head_dm_parameter));
 	list_add_tail(&(event_container->list), &(cwmp_main->session->events));
 	event_container->code = event_code;
@@ -39,13 +42,8 @@ static struct event_container *__cwmp_add_event_container(int event_code, char *
 	}
 	cwmp_main->event_id++;
 	event_container->id = cwmp_main->event_id;
-	return event_container;
-}
 
-struct event_container *cwmp_add_event_container(int event_code, char *command_key)
-{
-	struct event_container *event = __cwmp_add_event_container(event_code, command_key);
-	return event;
+	return event_container;
 }
 
 void move_next_session_events_to_actual_session()

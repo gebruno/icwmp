@@ -63,6 +63,7 @@ int cwmp_session_init()
 	cwmp_main->cwmp_cr_event = 0;
 
 	cwmp_uci_init();
+
 	/*
 	 * Set Required methods as initial value of
 	 */
@@ -79,8 +80,10 @@ int cwmp_session_init()
 	cwmp_main->session->rpc_cpe = NULL;
 
 	set_cwmp_session_status(SESSION_RUNNING, 0);
+
 	if (file_exists(fc_cookies))
 		remove(fc_cookies);
+
 	return CWMP_OK;
 }
 
@@ -283,6 +286,7 @@ void set_cwmp_session_status(int status, int retry_time)
 {
 	cwmp_main->session->session_status.last_status = status;
 	set_cwmp_session_status_state(status);
+
 	if (status == SESSION_SUCCESS) {
 		cwmp_main->session->session_status.last_end_time = time(NULL);
 		cwmp_main->session->session_status.next_retry = 0;
@@ -346,6 +350,7 @@ void start_cwmp_session(void)
 	}
 
 	if (cwmp_main->session->session_status.last_status == SESSION_FAILURE) {
+		CWMP_LOG(ERROR, "Last session was failed, load again cwmp config");
 		cwmp_config_load();
 	}
 
@@ -363,17 +368,21 @@ void start_cwmp_session(void)
 	 */
 	if (!cwmp_main->session->session_status.is_heartbeat) {
 		int is_notify = 0;
+
 		if (file_exists(DM_ENABLED_NOTIFY)) {
 			if (!event_exist_in_list(EVENT_IDX_4VALUE_CHANGE))
 				is_notify = check_value_change();
 		}
+
 		if (is_notify > 0 || !file_exists(DM_ENABLED_NOTIFY) || cwmp_main->custom_notify_active) {
 			cwmp_main->custom_notify_active = false;
 			cwmp_update_enabled_notify_file();
 		}
+
 		cwmp_prepare_value_change(cwmp_main);
 		clean_list_value_change();
 	}
+
 	/*
 	 * Start session
 	 */
@@ -396,6 +405,7 @@ void start_cwmp_session(void)
 	/*
 	 * End session
 	 */
+
 	CWMP_LOG(INFO, "End session");
 
 	if (cwmp_stop) {
@@ -437,9 +447,11 @@ void start_cwmp_session(void)
 				cwmp_main->throttle_session = false;
 		}
 	}
+
 	run_session_end_func();
 	cwmp_session_exit();
 	CWMP_LOG(INFO, "Waiting the next session");
+
 	if (cwmp_main->session->session_status.next_heartbeat && (cwmp_main->session->session_status.last_status == SESSION_SUCCESS)) {
 		cwmp_main->session->session_status.next_heartbeat = false;
 		uloop_timeout_cancel(&heartbeat_session_timer);
@@ -490,8 +502,10 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 		CWMP_LOG(ERROR, "session %s: session_event is null", __FUNCTION__);
 		return;
 	}
+
 	FREE(global_session_event);
 	global_session_event = session_event;
+
 	if (session_event->event == TransferClt_Evt) {
 		struct transfer_complete *ptransfer_complete = (struct transfer_complete *)session_event->extra_data;
 		cwmp_root_cause_transfer_complete(ptransfer_complete);

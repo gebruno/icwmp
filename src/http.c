@@ -23,6 +23,7 @@
 #include "config.h"
 #include "digauth.h"
 #include "session.h"
+#include "cwmp_event.h"
 
 #define REALM "authenticate@cwmp"
 #define OPAQUE "11733b200778ce33060f31c9af70a870ba96ddd4"
@@ -260,36 +261,23 @@ error:
 	return -1;
 }
 
-static void inform_status_check_cb(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
-{
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "inform ubus call resp msg is null");
-		return;
-	}
-
-	int *status = (int *)req->priv;
-	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_INT32 }, { "info", BLOBMSG_TYPE_STRING } };
-	struct blob_attr *tb[2] = { NULL, NULL };
-	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
-
-	*status = tb[0] ? blobmsg_get_u32(tb[0]) : -1;
-}
-
 static void http_success_cr(void)
 {
 	CWMP_LOG(INFO, "Connection Request triggering ...");
-	int status = -1, retry = 0, rc = -1;
-	struct blob_buf b = { 0 };
-	memset(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
-	while ((rc < 0 || status != 1) && retry < 5) {
-		rc = icwmp_ubus_invoke("tr069", "inform", b.head, inform_status_check_cb, &status);
-		retry = retry + 1;
+
+	if (cwmp_main->init_complete == false) {
+		CWMP_LOG(ERROR, "Inform can't be sent since icwmpd is still in init state");
+		return;
 	}
 
-	blob_buf_free(&b);
-	if (rc < 0 || status != 1)
-		CWMP_LOG(ERROR, "Failed to send Inform message after 5 retry");
+	struct event_container *event_container = NULL;
+
+	event_container = cwmp_add_event_container(EVENT_IDX_6CONNECTION_REQUEST, "");
+	if (event_container == NULL) {
+		CWMP_LOG(ERROR, "Not able to add the event '6 CONNECTION REQUEST' for the new session");
+	}
+
+	start_cwmp_session();
 }
 
 static void http_cr_new_client(int client, bool service_available)
