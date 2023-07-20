@@ -260,35 +260,16 @@ error:
 	return -1;
 }
 
-static void inform_status_check_cb(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
-{
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "inform ubus call resp msg is null");
-		return;
-	}
-
-	int *status = (int *)req->priv;
-	const struct blobmsg_policy p[2] = { { "status", BLOBMSG_TYPE_INT32 }, { "info", BLOBMSG_TYPE_STRING } };
-	struct blob_attr *tb[2] = { NULL, NULL };
-	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
-
-	*status = tb[0] ? blobmsg_get_u32(tb[0]) : -1;
-}
-
 static void http_success_cr(void)
 {
 	CWMP_LOG(INFO, "Connection Request triggering ...");
-	int status = -1, retry = 0, rc = -1;
-	struct blob_buf b = { 0 };
-	memset(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
-	while ((rc < 0 || status != 1) && retry < 5) {
-		rc = icwmp_ubus_invoke("tr069", "inform", b.head, inform_status_check_cb, &status);
+	int retry = 0, rc = -1;
+	while (rc != 0 && retry < 5) {
+		rc = system("ubus call tr069 inform");
 		retry = retry + 1;
 	}
 
-	blob_buf_free(&b);
-	if (rc < 0 || status != 1)
+	if (rc != 0)
 		CWMP_LOG(ERROR, "Failed to send Inform message after 5 retry");
 }
 
@@ -368,7 +349,7 @@ static void http_cr_new_client(int client, bool service_available)
 			break;
 		}
 
-		if (read_bytes == 0) {
+		if (read_bytes < 1) {
 			/* It means the client has been disconnected */
 			CWMP_LOG(INFO, "client disconnected");
 			break;

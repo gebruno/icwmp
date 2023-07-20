@@ -247,7 +247,7 @@ static void config_get_acs_elements(struct uci_section *s)
 
 	char *url = get_value_from_uci_option(acs_tb[UCI_ACS_URL]);
 	char *dhcp_url = get_value_from_uci_option(acs_tb[UCI_ACS_DHCP_URL]);
-	snprintf(cwmp_main->conf.acs_url, sizeof(cwmp_main->conf.acs_url), "%s", cwmp_main->conf.dhcp_discovery ? dhcp_url : url);
+	snprintf(cwmp_main->conf.acs_url, sizeof(cwmp_main->conf.acs_url), "%s", cwmp_main->conf.dhcp_discovery ? (strlen(dhcp_url) ? dhcp_url : url) : url);
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs url: %s", cwmp_main->conf.acs_url);
 
 	snprintf(cwmp_main->conf.acs_userid, sizeof(cwmp_main->conf.acs_userid), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_USERID]));
