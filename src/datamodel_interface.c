@@ -18,11 +18,6 @@
 
 unsigned int transaction_id = 0;
 
-struct object_result {
-	char **instance;
-	int error;
-};
-
 struct list_params_result {
 	struct list_head *parameters_list;
 	int error;
@@ -54,21 +49,6 @@ static struct blob_attr *get_results_array(struct blob_attr *msg)
 	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
 
 	return tb[0];
-}
-
-int get_fault_value(struct blob_attr *msg)
-{
-	struct blob_attr *tb[1] = {0};
-	const struct blobmsg_policy p[1] = {
-			{ "fault", BLOBMSG_TYPE_INT32 }
-	};
-
-	if (msg == NULL)
-		return FAULT_CPE_INTERNAL_ERROR;
-
-	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
-
-	return tb[0] ? blobmsg_get_u32(tb[0]) : FAULT_CPE_NO_FAULT;
 }
 
 static void prepare_optional_table(struct blob_buf *b)
@@ -386,10 +366,11 @@ static void ubus_set_value_callback(struct ubus_request *req, int type __attribu
 {
 	struct blob_attr *cur = NULL;
 	int rem = 0;
-	const struct blobmsg_policy p[3] = {
+	const struct blobmsg_policy p[4] = {
 			{ "path", BLOBMSG_TYPE_STRING },
 			{ "data", BLOBMSG_TYPE_STRING },
-			{ "fault", BLOBMSG_TYPE_INT32 }
+			{ "fault", BLOBMSG_TYPE_INT32 },
+			{ "fault_msg", BLOBMSG_TYPE_STRING },
 	};
 
 	if (msg == NULL || req == NULL)
@@ -404,9 +385,9 @@ static void ubus_set_value_callback(struct ubus_request *req, int type __attribu
 	}
 
 	blobmsg_for_each_attr(cur, parameters, rem) {
-		struct blob_attr *tb[3] = {0};
+		struct blob_attr *tb[4] = {0};
 
-		blobmsg_parse(p, 3, tb, blobmsg_data(cur), blobmsg_len(cur));
+		blobmsg_parse(p, 4, tb, blobmsg_data(cur), blobmsg_len(cur));
 
 		if (!tb[0]) {
 			result->status = false;
@@ -418,7 +399,7 @@ static void ubus_set_value_callback(struct ubus_request *req, int type __attribu
 		result->status = false;
 		if (!tb[2]) continue;
 
-		cwmp_add_list_fault_param(blobmsg_get_string(tb[0]), blobmsg_get_u32(tb[2]), result->faults_list);
+		cwmp_add_list_fault_param(blobmsg_get_string(tb[0]), blobmsg_get_string(tb[3]), blobmsg_get_u32(tb[2]), result->faults_list);
 	}
 }
 
@@ -483,9 +464,10 @@ static void ubus_objects_callback(struct ubus_request *req, int type __attribute
 {
 	struct blob_attr *cur = NULL;
 	int rem = 0;
-	const struct blobmsg_policy p[2] = {
+	const struct blobmsg_policy p[3] = {
 			{ "data", BLOBMSG_TYPE_STRING },
-			{ "fault", BLOBMSG_TYPE_INT32 }
+			{ "fault", BLOBMSG_TYPE_INT32 },
+			{ "fault_msg", BLOBMSG_TYPE_STRING },
 	};
 
 	if (msg == NULL || req == NULL)
@@ -495,33 +477,28 @@ static void ubus_objects_callback(struct ubus_request *req, int type __attribute
 	struct blob_attr *objects = get_results_array(msg);
 
 	if (objects == NULL) {
-		result->error = FAULT_CPE_INTERNAL_ERROR;
+		result->fault_code = FAULT_9002;
 		return;
 	}
 
 	blobmsg_for_each_attr(cur, objects, rem) {
-		struct blob_attr *tb[2] = {0};
+		struct blob_attr *tb[3] = {0};
 
-		blobmsg_parse(p, 2, tb, blobmsg_data(cur), blobmsg_len(cur));
+		blobmsg_parse(p, 3, tb, blobmsg_data(cur), blobmsg_len(cur));
 
 		if (tb[1]) {
-			result->error = blobmsg_get_u32(tb[1]);
+			result->fault_code = blobmsg_get_u32(tb[1]);
+			snprintf(result->fault_msg, sizeof(result->fault_msg), "%s", tb[2] ? blobmsg_get_string(tb[2]) : "");
 			return;
 		}
 
-		if (tb[0] && result->instance) {
-			char **instance = result->instance;
-			*instance = strdup(blobmsg_get_string(tb[0]));
-		}
+		if (tb[0])
+			result->instance = strdup(blobmsg_get_string(tb[0]));
 	}
 }
 
-char *cwmp_add_object(const char *object_name, char **instance)
+bool cwmp_add_object(const char *object_name, struct object_result *res)
 {
-	struct object_result add_result = {
-			.instance = instance,
-			.error = FAULT_CPE_NO_FAULT
-	};
 	struct blob_buf b = {0};
 
 	memset(&b, 0, sizeof(struct blob_buf));
@@ -530,33 +507,25 @@ char *cwmp_add_object(const char *object_name, char **instance)
 	bb_add_string(&b, "path", object_name);
 	prepare_optional_table(&b);
 
-	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "add", b.head, ubus_objects_callback, &add_result);
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "add", b.head, ubus_objects_callback, res);
 
 	blob_buf_free(&b);
 
 	if (e < 0) {
 		CWMP_LOG(INFO, "add_object ubus method failed: Ubus err code: %d", e);
-		return "9002";
+		return false;
 	}
 
-	if (add_result.error) {
-		char buf[8] = {0};
-
-		CWMP_LOG(WARNING, "Add Object (%s) failed: fault_code: %d", object_name, add_result.error);
-
-		snprintf(buf, sizeof(buf), "%d", add_result.error);
-		return icwmp_strdup(buf);
+	if (res->fault_code) {
+		CWMP_LOG(WARNING, "Add Object (%s) failed: fault_code: %d", object_name, res->fault_code);
+		return false;
 	}
 
-	return NULL;
+	return true;
 }
 
-char *cwmp_delete_object(const char *object_name)
+bool cwmp_delete_object(const char *object_name, struct object_result *res)
 {
-	struct object_result del_result = {
-			.instance = NULL,
-			.error = FAULT_CPE_NO_FAULT
-	};
 	struct blob_buf b = {0};
 
 	memset(&b, 0, sizeof(struct blob_buf));
@@ -565,23 +534,19 @@ char *cwmp_delete_object(const char *object_name)
 	bb_add_string(&b, "path", object_name);
 	prepare_optional_table(&b);
 
-	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "del", b.head, ubus_objects_callback, &del_result);
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "del", b.head, ubus_objects_callback, res);
 
 	blob_buf_free(&b);
 
 	if (e < 0) {
 		CWMP_LOG(INFO, "delete object ubus method failed: Ubus err code: %d", e);
-		return "9002";
+		return false;
 	}
 
-	if (del_result.error) {
-		char buf[8] = {0};
-
-		CWMP_LOG(WARNING, "Delete Object (%s) failed: fault_code: %d", object_name, del_result.error);
-
-		snprintf(buf, sizeof(buf), "%d", del_result.error);
-		return icwmp_strdup(buf);
+	if (res->fault_code) {
+		CWMP_LOG(WARNING, "Delete Object (%s) failed: fault_code: %d", object_name, res->fault_code);
+		return false;
 	}
 
-	return NULL;
+	return true;
 }

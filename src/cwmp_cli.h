@@ -12,9 +12,11 @@
 #ifndef CWMP_CLI
 #define CWMP_CLI
 
+#include "datamodel_interface.h"
+
 union cmd_result {
 	struct list_head *param_list;
-	char *instance;
+	struct object_result obj_res;
 };
 
 struct cmd_input {
@@ -24,9 +26,9 @@ struct cmd_input {
 };
 
 char *cmd_get_exec_func(struct cmd_input in, union cmd_result *res);
-char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)));
+char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res);
 char *cmd_add_exec_func(struct cmd_input in, union cmd_result *res);
-char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)));
+char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res);
 char *cmd_get_notif_exec_func(struct cmd_input in, union cmd_result *res);
 char *cmd_set_notif_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)));
 char *cmd_get_names_exec_func(struct cmd_input in, union cmd_result *res);

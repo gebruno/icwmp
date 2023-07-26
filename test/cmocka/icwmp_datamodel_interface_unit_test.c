@@ -131,8 +131,8 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_non_null(fault);
 	list_for_each_entry (param_fault, &faults_array, list) {
-		fault_code = param_fault->fault;
-		fault_name = param_fault->name;
+		fault_code = param_fault->fault_code;
+		fault_name = param_fault->path_name;
 		break;
 	}
 	assert_int_not_equal(fault, 0);
@@ -154,8 +154,8 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value,&faults_array);
 	assert_int_not_equal(fault, 0);
 	list_for_each_entry (param_fault, &faults_array, list) {
-		fault_code = param_fault->fault;
-		fault_name = param_fault->name;
+		fault_code = param_fault->fault_code;
+		fault_name = param_fault->path_name;
 		break;
 	}
 	assert_int_not_equal(fault, 0);
@@ -177,8 +177,8 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_non_null(fault);
 	list_for_each_entry (param_fault, &faults_array, list) {
-		fault_code = param_fault->fault;
-		fault_name = param_fault->name;
+		fault_code = param_fault->fault_code;
+		fault_name = param_fault->path_name;
 		break;
 	}
 	assert_int_not_equal(fault, 0);
@@ -216,7 +216,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_int_not_equal(fault, 0);
 	list_for_each_entry (param_fault, &faults_array, list) {
-		assert_in_set(param_fault->fault, faults_values, 3);
+		assert_in_set(param_fault->fault_code, faults_values, 3);
 	}
 	cwmp_transaction("commit", true);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
@@ -224,70 +224,89 @@ static void dm_set_multiple_parameter_values_test(void **state)
 
 static void dm_add_object_test(void **state)
 {
-	char *instance = NULL;
-	char *fault;
+	struct object_result res = {0};
+	bool status = false;
 
 	/*
 	 * Add valid path and writable object
 	 */
+
+	memset(&res, 0, sizeof(struct object_result));
+
 	cwmp_transaction("start", false);
-	fault = cwmp_add_object("Device.WiFi.SSID.", &instance);
-	assert_non_null(instance);
-	assert_null(fault);
+	status = cwmp_add_object("Device.WiFi.SSID.", &res);
+	assert_non_null(res.instance);
+	assert_true(status);
 	cwmp_transaction("commit", false);
-	FREE(instance);
+	FREE(res.instance);
 
 	/*
 	 * Add not valid path object
 	 */
+
+	memset(&res, 0, sizeof(struct object_result));
+
 	cwmp_transaction("start", false);
-	fault = cwmp_add_object("Device.WiFi.SIDl.", &instance);
-	assert_non_null(fault);
-	assert_string_equal(fault, "9005");
-	assert_null(instance);
+	status = cwmp_add_object("Device.WiFi.SIDl.", &res);
+	assert_false(status);
+	assert_int_equal(res.fault_code, FAULT_9005);
+	assert_null(res.instance);
 	cwmp_transaction("commit", false);
-	FREE(instance);
+	FREE(res.instance);
 
 	/*
 	 * Add valid path not writable object
 	 */
+
+	memset(&res, 0, sizeof(struct object_result));
+
 	cwmp_transaction("start", false);
-	fault = cwmp_add_object("Device.DeviceInfo.Processor.", &instance);
-	assert_non_null(fault);
-	assert_string_equal(fault, "9005");
-	assert_null(instance);
+	status = cwmp_add_object("Device.DeviceInfo.Processor.", &res);
+	assert_false(status);
+	assert_int_equal(res.fault_code, FAULT_9005);
+	assert_null(res.instance);
 	cwmp_transaction("commit", false);
-	FREE(instance);
+	FREE(res.instance);
 }
 
 static void dm_delete_object_test(void **state)
 {
-	char *fault = NULL;
+	struct object_result res = {0};
+	bool status = false;
 
 	/*
 	 * Delete valid path and writable object
 	 */
+
+	memset(&res, 0, sizeof(struct object_result));
+
 	cwmp_transaction("start", false);
-	fault = cwmp_delete_object("Device.WiFi.SSID.2.");
-	assert_null(fault);
+	status = cwmp_delete_object("Device.WiFi.SSID.2.", &res);
+	assert_true(status);
 	cwmp_transaction("commit", true);
 
 	/*
 	 * Delete not valid path object
 	 */
+
+	memset(&res, 0, sizeof(struct object_result));
+
 	cwmp_transaction("start", false);
-	fault = cwmp_delete_object("Device.WiFi.SIDl.3.");
-	assert_non_null(fault);
-	assert_string_equal(fault, "9005");
+	status = cwmp_delete_object("Device.WiFi.SIDl.3.", &res);
+	assert_false(status);
+	assert_int_equal(res.fault_code, FAULT_9005);
 	cwmp_transaction("commit", true);
 
 	/*
 	 * Delte valid path not writable object
 	 */
+
+	memset(&res, 0, sizeof(struct object_result));
+
 	cwmp_transaction("start", false);
-	fault = cwmp_delete_object("Device.DeviceInfo.Processor.2.");
-	assert_non_null(fault);
-	assert_string_equal(fault, "9005");
+	status = cwmp_delete_object("Device.DeviceInfo.Processor.2.", &res);
+	assert_false(status);
+	assert_int_equal(res.fault_code, FAULT_9005);
 	cwmp_transaction("commit", true);
 }
 

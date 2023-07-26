@@ -920,18 +920,18 @@ int load_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *
 void cwmp_param_fault_list_to_xml_data_list(struct list_head *param_fault_list, struct list_head *xml_data_list)
 {
 	struct cwmp_param_fault *param_fault = NULL;
-	list_for_each_entry (param_fault, param_fault_list, list) {
-		if (!param_fault->fault)
-			continue;
 
-		struct xml_list_data *xml_data;
+	list_for_each_entry (param_fault, param_fault_list, list) {
+		struct xml_list_data *xml_data = NULL;
 
 		xml_data = calloc(1, sizeof(struct xml_list_data));
 		list_add_tail(&xml_data->list, xml_data_list);
-		int idx = cwmp_get_fault_code(param_fault->fault);
-		xml_data->param_name = strdup(param_fault->name);
+
+		int idx = cwmp_get_fault_code(param_fault->fault_code);
+
+		xml_data->param_name = strdup(param_fault->path_name);
 		xml_data->fault_code = atoi(FAULT_CPE_ARRAY[idx].CODE);
-		xml_data->fault_string = strdup(FAULT_CPE_ARRAY[idx].DESCRIPTION);
+		xml_data->fault_string = strlen(param_fault->fault_msg) ? strdup(param_fault->fault_msg) : strdup(FAULT_CPE_ARRAY[idx].DESCRIPTION);
 	}
 }
 

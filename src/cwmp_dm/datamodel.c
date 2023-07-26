@@ -269,7 +269,7 @@ static int set_management_server_url(char *refparam, struct dmctx *ctx, void *da
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, 256, NULL, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, 256, NULL, NULL))
 				return FAULT_9007;
 			break;
 		case VALUESET:
@@ -291,7 +291,7 @@ static int set_management_server_username(char *refparam, struct dmctx *ctx, voi
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, 256, NULL, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, 256, NULL, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -306,7 +306,7 @@ static int set_management_server_passwd(char *refparam, struct dmctx *ctx, void 
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, 256, NULL, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, 256, NULL, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -327,7 +327,7 @@ static int set_management_server_schedule_reboot(char *refparam, struct dmctx *c
 {
 	switch (action)	{
 		case VALUECHECK:
-			if (dm_validate_dateTime(value))
+			if (bbfdm_validate_dateTime(ctx, value))
 				return FAULT_9007;
 			break;
 		case VALUESET:
@@ -348,7 +348,7 @@ static int set_management_server_delay_reboot(char *refparam, struct dmctx *ctx,
 {
 	switch (action)	{
 		case VALUECHECK:
-			if (dm_validate_int(value, RANGE_ARGS{{"-1",NULL}}, 1))
+			if (bbfdm_validate_int(ctx, value, RANGE_ARGS{{"-1",NULL}}, 1))
 				return FAULT_9007;
 			break;
 		case VALUESET:
@@ -378,7 +378,7 @@ static int set_management_server_periodic_inform_enable(char *refparam, struct d
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_boolean(value))
+			if (bbfdm_validate_boolean(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -400,7 +400,7 @@ static int set_management_server_periodic_inform_interval(char *refparam, struct
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"1",NULL}}, 1))
+			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{"1",NULL}}, 1))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -421,7 +421,7 @@ static int set_management_server_periodic_inform_time(char *refparam, struct dmc
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_dateTime(value))
+			if (bbfdm_validate_dateTime(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -499,7 +499,7 @@ static int set_management_server_connection_request_username(char *refparam, str
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, 256, NULL, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, 256, NULL, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -514,7 +514,7 @@ static int set_management_server_connection_request_passwd(char *refparam, struc
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, 256, NULL, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, 256, NULL, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -535,7 +535,7 @@ static int set_upgrades_managed(char *refparam, struct dmctx *ctx, void *data, c
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_boolean(value))
+			if (bbfdm_validate_boolean(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -567,7 +567,7 @@ static int set_lwn_protocol_used(char *refparam, struct dmctx *ctx, void *data, 
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string_list(value, -1, -1, -1, -1, -1, NULL, NULL))
+			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, NULL, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -591,7 +591,7 @@ static int set_lwn_host(char *refparam, struct dmctx *ctx, void *data, char *ins
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, 256, NULL, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, 256, NULL, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -612,7 +612,7 @@ static int set_lwn_port(char *refparam, struct dmctx *ctx, void *data, char *ins
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_unsignedInt(value, RANGE_ARGS{{NULL,NULL}}, 1))
+			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{NULL,NULL}}, 1))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -639,7 +639,7 @@ static int set_management_server_http_compression(char *refparam, struct dmctx *
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, -1, NULL, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, -1, NULL, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -674,7 +674,7 @@ static int set_management_server_retry_min_wait_interval(char *refparam, struct 
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"1","65535"}}, 1))
+			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{"1","65535"}}, 1))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -707,7 +707,7 @@ static int set_management_server_retry_interval_multiplier(char *refparam, struc
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"1000","65535"}}, 1))
+			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{"1000","65535"}}, 1))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -736,7 +736,7 @@ static int set_instance_mode(char *refparam, struct dmctx *ctx, void *data, char
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, -1, InstanceMode, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, -1, InstanceMode, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -772,7 +772,7 @@ static int set_management_server_enable_cwmp(char *refparam, struct dmctx *ctx, 
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_boolean(value))
+			if (bbfdm_validate_boolean(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -818,7 +818,7 @@ static int set_default_active_notification_throttle(char *refparam, struct dmctx
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"1",NULL}}, 1))
+			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{"1",NULL}}, 1))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -838,7 +838,7 @@ static int set_manageable_device_notification_limit(char *refparam, struct dmctx
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"1",NULL}}, 1))
+			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{"1",NULL}}, 1))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -858,7 +858,7 @@ static int set_heart_beat_policy_enable(char *refparam, struct dmctx *ctx, void 
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_boolean(value))
+			if (bbfdm_validate_boolean(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -879,7 +879,7 @@ static int set_heart_beat_policy_reporting_interval(char *refparam, struct dmctx
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_unsignedInt(value, RANGE_ARGS{{"20",NULL}}, 1))
+			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{"20",NULL}}, 1))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -899,7 +899,7 @@ static int set_heart_beat_policy_initiation_time(char *refparam, struct dmctx *c
 {
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_dateTime(value))
+			if (bbfdm_validate_dateTime(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -960,7 +960,7 @@ static int set_inform_parameter_enable(char *refparam, struct dmctx *ctx, void *
 	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_boolean(value))
+			if (bbfdm_validate_boolean(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -984,7 +984,7 @@ static int set_inform_parameter_alias(char *refparam, struct dmctx *ctx, void *d
 	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, 64, NULL, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, 64, NULL, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1006,7 +1006,7 @@ static int set_inform_parameter_parameter_name(char *refparam, struct dmctx *ctx
 	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string_list(value, -1, -1, -1, -1, -1, Forced_Inform_Parmeters, NULL) == 0)
+			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, Forced_Inform_Parmeters, NULL) == 0)
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1027,7 +1027,7 @@ static int set_inform_parameter_event_list(char *refparam, struct dmctx *ctx, vo
 	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string_list(value, -1, -1, -1, -1, -1, CWMP_EVENTS, NULL))
+			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, CWMP_EVENTS, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1111,7 +1111,7 @@ static int set_transfer_compl_policy_enable(char *refparam, struct dmctx *ctx, v
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_boolean(value))
+			if (bbfdm_validate_boolean(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1129,7 +1129,7 @@ static int set_transfer_compl_policy_type_filter(char *refparam, struct dmctx *c
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string_list(value, -1, -1, -1, -1, -1, TCTransferType, NULL))
+			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, TCTransferType, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1146,7 +1146,7 @@ static int set_transfer_compl_policy_result_type_filter(char *refparam, struct d
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, -1, TCResultType, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, -1, TCResultType, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1163,7 +1163,7 @@ static int set_transfer_compl_policy_file_type_filter(char *refparam, struct dmc
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string_list(value, -1, -1, -1, -1, -1, TCFileType, NULL))
+			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, TCFileType, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1211,7 +1211,7 @@ static int set_du_state_change_compl_policy_enable(char *refparam, struct dmctx 
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_boolean(value))
+			if (bbfdm_validate_boolean(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1229,7 +1229,7 @@ static int set_du_state_change_compl_policy_operation_type_filter(char *refparam
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string_list(value, -1, -1, -1, -1, -1, DUStateOperationType, NULL))
+			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, DUStateOperationType, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1246,7 +1246,7 @@ static int set_du_state_change_compl_policy_result_type_filter(char *refparam, s
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string(value, -1, -1, DUStateResultType, NULL))
+			if (bbfdm_validate_string(ctx, value, -1, -1, DUStateResultType, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1263,7 +1263,7 @@ static int set_du_state_change_compl_policy_fault_code_filter(char *refparam, st
 
 	switch (action) {
 		case VALUECHECK:
-			if (dm_validate_string_list(value, -1, -1, -1, -1, -1, DUStateFaultCode, NULL))
+			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, DUStateFaultCode, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:

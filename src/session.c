@@ -40,7 +40,6 @@ struct uloop_timeout session_timer = { .cb = cwmp_schedule_session };
 struct uloop_timeout periodic_session_timer = { .cb = cwmp_periodic_session_timer };
 struct uloop_timeout retry_session_timer = { .cb = cwmp_schedule_session };
 struct uloop_timeout throttle_session_timer = { .cb = cwmp_schedule_throttle_session };
-//struct session_timer_event session_timer_evt = {.session_timer_evt = {.cb = cwmp_schedule_session_with_event}, .event = -1};
 
 unsigned int end_session_flag = 0;
 

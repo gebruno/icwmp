@@ -154,7 +154,7 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	dm_parameter->writable = writable;
 }
 
-void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter)
+static void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter)
 {
 	list_del(&dm_parameter->list);
 	FREE(dm_parameter->name);
@@ -176,22 +176,21 @@ void cwmp_free_all_dm_parameter_list(struct list_head *list)
 /*
  * List Fault parameter
  */
-void cwmp_add_list_fault_param(char *param, int fault, struct list_head *list_set_value_fault)
+void cwmp_add_list_fault_param(char *param_name, char *fault_msg, int fault_code, struct list_head *list_set_value_fault)
 {
-	struct cwmp_param_fault *param_fault;
-	if (param == NULL)
-		param = "";
+	struct cwmp_param_fault *param_fault = NULL;
 
 	param_fault = calloc(1, sizeof(struct cwmp_param_fault));
 	list_add_tail(&param_fault->list, list_set_value_fault);
-	param_fault->name = strdup(param);
-	param_fault->fault = fault;
+
+	snprintf(param_fault->path_name, sizeof(param_fault->path_name), "%s", param_name ? param_name : "");
+	snprintf(param_fault->fault_msg, sizeof(param_fault->fault_msg), "%s", fault_msg ? fault_msg : "");
+	param_fault->fault_code = fault_code;
 }
 
-void cwmp_del_list_fault_param(struct cwmp_param_fault *param_fault)
+static void cwmp_del_list_fault_param(struct cwmp_param_fault *param_fault)
 {
 	list_del(&param_fault->list);
-	free(param_fault->name);
 	free(param_fault);
 }
 
@@ -450,6 +449,7 @@ int cwmp_get_fault_code_by_string(char *fault_code)
 
 	if (fault_code == NULL)
 		return FAULT_CPE_NO_FAULT;
+
 	for (i = 1; i < __FAULT_CPE_MAX; i++) {
 		if (strcmp(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0)
 			break;

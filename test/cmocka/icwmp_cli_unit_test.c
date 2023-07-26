@@ -242,7 +242,7 @@ static void cwmp_add_cli_unit_test(void **state)
 	fault = cmd_add_exec_func(input_null, &cmd_add_out_1);
 	assert_non_null(fault);
 	assert_string_equal(fault, "9003");
-	assert_null(cmd_add_out_1.instance);
+	assert_null(cmd_add_out_1.obj_res.instance);
 
 	/*
 	 * Add: input is valid object path
@@ -251,9 +251,9 @@ static void cwmp_add_cli_unit_test(void **state)
 	union cmd_result cmd_add_out_2 = { 0 };
 	fault = cmd_add_exec_func(input_valid, &cmd_add_out_2);
 	assert_null(fault);
-	assert_non_null(cmd_add_out_2.instance);
-	assert_int_equal(atoi(cmd_add_out_2.instance) > 0, 1);
-	add_instance = cmd_add_out_2.instance;
+	assert_non_null(cmd_add_out_2.obj_res.instance);
+	assert_int_equal(atoi(cmd_add_out_2.obj_res.instance) > 0, 1);
+	add_instance = cmd_add_out_2.obj_res.instance;
 
 	/*
 	 * Add: input is invalid object path
@@ -263,7 +263,7 @@ static void cwmp_add_cli_unit_test(void **state)
 	fault = cmd_add_exec_func(input_invalid_param_path, &cmd_add_out_3);
 	assert_non_null(fault);
 	assert_string_equal(fault, "9005");
-	assert_null(cmd_add_out_3.instance);
+	assert_null(cmd_add_out_3.obj_res.instance);
 
 	/*
 	 * Add: input is non writable object path
@@ -273,7 +273,7 @@ static void cwmp_add_cli_unit_test(void **state)
 	fault = cmd_add_exec_func(input_read_only_obj, &cmd_add_out_4);
 	assert_non_null(fault);
 	assert_string_equal(fault, "9005");
-	assert_null(cmd_add_out_4.instance);
+	assert_null(cmd_add_out_4.obj_res.instance);
 	restore_output();
 }
 
@@ -290,7 +290,7 @@ static void cwmp_del_cli_unit_test(void **state)
 	fault = cmd_del_exec_func(input_null, &cmd_del_out_1);
 	assert_non_null(fault);
 	assert_string_equal(fault, "9003");
-	assert_null(cmd_del_out_1.instance);
+	assert_null(cmd_del_out_1.obj_res.instance);
 
 	/*
 	 * Delete: input is valid object path

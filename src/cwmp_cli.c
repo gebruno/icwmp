@@ -13,7 +13,6 @@
 
 #include "common.h"
 #include "cwmp_cli.h"
-#include "datamodel_interface.h"
 #include "cwmp_uci.h"
 #include "notifications.h"
 
@@ -76,7 +75,7 @@ static void display_get_cmd_result(struct cmd_input in __attribute__((unused)), 
 /*
  * Set_Values
  */
-char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)))
+char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res)
 {
 	if (CWMP_STRLEN(in.first_input) == 0 || CWMP_STRLEN(in.second_input) == 0)
 		return "9003";
@@ -86,15 +85,17 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 	int fault_idx = cwmp_set_parameter_value(in.first_input, in.second_input, &faults_list);
 	if (fault_idx != FAULT_CPE_NO_FAULT) {
 		struct cwmp_param_fault *param_fault = NULL;
-		char fault[5] = {0};
+		char *fault = NULL;
 
 		list_for_each_entry (param_fault, &faults_list, list) {
-			snprintf(fault, sizeof(fault), "%d", param_fault->fault);
+			res->obj_res.fault_code = param_fault->fault_code;
+			snprintf(res->obj_res.fault_msg, sizeof(res->obj_res.fault_msg), "%s", param_fault->fault_msg);
 			break;
 		}
 		cwmp_free_all_list_param_fault(&faults_list);
 
-		return icwmp_strdup(fault);
+		icwmp_asprintf(&fault, "%d", res->obj_res.fault_code);
+		return fault;
 	}
 
 	set_rpc_parameter_key(in.third_input);
@@ -102,14 +103,15 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res __attribute__
 	return NULL;
 }
 
-static void display_set_cmd_result(struct cmd_input in, union cmd_result res __attribute__((unused)), char *fault)
+static void display_set_cmd_result(struct cmd_input in, union cmd_result res, char *fault)
 {
 	if (fault == NULL) {
 		fprintf(stdout, "Set value is successfully done\n");
 		fprintf(stdout, "%s => %s\n", in.first_input, in.second_input);
 		return;
 	}
-	fprintf(stderr, "Fault %s: %s\n", fault, get_fault_message_by_fault_code(fault));
+
+	fprintf(stderr, "Fault %s: %s\n", fault, res.obj_res.fault_msg);
 }
 
 /*
@@ -120,9 +122,13 @@ char *cmd_add_exec_func(struct cmd_input in, union cmd_result *res)
 	if (in.first_input == NULL)
 		return "9003";
 
-	char *fault = cwmp_add_object(in.first_input, &(res->instance));
-	if (fault != NULL)
+	bool status = cwmp_add_object(in.first_input, &res->obj_res);
+	if (!status) {
+		char *fault = NULL;
+
+		icwmp_asprintf(&fault, "%d", res->obj_res.fault_code);
 		return fault;
+	}
 
 	set_rpc_parameter_key(in.second_input);
 
@@ -132,41 +138,46 @@ char *cmd_add_exec_func(struct cmd_input in, union cmd_result *res)
 static void display_add_cmd_result(struct cmd_input in, union cmd_result res, char *fault)
 {
 	if (fault != NULL) {
-		fprintf(stderr, "Fault %s: %s\n", fault, get_fault_message_by_fault_code(fault));
+		fprintf(stderr, "Fault %s: %s\n", fault, strlen(res.obj_res.fault_msg) ? res.obj_res.fault_msg : get_fault_message_by_fault_code(fault));
 		return;
 	}
 
 	if (in.first_input[strlen(in.first_input) - 1] == '.')
-		fprintf(stdout, "Added %s%s.\n", in.first_input, res.instance);
+		fprintf(stdout, "Added %s%s.\n", in.first_input, res.obj_res.instance);
 	else
-		fprintf(stdout, "Added %s.%s.\n", in.first_input, res.instance);
+		fprintf(stdout, "Added %s.%s.\n", in.first_input, res.obj_res.instance);
 
-	FREE(res.instance);
+	FREE(res.obj_res.instance);
 }
 
 /*
  * Delete_Object
  */
-char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)))
+char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res)
 {
 	if (in.first_input == NULL)
 		return "9003";
 
-	char *fault = cwmp_delete_object(in.first_input);
-	if (fault != NULL)
+	bool status = cwmp_delete_object(in.first_input, &res->obj_res);
+	if (!status) {
+		char *fault = NULL;
+
+		icwmp_asprintf(&fault, "%d", res->obj_res.fault_code);
 		return fault;
+	}
 
 	set_rpc_parameter_key(in.second_input);
 
 	return NULL;
 }
 
-static void display_del_cmd_result(struct cmd_input in, union cmd_result res __attribute__((unused)), char *fault)
+static void display_del_cmd_result(struct cmd_input in, union cmd_result res, char *fault)
 {
 	if (fault != NULL) {
-		fprintf(stderr, "Fault %s: %s\n", fault, get_fault_message_by_fault_code(fault));
+		fprintf(stderr, "Fault %s: %s\n", fault, strlen(res.obj_res.fault_msg) ? res.obj_res.fault_msg : get_fault_message_by_fault_code(fault));
 		return;
 	}
+
 	fprintf(stdout, "Deleted %s\n", in.first_input);
 }
 
@@ -288,8 +299,9 @@ char *execute_cwmp_cli_command(char *cmd, char *args[])
 	struct cmd_input cmd_in = {
 			args[0] ? args[0] : NULL,
 			args[0] && args[1] ? args[1] : NULL,
-			args[0] && args[1] && args[2] ? args[2] : NULL };
-	union cmd_result cmd_out = { 0 };
+			args[0] && args[1] && args[2] ? args[2] : NULL
+	};
+	union cmd_result cmd_out = {0};
 	char *fault = NULL, *fault_ret = NULL;
 
 	for (size_t i = 0; i < ARRAY_SIZE(icwmp_commands); i++) {

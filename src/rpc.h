@@ -50,6 +50,6 @@ int cwmp_rpc_acs_prepare_autonomous_du_state_change_complete(struct rpc *rpc);
 int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc);
 
 int xml_handle_message();
-int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code);
+int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, char *fault_msg);
 
 #endif

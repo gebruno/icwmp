@@ -821,7 +821,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, ""))
 		return -1;
 	return 0;
 }
@@ -891,7 +891,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 
 fault:
 	cwmp_free_all_dm_parameter_list(&parameters_list);
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, ""))
 		return -1;
 	return 0;
 }
@@ -942,7 +942,7 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct rpc *rpc)
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, ""))
 		return -1;
 	return 0;
 }
@@ -1043,7 +1043,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 fault:
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, ""))
 		ret = -1;
 
 	cwmp_free_all_list_param_fault(rpc->list_set_value_fault);
@@ -1102,7 +1102,7 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, ""))
 		ret = -1;
 
 	return ret;
@@ -1113,11 +1113,11 @@ fault:
  */
 int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 {
-	mxml_node_t *b;
+	mxml_node_t *b = NULL;
 	char *object_name = NULL;
 	char *parameter_key = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
-	char *instance = NULL;
+	struct object_result res = {0};
 
 	struct xml_data_struct add_obj_xml_attrs = {0};
 	add_obj_xml_attrs.object_name = &object_name;
@@ -1135,9 +1135,9 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 
 	if (object_name) {
-		char *err = cwmp_add_object(object_name, &instance);
-		if (err) {
-			fault_code = cwmp_get_fault_code_by_string(err);
+		bool err = cwmp_add_object(object_name, &res);
+		if (!err) {
+			fault_code = cwmp_get_fault_code(res.fault_code);
 			goto fault;
 		}
 	} else {
@@ -1146,16 +1146,19 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	}
 
 	set_rpc_parameter_key(parameter_key);
-	if (instance == NULL)
+
+	if (res.instance == NULL)
 		goto fault;
+
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "AddObject");
 
 	if (!b)
 		goto fault;
 
-	int instance_int = atoi(instance);
-	int status = 0;
 	struct xml_data_struct add_resp_xml_attrs = {0};
+	int instance_int = atoi(res.instance);
+	int status = 0;
+
 	add_resp_xml_attrs.instance = &instance_int;
 	add_resp_xml_attrs.status = &status;
 
@@ -1167,19 +1170,19 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 
 	char object_path[1024] = {0};
-	snprintf(object_path, sizeof(object_path), "%s%s.", object_name, instance);
+	snprintf(object_path, sizeof(object_path), "%s%s.", object_name, res.instance);
 	cwmp_set_parameter_attributes(object_path, 0);
 	FREE(object_name);
 	FREE(parameter_key);
-	FREE(instance);
+	FREE(res.instance);
 	cwmp_set_end_session(END_SESSION_RESTART_SERVICES);
 	return 0;
 
 fault:
 	FREE(object_name);
 	FREE(parameter_key);
-	FREE(instance);
-	if (cwmp_create_fault_message(rpc, fault_code))
+	FREE(res.instance);
+	if (cwmp_create_fault_message(rpc, fault_code, res.fault_msg))
 		ret = -1;
 
 	cwmp_transaction("abort", false);
@@ -1195,6 +1198,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	char *object_name = NULL;
 	char *parameter_key = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
+	struct object_result res = {0};
 
 	struct xml_data_struct del_obj_xml_attrs = {0};
 	del_obj_xml_attrs.object_name = &object_name;
@@ -1212,9 +1216,9 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 		goto fault;
 
 	if (object_name) {
-		char *err = cwmp_delete_object(object_name);
-		if (err) {
-			fault_code = cwmp_get_fault_code_by_string(err);
+		bool err = cwmp_delete_object(object_name, &res);
+		if (!err) {
+			fault_code = cwmp_get_fault_code(res.fault_code);
 			goto fault;
 		}
 	} else {
@@ -1249,7 +1253,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 fault:
 	FREE(object_name);
 	FREE(parameter_key);
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, res.fault_msg))
 		ret = -1;
 
 	cwmp_transaction("abort", false);
@@ -1301,7 +1305,7 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, ""))
 		return -1;
 	return 0;
 
@@ -1324,7 +1328,7 @@ int cwmp_handle_rpc_cpe_factory_reset(struct rpc *rpc)
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, FAULT_CPE_INTERNAL_ERROR))
+	if (cwmp_create_fault_message(rpc, FAULT_CPE_INTERNAL_ERROR, ""))
 		goto error;
 	return 0;
 
@@ -1349,7 +1353,7 @@ int cwmp_handle_rpc_cpe_x_factory_reset_soft(struct rpc *rpc)
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, FAULT_CPE_INTERNAL_ERROR))
+	if (cwmp_create_fault_message(rpc, FAULT_CPE_INTERNAL_ERROR, ""))
 		goto error;
 	return 0;
 
@@ -1392,7 +1396,7 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 
 fault:
 	FREE(command_key);
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, ""))
 		goto error;
 	return 0;
 
@@ -1476,7 +1480,7 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 
 fault:
 	FREE(command_key);
-	if (cwmp_create_fault_message(rpc, fault_code))
+	if (cwmp_create_fault_message(rpc, fault_code, ""))
 		goto error;
 	return 0;
 
@@ -1552,7 +1556,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 
 fault:
 	FREE(command_key);
-	if (cwmp_create_fault_message(rpc, fault))
+	if (cwmp_create_fault_message(rpc, fault, ""))
 		return -1;
 
 	return 0;
@@ -1623,7 +1627,7 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 
 fault:
 	cwmp_free_change_du_state_request(change_du_state);
-	if (cwmp_create_fault_message(rpc, error))
+	if (cwmp_create_fault_message(rpc, error, ""))
 		goto error;
 	return 0;
 
@@ -1742,7 +1746,7 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 
 fault:
 	cwmp_free_download_request(download);
-	if (cwmp_create_fault_message(rpc, error))
+	if (cwmp_create_fault_message(rpc, error, ""))
 		return -1;
 	return 0;
 }
@@ -1876,7 +1880,7 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 
 fault:
 	cwmp_free_schedule_download_request(schedule_download);
-	if (cwmp_create_fault_message(rpc, error))
+	if (cwmp_create_fault_message(rpc, error, ""))
 		goto error;
 	return 0;
 
@@ -1995,7 +1999,7 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 
 fault:
 	cwmp_free_upload_request(upload);
-	if (cwmp_create_fault_message(rpc, error))
+	if (cwmp_create_fault_message(rpc, error, ""))
 		return -1;
 	return 0;
 }
@@ -2010,10 +2014,13 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 
 	body = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	struct xml_data_struct fault_xml_attrs = {0};
+
 	char *faultcode = (FAULT_CPE_ARRAY[cwmp_main->session->fault_code].TYPE == FAULT_CPE_TYPE_CLIENT) ? "Client" : "Server";
 	char *faultstring = "CWMP fault";
+
 	int fault_code = atoi(cwmp_main->session->fault_code ? FAULT_CPE_ARRAY[cwmp_main->session->fault_code].CODE : "0");
-	char *fault_string = strdup(FAULT_CPE_ARRAY[cwmp_main->session->fault_code].DESCRIPTION);
+	char *fault_string = strlen(cwmp_main->session->fault_msg) ? strdup(cwmp_main->session->fault_msg) : strdup(FAULT_CPE_ARRAY[cwmp_main->session->fault_code].DESCRIPTION);
+
 	fault_xml_attrs.fault_code = &fault_code;
 	fault_xml_attrs.fault_string = &fault_string;
 	fault_xml_attrs.faultcode = &faultcode;
@@ -2025,26 +2032,33 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 		return -1;
 
 	if (rpc->type == RPC_CPE_SET_PARAMETER_VALUES) {
-		LIST_HEAD(spv_fault_xml_data_list);
-		cwmp_param_fault_list_to_xml_data_list(rpc->list_set_value_fault, &spv_fault_xml_data_list);
 		struct xml_data_struct spv_fault_xml_attrs = {0};
+		LIST_HEAD(spv_fault_xml_data_list);
+
+		cwmp_param_fault_list_to_xml_data_list(rpc->list_set_value_fault, &spv_fault_xml_data_list);
+
 		spv_fault_xml_attrs.data_list = &spv_fault_xml_data_list;
+
 		body = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "cwmp:Fault", NULL, NULL, MXML_DESCEND);
 		if (body == NULL)
 			return -1;
+
 		fault = build_xml_node_data(SOAP_SPV_FAULT, body, &spv_fault_xml_attrs);
 		if (fault)
 			return -1;
+
 		cwmp_free_all_xml_data_list(&spv_fault_xml_data_list);
 	}
 
 	return 0;
 }
 
-int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code)
+int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, char *fault_msg)
 {
 	CWMP_LOG(INFO, "Fault detected");
+
 	cwmp_main->session->fault_code = fault_code;
+	snprintf(cwmp_main->session->fault_msg, sizeof(cwmp_main->session->fault_msg), "%s", fault_msg);
 
 	MXML_DELETE(cwmp_main->session->tree_out);
 
@@ -2054,6 +2068,7 @@ int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code)
 	CWMP_LOG(INFO, "Preparing the Fault message");
 	if (rpc_cpe_methods[RPC_CPE_FAULT].handler(rpc_cpe))
 		return -1;
+
 	rpc_cpe->type = RPC_CPE_FAULT;
 
 	return 0;
