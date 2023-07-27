@@ -33,7 +33,6 @@ static struct curl_slist *header_list = NULL;
 
 static CURL *curl = NULL;
 static bool curl_glob_init = false;
-char *fc_cookies = "/tmp/icwmp_cookies";
 
 void http_set_timeout(void)
 {
@@ -54,6 +53,7 @@ int icwmp_http_client_init()
 	if (!curl)
 		return -1;
 
+	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
 	return 0;
 }
 
@@ -63,9 +63,10 @@ void icwmp_http_client_exit(void)
 		curl_slist_free_all(header_list);
 		header_list = NULL;
 	}
-	if (file_exists(fc_cookies))
-		remove(fc_cookies);
+
 	if (curl) {
+		/* erasing all session cookies from memory */
+		curl_easy_setopt(curl, CURLOPT_COOKIELIST, "SESS");
 		curl_easy_cleanup(curl);
 		curl = NULL;
 	}
@@ -123,11 +124,102 @@ static void http_set_connection_options()
 	curl_easy_setopt(curl, CURLOPT_NOBODY, 0);
 	curl_easy_setopt(curl, CURLOPT_IPRESOLVE, cwmp_main->net.ip_resolve);
 
-	curl_easy_setopt(curl, CURLOPT_COOKIEFILE, fc_cookies);
-	curl_easy_setopt(curl, CURLOPT_COOKIEJAR, fc_cookies);
 
 	if (CWMP_STRLEN(cwmp_main->net.interface))
 		curl_easy_setopt(curl, CURLOPT_INTERFACE, cwmp_main->net.interface);
+}
+
+static bool valid_cookie_path(const char *cookie)
+{
+	char *ptr = NULL;
+	int count;
+	char value[5120] = {0};
+
+	if (cookie == NULL)
+		return false;
+
+	snprintf(value, sizeof(value), "%s", cookie);
+	/* path should be the third field */
+	ptr = strtok(value, "\t");
+	count = 1;
+	while (ptr && count < 3) {
+		ptr = strtok(NULL, "\t");
+		count = count + 1;
+	}
+
+	if (ptr == NULL)
+		return true;
+
+	/* allowed path field to remain not filled in */
+	if (strcmp(ptr, "TRUE") && strcmp(ptr, "FALSE")) {
+		int i;
+		int n = strlen(ptr);
+
+		for (i = 0; i < n; i++) {
+			switch (ptr[i]) {
+			// ? " \ < > * | :
+			// these characters can not be used in file or folder names
+			//
+			case '?':
+			case '\\':
+			case '<':
+			case '>':
+			case '*':
+			case '|':
+			case ':':
+				return false;
+
+			// some stupid site sends path value within ", so ignore if
+			// first and last char of path
+			//
+			case '\"':
+				if ((i != 0) && (i + 1 != n))
+					return false;
+				break;
+
+			// Space and point can not be the last character of a file or folder names
+			//
+			case ' ':
+			case '.':
+				if ((i + 1 == n) || (ptr[i+1] == '/'))
+					return false;
+				break;
+
+			// two slashes can not go straight
+			//
+			case '/':
+				if (i > 0 && ptr[i - 1] == '/')
+					return false;
+				break;
+			}
+		}
+	}
+
+	return true;
+}
+
+static void http_filter_valid_cookie()
+{
+	struct curl_slist *cookies, *nc;
+	/* get the known list of cookies */
+	if (CURLE_OK != curl_easy_getinfo(curl, CURLINFO_COOKIELIST, &cookies))
+		return;
+
+	/* erasing curl's knowledge of cookies */
+	curl_easy_setopt(curl, CURLOPT_COOKIELIST, "ALL");
+
+	/* add the cookies having valid path */
+	nc = cookies;
+	while (nc) {
+		if (valid_cookie_path(nc->data))
+			curl_easy_setopt(curl, CURLOPT_COOKIELIST, nc->data);
+		else
+			CWMP_LOG(DEBUG, "Reject cookie (%s)", nc->data);
+
+		nc = nc->next;
+	}
+
+	curl_slist_free_all(cookies);
 }
 
 static void http_set_header_list_options()
@@ -185,6 +277,7 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 	}
 
 	http_set_connection_options();
+	http_filter_valid_cookie();
 	http_set_security_options();
 	http_set_header_list_options();
 	http_set_inout_options(msg_out, msg_out_len, msg_in);

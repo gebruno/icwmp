@@ -17,8 +17,6 @@
 
 #include "common.h"
 
-extern char *fc_cookies;
-
 #define HTTP_TIMEOUT 60
 
 void http_set_timeout(void);

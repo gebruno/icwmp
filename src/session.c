@@ -78,8 +78,6 @@ int cwmp_session_init()
 	cwmp_main->session->rpc_cpe = NULL;
 
 	set_cwmp_session_status(SESSION_RUNNING, 0);
-	if (file_exists(fc_cookies))
-		remove(fc_cookies);
 	return CWMP_OK;
 }
 
