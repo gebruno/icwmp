@@ -1294,86 +1294,86 @@ DMOBJ tCWMPObj[] = {
 /*** Device.ManagementServer. ***/
 DMOBJ tManagementServerObj[] = {
 /* OBJ, permission, addobj, delobj, checkdep, browseinstobj, nextdynamicobj, dynamicleaf, nextobj, leaf, linker, bbfdm_type, uniqueKeys, version*/
-{"HeartbeatPolicy", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, NULL, tHeartbeatPolicyParams, NULL, BBFDM_CWMP, NULL, "2.12"},
-{"ManageableDevice", &DMREAD, NULL, NULL, NULL, browseManageableDevice, NULL, NULL, NULL, tManageableDeviceParams, NULL, BBFDM_CWMP, NULL, "2.12"},
-{"InformParameter", &DMWRITE, add_inform_parameter, delete_inform_parameter, NULL, browseInformParameterInst, NULL, NULL, NULL, tInformParameterParams, NULL, BBFDM_CWMP, NULL, "2.8"},
-{"AutonomousTransferCompletePolicy", &DMREAD, NULL, NULL, "file:/etc/config/cwmp", NULL, NULL, NULL, NULL, tTransferComplPolicyParams, NULL, BBFDM_CWMP, NULL, "2.0"},
-{"DUStateChangeComplPolicy", &DMREAD, NULL, NULL, "file:/etc/config/swmodd", NULL, NULL, NULL, NULL, tDUStateChangeComplPolicyParams, NULL, BBFDM_CWMP, NULL, "2.1"},
+{"HeartbeatPolicy", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, NULL, tHeartbeatPolicyParams, NULL, BBFDM_CWMP, NULL},
+{"ManageableDevice", &DMREAD, NULL, NULL, NULL, browseManageableDevice, NULL, NULL, NULL, tManageableDeviceParams, NULL, BBFDM_CWMP, NULL},
+{"InformParameter", &DMWRITE, add_inform_parameter, delete_inform_parameter, NULL, browseInformParameterInst, NULL, NULL, NULL, tInformParameterParams, NULL, BBFDM_CWMP, NULL},
+{"AutonomousTransferCompletePolicy", &DMREAD, NULL, NULL, "file:/etc/config/cwmp", NULL, NULL, NULL, NULL, tTransferComplPolicyParams, NULL, BBFDM_CWMP, NULL},
+{"DUStateChangeComplPolicy", &DMREAD, NULL, NULL, "file:/etc/config/swmodd", NULL, NULL, NULL, NULL, tDUStateChangeComplPolicyParams, NULL, BBFDM_CWMP, NULL},
 {0}
 };
 
 DMLEAF tManagementServerParams[] = {
 /* PARAM, permission, type, getvalue, setvalue, bbfdm_type, version*/
 {"URL", &DMWRITE, DMT_STRING, get_management_server_url, set_management_server_url, BBFDM_CWMP},
-{"Username", &DMWRITE, DMT_STRING, get_management_server_username, set_management_server_username, BBFDM_CWMP, "2.0"},
-{"Password", &DMWRITE, DMT_STRING, get_empty, set_management_server_passwd, BBFDM_CWMP, "2.0"},
-{"ScheduleReboot", &DMWRITE, DMT_TIME, get_management_server_schedule_reboot, set_management_server_schedule_reboot, BBFDM_CWMP, "2.10"},
-{"DelayReboot", &DMWRITE, DMT_INT, get_management_server_delay_reboot, set_management_server_delay_reboot, BBFDM_CWMP, "2.10"},
-{"PeriodicInformEnable", &DMWRITE, DMT_BOOL, get_management_server_periodic_inform_enable, set_management_server_periodic_inform_enable,  BBFDM_CWMP, "2.0"},
-{"PeriodicInformInterval", &DMWRITE, DMT_UNINT, get_management_server_periodic_inform_interval, set_management_server_periodic_inform_interval, BBFDM_CWMP, "2.0"},
-{"PeriodicInformTime", &DMWRITE, DMT_TIME, get_management_server_periodic_inform_time, set_management_server_periodic_inform_time, BBFDM_CWMP, "2.0"},
-{"ParameterKey", &DMREAD, DMT_STRING, get_management_server_key, NULL, BBFDM_CWMP, "2.0"},
-{"ConnectionRequestURL", &DMREAD, DMT_STRING, get_management_server_connection_request_url, NULL, BBFDM_CWMP, "2.0"},
-{"ConnectionRequestUsername", &DMWRITE, DMT_STRING, get_management_server_connection_request_username, set_management_server_connection_request_username, BBFDM_CWMP, "2.0"},
-{"ConnectionRequestPassword", &DMWRITE, DMT_STRING, get_empty, set_management_server_connection_request_passwd,  BBFDM_CWMP, "2.0"},
-{"UpgradesManaged", &DMWRITE, DMT_BOOL, get_upgrades_managed, set_upgrades_managed, BBFDM_CWMP, "2.0"},
-{"HTTPCompressionSupported", &DMREAD, DMT_STRING, get_management_server_http_compression_supportted, NULL, BBFDM_CWMP, "2.7"},
-{"HTTPCompression", &DMWRITE, DMT_STRING, get_management_server_http_compression, set_management_server_http_compression, BBFDM_CWMP, "2.7"},
-{"LightweightNotificationProtocolsSupported", &DMREAD, DMT_STRING, get_lwn_protocol_supported, NULL, BBFDM_CWMP, "2.7"},
-{"LightweightNotificationProtocolsUsed", &DMWRITE, DMT_STRING, get_lwn_protocol_used, set_lwn_protocol_used, BBFDM_CWMP, "2.7"},
-{"UDPLightweightNotificationHost", &DMWRITE, DMT_STRING, get_lwn_host, set_lwn_host, BBFDM_CWMP, "2.7"},
-{"UDPLightweightNotificationPort", &DMWRITE, DMT_UNINT, get_lwn_port, set_lwn_port, BBFDM_CWMP, "2.7"},
-{"CWMPRetryMinimumWaitInterval", &DMWRITE, DMT_UNINT, get_management_server_retry_min_wait_interval, set_management_server_retry_min_wait_interval, BBFDM_CWMP, "2.0"},
-{"CWMPRetryIntervalMultiplier", &DMWRITE, DMT_UNINT, get_management_server_retry_interval_multiplier, set_management_server_retry_interval_multiplier, BBFDM_CWMP, "2.0"},
-{"AliasBasedAddressing", &DMREAD, DMT_BOOL, get_alias_based_addressing, NULL, BBFDM_CWMP, "2.3"},
-{"InstanceMode", &DMWRITE, DMT_STRING, get_instance_mode, set_instance_mode, BBFDM_CWMP, "2.3"},
-{"SupportedConnReqMethods", &DMREAD, DMT_STRING, get_management_server_supported_conn_req_methods, NULL, BBFDM_CWMP, "2.7"},
-{"InstanceWildcardsSupported", &DMREAD, DMT_BOOL, get_management_server_instance_wildcard_supported, NULL, BBFDM_CWMP, "2.12"},
-{"EnableCWMP", &DMWRITE, DMT_BOOL, get_management_server_enable_cwmp, set_management_server_enable_cwmp, BBFDM_CWMP, "2.12"},
-{"UDPConnectionRequestAddress", &DMREAD, DMT_STRING, get_upd_cr_address, NULL, BBFDM_CWMP, "2.0"},
-{"NATDetected", &DMREAD, DMT_BOOL, get_nat_detected, NULL, BBFDM_CWMP, "2.0"},
-{"InformParameterNumberOfEntries", &DMREAD, DMT_UNINT, get_inform_parameter_number_of_entries, NULL, BBFDM_CWMP, "2.0"},
-{"ManageableDeviceNumberOfEntries", &DMREAD, DMT_UNINT, get_manageable_device_number_of_entries, NULL, BBFDM_CWMP, "2.0"},
-{"DefaultActiveNotificationThrottle", &DMWRITE, DMT_UNINT, get_default_active_notification_throttle, set_default_active_notification_throttle, BBFDM_CWMP, "2.0"},
-{"ManageableDeviceNotificationLimit", &DMWRITE, DMT_UNINT, get_manageable_device_notification_limit, set_manageable_device_notification_limit, BBFDM_CWMP, "2.0"},
+{"Username", &DMWRITE, DMT_STRING, get_management_server_username, set_management_server_username, BBFDM_CWMP},
+{"Password", &DMWRITE, DMT_STRING, get_empty, set_management_server_passwd, BBFDM_CWMP},
+{"ScheduleReboot", &DMWRITE, DMT_TIME, get_management_server_schedule_reboot, set_management_server_schedule_reboot, BBFDM_CWMP},
+{"DelayReboot", &DMWRITE, DMT_INT, get_management_server_delay_reboot, set_management_server_delay_reboot, BBFDM_CWMP},
+{"PeriodicInformEnable", &DMWRITE, DMT_BOOL, get_management_server_periodic_inform_enable, set_management_server_periodic_inform_enable,  BBFDM_CWMP},
+{"PeriodicInformInterval", &DMWRITE, DMT_UNINT, get_management_server_periodic_inform_interval, set_management_server_periodic_inform_interval, BBFDM_CWMP},
+{"PeriodicInformTime", &DMWRITE, DMT_TIME, get_management_server_periodic_inform_time, set_management_server_periodic_inform_time, BBFDM_CWMP},
+{"ParameterKey", &DMREAD, DMT_STRING, get_management_server_key, NULL, BBFDM_CWMP},
+{"ConnectionRequestURL", &DMREAD, DMT_STRING, get_management_server_connection_request_url, NULL, BBFDM_CWMP},
+{"ConnectionRequestUsername", &DMWRITE, DMT_STRING, get_management_server_connection_request_username, set_management_server_connection_request_username, BBFDM_CWMP},
+{"ConnectionRequestPassword", &DMWRITE, DMT_STRING, get_empty, set_management_server_connection_request_passwd,  BBFDM_CWMP},
+{"UpgradesManaged", &DMWRITE, DMT_BOOL, get_upgrades_managed, set_upgrades_managed, BBFDM_CWMP},
+{"HTTPCompressionSupported", &DMREAD, DMT_STRING, get_management_server_http_compression_supportted, NULL, BBFDM_CWMP},
+{"HTTPCompression", &DMWRITE, DMT_STRING, get_management_server_http_compression, set_management_server_http_compression, BBFDM_CWMP},
+{"LightweightNotificationProtocolsSupported", &DMREAD, DMT_STRING, get_lwn_protocol_supported, NULL, BBFDM_CWMP},
+{"LightweightNotificationProtocolsUsed", &DMWRITE, DMT_STRING, get_lwn_protocol_used, set_lwn_protocol_used, BBFDM_CWMP},
+{"UDPLightweightNotificationHost", &DMWRITE, DMT_STRING, get_lwn_host, set_lwn_host, BBFDM_CWMP},
+{"UDPLightweightNotificationPort", &DMWRITE, DMT_UNINT, get_lwn_port, set_lwn_port, BBFDM_CWMP},
+{"CWMPRetryMinimumWaitInterval", &DMWRITE, DMT_UNINT, get_management_server_retry_min_wait_interval, set_management_server_retry_min_wait_interval, BBFDM_CWMP},
+{"CWMPRetryIntervalMultiplier", &DMWRITE, DMT_UNINT, get_management_server_retry_interval_multiplier, set_management_server_retry_interval_multiplier, BBFDM_CWMP},
+{"AliasBasedAddressing", &DMREAD, DMT_BOOL, get_alias_based_addressing, NULL, BBFDM_CWMP},
+{"InstanceMode", &DMWRITE, DMT_STRING, get_instance_mode, set_instance_mode, BBFDM_CWMP},
+{"SupportedConnReqMethods", &DMREAD, DMT_STRING, get_management_server_supported_conn_req_methods, NULL, BBFDM_CWMP},
+{"InstanceWildcardsSupported", &DMREAD, DMT_BOOL, get_management_server_instance_wildcard_supported, NULL, BBFDM_CWMP},
+{"EnableCWMP", &DMWRITE, DMT_BOOL, get_management_server_enable_cwmp, set_management_server_enable_cwmp, BBFDM_CWMP},
+{"UDPConnectionRequestAddress", &DMREAD, DMT_STRING, get_upd_cr_address, NULL, BBFDM_CWMP},
+{"NATDetected", &DMREAD, DMT_BOOL, get_nat_detected, NULL, BBFDM_CWMP},
+{"InformParameterNumberOfEntries", &DMREAD, DMT_UNINT, get_inform_parameter_number_of_entries, NULL, BBFDM_CWMP},
+{"ManageableDeviceNumberOfEntries", &DMREAD, DMT_UNINT, get_manageable_device_number_of_entries, NULL, BBFDM_CWMP},
+{"DefaultActiveNotificationThrottle", &DMWRITE, DMT_UNINT, get_default_active_notification_throttle, set_default_active_notification_throttle, BBFDM_CWMP},
+{"ManageableDeviceNotificationLimit", &DMWRITE, DMT_UNINT, get_manageable_device_notification_limit, set_manageable_device_notification_limit, BBFDM_CWMP},
 {0}
 };
 
 DMLEAF tHeartbeatPolicyParams[] = {
-{"Enable", &DMWRITE, DMT_BOOL, get_heart_beat_policy_enable, set_heart_beat_policy_enable, BBFDM_CWMP, "2.12"},
-{"ReportingInterval", &DMWRITE, DMT_UNINT, get_heart_beat_policy_reporting_interval, set_heart_beat_policy_reporting_interval, BBFDM_CWMP, "2.12"},
-{"InitiationTime", &DMWRITE, DMT_TIME, get_heart_beat_policy_initiation_time, set_heart_beat_policy_initiation_time, BBFDM_CWMP, "2.12"},
+{"Enable", &DMWRITE, DMT_BOOL, get_heart_beat_policy_enable, set_heart_beat_policy_enable, BBFDM_CWMP},
+{"ReportingInterval", &DMWRITE, DMT_UNINT, get_heart_beat_policy_reporting_interval, set_heart_beat_policy_reporting_interval, BBFDM_CWMP},
+{"InitiationTime", &DMWRITE, DMT_TIME, get_heart_beat_policy_initiation_time, set_heart_beat_policy_initiation_time, BBFDM_CWMP},
 {0}
 };
 
 DMLEAF tInformParameterParams[] = {
-{"Enable", &DMWRITE, DMT_BOOL, get_inform_parameter_enable, set_inform_parameter_enable, BBFDM_CWMP, "2.8"},
-{"Alias", &DMWRITE, DMT_STRING, get_inform_parameter_alias, set_inform_parameter_alias, BBFDM_CWMP, "2.8"},
-{"ParameterName", &DMWRITE, DMT_STRING, get_inform_parameter_parameter_name, set_inform_parameter_parameter_name, BBFDM_CWMP, "2.8"},
-{"EventList", &DMWRITE, DMT_STRING, get_inform_parameter_event_list, set_inform_parameter_event_list, BBFDM_CWMP, "2.8"},
+{"Enable", &DMWRITE, DMT_BOOL, get_inform_parameter_enable, set_inform_parameter_enable, BBFDM_CWMP},
+{"Alias", &DMWRITE, DMT_STRING, get_inform_parameter_alias, set_inform_parameter_alias, BBFDM_CWMP},
+{"ParameterName", &DMWRITE, DMT_STRING, get_inform_parameter_parameter_name, set_inform_parameter_parameter_name, BBFDM_CWMP},
+{"EventList", &DMWRITE, DMT_STRING, get_inform_parameter_event_list, set_inform_parameter_event_list, BBFDM_CWMP},
 {0}
 };
 
 DMLEAF tManageableDeviceParams[] = {
-{"ManufacturerOUI", &DMREAD, DMT_STRING, get_manageable_device_oui, NULL, BBFDM_CWMP, "2.0"},
-{"SerialNumber", &DMREAD, DMT_STRING, get_manageable_device_serial, NULL, BBFDM_CWMP, "2.0"},
-{"ProductClass", &DMREAD, DMT_STRING, get_manageable_device_class, NULL, BBFDM_CWMP, "2.0"},
-{"Host", &DMREAD, DMT_STRING, get_manageable_device_host, NULL, BBFDM_CWMP, "2.0"},
+{"ManufacturerOUI", &DMREAD, DMT_STRING, get_manageable_device_oui, NULL, BBFDM_CWMP},
+{"SerialNumber", &DMREAD, DMT_STRING, get_manageable_device_serial, NULL, BBFDM_CWMP},
+{"ProductClass", &DMREAD, DMT_STRING, get_manageable_device_class, NULL, BBFDM_CWMP},
+{"Host", &DMREAD, DMT_STRING, get_manageable_device_host, NULL, BBFDM_CWMP},
 {0}
 };
 
 DMLEAF tTransferComplPolicyParams[] = {
-{"Enable", &DMWRITE, DMT_BOOL, get_transfer_compl_policy_enable, set_transfer_compl_policy_enable, BBFDM_CWMP, "2.0"},
-{"TransferTypeFilter", &DMWRITE, DMT_STRING, get_transfer_compl_policy_type_filter, set_transfer_compl_policy_type_filter, BBFDM_CWMP, "2.0"},
-{"ResultTypeFilter", &DMWRITE, DMT_STRING, get_transfer_compl_policy_result_type_filter, set_transfer_compl_policy_result_type_filter, BBFDM_CWMP, "2.0"},
-{"FileTypeFilter", &DMWRITE, DMT_STRING, get_transfer_compl_policy_file_type_filter, set_transfer_compl_policy_file_type_filter, BBFDM_CWMP, "2.0"},
+{"Enable", &DMWRITE, DMT_BOOL, get_transfer_compl_policy_enable, set_transfer_compl_policy_enable, BBFDM_CWMP},
+{"TransferTypeFilter", &DMWRITE, DMT_STRING, get_transfer_compl_policy_type_filter, set_transfer_compl_policy_type_filter, BBFDM_CWMP},
+{"ResultTypeFilter", &DMWRITE, DMT_STRING, get_transfer_compl_policy_result_type_filter, set_transfer_compl_policy_result_type_filter, BBFDM_CWMP},
+{"FileTypeFilter", &DMWRITE, DMT_STRING, get_transfer_compl_policy_file_type_filter, set_transfer_compl_policy_file_type_filter, BBFDM_CWMP},
 {0}
 };
 
 DMLEAF tDUStateChangeComplPolicyParams[] = {
-{"Enable", &DMWRITE, DMT_BOOL, get_du_state_change_compl_policy_enable, set_du_state_change_compl_policy_enable, BBFDM_CWMP, "2.1"},
-{"OperationTypeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_operation_type_filter, set_du_state_change_compl_policy_operation_type_filter, BBFDM_CWMP, "2.1"},
-{"ResultTypeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_result_type_filter, set_du_state_change_compl_policy_result_type_filter, BBFDM_CWMP, "2.1"},
-{"FaultCodeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_fault_code_filter, set_du_state_change_compl_policy_fault_code_filter, BBFDM_CWMP, "2.1"},
+{"Enable", &DMWRITE, DMT_BOOL, get_du_state_change_compl_policy_enable, set_du_state_change_compl_policy_enable, BBFDM_CWMP},
+{"OperationTypeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_operation_type_filter, set_du_state_change_compl_policy_operation_type_filter, BBFDM_CWMP},
+{"ResultTypeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_result_type_filter, set_du_state_change_compl_policy_result_type_filter, BBFDM_CWMP},
+{"FaultCodeFilter", &DMWRITE, DMT_STRING, get_du_state_change_compl_policy_fault_code_filter, set_du_state_change_compl_policy_fault_code_filter, BBFDM_CWMP},
 {0}
 };
