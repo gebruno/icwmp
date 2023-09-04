@@ -12,20 +12,20 @@
 #include <mbedtls/ctr_drbg.h>
 #endif
 #ifdef LOPENSSL
-#include <openssl/ssl.h>
-#include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/rand.h>
 #endif
 
 #ifdef LWOLFSSL
 #include <wolfssl/options.h>
-#include <wolfssl/openssl/ssl.h>
+#include <wolfssl/openssl/hmac.h>
+#include <wolfssl/openssl/rand.h>
 #endif
 
 #include <string.h>
 #include <stdlib.h>
 
+#include "ssl_utils.h"
 #include "common.h"
 #include "log.h"
 
@@ -127,3 +127,69 @@ void message_compute_signature(char *msg_out, char *signature, size_t len)
 		snprintf(&(signature[i * 2]), 3, "%02X", result[i]);
 	}
 }
+
+
+void calulate_md5_hash(struct list_head *buff_list, uint8_t *output, size_t outlen)
+{
+	unsigned int bytes = 0;
+
+#ifdef LMBEDTLS
+	mbedtls_md_context_t enpctx;
+	mbedtls_md_context_t *mdctx = &enpctx;
+	const mbedtls_md_info_t *md;
+	unsigned char md_value[MBEDTLS_MD_MAX_SIZE];
+#else
+	EVP_MD_CTX *mdctx;
+	const EVP_MD *md;
+	unsigned char md_value[EVP_MAX_MD_SIZE];
+#endif
+
+	if (!buff_list || !output)
+		return;
+
+#ifndef LMBEDTLS
+	// makes all algorithms available to the EVP* routines
+	OpenSSL_add_all_algorithms();
+#endif
+
+#ifdef LMBEDTLS
+	md = mbedtls_md_info_from_string("MD5");
+	mbedtls_md_init(mdctx);
+	mbedtls_md_init_ctx(mdctx, md);
+#else
+	md = EVP_get_digestbyname("MD5");
+	mdctx = EVP_MD_CTX_create();
+	EVP_DigestInit_ex(mdctx, md, NULL);
+#endif
+
+	if (md == NULL)
+		goto end;
+
+	bin_list_t *iter;
+	list_for_each_entry(iter, buff_list, list) {
+#ifdef LMBEDTLS
+		mbedtls_md_update(mdctx, iter->bin, iter->len);
+#else
+		EVP_DigestUpdate(mdctx, iter->bin, iter->len);
+#endif
+	}
+
+#ifdef LMBEDTLS
+	mbedtls_md_finish(mdctx, md_value);
+	bytes = mbedtls_md_get_size(md);
+#else
+	bytes = 0;
+	EVP_DigestFinal_ex(mdctx, md_value, &bytes);
+#endif
+
+	memcpy(output, &md_value, ((bytes<outlen)?bytes:outlen));
+
+end:
+#ifdef LMBEDTLS
+	mbedtls_md_free(mdctx);
+#else
+	EVP_MD_CTX_destroy(mdctx);
+	EVP_cleanup();
+#endif
+}
+

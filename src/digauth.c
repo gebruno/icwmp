@@ -20,27 +20,6 @@
 #include "ssl_utils.h"
 #include "common.h"
 
-#ifdef LMBEDTLS
-#include <mbedtls/md5.h>
-#define MD5_CTX mbedtls_md5_context
-#define MD5_INIT(X) { mbedtls_md5_init(X); mbedtls_md5_starts_ret(X); }
-#define MD5_UPDATE(X, Y, Z) mbedtls_md5_update_ret(X, (unsigned char *)Y, Z)
-#define MD5_FINAL(X, Y) mbedtls_md5_finish_ret(Y, X)
-#elif LOPENSSL
-#include <openssl/md5.h>
-#define MD5_CTX MD5_CTX
-#define MD5_INIT MD5_Init
-#define MD5_UPDATE MD5_Update
-#define MD5_FINAL MD5_Final
-#else
-#include <wolfssl/options.h>
-#include <wolfssl/openssl/md5.h>
-#define MD5_CTX MD5_CTX
-#define MD5_INIT MD5_Init
-#define MD5_UPDATE MD5_Update
-#define MD5_FINAL MD5_Final
-#endif
-
 #ifndef MD5_DIGEST_SIZE
 #define MD5_DIGEST_SIZE 16
 #endif
@@ -198,7 +177,7 @@ static void get_digest_ha1(const char *algo, const char *uname, const char *rlm,
 			   char *skey, int skey_len)
 {
 	unsigned char digest[MD5_DIGEST_SIZE];
-	MD5_CTX context;
+	LIST_HEAD(buff_list);
 
 	if (algo == NULL || uname == NULL || rlm == NULL ||
 	    psw == NULL || nonce == NULL || cnonce == NULL || skey == NULL) {
@@ -214,13 +193,10 @@ static void get_digest_ha1(const char *algo, const char *uname, const char *rlm,
 	}
 
 	snprintf(a, len, "%s:%s:%s", uname, rlm, psw);
+	add_str_binlist(&buff_list, a);
+	FREE(a);
 
-	MD5_INIT(&context);
-	MD5_UPDATE(&context, (unsigned char *)a, strlen(a));
-	MD5_FINAL(digest, &context);
-
-	free(a);
-	a = NULL;
+	calulate_md5_hash(&buff_list, digest, sizeof(digest));
 
 	if (0 == strcasecmp(algo, "md5-sess")) {
 		len = strlen(nonce) + strlen(cnonce) + 3;
@@ -230,23 +206,22 @@ static void get_digest_ha1(const char *algo, const char *uname, const char *rlm,
 			return;
 		}
 
+		add_bin_list(&buff_list, digest, sizeof(digest));
 		snprintf(a, len, ":%s:%s", nonce, cnonce);
+		add_str_binlist(&buff_list, a);
+		FREE(a);
 
-		MD5_INIT(&context);
-		MD5_UPDATE(&context, (unsigned char *)digest, sizeof(digest));
-		MD5_UPDATE(&context, (unsigned char *)a, strlen(a));
-		MD5_FINAL(digest, &context);
-
-		free(a);
+		calulate_md5_hash(&buff_list, digest, sizeof(digest));
 	}
 
 	get_hexstring(digest, sizeof(digest), skey, skey_len);
+	free_binlist(&buff_list);
 }
 
 static void get_digest_ha2(const char *method, const char *uri, char *ha2, int ha2_len)
 {
 	unsigned char digest[MD5_DIGEST_SIZE];
-	MD5_CTX context;
+	LIST_HEAD(buff_list);
 
 	if (method == NULL || uri == NULL || ha2 == NULL) {
 		CWMP_LOG(ERROR, "digest_authentication an argument of the function %s is null: %p %p %p", __FUNCTION__, method, uri, ha2);
@@ -262,22 +237,20 @@ static void get_digest_ha2(const char *method, const char *uri, char *ha2, int h
 
 
 	snprintf(a, len, "%s:%s", method, uri);
+	add_str_binlist(&buff_list, a);
+	FREE(a);
 
-	MD5_INIT(&context);
-	MD5_UPDATE(&context, (unsigned char *)a, strlen(a));
-	MD5_FINAL(digest, &context);
-
-	free(a);
-
+	calulate_md5_hash(&buff_list, digest, sizeof(digest));
 	get_hexstring(digest, sizeof(digest), ha2, ha2_len);
+	free_binlist(&buff_list);
 }
 
 static void get_digest_response(const char *ha1, const char *nonce, const char *nonce_cnt,
 				const char *cnonce, const char *qop, const char *ha2,
 				char *resp, int resp_len)
 {
-	MD5_CTX context;
 	unsigned char digest[MD5_DIGEST_SIZE];
+	LIST_HEAD(buff_list);
 
 	if (ha1 == NULL || nonce == NULL || nonce_cnt == NULL || cnonce == NULL ||
 	    qop == NULL || ha2 == NULL || resp == NULL) {
@@ -305,18 +278,18 @@ static void get_digest_response(const char *ha1, const char *nonce, const char *
 
 		snprintf(b, len, "%s%s:%s:%s:", a, nonce_cnt, cnonce, qop);
 
-		free(a);
+		FREE(a);
 		a = b;
 	}
 
-	MD5_INIT(&context);
-	MD5_UPDATE(&context, (unsigned char *)ha1, MD5_HASH_HEX_LEN);
-	MD5_UPDATE(&context, (unsigned char *)a, strlen(a));
-	MD5_UPDATE(&context, (unsigned char *)ha2, MD5_HASH_HEX_LEN);
-	MD5_FINAL(digest, &context);
+	add_bin_list(&buff_list, (uint8_t *)ha1, MD5_HASH_HEX_LEN);
+	add_str_binlist(&buff_list, a);
+	add_bin_list(&buff_list, (uint8_t *)ha2, MD5_HASH_HEX_LEN);
+	FREE(a);
 
-	free(a);
+	calulate_md5_hash(&buff_list, digest, sizeof(digest));
 	get_hexstring(digest, sizeof(digest), resp, resp_len);
+	free_binlist(&buff_list);
 }
 
 static void get_nonce(uint32_t time, const char* method, const char *rand,
@@ -324,6 +297,7 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 		      char *nonce, unsigned int nonce_size)
 {
 	unsigned char ts[4];
+	LIST_HEAD(buff_list);
 
 	if (method == NULL || uri == NULL || rlm == NULL || nonce == NULL) {
 		CWMP_LOG(ERROR, "digest_authentication an argument of the function %s is null: %p %p %p %p", __FUNCTION__, method, uri, rlm, nonce);
@@ -358,16 +332,17 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 
 	snprintf(uri_realm, len, ":%s:%s", uri, rlm);
 
-	MD5_CTX context;
 	unsigned char digest[MD5_DIGEST_SIZE];
 
-	MD5_INIT(&context);
-	MD5_UPDATE(&context, (unsigned char *)ts, 4);
-	MD5_UPDATE(&context, (unsigned char *)meth, strlen(meth));
-	if (rand != NULL && rand_size > 0)
-		MD5_UPDATE(&context, (unsigned char *)rand, rand_size);
-	MD5_UPDATE(&context, (unsigned char *)uri_realm, strlen(uri_realm));
-	MD5_FINAL(digest, &context);
+	add_bin_list(&buff_list, (uint8_t *)ts, 4);
+	add_str_binlist(&buff_list, meth);
+
+	if (rand != NULL && rand_size > 0) {
+		add_bin_list(&buff_list, (uint8_t *)rand, rand_size);
+	}
+
+	add_str_binlist(&buff_list, uri_realm);
+	calulate_md5_hash(&buff_list, digest, sizeof(digest));
 
 	free(meth);
 	free(uri_realm);
@@ -375,6 +350,7 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 	get_hexstring(digest, sizeof(digest), nonce, nonce_size);
 	len = nonce_size - strlen(nonce) - 1;
 	strncat(nonce, tshex, len);
+	free_binlist(&buff_list);
 }
 
 int http_authentication_failure_resp(FILE *fp, const char *http_meth, const char *uri,

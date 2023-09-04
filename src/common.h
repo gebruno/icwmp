@@ -587,6 +587,12 @@ typedef struct intf_reset_node {
 	struct list_head list;
 } intf_reset_node;
 
+typedef struct bin_list {
+	uint8_t bin[1024];
+	size_t len;
+	struct list_head list;
+} bin_list_t;
+
 extern struct cwmp *cwmp_main;
 extern long int flashsize;
 extern struct FAULT_CPE FAULT_CPE_ARRAY[];
@@ -644,4 +650,8 @@ void check_firewall_restart_state();
 void add_day_to_time(struct tm *time);
 int set_rpc_acs_to_supported(const char *rpc_name);
 void set_rpc_parameter_key(char *param_key);
+
+void add_bin_list(struct list_head *list, uint8_t *str, size_t len);
+void add_str_binlist(struct list_head *list, char *str);
+void free_binlist(struct list_head *list);
 #endif

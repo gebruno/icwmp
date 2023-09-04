@@ -939,3 +939,43 @@ void add_day_to_time(struct tm *time)
 	} else
 		time->tm_mday = time->tm_mday + 1;
 }
+
+void add_bin_list(struct list_head *list, uint8_t *str, size_t len)
+{
+	bin_list_t *node;
+
+	if (len >= 1024) {
+		CWMP_LOG(ERROR, "Binary length out of index");
+		return;
+	}
+
+	node = (bin_list_t *)calloc(1, sizeof(*node));
+	if (!node) {
+		CWMP_LOG(ERROR, "Out of memory!");
+		return;
+	}
+
+	INIT_LIST_HEAD(&node->list);
+	memcpy(node->bin, str, len);
+	node->len = len;
+
+	list_add_tail(&node->list, list);
+}
+
+void add_str_binlist(struct list_head *list, char *str)
+{
+	if (str != NULL) {
+		add_bin_list(list, (uint8_t *)str, strlen(str));
+	}
+}
+
+void free_binlist(struct list_head *blist)
+{
+	bin_list_t *iter = NULL, *node;
+
+	list_for_each_entry_safe(iter, node, blist, list) {
+		list_del(&iter->list);
+		FREE(iter);
+	}
+}
+
