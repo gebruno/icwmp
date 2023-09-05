@@ -1247,10 +1247,12 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	}
 	FREE(object_name);
 	FREE(parameter_key);
+	FREE(res.instance);
 	cwmp_set_end_session(END_SESSION_RESTART_SERVICES);
 	return 0;
 
 fault:
+	FREE(res.instance);
 	FREE(object_name);
 	FREE(parameter_key);
 	if (cwmp_create_fault_message(rpc, fault_code, res.fault_msg))

@@ -493,7 +493,7 @@ static void ubus_objects_callback(struct ubus_request *req, int type __attribute
 		}
 
 		if (tb[0])
-			result->instance = strdup(blobmsg_get_string(tb[0]));
+			result->instance = CWMP_STRDUP(blobmsg_get_string(tb[0]));
 	}
 }
 

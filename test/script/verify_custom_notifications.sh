@@ -60,7 +60,7 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.Users."`
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.SSH."`
 if [[ $notif1 == *"Device.SSH."* ]]; then
 	echo "FAIL: the json file is invalid, the active notifcation list shouldn't contain Device.SSH. parameter"
 	exit 1

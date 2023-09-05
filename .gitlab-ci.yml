@@ -1,20 +1,17 @@
+variables:
+  DEBUG: 'TRUE'
+  SOURCE_FOLDER: "./src"
+  FLAWFINDER_OPTIONS: "-m 4 --error-level=5"
+  CPPCHECK_OPTIONS: " --enable=all --error-exitcode=1 -D_GNU_SOURCE --suppress=unusedFunction -i ./test/ --inline-suppr"
+
 include:
   - project: 'iopsys/gitlab-ci-pipeline'
     file: '/static-code-analysis.yml'
-    ref: '0.27'
+    ref: '0.30'
   - project: 'docs/portal2/pipeline-template'
     file: 'MkDocs.gitlab-ci.yml'
     rules:
        - if: $CI_COMMIT_BRANCH == "devel"
-
-variables:
-  DEBUG: 'TRUE'
-  RUN_CPPCHECK: "cppcheck --enable=all --error-exitcode=1 -D_GNU_SOURCE --suppress=unusedFunction -i ./test/ --inline-suppr"
-  SOURCE_FOLDER: "./src"
-  CWMP_WORKER_PROCESSES: 1
-  NBI_WORKER_PROCESSES: 1
-  FS_WORKER_PROCESSES: 1
-  UI_WORKER_PROCESSES: 1
 
 stages:
     - static_code_analysis
@@ -33,32 +30,37 @@ run_unit_test:
    artifacts:
       when: always
       paths:
-         - timestamp
-         - /tmp/memory-report.xml
+         - memory-report.xml
          - unit-test-coverage.xml
 
 run_api_test:
     stage: functional_test
     image: "${COMMON_IMAGE}"
+    services:
+      - name: dev.iopsys.eu:5050/lcm/swmodd/acs:latest
+        alias: acs
     allow_failure: false
     script:
     - "./gitlab-ci/install-dependencies.sh"
     - "./gitlab-ci/setup.sh"
-    - "./gitlab-ci/functional-api-test.sh"
+    - "./gitlab-ci/api-test.sh"
 
     artifacts:
         when: always
         reports:
             junit: ./report/tap.xml
         paths:
-            - timestamp
             - api-test-coverage.xml
-            - /tmp/memory-report.xml
+            - memory-report.xml
             - api-test-result.log
 
 run_functional_test:
     stage: functional_test
     image: "${COMMON_IMAGE}"
+    services:
+      - name: dev.iopsys.eu:5050/lcm/swmodd/acs:latest
+        alias: acs
+
     allow_failure: false
     script:
     - "./gitlab-ci/install-dependencies.sh"
@@ -70,10 +72,9 @@ run_functional_test:
         reports:
             junit: ./report/tap.xml
         paths:
-            - timestamp
             - funl-test-coverage.xml
             - funl-test-result.log
             - funl-test-debug.log
-            - /tmp/memory-report.xml
+            - memory-report.xml
             - memory-report-download.xml
             - icwmpd_debug.txt

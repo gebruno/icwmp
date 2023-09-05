@@ -9,12 +9,6 @@ trap cleanup SIGINT
 
 [ -f /etc/icwmpd/cwmp_notifications ] && echo "" >/etc/icwmpd/cwmp_notifications || touch /etc/icwmpd/cwmp_notifications
 
-echo "Configure download server"
-configure_download_firmware
-
-rm /etc/supervisor/conf.d/*.conf
-cp ./gitlab-ci/iopsys-supervisord-unit.conf /etc/supervisor/conf.d/
-
 echo "Compiling icmwp"
 build_icwmp
 
@@ -44,6 +38,5 @@ supervisorctl status
 gcovr -r . 2> /dev/null #throw away stderr
 # Artefact
 gcovr -r . 2> /dev/null --xml -o ./unit-test-coverage.xml
-date +%s > timestamp
 
 echo "Unit test PASS"

@@ -36,7 +36,7 @@ sleep 2
 check_session "GetParameterValues"
 param_value_after=$(print_tag_value "cwmp:GetParameterValuesResponse" "Value xsi:type=\"xsd:boolean\"")
 if [ "$param_value_after" != "0" ]; then
-	echo "Error: the value of 'Device.Users.User.1.Enable' is wrong, current_value($param_value_after) expected_value(0)" >> ./funl-test-debug.log
+	echo "Error: the value of 'Device.SSH.Server.1.Enable' is wrong, current_value($param_value_after) expected_value(0)" >> ./funl-test-debug.log
 	exit 1
 fi
 

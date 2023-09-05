@@ -36,41 +36,29 @@ function exec_cmd()
 	fi
 }
 
-function configure_genieacs()
+function configure_acs()
 {
-	echo "create a new user"
-	curl -X POST 'http://localhost:3000/init' -H "Content-Type: application/json" --data '{"users": true, "presets": true, "filters": true, "device": true, "index": true, "overview": true}' >/dev/null 2>&1
+	echo "Create a new ACS User"
+	curl -X POST 'http://acs:3000/init' -H "Content-Type: application/json" --data '{"users": true, "presets": true, "filters": true, "device": true, "index": true, "overview": true}' >/dev/null 2>&1
 	check_ret $?
 
-	echo "delete the default provision inform"
-	curl -X DELETE 'http://localhost:7557/provisions/inform' >/dev/null 2>&1
+	echo "Delete the default provision inform from ACS"
+	curl -X DELETE 'http://acs:7557/provisions/inform' >/dev/null 2>&1
 	check_ret $?
 
-	echo "add a new provision inform"
-	curl -X PUT 'http://localhost:7557/provisions/inform' --data-binary '@/tmp/connection_request_auth' >/dev/null 2>&1
+	echo "Add a new provision inform in ACS"
+	curl -X PUT 'http://acs:7557/provisions/inform' --data-binary '@/tmp/connection_request_auth' >/dev/null 2>&1
 	check_ret $?
 
 	#echo "get the supported provisions"
-	#curl -X GET 'http://localhost:7557/provisions/'
+	#curl -X GET 'http://acs:7557/provisions/'
 	#check_ret $?
 
-	echo "upload firmware image to genieacs server"
-	exec_cmd dd if=/dev/zero of=/tmp/firmware_v1.0.bin bs=25MB count=1
-	echo "Valid" > /tmp/firmware_v1.0.bin
-	curl -X PUT 'http://localhost:7557/files/firmware_v1.0.bin' --data-binary '@/tmp/firmware_v1.0.bin' --header "fileType: 1 Firmware Upgrade Image" --header "oui: XXX" --header "productClass: FirstClass" --header "version: 000000001" >/dev/null 2>&1
-	check_ret $?
-}
-
-function configure_download_firmware()
-{
-	echo "Install lighttpd"
-
-	mkdir -p /tmp/firmware/
-	exec_cmd dd if=/dev/zero of=/tmp/firmware/firmware_v1.0.bin bs=25MB count=1
-	echo "Valid" > /tmp/firmware/firmware_v1.0.bin
-
-	exec_cmd dd if=/dev/zero of=/tmp/firmware/invalid_firmware_v1.0.bin bs=25MB count=1
-	echo "Invalid" > /tmp/firmware/invalid_firmware_v1.0.bin
+	#echo "Upload firmware image to ACS server"
+	#exec_cmd dd if=/dev/zero of=/tmp/firmware_v1.0.bin bs=25MB count=1
+	#echo "Valid" > /tmp/firmware_v1.0.bin
+	#curl -X PUT 'http://localhost:7557/files/firmware_v1.0.bin' --data-binary '@/tmp/firmware_v1.0.bin' --header "fileType: 1 Firmware Upgrade Image" --header "oui: XXX" --header "productClass: FirstClass" --header "version: 000000001" >/dev/null 2>&1
+	#check_ret $?
 }
 
 function check_cwmp_status()
@@ -146,12 +134,14 @@ function install_bbfdmd()
 	fi
 
 	cd /opt/dev/bbfdm
-	./gitlab-ci/install-dependencies.sh install
-	./gitlab-ci/setup.sh install
+	exec_cmd ./gitlab-ci/install-dependencies.sh install
+	exec_cmd ./gitlab-ci/setup.sh install
 }
 
 function check_valgrind_xml() {
 	echo "Checking memory leaks..."
+	cp /tmp/memory-report.xml memory-report.xml
+
 	echo "checking UninitCondition"
 	grep -q "<kind>UninitCondition</kind>" /tmp/memory-report.xml
 	error_on_zero $?

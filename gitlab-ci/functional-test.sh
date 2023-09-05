@@ -11,36 +11,30 @@ trap cleanup SIGINT
 echo "Compiling icmwp"
 build_icwmp
 
-echo "Starting dependent services"
-supervisorctl update
-sleep 2
-supervisorctl restart all
-sleep 2
-supervisorctl stop icwmpd
-sleep 2
-supervisorctl status all
-
-echo "Configuring genieacs"
-configure_genieacs
+echo "Configuring ACS"
+configure_acs
 
 mkdir -p /var/state/icwmpd 
 
-echo "Starting icwmpd deamon"
-supervisorctl start icwmpd
+echo "Starting Services..."
+cp ./gitlab-ci/icwmp.conf /etc/supervisor/conf.d/
+supervisorctl reread
+supervisorctl update
 sleep 10
+supervisorctl status all
 
 echo "Checking cwmp status"
 check_cwmp_status
+supervisorctl status all
 
 [ -f funl-test-result.log ] && rm -f funl-test-result.log
 
-sleep 10
 echo "## Running script verification of functionalities ##"
 echo > ./funl-test-result.log
 echo > ./funl-test-debug.log
 test_num=0
 
-for test in $(ls test/script/0*.sh); do
+for test in $(cat test/script/run_sequence.txt); do
 	test=$(basename ${test})
 	test_num=$(( test_num + 1 ))
 
@@ -57,6 +51,7 @@ for test in $(ls test/script/0*.sh); do
 		echo "#### $test Ended with error ####" >> "$icwmp_master_log"
 		echo "#### $test Ended with error ####"
 	fi
+	sleep 1
 done
 
 echo "Stop all services"
@@ -64,9 +59,6 @@ supervisorctl stop icwmpd
 
 sleep 10
 check_valgrind_xml
-
-cp test/files/etc/config/users /etc/config/
-cp test/files/etc/config/wireless /etc/config/
 
 echo "Verify Custom notifications"
 echo "#### Start custom_notifications ####" >> "$icwmp_master_log"
@@ -94,7 +86,5 @@ exec_cmd tap-junit --input ./funl-test-result.log --output report
 
 sleep 10
 check_valgrind_xml
-
-date +%s > timestamp.log
 
 echo "Functional test :: PASS"
