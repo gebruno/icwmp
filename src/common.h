@@ -112,7 +112,6 @@ typedef struct config {
 	char cpe_userid[BUF_SIZE_256];
 	char cpe_passwd[BUF_SIZE_256];
 	char custom_notify_json[BUF_SIZE_256];
-	char ubus_socket[BUF_SIZE_256];
 	char connection_request_path[BUF_SIZE_256];
 	char auto_tc_transfer_type[BUF_SIZE_16];
 	char auto_tc_result_type[BUF_SIZE_16];

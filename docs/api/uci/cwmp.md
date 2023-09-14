@@ -325,13 +325,6 @@
                     <td class="td_row_odd"><div class="td_row_odd">CPE Connection request URI path</div></td>
                   </tr>
                   <tr>
-                    <td class="td_row_even"><div class="td_row_even">ubus_socket</div></td>
-                    <td class="td_row_even"><div class="td_row_even">string</div></td>
-                    <td class="td_row_even"><div class="td_row_even">no</div></td>
-                    <td class="td_row_even"><div class="td_row_even">NULL</div></td>
-                    <td class="td_row_even"><div class="td_row_even">Specifies the path of the ubus socket.</div></td>
-                  </tr>
-                  <tr>
                     <td class="td_row_odd"><div class="td_row_odd">provisioning_code</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">string</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>

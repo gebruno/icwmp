@@ -251,13 +251,6 @@
           "description": "CPE Connection request URI path"
         },
         {
-          "name": "ubus_socket",
-          "type": "string",
-          "required": "no",
-          "default": "NULL",
-          "description": "Specifies the path of the ubus socket."
-        },
-        {
           "name": "provisioning_code",
           "type": "string",
           "required": "no",

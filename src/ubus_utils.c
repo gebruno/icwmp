@@ -370,9 +370,7 @@ void bb_add_string(struct blob_buf *bb, const char *name, const char *value)
 
 int icwmp_uloop_ubus_init()
 {
-	char *u_sock_path = strlen(cwmp_main->conf.ubus_socket) ? cwmp_main->conf.ubus_socket : NULL;
-
-	ubus_ctx = ubus_connect(u_sock_path);
+	ubus_ctx = ubus_connect(NULL);
 	if (!ubus_ctx)
 		return -1;
 

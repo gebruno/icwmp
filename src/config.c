@@ -448,7 +448,6 @@ static void configure_var_state(void)
 
 int get_preinit_config()
 {
-#define UCI_CPE_UBUS_SOCKET_PATH "cwmp.cpe.ubus_socket"
 #define UCI_CPE_LOG_FILE_NAME "cwmp.cpe.log_file_name"
 #define UCI_CPE_LOG_MAX_SIZE "cwmp.cpe.log_max_size"
 #define UCI_CPE_ENABLE_STDOUT_LOG "cwmp.cpe.log_to_console"
@@ -465,10 +464,6 @@ int get_preinit_config()
 
 	uci_get_value(UCI_LOG_SEVERITY_PATH, &value);
 	log_set_severity_idx(value);
-	FREE(value);
-
-	uci_get_value(UCI_CPE_UBUS_SOCKET_PATH, &value);
-	snprintf(cwmp_main->conf.ubus_socket, sizeof(cwmp_main->conf.ubus_socket), "%s", value ? value : "");
 	FREE(value);
 
 	uci_get_value(UCI_CPE_LOG_FILE_NAME, &value);
@@ -513,7 +508,6 @@ int get_preinit_config()
 
 	cwmp_uci_exit();
 
-	CWMP_LOG(DEBUG, "CWMP CONFIG - ubus socket: %s", cwmp_main->conf.ubus_socket);
 	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", cwmp_main->conf.default_wan_iface);
 	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", cwmp_main->conf.amd_version);
 
