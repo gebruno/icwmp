@@ -102,7 +102,7 @@ char *check_valid_parameter_path(char *parameter_name)
 	/*check if parameter name is valid parameter path*/
 	error = cwmp_get_parameter_names(parameter_name, false, &parameters_list);
 
-	if (error != NULL && strcmp(error, "9003") == 0)
+	if (CWMP_STRCMP(error, "9003") == 0)
 		error = cwmp_get_parameter_values(parameter_name, &parameters_list);
 
 	cwmp_free_all_dm_parameter_list(&parameters_list);
@@ -247,7 +247,7 @@ int get_parameter_family_notifications(char *parameter_name, struct list_head *c
 						parent_param = e->name;
 						notif_ret = i;
 				}
-				if (strcmp(parameter_name, e->name) == 0)
+				if (CWMP_STRCMP(parameter_name, e->name) == 0)
 					notif_ret = i;
 			}
 		}
@@ -265,7 +265,7 @@ int get_parameter_leaf_notification_from_childs_list(char *parameter_name, struc
 	if (childs_list == NULL)
 		return -1;
 	list_for_each_entry (param_value, childs_list, list) {
-		if (param_value->name && strcmp(param_value->name, parameter_name) == 0) {
+		if (CWMP_STRCMP(param_value->name, parameter_name) == 0) {
 			ret_notif = param_value->notification;
 			break;
 		}
@@ -343,9 +343,9 @@ bool parameter_is_other_notif_object_child(char *parent, char *parameter)
 		list_iter.next = list_ptr->next;
 		if (dm_parameter->name == NULL)
 			continue;
-		if (strcmp(parent, dm_parameter->name) == 0)
+		if (CWMP_STRCMP(parent, dm_parameter->name) == 0)
 			continue;
-		if (strncmp(parent, dm_parameter->name, strlen(parent)) == 0 && strncmp(parameter, dm_parameter->name, strlen(dm_parameter->name)) == 0)
+		if (CWMP_STRNCMP(parent, dm_parameter->name, strlen(parent)) == 0 && CWMP_STRNCMP(parameter, dm_parameter->name, strlen(dm_parameter->name)) == 0)
 			return true;
 	}
 	return false;
@@ -428,7 +428,7 @@ void update_notify_file_line(FILE *notify_file, char *param_name, char *param_ty
 	if (param_name == NULL)
 		return;
 	struct blob_buf bbuf;
-	memset(&bbuf, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 	blobmsg_add_string(&bbuf, "parameter", param_name);
 	blobmsg_add_u32(&bbuf, "notification", notification);
@@ -474,7 +474,7 @@ void load_custom_notify_json(void)
 	if (file_exists(NOTIFY_MARKER) == true)
 		return;
 
-	memset(&bbuf, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
 	// Create success marker in temp area, so that it can be in sync with backup script
@@ -600,7 +600,7 @@ int check_value_change(void)
 		if (len)
 			buf[len - 1] = '\0';
 
-		memset(&bbuf, 0, sizeof(struct blob_buf));
+		CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 		blob_buf_init(&bbuf, 0);
 
 		if (blobmsg_add_json_from_string(&bbuf, buf) == false) {
@@ -626,7 +626,7 @@ int check_value_change(void)
 		}
 		if ((notification >= 1) && (dm_value != NULL) && value && (strcmp(dm_value, value) != 0)) {
 
-			if (cwmp_main->conf.md_notif_limit > 0 && strcmp(parameter, MANAGEABLE_DEVICES_NBRE) == 0 && notification == 2) {
+			if (cwmp_main->conf.md_notif_limit > 0 && CWMP_STRCMP(parameter, MANAGEABLE_DEVICES_NBRE) == 0 && notification == 2) {
 				unsigned int time_from_last_vc = time(NULL) - cwmp_main->md_value_change_last_time;
 				if ((cwmp_main->md_value_change_last_time <= 0) || (time_from_last_vc >= cwmp_main->conf.md_notif_limit)) {
 					cwmp_main->md_value_change_last_time = time(NULL);

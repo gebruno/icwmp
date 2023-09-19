@@ -56,7 +56,7 @@ static bool interface_reset_req(char *param_name, char *value)
 	if (match_reg_exp(reg_exp, param_name) == false)
 		return false;
 
-	if (strcmp(value, "1") != 0 && strcmp(value, "true") != 0)
+	if (CWMP_STRCMP(value, "1") != 0 && CWMP_STRCMP(value, "true") != 0)
 		return false;
 
 	return true;
@@ -87,7 +87,7 @@ void set_interface_reset_request(char *param_name, char *value)
 		return;
 	}
 
-	memset(node, 0, sizeof(intf_reset_node));
+	CWMP_MEMSET(node, 0, sizeof(intf_reset_node));
 	snprintf(node->path, len, "%s", param_name);
 	INIT_LIST_HEAD(&node->list);
 	list_add_tail(&node->list, &intf_reset_list);
@@ -128,7 +128,7 @@ static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 	struct blob_attr *attr;
 	const char *path;
 
-	if (type && strcmp(type, "ubus.object.add") != 0)
+	if (CWMP_STRCMP(type, "ubus.object.add") != 0)
 		return;
 
 	blobmsg_parse(&policy, 1, &attr, blob_data(msg), blob_len(msg));
@@ -136,7 +136,7 @@ static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
 		return;
 
 	path = blobmsg_data(attr);
-	if (path && strcmp(path, BBFDM_OBJECT_NAME) == 0) {
+	if (CWMP_STRCMP(path, BBFDM_OBJECT_NAME) == 0) {
 		g_bbf_object_available = true;
 		uloop_end();
 	}
@@ -168,7 +168,7 @@ static int wait_for_bbf_object()
 	ubus_add_uloop(uctx);
 
 	// register for add event
-	memset(&add_event, 0, sizeof(struct ubus_event_handler));
+	CWMP_MEMSET(&add_event, 0, sizeof(struct ubus_event_handler));
 	add_event.cb = lookup_event_cb;
 	ubus_register_event_handler(uctx, &add_event, "ubus.object.add");
 
@@ -180,7 +180,7 @@ static int wait_for_bbf_object()
 	}
 
 	// Set timeout to expire lookup
-	memset(&u_timeout, 0, sizeof(struct uloop_timeout));
+	CWMP_MEMSET(&u_timeout, 0, sizeof(struct uloop_timeout));
 	u_timeout.cb = lookup_timeout_cb;
 	uloop_timeout_set(&u_timeout, BBF_WAIT_TIMEOUT * 1000);
 
@@ -206,7 +206,7 @@ static int cwmp_init(void)
 
 	cwmp_main = (struct cwmp *)calloc(1, sizeof(struct cwmp));
 
-	memset(cwmp_main, 0, sizeof(struct cwmp));
+	CWMP_MEMSET(cwmp_main, 0, sizeof(struct cwmp));
 
 	get_preinit_config();
 
@@ -262,10 +262,10 @@ static int cwmp_init(void)
 	create_cwmp_session_structure();
 	get_nonce_key();
 
-	memset(&intf_reset_list, 0, sizeof(struct list_head));
+	CWMP_MEMSET(&intf_reset_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&intf_reset_list);
 
-	memset(&du_uuid_list, 0, sizeof(struct list_head));
+	CWMP_MEMSET(&du_uuid_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&du_uuid_list);
 
 	cwmp_main->start_time = time(NULL);
@@ -320,14 +320,14 @@ int main(int argc, char **argv)
 	if (error)
 		return error;
 
-	memset(&env, 0, sizeof(struct env));
+	CWMP_MEMSET(&env, 0, sizeof(struct env));
 	if ((error = global_env_init(argc, argv, &env)))
 		return error;
 
 	if ((error = cwmp_init()))
 		return error;
 
-	memcpy(&(cwmp_main->env), &env, sizeof(struct env));
+	CWMP_MEMCPY(&(cwmp_main->env), &env, sizeof(struct env));
 
 	if ((error = cwmp_init_backup_session(NULL, ALL)))
 		return error;

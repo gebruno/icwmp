@@ -110,7 +110,7 @@ mxml_node_t *bkp_session_node_found(mxml_node_t *tree, char *name, struct search
 		if (c) {
 			i = 0;
 			while (c && i < size) {
-				if (mxmlGetType(c) == MXML_ELEMENT && strcmp(keys[i].name, (char *) mxmlGetElement(c)) == 0) {
+				if (mxmlGetType(c) == MXML_ELEMENT && CWMP_STRCMP(keys[i].name, (char *) mxmlGetElement(c)) == 0) {
 					d = c;
 					d = mxmlWalkNext(d, c, MXML_DESCEND);
 					if ((keys[i].value == NULL) || (d && mxmlGetType(d) == MXML_OPAQUE && CWMP_STRCMP(keys[i].value, mxmlGetOpaque(d)) == 0))
@@ -691,49 +691,49 @@ int cwmp_load_saved_session(char **ret, enum backup_loading load)
 		mxml_type_t ntype = mxmlGetType(b);
 		const char *elem_name = mxmlGetElement(b);
 		if (load == ACS) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "acs") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "acs") == 0) {
 				*ret = load_child_value(b, "URL");
 				break;
 			}
 		}
 		if (load == CR_IP) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "ip");
 				break;
 			}
 		}
 		if (load == CR_IPv6) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "ipv6");
 				break;
 			}
 		}
 		if (load == CR_PORT) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "connection_request") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "connection_request") == 0) {
 				*ret = load_child_value(b, "port");
 				break;
 			}
 		}
 		if (load == ALL) {
-			if (ntype == MXML_ELEMENT && strcmp(elem_name, "cwmp_event") == 0) {
+			if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "cwmp_event") == 0) {
 				load_queue_event(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "download") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "download") == 0) {
 				load_download(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "upload") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "upload") == 0) {
 				load_upload(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "transfer_complete") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "transfer_complete") == 0) {
 				load_transfer_complete(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "schedule_inform") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "schedule_inform") == 0) {
 				load_schedule_inform(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "change_du_state") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "change_du_state") == 0) {
 				load_change_du_state(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "du_state_change_complete") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "du_state_change_complete") == 0) {
 				load_du_state_change_complete(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "schedule_download") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "schedule_download") == 0) {
 				load_schedule_download(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "autonomous_du_state_change_complete") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "autonomous_du_state_change_complete") == 0) {
 				load_autonomous_du_state_change_complete(b);
-			} else if (ntype == MXML_ELEMENT && strcmp(elem_name, "autonomous_transfer_complete") == 0) {
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "autonomous_transfer_complete") == 0) {
 				load_autonomous_transfer_complete(b);
 			}
 		}

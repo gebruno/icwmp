@@ -88,7 +88,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS];
 
-	memset(cpe_tb, 0, sizeof(cpe_tb));
+	CWMP_MEMSET(cpe_tb, 0, sizeof(cpe_tb));
 	uci_parse_section(s, cpe_opts, __MAX_NUM_UCI_CPE_ATTRS, cpe_tb);
 
 	snprintf(cwmp_main->conf.cpe_userid, sizeof(cwmp_main->conf.cpe_userid), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_USER_ID]));
@@ -167,7 +167,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 	cwmp_main->conf.instance_mode = DEFAULT_INSTANCE_MODE;
 	char *instance_mode = get_value_from_uci_option(cpe_tb[UCI_CPE_INSTANCE_MODE]);
 	if (strlen(instance_mode) != 0) {
-		if (strcmp(instance_mode, "InstanceNumber") == 0) {
+		if (CWMP_STRCMP(instance_mode, "InstanceNumber") == 0) {
 			cwmp_main->conf.instance_mode = INSTANCE_MODE_NUMBER;
 		} else {
 			cwmp_main->conf.instance_mode = INSTANCE_MODE_ALIAS;
@@ -229,7 +229,7 @@ static void config_get_acs_elements(struct uci_section *s)
 
 	struct uci_option *acs_tb[__MAX_NUM_UCI_ACS_ATTRS];
 
-	memset(acs_tb, 0, sizeof(acs_tb));
+	CWMP_MEMSET(acs_tb, 0, sizeof(acs_tb));
 	uci_parse_section(s, acs_opts, __MAX_NUM_UCI_ACS_ATTRS, acs_tb);
 
 	cwmp_main->conf.http_disable_100continue = uci_str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_HTTP_DISABLE_100CONTINUE]));
@@ -347,7 +347,7 @@ static void config_get_lwn_elements(struct uci_section *s)
 
 	struct uci_option *lwn_tb[__MAX_NUM_UCI_LWN_ATTRS];
 
-	memset(lwn_tb, 0, sizeof(lwn_tb));
+	CWMP_MEMSET(lwn_tb, 0, sizeof(lwn_tb));
 	uci_parse_section(s, acs_opts, __MAX_NUM_UCI_LWN_ATTRS, lwn_tb);
 
 	cwmp_main->conf.lwn_enable = uci_str_to_bool(get_value_from_uci_option(lwn_tb[UCI_LWN_ENABLE]));
@@ -384,7 +384,7 @@ static void config_get_tc_elements(struct uci_section *s)
 
 	struct uci_option *tc_tb[__MAX_NUM_UCI_TC_ATTRS];
 
-	memset(tc_tb, 0, sizeof(tc_tb));
+	CWMP_MEMSET(tc_tb, 0, sizeof(tc_tb));
 	uci_parse_section(s, acs_opts, __MAX_NUM_UCI_TC_ATTRS, tc_tb);
 
 	cwmp_main->conf.auto_tc_enable = uci_str_to_bool(get_value_from_uci_option(tc_tb[UCI_TC_ENABLE]));
@@ -419,7 +419,7 @@ static void config_get_cds_elements(struct uci_section *s)
 
 	struct uci_option *cds_tb[__MAX_NUM_UCI_CDS_ATTRS];
 
-	memset(cds_tb, 0, sizeof(cds_tb));
+	CWMP_MEMSET(cds_tb, 0, sizeof(cds_tb));
 	uci_parse_section(s, cdu_opts, __MAX_NUM_UCI_CDS_ATTRS, cds_tb);
 
 	cwmp_main->conf.auto_cdu_enable = uci_str_to_bool(get_value_from_uci_option(cds_tb[UCI_CDS_ENABLE]));
@@ -535,15 +535,15 @@ int get_global_config()
 		if (s == NULL || s->type == NULL)
 			continue;
 
-		if (strcmp(s->type, "acs") == 0) {
+		if (CWMP_STRCMP(s->type, "acs") == 0) {
 			config_get_acs_elements(s);
-		} else if (strcmp(s->type, "cpe") == 0) {
+		} else if (CWMP_STRCMP(s->type, "cpe") == 0) {
 			config_get_cpe_elements(s);
-		} else if (strcmp(s->type, "lwn") == 0) {
+		} else if (CWMP_STRCMP(s->type, "lwn") == 0) {
 			config_get_lwn_elements(s);
-		} else if (strcmp(s->type, "transfer_complete") == 0) {
+		} else if (CWMP_STRCMP(s->type, "transfer_complete") == 0) {
 			config_get_tc_elements(s);
-		} else if (strcmp(s->type, "du_state_change") == 0) {
+		} else if (CWMP_STRCMP(s->type, "du_state_change") == 0) {
 			config_get_cds_elements(s);
 		}
 	}
@@ -629,7 +629,7 @@ int cwmp_get_deviceid()
 
 int cwmp_config_reload()
 {
-	memset(&cwmp_main->env, 0, sizeof(struct env));
+	CWMP_MEMSET(&cwmp_main->env, 0, sizeof(struct env));
 
 	int err = global_conf_init();
 	if (err != CWMP_OK)

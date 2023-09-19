@@ -118,13 +118,13 @@ int xml_handle_message()
 		char *tmp = strchr(c, ':');
 		size_t ns_len = tmp - c;
 
-		if (strlen(ns.cwmp) != ns_len) {
+		if (CWMP_STRLEN(ns.cwmp) != ns_len) {
 			CWMP_LOG(INFO, "Namespace length is not matched in string (%s) and expected (%s)", c, ns.cwmp);
 			cwmp_main->session->fault_code = FAULT_CPE_REQUEST_DENIED;
 			goto fault;
 		}
 
-		if (strncmp(ns.cwmp, c, ns_len)) {
+		if (CWMP_STRNCMP(ns.cwmp, c, ns_len)) {
 			CWMP_LOG(INFO, "Namespace in string (%s) is not the expected (%s) one", c, ns.cwmp);
 			cwmp_main->session->fault_code = FAULT_CPE_REQUEST_DENIED;
 			goto fault;
@@ -138,7 +138,7 @@ int xml_handle_message()
 	}
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
-		if (i != RPC_CPE_FAULT && c && strcmp(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
+		if (i != RPC_CPE_FAULT && c && CWMP_STRCMP(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
 			cwmp_main->session->rpc_cpe = build_sessin_rcp_cpe(i);
 			if (cwmp_main->session->rpc_cpe == NULL)
@@ -175,7 +175,7 @@ static int xml_prepare_parameters_inform(struct cwmp_dm_parameter *dm_parameter,
 			return 0;
 		mxml_node_t *c = mxmlGetFirstChild(b);
 		const char *c_opaque = c ? mxmlGetOpaque(c) : NULL;
-		if (c && c_opaque && strcmp(dm_parameter->value, c_opaque) == 0)
+		if (c && c_opaque && CWMP_STRCMP(dm_parameter->value, c_opaque) == 0)
 			return 0;
 		mxmlDelete(b);
 		(*size)--;
@@ -188,9 +188,9 @@ static int xml_prepare_parameters_inform(struct cwmp_dm_parameter *dm_parameter,
 			return -1;
 		struct xml_data_struct inform_params_xml_attrs = {0};
 		struct xml_list_data *xml_data = calloc(1, sizeof(struct xml_list_data));
-		xml_data->param_name = strdup(dm_parameter->name);
-		xml_data->param_value = strdup(dm_parameter->value);
-		xml_data->param_type = strdup(type);
+		xml_data->param_name = CWMP_STRDUP(dm_parameter->name);
+		xml_data->param_value = CWMP_STRDUP(dm_parameter->value);
+		xml_data->param_type = CWMP_STRDUP(type);
 		LIST_HEAD(prameters_xml_list);
 		list_add_tail(&xml_data->list, &prameters_xml_list);
 		inform_params_xml_attrs.data_list = &prameters_xml_list;
@@ -220,7 +220,7 @@ bool event_in_session_event_list(char *event, struct list_head *list_evts)
 	if (event == NULL)
 		return false;
 	list_for_each_entry (event_container, list_evts, list) {
-		if (strcmp(event, EVENT_CONST[event_container->code].CODE) == 0)
+		if (CWMP_STRCMP(event, EVENT_CONST[event_container->code].CODE) == 0)
 			return true;
 	}
 	return false;
@@ -229,7 +229,7 @@ bool event_in_session_event_list(char *event, struct list_head *list_evts)
 bool check_inform_parameter_events_list_corresponding(char *events_str_list, struct list_head *list_evts)
 {
 	char *evt = NULL;
-	if (events_str_list == NULL || strlen(events_str_list) == 0)
+	if (CWMP_STRLEN(events_str_list) == 0)
 		return true;
 	foreach_elt_in_strlist(evt, events_str_list, ",") {
 		if (event_in_session_event_list(evt, list_evts))
@@ -960,7 +960,7 @@ int is_duplicated_parameter(mxml_node_t *param_node)
 		mxml_type_t node_type = mxmlGetType(b);
 		const char *parent_name = parent ? mxmlGetElement(parent) : NULL;
 
-		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && node_name && parent_name && !strcmp(parent_name, "Name")) {
+		if (node_type == MXML_OPAQUE && node_opaque && mxmlGetType(parent) == MXML_ELEMENT && node_name && !CWMP_STRCMP(parent_name, "Name")) {
 			if (strcmp(node_opaque, mxmlGetOpaque(param_node)) == 0)
 				return -1;
 		}
@@ -1282,7 +1282,7 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
 		if (i != RPC_CPE_FAULT) {
 			struct xml_list_data *xml_data = calloc(1, sizeof(struct xml_list_data));
-			xml_data->rpc_name = strdup(rpc_cpe_methods[i].name);
+			xml_data->rpc_name = CWMP_STRDUP(rpc_cpe_methods[i].name);
 			list_add(&(xml_data->list), &rpcs_list);
 			counter++;
 		}
@@ -1413,7 +1413,7 @@ int cancel_transfer(char *key)
 	if (list_download.next != &(list_download)) {
 		list_for_each_safe (ilist, q, &(list_download)) {
 			struct download *pdownload = list_entry(ilist, struct download, list);
-			if (key && pdownload->command_key && strcmp(pdownload->command_key, key) == 0) {
+			if (CWMP_STRCMP(pdownload->command_key, key) == 0) {
 				bkp_session_delete_element("download", pdownload->id);
 				bkp_session_save();
 				list_del(&(pdownload->list));
@@ -1426,7 +1426,7 @@ int cancel_transfer(char *key)
 	if (list_upload.next != &(list_upload)) {
 		list_for_each_safe (ilist, q, &(list_upload)) {
 			struct upload *pupload = list_entry(ilist, struct upload, list);
-			if (key && pupload->command_key &&  strcmp(pupload->command_key, key) == 0) {
+			if (CWMP_STRCMP(pupload->command_key, key) == 0) {
 				bkp_session_delete_element("upload", pupload->id);
 				bkp_session_save();
 				list_del(&(pupload->list));
@@ -1686,15 +1686,15 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 	if (error)
 		goto fault;
 
-	if (strcmp(download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && strcmp(download->file_type, WEB_CONTENT_FILE_TYPE) && strcmp(download->file_type, VENDOR_CONFIG_FILE_TYPE) && strcmp(download->file_type, TONE_FILE_TYPE) && strcmp(download->file_type, RINGER_FILE_TYPE) && strcmp(download->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
+	if (CWMP_STRCMP(download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && CWMP_STRCMP(download->file_type, WEB_CONTENT_FILE_TYPE) && CWMP_STRCMP(download->file_type, VENDOR_CONFIG_FILE_TYPE) && CWMP_STRCMP(download->file_type, TONE_FILE_TYPE) && CWMP_STRCMP(download->file_type, RINGER_FILE_TYPE) && CWMP_STRCMP(download->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
 	} else if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
-	} else if (download->url == NULL || (strcmp(download->url, "") == 0)) {
+	} else if (CWMP_STRLEN(download->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
-	} else if (strstr(download->url, "@") != NULL) {
+	} else if (CWMP_STRSTR(download->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if (strncmp(download->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && strncmp(download->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0 && strncmp(download->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
+	} else if (CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0 && CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
 	}
 	if (error != FAULT_CPE_NO_FAULT)
@@ -1819,17 +1819,17 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 		}
 	}
 
-	if (strcmp(schedule_download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && strcmp(schedule_download->file_type, WEB_CONTENT_FILE_TYPE) && strcmp(schedule_download->file_type, VENDOR_CONFIG_FILE_TYPE) && strcmp(schedule_download->file_type, TONE_FILE_TYPE) && strcmp(schedule_download->file_type, RINGER_FILE_TYPE) && strcmp(schedule_download->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
+	if (CWMP_STRCMP(schedule_download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, WEB_CONTENT_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, VENDOR_CONFIG_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, TONE_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, RINGER_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if ((strcmp(schedule_download->timewindowstruct[0].windowmode, "1 At Any Time") && strcmp(schedule_download->timewindowstruct[0].windowmode, "2 Immediately") && strcmp(schedule_download->timewindowstruct[0].windowmode, "3 When Idle")) || (strcmp(schedule_download->timewindowstruct[1].windowmode, "1 At Any Time") && strcmp(schedule_download->timewindowstruct[1].windowmode, "2 Immediately") && strcmp(schedule_download->timewindowstruct[1].windowmode, "3 When Idle"))) {
+	} else if ((CWMP_STRCMP(schedule_download->timewindowstruct[0].windowmode, "1 At Any Time") && CWMP_STRCMP(schedule_download->timewindowstruct[0].windowmode, "2 Immediately") && CWMP_STRCMP(schedule_download->timewindowstruct[0].windowmode, "3 When Idle")) || (CWMP_STRCMP(schedule_download->timewindowstruct[1].windowmode, "1 At Any Time") && CWMP_STRCMP(schedule_download->timewindowstruct[1].windowmode, "2 Immediately") && CWMP_STRCMP(schedule_download->timewindowstruct[1].windowmode, "3 When Idle"))) {
 		error = FAULT_CPE_REQUEST_DENIED;
 	} else if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
-	} else if (schedule_download->url == NULL || (strcmp(schedule_download->url, "") == 0)) {
+	} else if (CWMP_STRLEN(schedule_download->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
-	} else if (strstr(schedule_download->url, "@") != NULL) {
+	} else if (CWMP_STRSTR(schedule_download->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if (strncmp(schedule_download->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && strncmp(schedule_download->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
+	} else if (CWMP_STRNCMP(schedule_download->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(schedule_download->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
 	} else {
 		for (j = 0; j < 3; j++) {
@@ -1943,11 +1943,11 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 
 	if (count_upload_queue >= MAX_UPLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
-	} else if (upload->url == NULL || (strcmp(upload->url, "") == 0)) {
+	} else if (CWMP_STRLEN(upload->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
-	} else if (strstr(upload->url, "@") != NULL) {
+	} else if (CWMP_STRSTR(upload->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
-	} else if (strncmp(upload->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0  && strncmp(upload->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && strncmp(upload->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
+	} else if (CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0  && CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
 	}
 
@@ -2021,7 +2021,7 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 	char *faultstring = "CWMP fault";
 
 	int fault_code = atoi(cwmp_main->session->fault_code ? FAULT_CPE_ARRAY[cwmp_main->session->fault_code].CODE : "0");
-	char *fault_string = strlen(cwmp_main->session->fault_msg) ? strdup(cwmp_main->session->fault_msg) : strdup(FAULT_CPE_ARRAY[cwmp_main->session->fault_code].DESCRIPTION);
+	char *fault_string = CWMP_STRLEN(cwmp_main->session->fault_msg) ? strdup(cwmp_main->session->fault_msg) : strdup(FAULT_CPE_ARRAY[cwmp_main->session->fault_code].DESCRIPTION);
 
 	fault_xml_attrs.fault_code = &fault_code;
 	fault_xml_attrs.fault_string = &fault_string;

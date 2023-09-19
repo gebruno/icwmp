@@ -279,7 +279,7 @@ int cwmp_uci_get_value_by_section_string(struct uci_section *s, char *option, ch
 	uci_foreach_element(&s->options, e)
 	{
 		o = (uci_to_option(e));
-		if (o && o->e.name && !strcmp(o->e.name, option)) {
+		if (o && !CWMP_STRCMP(o->e.name, option)) {
 			if (o->type == UCI_TYPE_LIST) {
 				*value = cwmp_uci_list_to_string(&o->v.list, " ");
 			} else {
@@ -310,7 +310,7 @@ int cwmp_uci_get_value_by_section_list(struct uci_section *s, char *option, stru
 	uci_foreach_element(&s->options, e)
 	{
 		o = (uci_to_option(e));
-		if (o && o->e.name && strcmp(o->e.name, option) == 0) {
+		if (o && CWMP_STRCMP(o->e.name, option) == 0) {
 			switch (o->type) {
 			case UCI_TYPE_LIST:
 				*value = &o->v.list;
@@ -633,7 +633,7 @@ struct uci_section *cwmp_uci_walk_section(char *package, char *stype, struct uci
 	while (&e->list != list_section) {
 		s = uci_to_section(e);
 
-		if (s && s->type && strcmp(s->type, stype) == 0)
+		if (s && CWMP_STRCMP(s->type, stype) == 0)
 			goto end;
 
 		e = list_to_element(e->list.next);

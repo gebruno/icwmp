@@ -99,12 +99,12 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 	curl = curl_easy_init();
 
 	if (curl) {
-		if (username != NULL && strlen(username) > 0) {
+		if (CWMP_STRLEN(username) > 0) {
 			char userpass[256];
 			snprintf(userpass, sizeof(userpass), "%s:%s", username, password ? password : "");
 			curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 		}
-		if (strncmp(url, "https://", 8) == 0)
+		if (CWMP_STRNCMP(url, "https://", 8) == 0)
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
@@ -137,7 +137,7 @@ char *upload_file_task_function(char *task)
 		CWMP_LOG(ERROR, "upload %s: task is null", __FUNCTION__);
 		return NULL;
 	}
-	memset(&bbuf, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
 	if (blobmsg_add_json_from_string(&bbuf, task) == false) {
@@ -149,7 +149,7 @@ char *upload_file_task_function(char *task)
 	struct blob_attr *tb[5] = { NULL, NULL, NULL, NULL, NULL};
 	blobmsg_parse(p, 5, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 	char *task_name = blobmsg_get_string(tb[0]);
-	if (!task_name || strcmp(task_name, "upload") != 0)
+	if (CWMP_STRCMP(task_name, "upload") != 0)
 		return NULL;
 	char *file_path = blobmsg_get_string(tb[1]);
 	char *url = blobmsg_get_string(tb[2]);
@@ -172,7 +172,7 @@ int upload_file_in_subprocess(const char *file_path, const char *url, const char
 	subprocess_start(upload_file_task_function);
 
 	struct blob_buf bbuf;
-	memset(&bbuf, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 	blobmsg_add_string(&bbuf, "task", "upload");
 	blobmsg_add_string(&bbuf, "file_path", file_path);
@@ -214,7 +214,6 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 				error = FAULT_CPE_UPLOAD_FAILURE;
 				FREE(name);
 			}
-			FREE(name);
 		} else
 			error = FAULT_CPE_UPLOAD_FAILURE;
 	} else if (pupload->file_type[0] == '3') {
@@ -242,7 +241,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 			error = FAULT_CPE_UPLOAD_FAILURE;
 	}
 
-	if (error != FAULT_CPE_NO_FAULT || strlen(file_path) == 0) {
+	if (error != FAULT_CPE_NO_FAULT || CWMP_STRLEN(file_path) == 0) {
 		error = FAULT_CPE_UPLOAD_FAILURE;
 		goto end_upload;
 	}
@@ -262,8 +261,8 @@ end_upload:
 	}
 
 	p->command_key = pupload->command_key ? strdup(pupload->command_key) : strdup("");
-	p->start_time = strdup(upload_startTime);
-	p->complete_time = strdup(get_time(time(NULL)));
+	p->start_time = CWMP_STRDUP(upload_startTime);
+	p->complete_time = CWMP_STRDUP(get_time(time(NULL)));
 	p->type = TYPE_UPLOAD;
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;

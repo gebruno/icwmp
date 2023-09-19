@@ -35,18 +35,18 @@ struct autonomous_event {
 static bool validate_du_state_change_data(auto_du_state_change_compl *data)
 {
 
-	if (data->fault_code && cwmp_main->conf.auto_cdu_result_type && strcmp(cwmp_main->conf.auto_cdu_result_type, "Failure") != 0 && strcmp(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
+	if (data->fault_code && cwmp_main->conf.auto_cdu_result_type && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
 		return false;
 
-	if (!data->fault_code && cwmp_main->conf.auto_cdu_result_type && strcmp(cwmp_main->conf.auto_cdu_result_type, "Success") != 0 && strcmp(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
+	if (!data->fault_code && cwmp_main->conf.auto_cdu_result_type && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
 		return false;
 
-	if (data->operation && strstr(cwmp_main->conf.auto_cdu_oprt_type, data->operation) == NULL)
+	if (data->operation && CWMP_STRSTR(cwmp_main->conf.auto_cdu_oprt_type, data->operation) == NULL)
 		return false;
 
 	char fault_code[5] = {0};
 	snprintf(fault_code, 4, "%d", data->fault_code);
-	if (strstr(cwmp_main->conf.auto_cdu_fault_code, fault_code) == NULL)
+	if (CWMP_STRSTR(cwmp_main->conf.auto_cdu_fault_code, fault_code) == NULL)
 		return false;
 
 	return true;
@@ -112,15 +112,15 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 			if (data == NULL)
 				return;
 
-			data->uuid = strdup(uuid);
-			data->operation = strdup(oper);
+			data->uuid = CWMP_STRDUP(uuid);
+			data->operation = CWMP_STRDUP(oper);
 
 			if (tb1[1]) {
-				data->ver = strdup(blobmsg_get_string(tb1[1]));
+				data->ver = CWMP_STRDUP(blobmsg_get_string(tb1[1]));
 			}
 
 			if (tb1[2]) {
-				data->current_state = strdup(blobmsg_get_string(tb1[2]));
+				data->current_state = CWMP_STRDUP(blobmsg_get_string(tb1[2]));
 			}
 
 			if (tb1[3]) {
@@ -128,11 +128,11 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 			}
 
 			if (tb1[4]) {
-				data->start_time = strdup(blobmsg_get_string(tb1[4]));
+				data->start_time = CWMP_STRDUP(blobmsg_get_string(tb1[4]));
 			}
 
 			if (tb1[5]) {
-				data->complete_time = strdup(blobmsg_get_string(tb1[5]));
+				data->complete_time = CWMP_STRDUP(blobmsg_get_string(tb1[5]));
 			}
 
 			if (tb1[7]) {
@@ -141,7 +141,7 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 			}
 
 			if (tb1[8]) {
-				data->fault_string = strdup(blobmsg_get_string(tb1[8]));
+				data->fault_string = CWMP_STRDUP(blobmsg_get_string(tb1[8]));
 			}
 
 			// Check autonomous_du_state_change_complpolicy data
@@ -171,19 +171,19 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 
 bool validate_transfer_complete_data(auto_transfer_complete *data)
 {
-	if (data->is_download && cwmp_main->conf.auto_tc_transfer_type && strcmp(cwmp_main->conf.auto_tc_transfer_type, "Download") != 0 && strcmp(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
+	if (data->is_download && cwmp_main->conf.auto_tc_transfer_type && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Download") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
 		return false;
 
-	if (!data->is_download && cwmp_main->conf.auto_tc_transfer_type && strcmp(cwmp_main->conf.auto_tc_transfer_type, "Upload") != 0 && strcmp(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
+	if (!data->is_download && cwmp_main->conf.auto_tc_transfer_type && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Upload") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
 		return false;
 
-	if (data->fault_code && cwmp_main->conf.auto_tc_result_type && strcmp(cwmp_main->conf.auto_tc_result_type, "Failure") != 0 && strcmp(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
+	if (data->fault_code && cwmp_main->conf.auto_tc_result_type && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
 		return false;
 
-	if (!data->fault_code && cwmp_main->conf.auto_tc_result_type && strcmp(cwmp_main->conf.auto_tc_result_type, "Success") != 0 && strcmp(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
+	if (!data->fault_code && cwmp_main->conf.auto_tc_result_type && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
 		return false;
 
-	if (strlen(data->file_type) == 0)
+	if (CWMP_STRLEN(data->file_type) == 0)
 		return false;
 
 	//TODO check if the file_type is among the FileTypeFilter
@@ -228,18 +228,18 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 
 		data->announce_url = strdup("");
 		data->transfer_url = strdup(tb1[0] ? blobmsg_get_string(tb1[0]) : "");
-		data->is_download = (tb1[1] && strcmp(blobmsg_get_string(tb1[1]), "Download") == 0) ? true : false;
+		data->is_download = (tb1[1] && CWMP_STRCMP(blobmsg_get_string(tb1[1]), "Download") == 0) ? true : false;
 		data->file_size = 0;
 		data->target_file_name = strdup("");
 		snprintf(file_type, sizeof(file_type), "X %s %s", cwmp_main->deviceid.oui, data->is_download ? "Download" : "Upload");
 		data->file_type = strdup(file_type);
 
 		if (tb1[2]) {
-			data->start_time = strdup(blobmsg_get_string(tb1[2]));
+			data->start_time = CWMP_STRDUP(blobmsg_get_string(tb1[2]));
 		}
 
 		if (tb1[3]) {
-			data->complete_time = strdup(blobmsg_get_string(tb1[3]));
+			data->complete_time = CWMP_STRDUP(blobmsg_get_string(tb1[3]));
 		}
 
 		data->fault_code = tb1[4] ? blobmsg_get_u32(tb1[4]) : 0;
@@ -247,7 +247,7 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 			data->fault_code = 9001;
 
 		if (tb1[5]) {
-			data->fault_string = strdup(blobmsg_get_string(tb1[5]));
+			data->fault_string = CWMP_STRDUP(blobmsg_get_string(tb1[5]));
 		}
 
 		// Check autonomous_transfer_complete data
@@ -288,7 +288,7 @@ static void send_autonomous_notification(char *ev_name, struct blob_attr *msg)
 
 	int count = sizeof(event_info)/sizeof(struct autonomous_event);
 	for (i = 0; i < count; i++) {
-		if (strcmp(event_info[i].name, ev_name) == 0) {
+		if (CWMP_STRCMP(event_info[i].name, ev_name) == 0) {
 			autonomous_event_callback cb = event_info[i].cb;
 			cb(msg);
 			return;
@@ -308,7 +308,7 @@ void autonomous_notification_handler(struct ubus_context *ctx __attribute__((unu
 
 	__blob_for_each_attr(attr, blobmsg_data(msg), len) {
 		const char *attr_name = blobmsg_name(attr);
-		if (attr_name != NULL && strcmp(attr_name, "name") == 0) {
+		if (attr_name != NULL && CWMP_STRCMP(attr_name, "name") == 0) {
 			send_autonomous_notification(blobmsg_data(attr), msg);
 			break;
 		}

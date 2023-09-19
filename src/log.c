@@ -23,7 +23,7 @@
 static char *SEVERITY_NAMES[8] = { "[EMERG]  ", "[ALERT]  ", "[CRITIC] ", "[ERROR]  ", "[WARNING]", "[NOTICE] ", "[INFO]   ", "[DEBUG]  " };
 static int log_severity = DEFAULT_LOG_SEVERITY;
 static long int log_max_size = DEFAULT_LOG_FILE_SIZE;
-static char log_file_name[256];
+static char log_file_name[256] = {0};
 static bool enable_log_file = true;
 static bool enable_log_stdout = false;
 static bool enable_log_syslog = true;
@@ -47,9 +47,9 @@ int log_set_severity_idx(char *value)
 int log_set_log_file_name(char *value)
 {
 	if (value != NULL) {
-		CWMP_STRNCPY(log_file_name, value, sizeof(log_file_name));
+		snprintf(log_file_name, sizeof(log_file_name), "%s", value);
 	} else {
-		CWMP_STRNCPY(log_file_name, DEFAULT_LOG_FILE_NAME, sizeof(log_file_name));
+		snprintf(log_file_name, sizeof(log_file_name), "%s", DEFAULT_LOG_FILE_NAME);
 	}
 	return 1;
 }
@@ -129,7 +129,7 @@ void puts_log(int severity, const char *fmt, ...)
 		}
 	}
 	va_start(args, fmt);
-	vsprintf(buf + i, (const char *)fmt, args);
+	vsnprintf(buf + i, sizeof(buf)-i-2, (const char *)fmt, args);
 	if (enable_log_file) {
 		CWMP_STRNCPY(buf_file, buf, sizeof(buf_file));
 		buf_file[strlen(buf)] = '\n';

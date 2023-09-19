@@ -33,16 +33,16 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-#define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : (S1 == S2))
-#define CWMP_LSTRCASECMP(S1, S2) ((S1 != NULL) ? strcasecmp(S1, S2) : -1)
-#define CWMP_STRDUP(S1) ((S1 != NULL) ? strdup(S1) : NULL)
-#define CWMP_STRLEN(S1) ((S1 != NULL) ? strlen(S1) : 0)
+#define CWMP_STRCMP(S1, S2) cwmp_strcmp(S1, S2, __func__, __LINE__)
+#define CWMP_STRNCMP(S1, S2, LEN) cwmp_strncmp(S1, S2, LEN, __func__, __LINE__)
+#define CWMP_STRLEN(S1) cwmp_strlen(S1, __func__, __LINE__)
+#define CWMP_STRSTR(S1, S2) cwmp_strstr(S1, S2, __func__, __LINE__)
+#define CWMP_LSTRCASECMP(S1, S2) cwmp_strcasecmp(S1, S2, __func__, __LINE__)
+#define CWMP_STRDUP(S1) cwmp_strdup(S1, __func__, __LINE__)
+#define CWMP_STRNCPY(DST, SRC, SIZE) cwmp_strncpy(DST, SRC, SIZE, __func__, __LINE__)
 
-#define CWMP_STRNCPY(DST, SRC, SIZE) \
-	do { \
-		strncpy(DST, SRC, SIZE - 1); \
-		DST[SIZE - 1] = '\0'; \
-	} while (0)
+#define CWMP_MEMSET(SRC, VAL, SIZE) cwmp_memset(SRC, VAL, SIZE, __func__, __LINE__)
+#define CWMP_MEMCPY(DST, SRC, SIZE) cwmp_memcpy(DST, SRC, SIZE, __func__, __LINE__)
 
 #define BBFDM_OBJECT_NAME "bbfdm"
 #define MAX_EVENTS 64
@@ -81,7 +81,7 @@
 #define foreach_elt_in_strlist(elt, str, delim) \
         char *tmpchr; \
         char buffer_str[strlen(str) + 1]; \
-        strncpy(buffer_str, str, sizeof(buffer_str) - 1); \
+        CWMP_STRNCPY(buffer_str, str, sizeof(buffer_str) - 1); \
         buffer_str[sizeof(buffer_str) - 1] = '\0'; \
         for (elt = strtok_r(buffer_str, delim, &tmpchr); elt != NULL; elt = strtok_r(NULL, delim, &tmpchr))
 
@@ -653,4 +653,13 @@ void set_rpc_parameter_key(char *param_key);
 void add_bin_list(struct list_head *list, uint8_t *str, size_t len);
 void add_str_binlist(struct list_head *list, char *str);
 void free_binlist(struct list_head *list);
+int cwmp_strcmp(const char *s1, const char *s2, const char *origin, int pos);
+int cwmp_strncmp(const char *s1, const char *s2, int len, const char *origin, int pos);
+int cwmp_strlen(const char *s1, const char *origin, int pos);
+int cwmp_strcasecmp(const char *s1, const char *s2, const char *origin, int pos);
+char *cwmp_strstr(const char *s1, const char *s2, const char *origin, int pos);
+char *cwmp_strncpy(char *dst, const char *src, int size, const char *origin, int pos);
+char *cwmp_strdup(const char *s1, const char *origin, int pos);
+void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos);
+void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, int pos);
 #endif

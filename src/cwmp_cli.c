@@ -42,7 +42,7 @@ const struct fault_resp faults_array[] = {
 static char *get_fault_message_by_fault_code(char *fault_code)
 {
 	for (size_t i = 0; i < ARRAY_SIZE(faults_array); i++) {
-		if (strcmp(faults_array[i].fault_code, fault_code) == 0)
+		if (CWMP_STRCMP(faults_array[i].fault_code, fault_code) == 0)
 			return faults_array[i].fault_message;
 	}
 	return NULL;
@@ -242,7 +242,7 @@ char *cmd_get_names_exec_func(struct cmd_input in, union cmd_result *res)
 	if (in.first_input == NULL)
 		in.first_input = "";
 	res->param_list = &parameters_list;
-	bool next_level = in.second_input && (strcmp(in.second_input, "1") == 0 || strcasecmp(in.second_input, "true") == 0) ? true : false;
+	bool next_level = (CWMP_STRCMP(in.second_input, "1") == 0 || CWMP_LSTRCASECMP(in.second_input, "true") == 0) ? true : false;
 	char *fault = cwmp_get_parameter_names(in.first_input, next_level, res->param_list);
 	return fault;
 }
@@ -293,7 +293,7 @@ char *execute_cwmp_cli_command(char *cmd, char *args[])
 		goto cli_help;
 	}
 
-	if (strcmp(cmd, "help") == 0)
+	if (CWMP_STRCMP(cmd, "help") == 0)
 		goto cli_help;
 
 	struct cmd_input cmd_in = {
@@ -305,7 +305,7 @@ char *execute_cwmp_cli_command(char *cmd, char *args[])
 	char *fault = NULL, *fault_ret = NULL;
 
 	for (size_t i = 0; i < ARRAY_SIZE(icwmp_commands); i++) {
-		if (strcmp(icwmp_commands[i].command_name, cmd) == 0) {
+		if (CWMP_STRCMP(icwmp_commands[i].command_name, cmd) == 0) {
 			fault = icwmp_commands[i].cmd_exec_func(cmd_in, &cmd_out);
 			if (fault)
 				fault_ret = strdup(fault);

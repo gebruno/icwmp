@@ -61,7 +61,7 @@ static void clear_param_values(void)
 	unsigned int i;
 
 	for (i = 0; i < (sizeof(param)/sizeof(param[0])); i++) {
-		memset(param[i].value, 0, sizeof(param[i].value));
+		CWMP_MEMSET(param[i].value, 0, sizeof(param[i].value));
 	}
 }
 
@@ -74,7 +74,7 @@ static int get_param_index(char *key)
 		return -1;
 	}
 	for (i = 0; i < (sizeof(param)/sizeof(param[0])); i++) {
-		if (strncmp(key, param[i].key, strlen(param[i].key)) == 0)
+		if (CWMP_STRNCMP(key, param[i].key, strlen(param[i].key)) == 0)
 			return i;
 	}
 
@@ -119,7 +119,7 @@ static void get_hexstring(unsigned const char *hash, int len, char *hexstr, int 
 	if (buflen <= len * 2)
 		return;
 
-	memset(hexstr, 0, buflen);
+	CWMP_MEMSET(hexstr, 0, buflen);
 
 	for (i = 0; i < len; ++i) {
 		unsigned int j;
@@ -138,8 +138,8 @@ static void get_value_from_header(const char *data)
 
 	int header_len = CWMP_STRLEN(data) + 1;
 	char header[header_len];
-	memset(header, 0, header_len);
-	strncpy(header, data, header_len);
+	CWMP_MEMSET(header, 0, header_len);
+	CWMP_STRNCPY(header, data, header_len);
 
 	clear_param_values();
 
@@ -346,7 +346,7 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 
 	free(meth);
 	free(uri_realm);
-	memset(nonce, 0, nonce_size);
+	CWMP_MEMSET(nonce, 0, nonce_size);
 	get_hexstring(digest, sizeof(digest), nonce, nonce_size);
 	len = nonce_size - strlen(nonce) - 1;
 	strncat(nonce, tshex, len);
@@ -367,7 +367,7 @@ int http_authentication_failure_resp(FILE *fp, const char *http_meth, const char
 
 	tm = (uint32_t)time(NULL);
 
-	len = nonce_key ? strlen(nonce_key) : 0;
+	len = CWMP_STRLEN(nonce_key);
 	get_nonce(tm, http_meth, nonce_key, len, uri, rlm, nonce, sizeof(nonce));
 
 	if (fprintf(fp, "WWW-Authenticate: Digest realm=\"%s\",qop=\"auth\",nonce=\"%s\",opaque=\"%s\"", rlm, nonce, opq) < 0)
@@ -381,18 +381,18 @@ static void get_relative_path(const char *uri, const char *req_host, char *req_p
 	if (uri == NULL || req_path == NULL)
 		return;
 
-	memset(req_path, 0, size);
-	if (req_host == NULL || strlen(req_host) == 0) {
+	CWMP_MEMSET(req_path, 0, size);
+	if (CWMP_STRLEN(req_host) == 0) {
 		snprintf(req_path, size, "%s", uri);
 		return;
 	}
 
 	size_t host_len = strlen(req_host);
-	if (strncmp(uri, req_host, host_len) == 0) {
+	if (CWMP_STRNCMP(uri, req_host, host_len) == 0) {
 		if (strlen(uri) == host_len) {
 			snprintf(req_path, size, "/");
 		} else {
-			snprintf(req_path, size, "%s", uri + strlen(req_host));
+			snprintf(req_path, size, "%s", uri + host_len);
 		}
 		return;
 	}
@@ -406,13 +406,13 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 {
 	get_value_from_header(hdr);
 
-	if (usr && strcmp(param[E_USERNAME].value, usr) != 0)
+	if (CWMP_STRCMP(param[E_USERNAME].value, usr) != 0)
 		return 0;
 
 	if (strlen(param[E_REALM].value) == 0)
 		return 0;
 
-	if (rlm && strcmp(param[E_REALM].value, rlm) != 0)
+	if (CWMP_STRCMP(param[E_REALM].value, rlm) != 0)
 		return 0;
 
 	if (strlen(param[E_CNONCE].value) == 0)
@@ -450,7 +450,7 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	char nonce[MD5_HASH_HEX_LEN + 9];
 	get_nonce(tm, http_meth, nonce_key, strlen(nonce_key), uri, rlm, nonce, sizeof(nonce));
 
-	if (strcmp(param[E_NONCE].value, nonce) != 0) {
+	if (CWMP_STRCMP(param[E_NONCE].value, nonce) != 0) {
 		CWMP_LOG(ERROR, "Nonce value is probably fabricated");
 		return 0;
 	}
@@ -465,12 +465,12 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 		return 0;
 
 	CWMP_LOG(DEBUG, "Abs path: (%s)", req_path);
-	if (strncmp(req_path, uri, strlen(uri)) != 0) {
+	if (CWMP_STRNCMP(req_path, uri, strlen(uri)) != 0) {
 		CWMP_LOG(ERROR, "Authentication failed, configured uri(%s), req path(%s) not matched", uri, req_path);
 		return 0;
 	}
 
-	if ((strcmp(param[E_QOP].value, "auth") != 0) && (strcmp(param[E_QOP].value, "") != 0)) {
+	if ((CWMP_STRCMP(param[E_QOP].value, "auth") != 0) && (CWMP_STRCMP(param[E_QOP].value, "") != 0)) {
 		CWMP_LOG(ERROR, "Authentication failed, due to qop value: (%s)", param[E_QOP].value);
 		return 0;
 	}
@@ -491,7 +491,7 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 	get_digest_response(ha1, param[E_NONCE].value, param[E_NC].value, param[E_CNONCE].value,
 			    param[E_QOP].value, ha2, resp, sizeof(resp));
 
-	if (strcmp(resp, param[E_RESPONSE].value) != 0) {
+	if (CWMP_STRCMP(resp, param[E_RESPONSE].value) != 0) {
 		CWMP_LOG(ERROR, "Authentication failed due to response, rec(%s) calc(%s)", param[E_RESPONSE].value, resp);
 		CWMP_LOG(ERROR, "## received nonce:(%s) nc:(%s) usr:(%s)", param[E_NONCE].value, param[E_NC].value, usr);
 		CWMP_LOG(ERROR, "## rlm:(%s) psw:(%s) meth:(%s)", rlm, psw, http_meth);

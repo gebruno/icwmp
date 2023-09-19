@@ -182,7 +182,7 @@ void calulate_md5_hash(struct list_head *buff_list, uint8_t *output, size_t outl
 	EVP_DigestFinal_ex(mdctx, md_value, &bytes);
 #endif
 
-	memcpy(output, &md_value, ((bytes<outlen)?bytes:outlen));
+	CWMP_MEMCPY(output, &md_value, ((bytes<outlen)?bytes:outlen));
 
 end:
 #ifdef LMBEDTLS
