@@ -346,4 +346,6 @@ int build_backup_cdu_option(mxml_node_t *cdu, struct xml_data_struct *xml_attrs)
 int get_soap_enc_array_type(mxml_node_t *node, struct xml_data_struct *xml_attrs);
 char *get_xml_node_name_switch(char *node_name);
 char *get_xml_node_name_by_switch_name(char *switch_node_name);
+const char *whitespace_cb(mxml_node_t *node, int where);
+const char *get_node_tab_space(mxml_node_t *node);
 #endif

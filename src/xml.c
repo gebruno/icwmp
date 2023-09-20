@@ -26,6 +26,8 @@ static const char *soap_enc_url = "http://schemas.xmlsoap.org/soap/encoding/";
 static const char *xsd_url = "http://www.w3.org/2001/XMLSchema";
 static const char *xsi_url = "http://www.w3.org/2001/XMLSchema-instance";
 
+char *g_tab_space = NULL;
+
 const char *cwmp_urls[] = { "urn:dslforum-org:cwmp-1-0", "urn:dslforum-org:cwmp-1-1", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", NULL };
 
 struct xml_node_data xml_nodes_data[] = {
@@ -1376,7 +1378,9 @@ int xml_send_message(struct rpc *rpc)
 
 	if (cwmp_main->session->tree_out) {
 		unsigned char *zmsg_out;
-		msg_out = mxmlSaveAllocString(cwmp_main->session->tree_out, MXML_NO_CALLBACK);
+
+		msg_out = mxmlSaveAllocString(cwmp_main->session->tree_out, whitespace_cb);
+		FREE(g_tab_space);
 		if (msg_out == NULL) {
 			CWMP_LOG(ERROR, "Received tree_out is empty");
 			return -1;
@@ -1772,4 +1776,56 @@ void load_response_xml_schema(mxml_node_t **schema)
 	}
 
 	*schema = xml;
+}
+
+const char *get_node_tab_space(mxml_node_t *node)
+{
+	int count = 0;
+
+	while ((node = mxmlGetParent(node))) {
+		count = count + 1;
+	}
+
+	if (!count)
+		return "";
+
+	FREE(g_tab_space);
+	unsigned int size = count * sizeof(CWMP_MXML_TAB_SPACE) + 1;
+	g_tab_space = (char *)malloc(size);
+	if (!g_tab_space) {
+		CWMP_LOG(ERROR, "Not able to allocate memory of size %u", size);
+		return "";
+	}
+
+	memset(g_tab_space, 0, size);
+	snprintf(g_tab_space, size, "%*s", size - 1, "");
+
+	return g_tab_space;
+}
+
+const char *whitespace_cb(mxml_node_t *node, int where)
+{
+	if (mxmlGetType(node) != MXML_ELEMENT)
+		return NULL;
+
+	switch (where) {
+	case MXML_WS_BEFORE_CLOSE:
+		if (mxmlGetFirstChild(node) && mxmlGetType(mxmlGetFirstChild(node)) != MXML_ELEMENT)
+			return NULL;
+
+		return get_node_tab_space(node);
+	case MXML_WS_BEFORE_OPEN:
+		if (where == MXML_WS_BEFORE_CLOSE && mxmlGetFirstChild(node) && mxmlGetType(mxmlGetFirstChild(node)) != MXML_ELEMENT)
+			return NULL;
+
+		return get_node_tab_space(node);
+	case MXML_WS_AFTER_OPEN:
+		return ((mxmlGetFirstChild(node) == NULL || mxmlGetType(mxmlGetFirstChild(node)) == MXML_ELEMENT) ? "\n" : NULL);
+	case MXML_WS_AFTER_CLOSE:
+		return "\n";
+	default:
+		return NULL;
+	}
+
+	return NULL;
 }

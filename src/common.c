@@ -134,7 +134,7 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	list_for_each_entry(dm_parameter, head, list) {
 
 		if (CWMP_STRCMP(param_name, dm_parameter->name) == 0) {
-			if (CWMP_STRCMP(dm_parameter->value, param_val) != 0) {
+			if (param_val && CWMP_STRCMP(dm_parameter->value, param_val) != 0) {
 				FREE(dm_parameter->value);
 				dm_parameter->value = strdup(param_val);
 			}
