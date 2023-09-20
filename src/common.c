@@ -792,6 +792,9 @@ static bool is_ipv6_addr_available(const char *device)
 
 bool is_ipv6_enabled(void)
 {
+	if (cwmp_main->conf.force_ipv4 == true)
+		return false;
+
 	if (CWMP_STRLEN(cwmp_main->net.interface) == 0) {
 		struct blob_buf b = {0};
 		char network_interface[64];

@@ -417,6 +417,15 @@
                     <td class="td_row_even"><div class="td_row_even"></div></td>
                     <td class="td_row_even"><div class="td_row_even">This configure firewall rules. Allowed values <IP_Only/Port_Only/IP_Port>. IP_Only means only acs ip as source ip used for firewall input rule, Port_Only means only destination port will be used and IP_Port or empty value meaning both ip and port will be used for firewall input rule.</div></td>
                   </tr>
+                  <tr>
+                    <td class="td_row_odd"><div class="td_row_odd">force_ipv4</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">boolean</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">no</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd"></div></td>
+                    <td class="td_row_odd">
+                      <div class="td_row_odd">If set to <b>1</b>, it forces the connectivity over v4 IP address.</div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </td>
