@@ -40,6 +40,8 @@ struct uloop_timeout session_timer = { .cb = cwmp_schedule_session };
 struct uloop_timeout periodic_session_timer = { .cb = cwmp_periodic_session_timer };
 struct uloop_timeout retry_session_timer = { .cb = cwmp_schedule_session };
 struct uloop_timeout throttle_session_timer = { .cb = cwmp_schedule_throttle_session };
+struct uloop_timeout restart_timer = { .cb = cwmp_restart_service };
+
 
 unsigned int end_session_flag = 0;
 
@@ -653,6 +655,13 @@ int run_session_end_func(void)
 		if (cwmp_apply_acs_changes() != CWMP_OK) {
 			CWMP_LOG(ERROR, "config reload failed at session end");
 		}
+
+		if (cwmp_main->acs_changed && cwmp_main->retry_count_session == 0) {
+			CWMP_LOG(DEBUG, "%s: Restart icwmp since ACS url modified", __func__);
+			trigger_cwmp_restart_timer();
+			return CWMP_OK;
+		}
+
 		reinit_cwmp_periodic_session_feature();
 		reinit_heartbeat_procedures();
 	}
@@ -782,4 +791,9 @@ int run_session_end_func(void)
 
 	end_session_flag = 0;
 	return CWMP_OK;
+}
+
+void trigger_cwmp_restart_timer(void)
+{
+	uloop_timeout_set(&restart_timer, 10);
 }

@@ -52,6 +52,11 @@ static int reload_cmd(struct blob_buf *b)
 		} else {
 			blobmsg_add_u32(b, "status", 0);
 			blobmsg_add_string(b, "info", "icwmpd config reloaded");
+
+			if (cwmp_main->acs_changed) {
+				CWMP_LOG(DEBUG, "%s: Restart icwmp due to ACS url changed", __func__);
+				trigger_cwmp_restart_timer();
+			}
 		}
 	}
 

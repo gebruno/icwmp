@@ -113,4 +113,5 @@ int cwmp_session_exit();
 int cwmp_schedule_rpc();
 int cwmp_apply_acs_changes(void);
 void rpc_exit();
+void trigger_cwmp_restart_timer(void);
 #endif /* SRC_INC_SESSION_H_ */

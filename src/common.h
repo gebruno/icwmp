@@ -213,6 +213,7 @@ typedef struct cwmp {
 	struct ubus_event_handler *ev;
 	bool throttle_session_triggered;
 	enum firewall_cr_policy cr_policy;
+	bool acs_changed;
 } cwmp;
 
 enum action {
@@ -663,4 +664,5 @@ char *cwmp_strncpy(char *dst, const char *src, int size, const char *origin, int
 char *cwmp_strdup(const char *s1, const char *origin, int pos);
 void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos);
 void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, int pos);
+void cwmp_restart_service(struct uloop_timeout *timeout  __attribute__((unused)));
 #endif

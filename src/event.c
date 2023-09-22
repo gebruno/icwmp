@@ -111,11 +111,10 @@ int event_remove_noretry_event_container()
 static int cwmp_root_cause_event_bootstrap(void)
 {
 	char *acsurl = NULL;
-	int cmp = 0;
 
 	cwmp_load_saved_session(&acsurl, ACS);
 
-	if (acsurl == NULL || ((cmp = CWMP_STRCMP(cwmp_main->conf.acs_url, acsurl)) != 0)) {
+	if (acsurl == NULL || CWMP_STRCMP(cwmp_main->conf.acs_url, acsurl) != 0) {
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(EVENT_IDX_0BOOTSTRAP, "");
 		FREE(acsurl);
@@ -124,23 +123,16 @@ static int cwmp_root_cause_event_bootstrap(void)
 			return CWMP_MEM_ERR;
 		}
 
-		if (cmp) {
-			struct event_container *value_change_event = cwmp_add_event_container(EVENT_IDX_4VALUE_CHANGE, "");
-			if (value_change_event == NULL)
-				return CWMP_MEM_ERR;
-
-			char buf[] = "Device.ManagementServer.URL";
-			add_dm_parameter_to_list(&(value_change_event->head_dm_parameter), buf, NULL, NULL, 0, false);
-			cwmp_save_event_container(value_change_event);
-		}
-
 		cwmp_save_event_container(event_container);
 		cwmp_scheduleInform_remove_all();
 		cwmp_scheduledDownload_remove_all();
 		cwmp_scheduled_Download_remove_all();
 		cwmp_scheduledUpload_remove_all();
+
+		cwmp_main->acs_changed = true;
 	} else {
 		FREE(acsurl);
+		cwmp_main->acs_changed = false;
 	}
 
 	return CWMP_OK;
