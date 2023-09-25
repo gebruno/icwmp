@@ -244,7 +244,7 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 int get_firewall_restart_state(char **state)
 {
 	cwmp_uci_reinit();
-	return uci_get_state_value("cwmp.cpe.firewall_restart", state);
+	return uci_get_state_value("icwmp.cpe.firewall_restart", state);
 }
 
 // wait till firewall restart is not complete or 5 sec, whichever is less
