@@ -77,12 +77,15 @@ void icwmp_http_client_exit(void)
 	}
 }
 
-static size_t http_get_response(void *buffer, size_t size, size_t rxed, char **msg_in)
+static size_t http_get_response(void *buffer, size_t size, size_t rxed, void *userp)
 {
 	char *c;
+	char **msg_in;
 
-	if (msg_in == NULL)
+	if (userp == NULL)
 		return 0;
+
+	msg_in = (char **) userp;
 
 	if (buffer == NULL)
 		return 0;

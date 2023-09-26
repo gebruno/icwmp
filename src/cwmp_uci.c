@@ -273,7 +273,7 @@ int cwmp_uci_get_value_by_section_string(struct uci_section *s, char *option, ch
 	struct uci_option *o;
 
 	*value = NULL;
-	if (s == NULL || &s->options == NULL || option == NULL)
+	if (s == NULL || option == NULL)
 		goto not_found;
 
 	uci_foreach_element(&s->options, e)

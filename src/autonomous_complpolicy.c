@@ -35,10 +35,10 @@ struct autonomous_event {
 static bool validate_du_state_change_data(auto_du_state_change_compl *data)
 {
 
-	if (data->fault_code && cwmp_main->conf.auto_cdu_result_type && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
+	if (data->fault_code && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
 		return false;
 
-	if (!data->fault_code && cwmp_main->conf.auto_cdu_result_type && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
+	if (!data->fault_code && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
 		return false;
 
 	if (data->operation && CWMP_STRSTR(cwmp_main->conf.auto_cdu_oprt_type, data->operation) == NULL)
@@ -171,16 +171,16 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 
 bool validate_transfer_complete_data(auto_transfer_complete *data)
 {
-	if (data->is_download && cwmp_main->conf.auto_tc_transfer_type && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Download") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
+	if (data->is_download && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Download") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
 		return false;
 
-	if (!data->is_download && cwmp_main->conf.auto_tc_transfer_type && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Upload") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
+	if (!data->is_download && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Upload") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
 		return false;
 
-	if (data->fault_code && cwmp_main->conf.auto_tc_result_type && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
+	if (data->fault_code && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
 		return false;
 
-	if (!data->fault_code && cwmp_main->conf.auto_tc_result_type && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
+	if (!data->fault_code && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
 		return false;
 
 	if (CWMP_STRLEN(data->file_type) == 0)
