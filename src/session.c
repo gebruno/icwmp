@@ -320,7 +320,6 @@ static void schedule_session_retry(void)
 	cwmp_main->retry_count_session++;
 	int t = cwmp_get_retry_interval();
 	CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
-	cwmp_config_load();
 	trigger_periodic_notify_check();
 
 	if (!cwmp_main->session->session_status.is_heartbeat) {
@@ -402,23 +401,11 @@ void start_cwmp_session(void)
 		run_session_end_func();
 		cwmp_session_exit();
 
-
 		return;
 	}
 
 	if (cwmp_main->session->error == CWMP_RETRY_SESSION && (!list_empty(&(cwmp_main->session->events)) || (list_empty(&(cwmp_main->session->events)) && cwmp_main->cwmp_cr_event == 0))) { //CWMP Retry session
-		cwmp_config_load();
-		cwmp_main->retry_count_session++;
-		int t = cwmp_get_retry_interval();
-		CWMP_LOG(INFO, "Retry session, retry count = %d, retry in %ds", cwmp_main->retry_count_session, t);
-		if (!cwmp_main->session->session_status.is_heartbeat) {
-			set_cwmp_session_status(SESSION_FAILURE, t);
-			uloop_timeout_set(&retry_session_timer, 1000 * t);
-		} else {
-			uloop_timeout_cancel(&heartbeat_session_timer);
-			uloop_timeout_set(&heartbeat_session_timer, 1000 * t);
-		}
-
+		schedule_session_retry();
 		cwmp_set_end_session(END_SESSION_RELOAD);
 	} else {
 		save_acs_bkp_config();
