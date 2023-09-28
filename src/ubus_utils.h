@@ -25,4 +25,6 @@ int icwmp_uloop_ubus_init();
 void icwmp_uloop_ubus_exit();
 int initiate_autonomous_complpolicy(void);
 void clean_autonomous_complpolicy(void);
+int initiate_interface_update(void);
+void clean_interface_update(void);
 #endif /* __ICWMP_UBUS_UTILS_H__ */

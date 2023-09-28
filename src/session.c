@@ -440,7 +440,7 @@ void start_cwmp_session(void)
 void trigger_cwmp_session_timer()
 {
 	uloop_timeout_cancel(&retry_session_timer);
-	uloop_timeout_set(&session_timer, 10);
+	uloop_timeout_set(&session_timer, 500);
 }
 
 void trigger_cwmp_throttle_session_timer(unsigned int delay)
@@ -491,6 +491,8 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 		cwmp_main->session->session_status.next_heartbeat = false;
 		cwmp_main->session->session_status.is_heartbeat = true;
 		cwmp_add_event_container(EVENT_IDX_14HEARTBEAT, "");
+		start_cwmp_session();
+		return;
 	} else if (session_event->event == EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE) {
 		auto_transfer_complete *auto_trnsfr_complete = (auto_transfer_complete *)session_event->extra_data;
 		cwmp_root_cause_autonomous_transfer_complete(auto_trnsfr_complete);
@@ -507,7 +509,7 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 		cwmp_save_event_container(event_container);
 	}
 
-	start_cwmp_session();
+	trigger_cwmp_session_timer();
 }
 
 static void cwmp_periodic_session_timer(struct uloop_timeout *timeout  __attribute__((unused)))

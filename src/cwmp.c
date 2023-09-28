@@ -301,8 +301,10 @@ void cwmp_exit()
 	uloop_timeout_cancel(&session_timer);
 	uloop_timeout_cancel(&heartbeat_session_timer);
 	clean_autonomous_complpolicy();
+	clean_interface_update();
 	clean_du_uuid_list();
 	FREE(cwmp_main->ev);
+	FREE(cwmp_main->intf_ev);
 	uloop_end();
 	shutdown(cwmp_main->cr_socket_desc, SHUT_RDWR);
 	FREE(global_session_event);
@@ -342,6 +344,9 @@ int main(int argc, char **argv)
 	icwmp_uloop_ubus_init();
 
 	if (0 != initiate_autonomous_complpolicy())
+		return error;
+
+	if (0 != initiate_interface_update())
 		return error;
 
 	trigger_cwmp_session_timer();

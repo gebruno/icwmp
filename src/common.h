@@ -211,6 +211,7 @@ typedef struct cwmp {
 	bool cwmp_periodic_enable;
 	bool custom_notify_active;
 	struct ubus_event_handler *ev;
+	struct ubus_event_handler *intf_ev;
 	bool throttle_session_triggered;
 	enum firewall_cr_policy cr_policy;
 	bool acs_changed;

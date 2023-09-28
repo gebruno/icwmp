@@ -35,6 +35,38 @@ static const char *arr_session_status[] = {
 	[SESSION_SUCCESS] = "success",
 };
 
+
+static void interface_update_handler(struct ubus_context *ctx __attribute__((unused)),
+			      struct ubus_event_handler *ev __attribute__((unused)),
+			      const char *type __attribute__((unused)), struct blob_attr *msg)
+{
+	if (!msg)
+		return;
+
+	const struct blobmsg_policy p[2] = {
+		{ "interface", BLOBMSG_TYPE_STRING },
+		{ "action", BLOBMSG_TYPE_STRING },
+	};
+
+	struct blob_attr *tb[2] = {NULL};
+	blobmsg_parse(p, 2, tb, blob_data(msg), blob_len(msg));
+
+	if (!tb[0] || !tb[1])
+		return;
+
+	const char *intf_name = blobmsg_get_string(tb[0]);
+	const char *intf_up = blobmsg_get_string(tb[1]);
+
+	if (CWMP_STRCMP(intf_up, "ifup") != 0 || CWMP_STRCMP(cwmp_main->conf.default_wan_iface, intf_name) != 0)
+		return;
+
+	/* If the last session was failure then schedule a session */
+	if (cwmp_main->session->session_status.last_status == SESSION_FAILURE) {
+		CWMP_LOG(INFO, "Schedule session for interface_update on %s, since last session was failure", intf_name);
+		trigger_cwmp_session_timer();
+	}
+}
+
 static int reload_cmd(struct blob_buf *b)
 {
 	CWMP_LOG(INFO, "triggered ubus reload");
@@ -445,4 +477,29 @@ void clean_autonomous_complpolicy(void)
 		return;
 
 	ubus_unregister_event_handler(ubus_ctx, cwmp_main->ev);
+}
+
+int initiate_interface_update(void)
+{
+	cwmp_main->intf_ev = (struct ubus_event_handler *)malloc(sizeof(struct ubus_event_handler));
+	if (cwmp_main->intf_ev == NULL)
+		return -1;
+
+	CWMP_MEMSET(cwmp_main->intf_ev, 0, sizeof(struct ubus_event_handler));
+	cwmp_main->intf_ev->cb = interface_update_handler;
+
+	int ret = ubus_register_event_handler(ubus_ctx, cwmp_main->intf_ev, "network.interface");
+	if (ret) {
+		return -1;
+	}
+
+	return 0;
+}
+
+void clean_interface_update(void)
+{
+	if (cwmp_main->intf_ev == NULL)
+		return;
+
+	ubus_unregister_event_handler(ubus_ctx, cwmp_main->intf_ev);
 }
