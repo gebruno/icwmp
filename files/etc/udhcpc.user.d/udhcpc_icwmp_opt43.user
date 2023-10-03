@@ -7,6 +7,10 @@ DHCP_PROV_CODE=""
 MIN_WAIT_INVL=""
 INVL_MULTIPLIER=""
 
+log() {
+	echo "$@" |logger -t cwmp.update -p info
+}
+
 get_opt43() {
 	# Check if option value is in encapsulated form
 	local opt43="$1"
@@ -71,16 +75,20 @@ get_opt43() {
 }
 
 config_load cwmp
-config_get_bool enable_cwmp cpe enable 1
 config_get wan_intf cpe default_wan_interface "wan"
 config_get dhcp_discovery acs dhcp_discovery "0"
+config_get dhcp_url acs dhcp_url ""
+config_get min_wait_intvl acs dhcp_retry_min_wait_interval "0"
+config_get intvl_multi acs dhcp_retry_interval_multiplier "0"
 
+config_change=0
 discovery_enable=0
+
 if [ "$dhcp_discovery" = "1" ] || [ "$dhcp_discovery" = "true" ] || [ "$dhcp_discovery" = "enable" ]; then
 	discovery_enable=1
 fi
 
-if [ "$enable_cwmp" = "0" ] || [ "$discovery_enable" = "0" ]; then
+if [ "$discovery_enable" = "0" ]; then
 	return 0
 fi
 
@@ -95,28 +103,58 @@ if [ "${wan_intf}" == "${INTERFACE}" ]; then
 	fi
 
 	sec=$(uci -q get cwmp.acs)
+
 	if [ -z "${sec}" ]; then
 		return 0
 	fi
 
-	uci -q set cwmp.acs.dhcp_url="$DHCP_ACS_URL"
+	if [ "${dhcp_url}" != "${DHCP_ACS_URL}" ]; then
+		uci -q set cwmp.acs.dhcp_url="$DHCP_ACS_URL"
+		config_change=1
+	fi
 
-	if [ -n "$MIN_WAIT_INVL" ]; then
+	if [ -n "$MIN_WAIT_INVL" ] && [ "${MIN_WAIT_INVL}" != "${min_wait_intvl}" ]; then
 		uci -q set cwmp.acs.dhcp_retry_min_wait_interval="$MIN_WAIT_INVL"
+		config_change=1
 	fi
 
-	if [ -n "$INVL_MULTIPLIER" ]; then
+	if [ -n "$INVL_MULTIPLIER" ] && [ "${INVL_MULTIPLIER}" != "${intvl_multi}" ]; then
 		uci -q set cwmp.acs.dhcp_retry_interval_multiplier="$INVL_MULTIPLIER"
+		config_change=1
 	fi
-	uci -q commit cwmp
 
 	sec=$(uci -q get cwmp.cpe)
-	if [ -z "${sec}" ]; then
+
+	if [ -n "${sec}" ] && [ -n "$DHCP_PROV_CODE" ]; then
+		uci -q set cwmp.cpe.dhcp_provisioning_code="$DHCP_PROV_CODE"
+		config_change=1
+	fi
+
+	if [ $config_change -eq 0 ]; then
 		return 0
 	fi
 
-	if [ -n "$DHCP_PROV_CODE" ]; then
-		uci -q set cwmp.cpe.dhcp_provisioning_code="$DHCP_PROV_CODE"
-		uci -q commit cwmp
+	uci -q commit cwmp
+
+	# ACS url has been set, inform icwmpd to reload new configuration
+
+	sleep 10 # wait for some time to avoid interface fluctuation
+
+	ret=$(ubus call service list '{"name":"icwmpd"}' | jsonfilter -qe '@.icwmpd.instances.icwmp.running')
+	if [ "$ret" != "true" ]; then
+		log "Restarting icwmp daemon"
+		/etc/init.d/icwmpd restart
+	else
+		tr069_status="$(ubus -t 1 call tr069 status)"
+		ret="$?"
+		if [ "$ret" = "7" ]; then
+			# ubus timed out may be due to uloop is busy in some task so return
+			return 0
+		fi
+
+		status="$(echo "${tr069_status}" | jsonfilter -qe '@.cwmp.status')"
+		if [ "$status" = "up" ]; then
+			ubus -t 1 call tr069 command '{"command":"reload"}'
+		fi
 	fi
 fi
