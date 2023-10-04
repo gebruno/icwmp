@@ -172,7 +172,7 @@ static int browseManageableDevice(struct dmctx *dmctx, DMNODE *parent_node, void
 	json_object *res = NULL;
 	LIST_HEAD(dev_list);
 
-	dmubus_call("topology", "hosts", UBUS_ARGS{0}, 0, &res);
+	dmubus_call("hosts", "show", UBUS_ARGS{0}, 0, &res);
 
 	while (fgets(line, sizeof(line), f) != NULL) {
 		remove_new_line(line);
@@ -185,7 +185,7 @@ static int browseManageableDevice(struct dmctx *dmctx, DMNODE *parent_node, void
 			continue;
 
 		char *linker = NULL;
-		adm_entry_get_linker_param(dmctx, "Device.Hosts.Host.", device.mac, &linker);
+		adm_entry_get_reference_param(dmctx, "Device.Hosts.Host.*.PhysAddress", device.mac, &linker);
 		if (DM_STRLEN(linker) == 0)
 			continue;
 
