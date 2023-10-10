@@ -96,15 +96,6 @@ static void cwmp_execute_cli_unit_test(void **state)
 	FREE(fault);
 
 	/*
-	 * One argument: Not Valid (9003)
-	 */
-	char *argsset_not_valid[] = {"Device.WiFi.SSID.1.SSID", NULL};
-	fault = execute_cwmp_cli_command("set", argsset_not_valid);
-	assert_non_null(fault);
-	assert_string_equal(fault, "9003");
-	FREE(fault);
-
-	/*
 	 * No argumenst: Not Valid
 	 */
 	char *argset_no_arg[] = {NULL, NULL};
@@ -180,15 +171,6 @@ static void cwmp_set_cli_unit_test(void **state)
 	struct cmd_input inputs_null = {NULL, NULL};
 	union cmd_result cmd_set_out_1 = { 0 };
 	fault = cmd_set_exec_func(inputs_null, &cmd_set_out_1);
-	assert_non_null(fault);
-	assert_string_equal(fault, "9003");
-
-	/*
-	 * Set: only second input is null
-	 */
-	struct cmd_input input2_null = {"Device.WiFi.SSID.1.SSID", NULL};
-	union cmd_result cmd_set_out_2 = { 0 };
-	fault = cmd_set_exec_func(input2_null, &cmd_set_out_2);
 	assert_non_null(fault);
 	assert_string_equal(fault, "9003");
 

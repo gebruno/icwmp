@@ -77,7 +77,7 @@ static void display_get_cmd_result(struct cmd_input in __attribute__((unused)), 
  */
 char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res)
 {
-	if (CWMP_STRLEN(in.first_input) == 0 || CWMP_STRLEN(in.second_input) == 0)
+	if (CWMP_STRLEN(in.first_input) == 0)
 		return "9003";
 
 	LIST_HEAD(faults_list);
@@ -212,7 +212,7 @@ static void display_get_notif_cmd_result(struct cmd_input in __attribute__((unus
  */
 char *cmd_set_notif_exec_func(struct cmd_input in, union cmd_result *res __attribute__((unused)))
 {
-	if (in.first_input == NULL || in.second_input == NULL)
+	if (in.first_input == NULL || CWMP_STRLEN(in.second_input) == 0)
 		return "9003";
 
 	if (!icwmp_validate_int_in_range(in.second_input, 0, 6))
@@ -298,7 +298,7 @@ char *execute_cwmp_cli_command(char *cmd, char *args[])
 
 	struct cmd_input cmd_in = {
 			args[0] ? args[0] : NULL,
-			args[0] && args[1] ? args[1] : NULL,
+			args[0] && args[1] ? args[1] : "",
 			args[0] && args[1] && args[2] ? args[2] : NULL
 	};
 	union cmd_result cmd_out = {0};
