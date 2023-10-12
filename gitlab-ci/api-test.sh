@@ -11,18 +11,19 @@ echo "Compiling icmwp"
 build_icwmp
 
 mkdir -p /var/state/icwmpd
-echo "Starting dependent services"
+
+echo "Starting Services..."
+cp ./gitlab-ci/icwmp.conf /etc/supervisor/conf.d/
+supervisorctl reread
 supervisorctl update
-supervisorctl restart all
 sleep 10
 supervisorctl status all
-exec_cmd ubus wait_for bbfdm tr069
 
 # wait until cwmp status is up
 check_cwmp_status
 
 echo "Running the api test cases"
-ubus-api-validator -f ./test/api/json/tr069.validation.json > ./api-test-result.log
+ubus-api-validator -t 10 -f ./test/api/json/tr069.validation.json > ./api-test-result.log
 check_ret $?
 
 sleep 5
@@ -39,7 +40,5 @@ gcovr -r . 2> /dev/null
 exec_cmd tap-junit --input ./api-test-result.log --output report
 
 check_valgrind_xml
-
-date +%s > timestamp.log
 
 echo "Functional API test :: PASS"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-connection_request_path="http://localhost:7557/devices/XXX-FirstClass-000000001/tasks?timeout=3000&connection_request"
+connection_request_path="http://acs:7557/devices/XXX-FirstClass-000000001/tasks?timeout=3000&connection_request"
 icwmp_log_file="/var/log/icwmpd.log"
 icwmp_master_log="icwmpd_debug.txt"
 last_req=0
