@@ -35,6 +35,18 @@ struct diagnostic_input {
 #define IPLAYER_CAPACITY_DIAG_CMD "Device.IP.Diagnostics.IPLayerCapacity()"
 #define NSLOOKUP_DIAG_CMD "Device.DNS.Diagnostics.NSLookupDiagnostics()"
 #define WIFINEIBORING_DIAG_CMD "Device.WiFi.NeighboringWiFiDiagnostic()"
+#define PACKET_CAPTURE_DIAG_CMD "Device.PacketCaptureDiagnostics()"
+
+struct diagnostic_input packet_capture[] = {
+	{ "Interface", "Device.PacketCaptureDiagnostics.Interface", NULL },
+	{ "Format", "Device.PacketCaptureDiagnostics.Format", NULL },
+	{ "Duration", "Device.PacketCaptureDiagnostics.Duration", NULL },
+	{ "PacketCount", "Device.PacketCaptureDiagnostics.PacketCount", NULL },
+	{ "FileTarget", "Device.PacketCaptureDiagnostics.FileTarget", NULL },
+	{ "FilterExpression", "Device.PacketCaptureDiagnostics.FilterExpression", NULL },
+	{ "Username", "Device.PacketCaptureDiagnostics.Username", NULL },
+	{ "Password", "Device.PacketCaptureDiagnostics.Password", NULL },
+};
 
 struct diagnostic_input iplayer_capacity[] = {
 	{ "Interface", "Device.IP.Diagnostics.IPLayerCapacityMetrics.Interface", NULL },
@@ -191,6 +203,11 @@ void set_diagnostic_state_end_session_flag(char *parameter_name, char *value)
 		cwmp_set_end_session(END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC);
 		return;
 	}
+
+	if (strcmp(parameter_name, "Device.PacketCaptureDiagnostics.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_PACKETCAPTURE_DIAGNOSTIC);
+		return;
+	}
 }
 
 static bool set_specific_diagnostic_object_parameter_structure_value(struct diagnostic_input (*diagnostics_array)[], int number_inputs, char *parameter, char *value)
@@ -218,7 +235,9 @@ bool set_diagnostic_parameter_structure_value(char *parameter_name, char *value)
 	       set_specific_diagnostic_object_parameter_structure_value(&traceroute_diagnostics, ARRAY_SIZE(traceroute_diagnostics), parameter_name, value) ||
 		   set_specific_diagnostic_object_parameter_structure_value(&udpecho_diagnostics, ARRAY_SIZE(udpecho_diagnostics), parameter_name, value) ||
 	       set_specific_diagnostic_object_parameter_structure_value(&serverselection_diagnostics, ARRAY_SIZE(serverselection_diagnostics), parameter_name, value) ||
-		   set_specific_diagnostic_object_parameter_structure_value(&iplayer_capacity, ARRAY_SIZE(iplayer_capacity), parameter_name, value);
+		   set_specific_diagnostic_object_parameter_structure_value(&iplayer_capacity, ARRAY_SIZE(iplayer_capacity), parameter_name, value) ||
+	       set_specific_diagnostic_object_parameter_structure_value(&packet_capture, ARRAY_SIZE(packet_capture), parameter_name, value);
+
 }
 
 static int cwmp_diagnostics_operate(char *command, char *command_key, struct diagnostic_input diagnostics[], int number_inputs)
@@ -257,6 +276,16 @@ int cwmp_wifi_neighboring__diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "WiFi neighboring diagnostic is successfully executed");
+	cwmp_main->diag_session = true;
+	return 0;
+}
+
+int cwmp_packet_capture_diagnostics(void)
+{
+	if (cwmp_diagnostics_operate(PACKET_CAPTURE_DIAG_CMD, "cwmp_pack_capture_diag", packet_capture, ARRAY_SIZE(packet_capture)) == -1)
+		return -1;
+
+	CWMP_LOG(INFO, "packet capture diagnostic is successfully executed");
 	cwmp_main->diag_session = true;
 	return 0;
 }
