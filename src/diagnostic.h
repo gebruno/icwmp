@@ -27,5 +27,6 @@ int cwmp_udp_echo_diagnostics(void);
 int cwmp_serverselection_diagnostics(void);
 int cwmp_ip_layer_capacity_diagnostics(void);
 int cwmp_packet_capture_diagnostics(void);
+int cwmp_selftest_diagnostics(void);
 
 #endif

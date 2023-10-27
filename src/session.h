@@ -79,6 +79,7 @@ enum end_session_enum
 	END_SESSION_SCHEDULE_INFORM = 1 << 20,
 	END_SESSION_CDU = 1 << 21,
 	END_SESSION_PACKETCAPTURE_DIAGNOSTIC = 1 << 22,
+	END_SESSION_SELFTEST_DIAGNOSTIC = 1 << 23,
 };
 
 enum enum_session_status

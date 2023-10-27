@@ -36,6 +36,7 @@ struct diagnostic_input {
 #define NSLOOKUP_DIAG_CMD "Device.DNS.Diagnostics.NSLookupDiagnostics()"
 #define WIFINEIBORING_DIAG_CMD "Device.WiFi.NeighboringWiFiDiagnostic()"
 #define PACKET_CAPTURE_DIAG_CMD "Device.PacketCaptureDiagnostics()"
+#define SELF_TEST_DIAG_CMD "Device.SelfTestDiagnostics()"
 
 struct diagnostic_input packet_capture[] = {
 	{ "Interface", "Device.PacketCaptureDiagnostics.Interface", NULL },
@@ -208,6 +209,11 @@ void set_diagnostic_state_end_session_flag(char *parameter_name, char *value)
 		cwmp_set_end_session(END_SESSION_PACKETCAPTURE_DIAGNOSTIC);
 		return;
 	}
+
+	if (strcmp(parameter_name, "Device.SelfTestDiagnostics.DiagnosticsState") == 0) {
+		cwmp_set_end_session(END_SESSION_SELFTEST_DIAGNOSTIC);
+		return;
+	}
 }
 
 static bool set_specific_diagnostic_object_parameter_structure_value(struct diagnostic_input (*diagnostics_array)[], int number_inputs, char *parameter, char *value)
@@ -286,6 +292,16 @@ int cwmp_packet_capture_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "packet capture diagnostic is successfully executed");
+	cwmp_main->diag_session = true;
+	return 0;
+}
+
+int cwmp_selftest_diagnostics(void)
+{
+	if (cwmp_diagnostics_operate(SELF_TEST_DIAG_CMD, "cwmp_self_test_diag", NULL, 0) == -1)
+		return -1;
+
+	CWMP_LOG(INFO, "self test diagnostic is successfully executed");
 	cwmp_main->diag_session = true;
 	return 0;
 }

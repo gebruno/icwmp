@@ -715,6 +715,11 @@ int run_session_end_func(void)
 		cwmp_packet_capture_diagnostics();
 	}
 
+	if (end_session_flag & END_SESSION_SELFTEST_DIAGNOSTIC) {
+		CWMP_LOG(INFO, "Executing self test diagnostic: end session request");
+		cwmp_selftest_diagnostics();
+	}
+
 	if (cwmp_main->diag_session) {
 		struct session_timer_event *periodic_inform_event = calloc(1, sizeof(struct session_timer_event));
 		periodic_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;
