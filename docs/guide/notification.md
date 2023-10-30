@@ -16,21 +16,28 @@ As per the cwmp inform requirements, cwmp client has list of parameters defined 
 | Device.ManagementServer.AliasBasedAddressing   |
 
 
-In addition to the above defined forced inform parameters as specified in datamodel standard, TR-181 datamodel defines the multi instance object Device.ManagementServer.InformParameter.{i}. 
-So new inform parameter can be added through the ACS by the call of the RPC method AddObject for the object Device.ManagementServer.InformParameter.{i}. and then set its parameters values.
-icwmpd defines those new inform parameters in uci sections under the package /var/state/icwmp as below:
+This list driven from [TR181-forced inform parameter list](https://cwmp-data-models.broadband-forum.org/tr-181-2-16-0-cwmp.html#forced-inform-parameters), so cwmp shall always have these predefined parameters in its inform list, these parameters can't be disabled or excluded.
+
+
+In addition to the above defined forced inform parameters, TR-181 datamodel defines the multi instance object `Device.ManagementServer.InformParameter.{i}.` to define and manage more parameters in INFORM RPC.
+
+These can be added by the ACS with a call AddObject RPC call for the object `Device.ManagementServer.InformParameter.{i}.` and then set its parameters values.
+
+icwmpd store those new inform parameters in `/etc/config/cwmp` uci file as below:
 
 ```bash
-root@iopsys-44d43771aff0:~# cat /var/state/icwmp 
+root@iopsys-44d43771aff0:~# cat /etc/config/cwmp
 
 config inform_parameter
 	option enable '1'
 	option parameter_name "Device.DeviceInfo.UpTime"
 	option events_list '1 BOOT,6 CONNECTION REQUEST'
 
-config inform_parameter
-	option enable '0'
 ```
+
+> Note:
+> 1. To configure a parameter as forced inform parameter, set the events_list to an empty string, or to include the parameter for specific event, set the event_list accordingly.
+> 2. Factory default inform_parameters can be added from standard cwmp uci file
 
 ## Notification management
 `icwmpd` support below notification types, which can be configured from an ACS on the datamodel parameters
