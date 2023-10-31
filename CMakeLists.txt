@@ -44,5 +44,5 @@ INSTALL(DIRECTORY DESTINATION var/run/icwmpd)
 
 #[[Compile and install libcwmpdm.so]]
 ADD_LIBRARY(cwmpdm SHARED ${PROJECT_SOURCE_DIR}/src/cwmp_dm/datamodel.c)
-INSTALL(DIRECTORY DESTINATION usr/lib/bbfdm)
-INSTALL(TARGETS cwmpdm LIBRARY DESTINATION usr/lib/bbfdm)
+INSTALL(DIRECTORY DESTINATION etc/bbfdm/plugins)
+INSTALL(TARGETS cwmpdm LIBRARY DESTINATION etc/bbfdm/plugins)

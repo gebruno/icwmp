@@ -16,7 +16,8 @@ echo "Starting Services..."
 cp ./gitlab-ci/icwmp.conf /etc/supervisor/conf.d/
 supervisorctl reread
 supervisorctl update
-sleep 10
+supervisorctl restart bbfdmd
+sleep 20
 supervisorctl status all
 
 # wait until cwmp status is up

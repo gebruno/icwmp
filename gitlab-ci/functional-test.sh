@@ -14,13 +14,15 @@ build_icwmp
 echo "Configuring ACS"
 configure_acs
 
+mkdir -p /var/log
 mkdir -p /var/state/icwmpd 
 
 echo "Starting Services..."
 cp ./gitlab-ci/icwmp.conf /etc/supervisor/conf.d/
 supervisorctl reread
 supervisorctl update
-sleep 10
+supervisorctl restart bbfdmd
+sleep 20
 supervisorctl status all
 
 echo "Checking cwmp status"
