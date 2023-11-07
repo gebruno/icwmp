@@ -16,7 +16,7 @@
 #define DU_STATE_CHANGE_SEC_NAME "du_state_change"
 #define TRANSFER_COMPL_SEC_NAME "transfer_complete"
 
-static char *CWMP_EVENTS[] = {"0 BOOTSTRAP", "1 BOOT", "2 PERIODIC", "3 SCHEDULED", "5 KICKED", "6 CONNECTION REQUEST", "7 TRANSFER COMPLETE", "8 DIAGNOSTICS COMPLETE", "9 REQUEST DOWNLOAD", "10 AUTONOMOUS TRANSFER COMPLETE", "11 DU STATE CHANGE COMPLETE", "M Reboot", "M ScheduleInform", "M Download", "M ScheduleDownload", "M Upload", "M ChangeDUState", "14 HEARTBEAT", NULL};
+static char *CWMP_EVENTS[] = {"0 BOOTSTRAP", "1 BOOT", "2 PERIODIC", "3 SCHEDULED", "5 KICKED", "6 CONNECTION REQUEST", "7 TRANSFER COMPLETE", "8 DIAGNOSTICS COMPLETE", "9 REQUEST DOWNLOAD", "10 AUTONOMOUS TRANSFER COMPLETE", "11 DU STATE CHANGE COMPLETE", "12 AUTONOMOUS DU STATE CHANGE COMPLETE", "13 WAKEUP", "M Reboot", "M ScheduleInform", "M Download", "M ScheduleDownload", "M Upload", "M ChangeDUState", "14 HEARTBEAT", NULL};
 static char *Forced_Inform_Parmeters[] = {"Device.RootDataModelVersion", "Device.DeviceInfo.HardwareVersion", "Device.DeviceInfo.SoftwareVersion", "Device.DeviceInfo.ProvisioningCode", "Device.ManagementServer.ParameterKey", "Device.ManagementServer.ConnectionRequestURL", "Device.ManagementServer.AliasBasedAddressing", NULL};
 static char *DUStateOperationType[] = {"Install", "Update", "Uninstall", NULL};
 static char *DUStateResultType[] = {"Success", "Failure", "Both", NULL};

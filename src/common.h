@@ -81,8 +81,7 @@
 #define foreach_elt_in_strlist(elt, str, delim) \
         char *tmpchr; \
         char buffer_str[strlen(str) + 1]; \
-        CWMP_STRNCPY(buffer_str, str, sizeof(buffer_str) - 1); \
-        buffer_str[sizeof(buffer_str) - 1] = '\0'; \
+        CWMP_STRNCPY(buffer_str, str, sizeof(buffer_str)); \
         for (elt = strtok_r(buffer_str, delim, &tmpchr); elt != NULL; elt = strtok_r(NULL, delim, &tmpchr))
 
 extern char *commandKey;

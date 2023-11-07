@@ -229,8 +229,23 @@ bool event_in_session_event_list(char *event, struct list_head *list_evts)
 bool check_inform_parameter_events_list_corresponding(char *events_str_list, struct list_head *list_evts)
 {
 	char *evt = NULL;
-	if (CWMP_STRLEN(events_str_list) == 0)
-		return true;
+
+	if (CWMP_STRLEN(events_str_list) == 0) {
+		/* Need to check and if only '4 VALUE CHANGE' event in session event list,
+		 * then this parameter should not be added in inform param */
+		bool add_param = false;
+		struct event_container *event_container = NULL;
+
+		list_for_each_entry(event_container, list_evts, list) {
+			if (event_container->code != EVENT_IDX_4VALUE_CHANGE) {
+				add_param = true;
+				break;
+			}
+		}
+
+		return add_param;
+	}
+
 	foreach_elt_in_strlist(evt, events_str_list, ",") {
 		if (event_in_session_event_list(evt, list_evts))
 			return true;
@@ -350,10 +365,11 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	{
 		char *enable = NULL;
 		cwmp_uci_get_value_by_section_string(s, "enable", &enable);
-		if (strcasecmp(enable, "0") == 0 || strcasecmp(enable , "false") == 0)
-			continue;
-		char *parameter_name = NULL;
 
+		if (uci_str_to_bool(enable) == false)
+			continue;
+
+		char *parameter_name = NULL;
 		cwmp_uci_get_value_by_section_string(s, "parameter_name", &parameter_name);
 
 		if (CWMP_STRLEN(parameter_name) == 0)

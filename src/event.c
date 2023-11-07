@@ -397,23 +397,53 @@ int cwmp_get_int_event_code(const char *code)
 	else if (CWMP_STRNCMP(code, "4 ", 2) == 0)
 		return EVENT_IDX_4VALUE_CHANGE;
 
+	else if (CWMP_STRNCMP(code, "5 ", 2) == 0)
+		return EVENT_IDX_5KICKED;
+
 	else if (CWMP_STRNCMP(code, "6 ", 2) == 0)
 		return EVENT_IDX_6CONNECTION_REQUEST;
+
+	else if (CWMP_STRNCMP(code, "7 ", 2) == 0)
+		return EVENT_IDX_7TRANSFER_COMPLETE;
 
 	else if (CWMP_STRNCMP(code, "8 ", 2) == 0)
 		return EVENT_IDX_8DIAGNOSTICS_COMPLETE;
 
-
 	else if (CWMP_STRNCMP(code, "9 ", 2) == 0)
 		return EVENT_IDX_9REQUEST_DOWNLOAD;
 
+	else if (CWMP_STRNCMP(code, "10", 2) == 0)
+		return EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE;
+
+	else if (CWMP_STRNCMP(code, "11", 2) == 0)
+		return EVENT_IDX_11DU_STATE_CHANGE_COMPLETE;
+
+	else if (CWMP_STRNCMP(code, "12", 2) == 0)
+		return EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE;
 
 	else if (CWMP_STRNCMP(code, "13", 2) == 0)
 		return EVENT_IDX_13WAKEUP;
 
-
 	else if (CWMP_STRNCMP(code, "14", 2) == 0)
 		return EVENT_IDX_14HEARTBEAT;
+
+	else if (CWMP_STRCMP(code, "M Reboot") == 0)
+		return EVENT_IDX_M_Reboot;
+
+	else if (CWMP_STRCMP(code, "M ScheduleInform") == 0)
+		return EVENT_IDX_M_ScheduleInform;
+
+	else if (CWMP_STRCMP(code, "M Download") == 0)
+		return EVENT_IDX_M_Download;
+
+	else if (CWMP_STRCMP(code, "M ScheduleDownload") == 0)
+		return EVENT_IDX_M_Schedule_Download;
+
+	else if (CWMP_STRCMP(code, "M Upload") == 0)
+		return EVENT_IDX_M_Upload;
+
+	else if (CWMP_STRCMP(code, "M ChangeDUState") == 0)
+		return EVENT_IDX_M_ChangeDUState;
 
 	else
 		return EVENT_IDX_6CONNECTION_REQUEST;
