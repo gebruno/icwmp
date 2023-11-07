@@ -987,7 +987,7 @@ int cwmp_strcmp(const char *s1, const char *s2, const char *origin, int pos)
 	if (s1 != NULL && s2 != NULL)
 		return strcmp(s1, s2);
 	else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 		return -1;
 	}
 }
@@ -997,7 +997,7 @@ int cwmp_strncmp(const char *s1, const char *s2, int len, const char *origin, in
 	if (s1 != NULL && s2 != NULL && len > 0)
 		return strncmp(s1, s2, len);
 	else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 		return -1;
 	}
 }
@@ -1007,7 +1007,7 @@ int cwmp_strlen(const char *s1, const char *origin, int pos)
 	if (s1 != NULL)
 		return strlen(s1);
 	else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 		return 0;
 	}
 }
@@ -1017,7 +1017,7 @@ int cwmp_strcasecmp(const char *s1, const char *s2, const char *origin, int pos)
 	if (s1 != NULL && s2 != NULL)
 		return strcasecmp(s1, s2);
 	else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 		return -1;
 	}
 }
@@ -1027,7 +1027,7 @@ char *cwmp_strstr(const char *s1, const char *s2, const char *origin, int pos)
 	if (s1 != NULL && s2 != NULL)
 		return strstr(s1, s2);
 	else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 		return NULL;
 	}
 }
@@ -1041,7 +1041,7 @@ char *cwmp_strncpy(char *dst, const char *src, int size, const char *origin, int
 		strncpy(dst, src, size - 1);
 		dst[size - 1] = '\0';
 	} else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 	}
 
 	return dst;
@@ -1052,7 +1052,7 @@ char *cwmp_strdup(const char *s1, const char *origin, int pos)
 	if (s1)
 		return strdup(s1);
 	else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 		return NULL;
 	}
 }
@@ -1062,7 +1062,7 @@ void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos)
 	if (src)
 		return memset(src, val, size);
 	else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 		return NULL;
 	}
 }
@@ -1072,7 +1072,7 @@ void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, i
 	if (dst != NULL && src != NULL)
 		return memcpy(dst, src, size);
 	else {
-		CWMP_LOG(ERROR, "%s:%d NULL argument found", origin, pos);
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
 		return dst;
 	}
 }
