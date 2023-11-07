@@ -338,14 +338,16 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	}
 
 	struct cwmp_dm_parameter cwmp_dm_param = {0};
-	for (size_t i = 0; i < ARRAY_SIZE(forced_inform_parameters); i++) {
-		if (!cwmp_get_parameter_value(forced_inform_parameters[i], &cwmp_dm_param))
+	force_inform_node *iter = NULL, *node = NULL;
+
+	list_for_each_entry_safe(iter, node, &force_inform_list, list) {
+		if (!cwmp_get_parameter_value(iter->path, &cwmp_dm_param))
 			continue;
 
 		// An empty connection url cause CDR test to break
-		if (strcmp(forced_inform_parameters[i], "Device.ManagementServer.ConnectionRequestURL") == 0 &&
+		if (strcmp(iter->path, "Device.ManagementServer.ConnectionRequestURL") == 0 &&
 				CWMP_STRLEN(cwmp_dm_param.value) == 0) {
-			CWMP_LOG(ERROR, "# Empty CR URL[%s] value", forced_inform_parameters[i]);
+			CWMP_LOG(ERROR, "# Empty CR URL[%s] value", iter->path);
 			MXML_DELETE(xml);
 			return;
 		}
@@ -425,8 +427,9 @@ static int validate_inform_parameter_name(struct list_head *parameters_values_li
 		if (match_reg_exp(reg_exp, param_value->name) == false)
 			continue;
 
-		for (size_t i = 0; i < ARRAY_SIZE(forced_inform_parameters); i++) {
-			if (strcmp(forced_inform_parameters[i], param_value->value) == 0)
+		force_inform_node *iter = NULL, *node = NULL;
+		list_for_each_entry_safe(iter, node, &force_inform_list, list) {
+			if (strcmp(iter->path, param_value->value) == 0)
 				return FAULT_CPE_INVALID_PARAMETER_VALUE;
 		}
 	}
@@ -2090,4 +2093,93 @@ int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, char *fault_m
 	rpc_cpe->type = RPC_CPE_FAULT;
 
 	return 0;
+}
+
+void load_default_forced_inform(void)
+{
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(forced_inform_parameters); i++) {
+		force_inform_node *node = (force_inform_node *)malloc(sizeof(force_inform_node));
+		if (node == NULL) {
+			CWMP_LOG(ERROR, "Out of memory");
+			break;
+		}
+
+		CWMP_MEMSET(node, 0, sizeof(force_inform_node));
+		snprintf(node->path, sizeof(node->path), "%s", forced_inform_parameters[i]);
+		INIT_LIST_HEAD(&node->list);
+		list_add_tail(&node->list, &force_inform_list);
+	}
+}
+
+void clean_force_inform_list(void)
+{
+	force_inform_node *iter = NULL, *node = NULL;
+
+	list_for_each_entry_safe(iter, node, &force_inform_list, list) {
+		list_del(&iter->list);
+		free(iter);
+	}
+}
+
+void load_forced_inform_json(void)
+{
+	struct blob_buf bbuf = {0};
+	struct blob_attr *cur = NULL;
+	struct blob_attr *forced_inform_list = NULL;
+	int rem = 0;
+
+	if (!file_exists(cwmp_main->conf.forced_inform_json))
+		return;
+
+	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
+	blob_buf_init(&bbuf, 0);
+
+	if (blobmsg_add_json_from_file(&bbuf, cwmp_main->conf.forced_inform_json) == false) {
+		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp_main->conf.forced_inform_json);
+		blob_buf_free(&bbuf);
+		return;
+	}
+
+	struct blob_attr *tb[1] = { NULL };
+	const struct blobmsg_policy p[1] = { { "forced_inform", BLOBMSG_TYPE_ARRAY } };
+
+	blobmsg_parse(p, 1, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
+	if (tb[0] == NULL) {
+		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a forced inform parameters list", cwmp_main->conf.forced_inform_json);
+		blob_buf_free(&bbuf);
+		return;
+	}
+
+	forced_inform_list = tb[0];
+	blobmsg_for_each_attr(cur, forced_inform_list, rem)
+	{
+		char parameter_path[1024];
+		struct cwmp_dm_parameter cwmp_dm_param = {0};
+
+		snprintf(parameter_path, sizeof(parameter_path), "%s", blobmsg_get_string(cur));
+		if (parameter_path[strlen(parameter_path)-1] == '.') {
+			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Only leaf parameters are allowed.", parameter_path);
+			continue;
+		}
+
+		if (!cwmp_get_parameter_value(parameter_path, &cwmp_dm_param)) {
+			CWMP_LOG(WARNING, "%s is rejected as inform parameter. Wrong parameter path.", parameter_path);
+			continue;
+		}
+
+		/* Add in forced inform list */
+		force_inform_node *node = (force_inform_node *)malloc(sizeof(force_inform_node));
+		if (node == NULL) {
+			CWMP_LOG(ERROR, "Out of memory");
+			break;
+		}
+
+		CWMP_MEMSET(node, 0, sizeof(force_inform_node));
+		snprintf(node->path, sizeof(node->path), "%s", parameter_path);
+		INIT_LIST_HEAD(&node->list);
+		list_add_tail(&node->list, &force_inform_list);
+	}
+	blob_buf_free(&bbuf);
 }

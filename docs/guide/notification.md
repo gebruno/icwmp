@@ -35,9 +35,31 @@ config inform_parameter
 
 ```
 
+Apart from the above, user can configure a parameter as forced inform parameter by using a JSON file. Users can include this json file in their firmware to add custom forced inform parameters (other than standard force inform parameters specified in datamodel).
+Then user just need to set the file path in 'forced_inform_json' option under 'cpe' section of the cwmp UCI file.
+
+Below is the schema/format of the JSON file:
+
+```bash
+root@iopsys:~# cat /etc/icwmpd/force_inform.json
+{
+  "forced_inform": [
+      "Device.DeviceInfo.UpTime",
+      "Device.WiFi.SSID.1.SSID"
+  ]
+}
+root@iopsys:~#
+root@iopsys:~# uci -q get cwmp.cpe.forced_inform_json
+/etc/icwmpd/force_inform.json
+root@iopsys:~#
+
+```
+
+Forced inform parameters defined in JSON should be leaf elements.
+
 > Note:
-> 1. To configure a parameter as forced inform parameter, set the events_list to an empty string, or to include the parameter for specific event, set the event_list accordingly.
-> 2. Factory default inform_parameters can be added from standard cwmp uci file
+> 1. Factory default inform_parameters can be added from standard cwmp uci file.
+> 2. To configure a parameter for specific event set the event_list accordingly.
 
 ## Notification management
 `icwmpd` support below notification types, which can be configured from an ACS on the datamodel parameters

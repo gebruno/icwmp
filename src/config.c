@@ -66,6 +66,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_SESSION_TIMEOUT,
 		UCI_CPE_INSTANCE_MODE,
 		UCI_CPE_JSON_CUSTOM_NOTIFY_FILE,
+		UCI_CPE_JSON_FORCED_INFORM_FILE,
 		UCI_CPE_FORCE_IPV4,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
@@ -84,6 +85,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		[UCI_CPE_SESSION_TIMEOUT] = { .name = "session_timeout", .type = UCI_TYPE_STRING },
 		[UCI_CPE_INSTANCE_MODE] = { .name = "instance_mode", .type = UCI_TYPE_STRING },
 		[UCI_CPE_JSON_CUSTOM_NOTIFY_FILE] = { .name = "custom_notify_json", .type = UCI_TYPE_STRING },
+		[UCI_CPE_JSON_FORCED_INFORM_FILE] = { .name = "forced_inform_json", .type = UCI_TYPE_STRING },
 		[UCI_CPE_CON_REQ_TIMEOUT] = { .name = "cr_timeout", .type = UCI_TYPE_STRING },
 		[UCI_CPE_FORCE_IPV4] = { .name = "force_ipv4", .type = UCI_TYPE_STRING }
 	};
@@ -178,6 +180,9 @@ static void config_get_cpe_elements(struct uci_section *s)
 
 	snprintf(cwmp_main->conf.custom_notify_json, sizeof(cwmp_main->conf.custom_notify_json), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_JSON_CUSTOM_NOTIFY_FILE]));
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe custom notify json path: %s", cwmp_main->conf.custom_notify_json);
+
+	snprintf(cwmp_main->conf.forced_inform_json, sizeof(cwmp_main->conf.forced_inform_json), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_JSON_FORCED_INFORM_FILE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe forced inform json path: %s", cwmp_main->conf.forced_inform_json);
 
 	cwmp_main->conf.force_ipv4 = uci_str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_FORCE_IPV4]));
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe force ipv4 enable: %d", cwmp_main->conf.force_ipv4);

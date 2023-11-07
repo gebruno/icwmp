@@ -44,6 +44,7 @@
 bool g_firewall_restart = false;
 struct list_head intf_reset_list;
 struct list_head du_uuid_list;
+struct list_head force_inform_list;
 
 static bool interface_reset_req(char *param_name, char *value)
 {
@@ -254,6 +255,14 @@ static int cwmp_init(void)
 	cwmp_get_deviceid();
 
 	cwmp_uci_init();
+
+	/* Load default force inform parameters */
+	CWMP_MEMSET(&force_inform_list, 0, sizeof(struct list_head));
+	INIT_LIST_HEAD(&force_inform_list);
+	load_default_forced_inform();
+
+	/* Load custom notify and force inform parameters */
+	load_forced_inform_json();
 	load_custom_notify_json();
 	set_default_forced_active_parameters_notifications();
 	init_list_param_notify();
@@ -303,6 +312,7 @@ void cwmp_exit()
 	clean_autonomous_complpolicy();
 	clean_interface_update();
 	clean_du_uuid_list();
+	clean_force_inform_list();
 	FREE(cwmp_main->ev);
 	FREE(cwmp_main->intf_ev);
 	uloop_end();

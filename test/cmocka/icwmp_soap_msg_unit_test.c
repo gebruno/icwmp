@@ -30,6 +30,7 @@
 #include "cwmp_event.h"
 
 static int instance = 0;
+struct list_head force_inform_list;
 
 #define INVALID_PARAM_KEY "ParameterKeyParameterKeyParameter"
 #define INVALID_USER "useruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruseruser1"
@@ -69,6 +70,11 @@ static void unit_test_end_test_destruction()
  */
 static int soap_unit_tests_init(void **state)
 {
+	CWMP_MEMSET(&force_inform_list, 0, sizeof(struct list_head));
+	INIT_LIST_HEAD(&force_inform_list);
+	load_default_forced_inform();
+	load_forced_inform_json();
+
 	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	create_cwmp_session_structure();
 	memcpy(&(cwmp_main->env), &cwmp_main, sizeof(struct env));
@@ -82,6 +88,7 @@ static int soap_unit_tests_clean(void **state)
 	icwmp_free_list_services();
 	clean_name_space();
 	cwmp_session_exit();
+	clean_force_inform_list();
 	FREE(cwmp_main->session);
 	FREE(cwmp_main);
 	return 0;

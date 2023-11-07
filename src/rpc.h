@@ -51,5 +51,8 @@ int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc);
 
 int xml_handle_message();
 int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, char *fault_msg);
+void load_default_forced_inform(void);
+void clean_force_inform_list(void);
+void load_forced_inform_json(void);
 
 #endif

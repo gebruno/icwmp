@@ -91,6 +91,7 @@ extern struct uloop_timeout periodic_session_timer;
 extern struct uloop_timeout retry_session_timer;
 extern bool g_firewall_restart;
 extern struct list_head intf_reset_list;
+extern struct list_head force_inform_list;
 
 typedef struct env {
 	unsigned short boot;
@@ -111,6 +112,7 @@ typedef struct config {
 	char cpe_userid[BUF_SIZE_256];
 	char cpe_passwd[BUF_SIZE_256];
 	char custom_notify_json[BUF_SIZE_256];
+	char forced_inform_json[BUF_SIZE_256];
 	char connection_request_path[BUF_SIZE_256];
 	char auto_tc_transfer_type[BUF_SIZE_16];
 	char auto_tc_result_type[BUF_SIZE_16];
@@ -593,6 +595,11 @@ typedef struct bin_list {
 	size_t len;
 	struct list_head list;
 } bin_list_t;
+
+typedef struct force_inform_node {
+	char path[1024];
+	struct list_head list;
+} force_inform_node;
 
 extern struct cwmp *cwmp_main;
 extern long int flashsize;
