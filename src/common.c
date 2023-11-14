@@ -617,6 +617,7 @@ void icwmp_restart_services()
 			cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
 	}
 	icwmp_free_list_services();
+	sleep(5); // wait for services to get restarted
 }
 
 /*
