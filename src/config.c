@@ -96,7 +96,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", cwmp_main->conf.amd_version);
 
 	if (cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE])
-		cwmp_main->conf.default_wan_iface = strdup(get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]));
+		cwmp_main->conf.default_wan_iface = CWMP_STRDUP(get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]));
 	else
 		cwmp_main->conf.default_wan_iface = strdup("wan");
 	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", cwmp_main->conf.default_wan_iface);
@@ -219,7 +219,7 @@ int get_global_config()
 	if ((error = uci_get_value(UCI_ACS_USERID_PATH, &value)) == CWMP_OK) {
 		if (value != NULL) {
 			FREE(cwmp_main->conf.acs_userid);
-			cwmp_main->conf.acs_userid = strdup(value);
+			cwmp_main->conf.acs_userid = CWMP_STRDUP(value);
 			FREE(value);
 		}
 	} else {
@@ -230,7 +230,7 @@ int get_global_config()
 	if ((error = uci_get_value(UCI_ACS_PASSWD_PATH, &value)) == CWMP_OK) {
 		if (value != NULL) {
 			FREE(cwmp_main->conf.acs_passwd);
-			cwmp_main->conf.acs_passwd = strdup(value);
+			cwmp_main->conf.acs_passwd = CWMP_STRDUP(value);
 			FREE(value);
 		}
 	} else {
@@ -297,7 +297,7 @@ int get_global_config()
 
 	FREE(cwmp_main->conf.cpe_userid);
 	if (uci_get_value(UCI_CPE_USERID_PATH, &value) == CWMP_OK) {
-		cwmp_main->conf.cpe_userid = strdup(value);
+		cwmp_main->conf.cpe_userid = CWMP_STRDUP(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.cpe_userid = strdup("");
@@ -305,7 +305,7 @@ int get_global_config()
 
 	FREE(cwmp_main->conf.cpe_passwd);
 	if (uci_get_value(UCI_CPE_PASSWD_PATH, &value) == CWMP_OK) {
-		cwmp_main->conf.cpe_passwd = strdup(value);
+		cwmp_main->conf.cpe_passwd = CWMP_STRDUP(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.cpe_passwd = strdup("");
@@ -332,14 +332,12 @@ int get_global_config()
 
 	FREE(cwmp_main->conf.connection_request_path);
 	if (uci_get_value(UCI_CPE_CRPATH_PATH, &value) == CWMP_OK) {
-		if (value[0] == '/')
-			cwmp_main->conf.connection_request_path = strdup(value);
-		else {
+		if (value) {
 			char cr_path[512];
-			snprintf(cr_path, sizeof(cr_path), "/%s", value);
+			snprintf(cr_path, sizeof(cr_path), "%s%s", (value[0] == '/') ? "" : "/", value);
 			cwmp_main->conf.connection_request_path = strdup(cr_path);
+			FREE(value);
 		}
-		FREE(value);
 	} else {
 		cwmp_main->conf.connection_request_path = strdup("/");
 	}
@@ -410,7 +408,7 @@ int get_global_config()
 	}
 
 	if (uci_get_value(UCI_CPE_INSTANCE_MODE, &value) == CWMP_OK) {
-		if (0 == strcmp(value, "InstanceNumber")) {
+		if (0 == CWMP_STRCMP(value, "InstanceNumber")) {
 			cwmp_main->conf.instance_mode = INSTANCE_MODE_NUMBER;
 		} else {
 			cwmp_main->conf.instance_mode = INSTANCE_MODE_ALIAS;
@@ -561,19 +559,19 @@ int get_global_config()
 		cwmp_main->conf.auto_tc_enable = 0;
 	}
 	if (uci_get_value(UCI_AUTONOMOUS_TC_TRANSFERTYPE, &value) == CWMP_OK) {
-		cwmp_main->conf.auto_tc_transfer_type = strdup(value);
+		cwmp_main->conf.auto_tc_transfer_type = CWMP_STRDUP(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.auto_tc_transfer_type = NULL;
 	}
 	if (uci_get_value(UCI_AUTONOMOUS_TC_RESULTTYPE, &value) == CWMP_OK) {
-		cwmp_main->conf.auto_tc_result_type = strdup(value);
+		cwmp_main->conf.auto_tc_result_type = CWMP_STRDUP(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.auto_tc_result_type = NULL;
 	}
 	if (uci_get_value(UCI_AUTONOMOUS_TC_FILETYPE, &value) == CWMP_OK) {
-		cwmp_main->conf.auto_tc_file_type = strdup(value);
+		cwmp_main->conf.auto_tc_file_type = CWMP_STRDUP(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.auto_tc_file_type = NULL;
@@ -586,19 +584,19 @@ int get_global_config()
 		cwmp_main->conf.auto_cdu_enable = 0;
 	}
 	if (uci_get_value(UCI_AUTONOMOUS_CDU_OPTYPE, &value) == CWMP_OK) {
-		cwmp_main->conf.auto_cdu_oprt_type = strdup(value);
+		cwmp_main->conf.auto_cdu_oprt_type = CWMP_STRDUP(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.auto_cdu_oprt_type = NULL;
 	}
 	if (uci_get_value(UCI_AUTONOMOUS_CDU_RESULTYPE, &value) == CWMP_OK) {
-		cwmp_main->conf.auto_cdu_result_type = strdup(value);
+		cwmp_main->conf.auto_cdu_result_type = CWMP_STRDUP(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.auto_cdu_result_type = NULL;
 	}
 	if (uci_get_value(UCI_AUTONOMOUS_CDU_FAULTCODE, &value) == CWMP_OK) {
-		cwmp_main->conf.auto_cdu_fault_code = strdup(value);
+		cwmp_main->conf.auto_cdu_fault_code = CWMP_STRDUP(value);
 		FREE(value);
 	} else {
 		cwmp_main->conf.auto_cdu_fault_code = NULL;

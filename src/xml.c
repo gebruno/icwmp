@@ -315,11 +315,11 @@ int load_upload_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 	int ftype, instance = 0;
 
 	sscanf(node_opaque, "%1d Vendor %15s File %8d", &ftype, log_config, &instance);
-	if (strcmp(log_config, "Configuration") != 0 && strcmp(log_config, "Log") != 0)
+	if (CWMP_STRCMP(log_config, "Configuration") != 0 && CWMP_STRCMP(log_config, "Log") != 0)
 		return FAULT_CPE_INVALID_ARGUMENTS;
-	else if (strcmp(log_config, "Configuration") == 0 && ftype != 1 && ftype != 3)
+	else if (CWMP_STRCMP(log_config, "Configuration") == 0 && ftype != 1 && ftype != 3)
 		return FAULT_CPE_INVALID_ARGUMENTS;
-	else if (strcmp(log_config, "Log") == 0 && ftype != 2 && ftype != 4)
+	else if (CWMP_STRCMP(log_config, "Log") == 0 && ftype != 2 && ftype != 4)
 		return FAULT_CPE_INVALID_ARGUMENTS;
 	if ((ftype == 3 || ftype == 4) && (instance == 0))
 		return FAULT_CPE_INVALID_ARGUMENTS;
@@ -398,16 +398,16 @@ int load_change_du_state_operation(mxml_node_t *b, struct xml_data_struct *xml_a
 		return FAULT_CPE_INTERNAL_ERROR;
 
 	}
-	if (strcmp(operation, "cwmp:InstallOpStruct") == 0) {
+	if (CWMP_STRCMP(operation, "cwmp:InstallOpStruct") == 0) {
 		cdu_ref = SOAP_REQ_DU_INSTALL;
 		type = DU_INSTALL;
 	}
-	else if (strcmp(operation, "cwmp:UpdateOpStruct") == 0) {
+	else if (CWMP_STRCMP(operation, "cwmp:UpdateOpStruct") == 0) {
 		cdu_ref = SOAP_REQ_DU_UPDATE;
 		type = DU_UPDATE;
 	}
 
-	else if (strcmp(operation, "cwmp:UninstallOpStruct") == 0) {
+	else if (CWMP_STRCMP(operation, "cwmp:UninstallOpStruct") == 0) {
 		cdu_ref = SOAP_REQ_DU_UNINSTALL;
 		type = DU_UNINSTALL;
 	}
@@ -440,13 +440,13 @@ int load_cdu_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 	bkp_xml_cdu_backup.url = &operat->url;
 	bkp_xml_cdu_backup.username = &operat->username;
 	bkp_xml_cdu_backup.password = &operat->password;
-	if (strcmp(element, "update") == 0) {
+	if (CWMP_STRCMP(element, "update") == 0) {
 		operat->type = DU_UPDATE;
 		fault = load_xml_node_data(BKP_CDU_UPDATE, b, &bkp_xml_cdu_backup);
-	} else if (strcmp(element, "install") == 0) {
+	} else if (CWMP_STRCMP(element, "install") == 0) {
 		operat->type = DU_INSTALL;
 		fault = load_xml_node_data(BKP_CDU_INSTALL, b, &bkp_xml_cdu_backup);
-	} else if (strcmp(element, "uninstall") == 0) {
+	} else if (CWMP_STRCMP(element, "uninstall") == 0) {
 		operat->type = DU_UNINSTALL;
 		fault = load_xml_node_data(BKP_CDU_UNINSTALL, b, &bkp_xml_cdu_backup);
 	}
@@ -667,7 +667,10 @@ char *get_xml_node_name_switch(char *node_name)
 	size_t total_size = sizeof(xml_nodes_names_switches) / sizeof(struct xml_switch);
 	for (i = 0; i < total_size; i++)
 	{
-		if (strcmp(node_name, xml_nodes_names_switches[i].node_name) == 0)
+		if (xml_nodes_names_switches[i].node_name == NULL)
+			continue;
+
+		if (CWMP_STRCMP(node_name, xml_nodes_names_switches[i].node_name) == 0)
 			return xml_nodes_names_switches[i].switch_node_name;
 	}
 	return NULL;
@@ -682,7 +685,10 @@ char *get_xml_node_name_by_switch_name(char *switch_node_name)
 	size_t total_size = sizeof(xml_nodes_names_switches) / sizeof(struct xml_switch);
 	for (i = 0; i < total_size; i++)
 	{
-		if (strcmp(switch_node_name, xml_nodes_names_switches[i].switch_node_name) == 0)
+		if (xml_nodes_names_switches[i].switch_node_name == NULL)
+			continue;
+
+		if (CWMP_STRCMP(switch_node_name, xml_nodes_names_switches[i].switch_node_name) == 0)
 			return xml_nodes_names_switches[i].node_name;
 	}
 	return NULL;
@@ -696,7 +702,10 @@ int get_xml_tag_index(const char *name)
 
 	size_t total_size = sizeof(xml_tags_names) / sizeof(char*);
 	for (i = 0; i < total_size; i++) {
-		if (strcmp(name, xml_tags_names[i]) == 0)
+		if (xml_tags_names[i] == NULL)
+			continue;
+
+		if (CWMP_STRCMP(name, xml_tags_names[i]) == 0)
 			return i;
 	}
 	return -1;
@@ -708,10 +717,14 @@ int get_xml_soap_tag_index(int soap_ref, const char *name)
 	unsigned int i = 0;
 	if (name == NULL)
 		return -1;
-	while (xml_nodes_data[soap_ref].xml_tags[i].tag_name) {
-		if (strcmp(name, xml_nodes_data[soap_ref].xml_tags[i].tag_name) == 0)
+
+	size_t total_size = sizeof(xml_nodes_data[soap_ref].xml_tags) / sizeof(struct xml_tag);
+	for (i = 0; i < total_size; i++) {
+		if (xml_nodes_data[soap_ref].xml_tags[i].tag_name == NULL)
+			continue;
+
+		if (CWMP_STRCMP(name, xml_nodes_data[soap_ref].xml_tags[i].tag_name) == 0)
 			return i;
-		i++;
 	}
 	return -1;
 }
@@ -724,7 +737,7 @@ int load_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_str
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			const char *b_name = b ? mxmlGetElement(b) : NULL;
-			if (b_name && xml_nodes_data[node_ref].tag_list_name && strcmp(xml_nodes_data[node_ref].tag_list_name, b_name) == 0) {
+			if (b_name && CWMP_STRCMP(xml_nodes_data[node_ref].tag_list_name, b_name) == 0) {
 				struct xml_list_data *xml_data = calloc(1, sizeof(struct xml_list_data));
 
 				struct xml_data_struct xml_attrs_args = {0};
@@ -775,7 +788,10 @@ bool validate_xml_node_opaque_value(char *node_name, char *opaque, struct xml_ta
 		return false;
 	}
 	for (i = 0; i < nbre_validations; i++) {
-		if (strcmp(node_name, validations[i].tag_name) == 0) {
+		if (validations[i].tag_name == NULL)
+			continue;
+
+		if (CWMP_STRCMP(node_name, validations[i].tag_name) == 0) {
 			if (validations[i].validation_type == VALIDATE_STR_SIZE) {
 				if (!icwmp_validate_string_length(opaque, validations[i].max))
 					return false;
@@ -806,7 +822,10 @@ bool check_node_is_switch_by_node_name(int node_ref, char *node_name)
 	size_t total_size = sizeof(xml_nodes_data[node_ref].xml_tags) / sizeof(struct xml_tag);
 	for (i = 0; i < total_size; i++)
 	{
-		if (strcmp(xml_nodes_data[node_ref].xml_tags[i].tag_name, node_name) == 0 && xml_nodes_data[node_ref].xml_tags[i].rec_ref == XML_SWITCH)
+		if (xml_nodes_data[node_ref].xml_tags[i].tag_name == NULL)
+			continue;
+
+		if (CWMP_STRCMP(xml_nodes_data[node_ref].xml_tags[i].tag_name, node_name) == 0 && xml_nodes_data[node_ref].xml_tags[i].rec_ref == XML_SWITCH)
 			return true;
 	}
 	return false;
@@ -920,6 +939,7 @@ int load_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *
 void cwmp_param_fault_list_to_xml_data_list(struct list_head *param_fault_list, struct list_head *xml_data_list)
 {
 	struct cwmp_param_fault *param_fault = NULL;
+
 	list_for_each_entry (param_fault, param_fault_list, list) {
 		if (!param_fault->fault)
 			continue;
@@ -929,9 +949,9 @@ void cwmp_param_fault_list_to_xml_data_list(struct list_head *param_fault_list, 
 		xml_data = calloc(1, sizeof(struct xml_list_data));
 		list_add_tail(&xml_data->list, xml_data_list);
 		int idx = cwmp_get_fault_code(param_fault->fault);
-		xml_data->param_name = strdup(param_fault->name);
+		xml_data->param_name = CWMP_STRDUP(param_fault->name);
 		xml_data->fault_code = atoi(FAULT_CPE_ARRAY[idx].CODE);
-		xml_data->fault_string = strdup(FAULT_CPE_ARRAY[idx].DESCRIPTION);
+		xml_data->fault_string = CWMP_STRDUP(FAULT_CPE_ARRAY[idx].DESCRIPTION);
 	}
 }
 
@@ -944,7 +964,7 @@ void dm_parameter_list_to_xml_data_list(struct list_head *dm_parameter_list, str
 		struct xml_list_data *xml_data;
 		xml_data = calloc(1, sizeof(struct xml_list_data));
 		list_add_tail(&xml_data->list, xml_data_list);
-		xml_data->param_name = strdup(param_value->name);
+		xml_data->param_name = CWMP_STRDUP(param_value->name);
 		xml_data->param_value = strdup(param_value->value ? param_value->value : "");
 		xml_data->param_type = strdup(param_value->type ? param_value->type : "");
 		xml_data->access_list = strdup(param_value->access_list ? param_value->access_list : "");
@@ -1269,7 +1289,7 @@ mxmlFindElementOpaque(mxml_node_t *node, /* I - Current node */
 
 	while (node != NULL) {
 		const char *op = mxmlGetOpaque(node);
-		if (mxmlGetType(node) == MXML_OPAQUE && op && (!strcmp(op, text))) {
+		if (mxmlGetType(node) == MXML_OPAQUE && (!CWMP_STRCMP(op, text))) {
 			return node;
 		}
 
@@ -1290,7 +1310,7 @@ char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value)
 	for (i = 0; i < attributes_nbre; i++) {
 		char *attr_name = NULL;
 		const char *attr_value = mxmlElementGetAttrByIndex(node, i, (const char **)&attr_name);
-		if (attr_value && strcmp(attr_value, value) == 0)
+		if (attr_value && CWMP_STRCMP(attr_value, value) == 0)
 			return attr_name;
 	}
 	return NULL;
@@ -1399,7 +1419,7 @@ int xml_send_message(struct rpc *rpc)
 		}
 		if (msg_in) {
 			CWMP_LOG_XML_MSG(DEBUG, msg_in, XML_MSG_IN);
-			if ((s = strstr(msg_in, "<FaultCode>")))
+			if ((s = CWMP_STRSTR(msg_in, "<FaultCode>")))
 				sscanf(s, "<FaultCode>%d</FaultCode>", &f);
 			if (f) {
 				if (f == 8005) {

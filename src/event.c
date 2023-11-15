@@ -111,7 +111,7 @@ int cwmp_root_cause_event_bootstrap()
 
 	cwmp_load_saved_session(&acsurl, ACS);
 
-	if (acsurl == NULL || ((cmp = strcmp(cwmp_main->conf.acsurl, acsurl)) != 0)) {
+	if (acsurl == NULL || ((cmp = CWMP_STRCMP(cwmp_main->conf.acsurl, acsurl)) != 0)) {
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(EVENT_IDX_0BOOTSTRAP, "");
 		FREE(acsurl);
@@ -335,7 +335,7 @@ void connection_request_port_value_change(int port)
 		bkp_session_save();
 		return;
 	}
-	if (strcmp(bport, bufport) != 0) {
+	if (CWMP_STRCMP(bport, bufport) != 0) {
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(EVENT_IDX_4VALUE_CHANGE, "");
 		if (event_container == NULL) {
@@ -371,10 +371,10 @@ int cwmp_root_cause_events()
 bool event_code_is_valid(const char *code)
 {
 	int i;
-	if (code == NULL || strlen(code) == 0)
+	if (CWMP_STRLEN(code) == 0)
 		return true;
 	for (i=0; i < __EVENT_IDX_MAX; i++) {
-		if (EVENT_CONST[i].CODE && strcmp(code, EVENT_CONST[i].CODE) == 0)
+		if (CWMP_STRCMP(code, EVENT_CONST[i].CODE) == 0)
 			return true;
 	}
 	return false;
@@ -386,34 +386,34 @@ int cwmp_get_int_event_code(const char *code)
 	if (!event_code_is_valid(code))
 		return -1;
 
-	if (code && strncmp(code, "1 ", 2) == 0)
+	if (CWMP_STRNCMP(code, "1 ", 2) == 0)
 		return EVENT_IDX_1BOOT;
 
-	else if (code && strncmp(code, "2 ", 2) == 0)
+	else if (CWMP_STRNCMP(code, "2 ", 2) == 0)
 		return EVENT_IDX_2PERIODIC;
 
-	else if (code && strncmp(code, "3 ", 2) == 0)
+	else if (CWMP_STRNCMP(code, "3 ", 2) == 0)
 		return EVENT_IDX_3SCHEDULED;
 
-	else if (code && strncmp(code, "4 ", 2) == 0)
+	else if (CWMP_STRNCMP(code, "4 ", 2) == 0)
 		return EVENT_IDX_4VALUE_CHANGE;
 
-	else if (code && strncmp(code, "6 ", 2) == 0)
+	else if (CWMP_STRNCMP(code, "5 ", 2) == 0)
+		return EVENT_IDX_5KICKED;
+
+	else if (CWMP_STRNCMP(code, "6 ", 2) == 0)
 		return EVENT_IDX_6CONNECTION_REQUEST;
 
-	else if (code && strncmp(code, "8 ", 2) == 0)
+	else if (CWMP_STRNCMP(code, "8 ", 2) == 0)
 		return EVENT_IDX_8DIAGNOSTICS_COMPLETE;
 
-
-	else if (code && strncmp(code, "9 ", 2) == 0)
+	else if (CWMP_STRNCMP(code, "9 ", 2) == 0)
 		return EVENT_IDX_9REQUEST_DOWNLOAD;
 
-
-	else if (code && strncmp(code, "13", 2) == 0)
+	else if (CWMP_STRNCMP(code, "13", 2) == 0)
 		return EVENT_IDX_13WAKEUP;
 
-
-	else if (code && strncmp(code, "14", 2) == 0)
+	else if (CWMP_STRNCMP(code, "14", 2) == 0)
 		return EVENT_IDX_14HEARTBEAT;
 
 	else

@@ -43,8 +43,7 @@ static int reload_cmd(struct blob_buf *b)
 		blobmsg_add_u32(b, "status", 0);
 		blobmsg_add_string(b, "info", "Session running, reload at the end of the session");
 	} else {
-		int error = CWMP_OK;
-		error = cwmp_apply_acs_changes();
+		int error = cwmp_apply_acs_changes();
 		if (error != CWMP_OK) {
 			// Failed to load cwmp config
 			CWMP_LOG(ERROR, "cwmp failed to reload the configuration");
@@ -73,7 +72,7 @@ static int call_command_cb(char *cmd, struct blob_buf *b)
 
 	cmd_num = sizeof(cmd_cb)/sizeof(struct command_cb);
 	for (i = 0; i < cmd_num; i++) {
-		if (strcmp(cmd, cmd_cb[i].str) == 0) {
+		if (CWMP_STRCMP(cmd, cmd_cb[i].str) == 0) {
 			cb = cmd_cb[i].cb;
 			break;
 		}
@@ -115,7 +114,7 @@ static int icwmp_command_handler(struct ubus_context *ctx, struct ubus_object *o
 	struct blob_buf blob_command;
 	int ret = -1;
 
-	memset(&blob_command, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&blob_command, 0, sizeof(struct blob_buf));
 	blob_buf_init(&blob_command, 0);
 
 	ret = blobmsg_parse(icwmp_cmd_policy, ARRAY_SIZE(icwmp_cmd_policy), tb, blob_data(msg), blob_len(msg));
@@ -227,7 +226,7 @@ static int icwmp_status_handler(struct ubus_context *ctx, struct ubus_object *ob
 {
 	struct blob_buf bb;
 
-	memset(&bb, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&bb, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bb, 0);
 
 	bb_add_icwmp_status(&bb);
@@ -282,7 +281,7 @@ static int icwmp_inform_event(struct blob_buf *bb, char *event)
 static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
 	struct blob_buf bb;
-	memset(&bb, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&bb, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bb, 0);
 
 	if (cwmp_main->init_complete == false) {
@@ -424,7 +423,7 @@ int initiate_autonomous_complpolicy(void)
 	if (cwmp_main->ev == NULL)
 		return -1;
 
-	memset(cwmp_main->ev, 0, sizeof(struct ubus_event_handler));
+	CWMP_MEMSET(cwmp_main->ev, 0, sizeof(struct ubus_event_handler));
 	cwmp_main->ev->cb = autonomous_notification_handler;
 
 	int ret = ubus_register_event_handler(ubus_ctx, cwmp_main->ev, "bbfdm.event");

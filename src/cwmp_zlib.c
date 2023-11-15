@@ -90,7 +90,7 @@ int zlib_compress(char *message, unsigned char **zmsg, int *zlen, int type)
 			CWMP_LOG(ERROR, "Error (re)allocating memory");
 			return -1;
 		}
-		memcpy(*zmsg + ozlen, out, have);
+		CWMP_MEMCPY(*zmsg + ozlen, out, have);
 	} while (strm.avail_out == 0);
 	deflateEnd(&strm);
 #if 0 /*test*/

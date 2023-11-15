@@ -133,9 +133,9 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 
 	list_for_each_entry(dm_parameter, head, list) {
 
-		if (strcmp(param_name, dm_parameter->name) == 0) {
-			if (param_val && strcmp(dm_parameter->value, param_val) != 0) {
-				free(dm_parameter->value);
+		if (CWMP_STRCMP(param_name, dm_parameter->name) == 0) {
+			if (param_val && CWMP_STRCMP(dm_parameter->value, param_val) != 0) {
+				FREE(dm_parameter->value);
 				dm_parameter->value = strdup(param_val);
 			}
 			dm_parameter->notification = notification;
@@ -146,7 +146,7 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	dm_parameter = calloc(1, sizeof(struct cwmp_dm_parameter));
 	list_add_tail(&dm_parameter->list, head);
 
-	dm_parameter->name = strdup(param_name);
+	dm_parameter->name = CWMP_STRDUP(param_name);
 	dm_parameter->value = param_val ? strdup(param_val) : NULL;
 	dm_parameter->type = strdup(param_type ? param_type : "xsd:string");
 	dm_parameter->access_list = NULL;
@@ -178,21 +178,21 @@ void cwmp_free_all_dm_parameter_list(struct list_head *list)
  */
 void cwmp_add_list_fault_param(char *param, int fault, struct list_head *list_set_value_fault)
 {
-	struct cwmp_param_fault *param_fault;
+	struct cwmp_param_fault *param_fault = NULL;
 	if (param == NULL)
 		param = "";
 
 	param_fault = calloc(1, sizeof(struct cwmp_param_fault));
 	list_add_tail(&param_fault->list, list_set_value_fault);
-	param_fault->name = strdup(param);
+	param_fault->name = CWMP_STRDUP(param);
 	param_fault->fault = fault;
 }
 
 void cwmp_del_list_fault_param(struct cwmp_param_fault *param_fault)
 {
 	list_del(&param_fault->list);
-	free(param_fault->name);
-	free(param_fault);
+	FREE(param_fault->name);
+	FREE(param_fault);
 }
 
 void cwmp_free_all_list_param_fault(struct list_head *list_param_fault)
@@ -221,7 +221,7 @@ int cwmp_asprintf(char **s, const char *format, ...)
 	str = (char *)calloc(sizeof(char), size + 1);
 	vsnprintf(str, size + 1, format, arg);
 	va_end(arg);
-	*s = strdup(str);
+	*s = CWMP_STRDUP(str);
 	FREE(str);
 	if (*s == NULL) {
 		return -1;
@@ -286,7 +286,7 @@ void check_firewall_restart_state()
 		if (get_firewall_restart_state(&state) != CWMP_OK)
 			break;
 
-		if (state != NULL && strcmp(state, "init") == 0) {
+		if (CWMP_STRCMP(state, "init") == 0) {
 			init = true;
 			FREE(state);
 			break;
@@ -320,7 +320,7 @@ void cwmp_reboot(char *command_key)
 	set_rpc_parameter_key(command_key);
 
 	struct blob_buf b = { 0 };
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	icwmp_ubus_invoke("rpc-sys", "reboot", b.head, NULL, NULL);
@@ -338,7 +338,7 @@ void cwmp_reboot(char *command_key)
 void cwmp_factory_reset() //use the ubus rpc-sys factory
 {
 	struct blob_buf b = { 0 };
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	icwmp_ubus_invoke("rpc-sys", "factory", b.head, NULL, NULL);
@@ -476,8 +476,9 @@ int cwmp_get_fault_code_by_string(char *fault_code)
 
 	if (fault_code == NULL)
 		return FAULT_CPE_NO_FAULT;
+
 	for (i = 1; i < __FAULT_CPE_MAX; i++) {
-		if (strcmp(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0)
+		if (CWMP_STRCMP(FAULT_CPE_ARRAY[i].CODE, fault_code) == 0)
 			break;
 	}
 
@@ -534,7 +535,7 @@ char *icwmp_strdup(const char *s)
 	void *new = icwmp_malloc(len);
 	if (new == NULL)
 		return NULL;
-	return (char *)memcpy(new, s, len);
+	return (char *)CWMP_MEMCPY(new, s, len);
 }
 
 int icwmp_asprintf(char **s, const char *format, ...)
@@ -603,7 +604,7 @@ int icwmp_add_service(char *service)
 {
 	if (nbre_services >= MAX_NBRE_SERVICES)
 		return -1;
-	list_services[nbre_services++] = strdup(service);
+	list_services[nbre_services++] = CWMP_STRDUP(service);
 	return 0;
 }
 
@@ -625,7 +626,7 @@ void icwmp_restart_services()
 			continue;
 
 		struct blob_buf b = { 0 };
-		memset(&b, 0, sizeof(struct blob_buf));
+		CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 		blob_buf_init(&b, 0);
 		bb_add_string(&b, "config", list_services[i]);
 
@@ -633,7 +634,7 @@ void icwmp_restart_services()
 
 		blob_buf_free(&b);
 
-		if (list_services[i] && strcmp(list_services[i], "firewall") == 0) {
+		if (CWMP_STRCMP(list_services[i], "firewall") == 0) {
 			g_firewall_restart = true;
 		}
 	}
@@ -657,7 +658,7 @@ bool icwmp_validate_string_length(char *arg, int max_length)
 
 bool icwmp_validate_boolean_value(char *arg)
 {
-	if (!arg ||( strcmp(arg, "1") != 0 && strcmp(arg, "0") != 0 && strcmp(arg, "true") != 0 && strcmp(arg, "false") != 0))
+	if (!arg ||( CWMP_STRCMP(arg, "1") != 0 && CWMP_STRCMP(arg, "0") != 0 && CWMP_STRCMP(arg, "true") != 0 && CWMP_STRCMP(arg, "false") != 0))
 		return false;
 	return true;
 }
@@ -763,7 +764,7 @@ static void ubus_network_interface_callback(struct ubus_request *req __attribute
 	if (!CWMP_STRLEN(l3_device))
 		return;
 
-	cwmp_main->net.interface = strdup(l3_device);
+	cwmp_main->net.interface = CWMP_STRDUP(l3_device);
 
 	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s && device: %s", cwmp_main->conf.default_wan_iface, cwmp_main->net.interface);
 }
@@ -784,7 +785,7 @@ static bool is_ipv6_addr_available(const char *device)
 
 	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
 
-		if (ifa->ifa_addr == NULL || ifa->ifa_name == NULL || strcmp(ifa->ifa_name, device) != 0)
+		if (ifa->ifa_addr == NULL || CWMP_STRCMP(ifa->ifa_name, device) != 0)
 			continue;
 
 		family = ifa->ifa_addr->sa_family;
@@ -822,7 +823,7 @@ bool is_ipv6_enabled(void)
 		struct blob_buf b = {0};
 		char network_interface[64];
 
-		memset(&b, 0, sizeof(struct blob_buf));
+		CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 		blob_buf_init(&b, 0);
 
 		snprintf(network_interface, sizeof(network_interface), "network.interface.%s", cwmp_main->conf.default_wan_iface);
@@ -931,7 +932,7 @@ void cwmp_invoke_intf_reset(char *path)
 
 	CWMP_LOG(DEBUG, "Reset interface: %s", path);
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 
 	blob_buf_init(&b, 0);
 	bb_add_string(&b, "command", command);
@@ -964,4 +965,99 @@ void add_day_to_time(struct tm *time)
 			time->tm_mon = time->tm_mon + 1;
 	} else
 		time->tm_mday = time->tm_mday + 1;
+}
+
+int cwmp_strcmp(const char *s1, const char *s2, const char *origin, int pos)
+{
+	if (s1 != NULL && s2 != NULL)
+		return strcmp(s1, s2);
+	else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+		return -1;
+	}
+}
+
+int cwmp_strncmp(const char *s1, const char *s2, int len, const char *origin, int pos)
+{
+	if (s1 != NULL && s2 != NULL && len > 0)
+		return strncmp(s1, s2, len);
+	else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+		return -1;
+	}
+}
+
+int cwmp_strlen(const char *s1, const char *origin, int pos)
+{
+	if (s1 != NULL)
+		return strlen(s1);
+	else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+		return 0;
+	}
+}
+
+int cwmp_strcasecmp(const char *s1, const char *s2, const char *origin, int pos)
+{
+	if (s1 != NULL && s2 != NULL)
+		return strcasecmp(s1, s2);
+	else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+		return -1;
+	}
+}
+
+char *cwmp_strstr(const char *s1, const char *s2, const char *origin, int pos)
+{
+	if (s1 != NULL && s2 != NULL)
+		return strstr(s1, s2);
+	else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+		return NULL;
+	}
+}
+
+char *cwmp_strncpy(char *dst, const char *src, int size, const char *origin, int pos)
+{
+	if (size <= 0)
+		return dst;
+
+	if (dst != NULL && src != NULL) {
+		strncpy(dst, src, size - 1);
+		dst[size - 1] = '\0';
+	} else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+	}
+
+	return dst;
+}
+
+char *cwmp_strdup(const char *s1, const char *origin, int pos)
+{
+	if (s1)
+		return strdup(s1);
+	else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+		return NULL;
+	}
+}
+
+void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos)
+{
+	if (src)
+		return memset(src, val, size);
+	else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+		return NULL;
+	}
+}
+
+void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, int pos)
+{
+	if (dst != NULL && src != NULL)
+		return memcpy(dst, src, size);
+	else {
+		CWMP_LOG(WARNING, "%s:%d NULL argument found", origin, pos);
+		return dst;
+	}
 }

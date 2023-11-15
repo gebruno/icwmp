@@ -24,10 +24,10 @@ bool check_task_name(char *task, char *name)
 {
 	struct blob_buf bbuf;
 
-	if (task && strcmp(task, "{}") == 0)
+	if (task && CWMP_STRCMP(task, "{}") == 0)
 		return false;
 
-	memset(&bbuf, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
 	if (blobmsg_add_json_from_string(&bbuf, task) == false) {
@@ -44,7 +44,7 @@ bool check_task_name(char *task, char *name)
 
 	char *task_name = blobmsg_get_string(tb[0]);
 
-	if (strcmp(task_name, name) == 0) {
+	if (CWMP_STRCMP(task_name, name) == 0) {
 		blob_buf_free(&bbuf);
 		return true;
 	}
@@ -92,11 +92,12 @@ int subprocess_start(task_function task_fun)
     		char *to_child = task_fun(from_parent);
 
     		struct blob_buf bbuf;
-    		memset(&bbuf, 0, sizeof(struct blob_buf));
+    		CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
     		blob_buf_init(&bbuf, 0);
 		blobmsg_add_string(&bbuf, "ret", to_child ? to_child : "500");
     		char *to_child_json = blobmsg_format_json(bbuf.head, true);
-    		write(pipefd2[1], to_child_json, strlen(to_child_json)+1);
+    		write(pipefd2[1], to_child_json, CWMP_STRLEN(to_child_json)+1);
+
     		FREE(to_child);
     		FREE(to_child_json);
     		blob_buf_free(&bbuf);
@@ -108,8 +109,14 @@ int subprocess_start(task_function task_fun)
 char *execute_task_in_subprocess(char *task)
 {
 	char *ret = NULL;
+	int len = 0;
 
-	write(pipefd1[1], task, strlen(task) + 1);
+	len = CWMP_STRLEN(task);
+
+	if (len == 0)
+		write(pipefd1[1], END_TASK, strlen(END_TASK) +1);
+	else
+		write(pipefd1[1], task, len + 1);
 
 	while(1) {
 		char from_child[512];
@@ -124,7 +131,7 @@ char *execute_task_in_subprocess(char *task)
 		}
 
 		struct blob_buf bbuf;
-		memset(&bbuf, 0, sizeof(struct blob_buf));
+		CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 		blob_buf_init(&bbuf, 0);
 		if (blobmsg_add_json_from_string(&bbuf, from_child) == false) {
 			blob_buf_free(&bbuf);
@@ -140,7 +147,8 @@ char *execute_task_in_subprocess(char *task)
 		ret = blobmsg_get_string(tb[0]);
 		write(pipefd1[1], END_TASK, strlen(END_TASK) +1);
 	}
-    close(pipefd1[0]);
-    close(pipefd1[1]);
-    return ret;
+
+    	close(pipefd1[0]);
+    	close(pipefd1[1]);
+    	return ret;
 }

@@ -52,7 +52,7 @@ void ubus_du_state_callback(struct ubus_request *req, int type __attribute__((un
 			struct blob_attr *param;
 			__blob_for_each_attr(param, data, data_len) {
 				struct blobmsg_hdr *hdr = blob_data(attr);
-				if (hdr && hdr->name && strcmp((char*)hdr->name, "fault") == 0) {
+				if (hdr && CWMP_STRCMP((char*)hdr->name, "fault") == 0) {
 					*fault = strdup("9010");
 					return;
 				}
@@ -109,7 +109,7 @@ int cwmp_du_install(char *url, char *uuid, char *user, char *pass, char *path, c
 {
 	int e;
 	struct blob_buf b = { 0 };
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	int len = CWMP_STRLEN(env_ref);
@@ -131,7 +131,7 @@ int cwmp_du_update(char *url, char *user, char *pass, char *du_path, char **faul
 {
 	struct blob_buf b = {0};
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	prepare_blob_msg(&b, url, 0, user, pass, du_path, "", DU_UPDATE);
@@ -150,7 +150,7 @@ int cwmp_du_uninstall(char *du_path, char **fault_code)
 {
 	struct blob_buf b = {0};
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	prepare_blob_msg(&b, "", 0, "", "", du_path, "", DU_UNINSTALL);
@@ -189,10 +189,10 @@ static char *get_software_module_object_eq(char *param1, char *val1, char *param
 	}
 
 	list_for_each_entry (param_value, sw_parameters, list) {
-		if (regexec(&regex1, param_value->name, 0, NULL, 0) == 0 && param_value->value && strcmp(param_value->value, val1) == 0)
+		if (regexec(&regex1, param_value->name, 0, NULL, 0) == 0 && CWMP_STRCMP(param_value->value, val1) == 0)
 			softwaremodule_filter_param = true;
 
-		if (param2 && regexec(&regex2, param_value->name, 0, NULL, 0) == 0 && param_value->value && strcmp(param_value->value, val2) == 0)
+		if (param2 && regexec(&regex2, param_value->name, 0, NULL, 0) == 0 && CWMP_STRCMP(param_value->value, val2) == 0)
 			softwaremodule_filter_param = true;
 
 		if (softwaremodule_filter_param == false)
@@ -220,7 +220,7 @@ static int get_deployment_unit_name_version(char *uuid, char **name, char **vers
 		if (param_value->name == NULL)
 			continue;
 		if (strcmp(param_value->name, name_param) == 0) {
-			*name = strdup(param_value->value) ? param_value->value : "";
+			*name = strdup(param_value->value ? param_value->value : "");
 			continue;
 		}
 		if (strcmp(param_value->name, version_param) == 0) {
@@ -274,7 +274,7 @@ static int cwmp_launch_du_install(char *url, char *uuid, char *user, char *pass,
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
-	memset(node, 0, sizeof(du_op_uuid));
+	CWMP_MEMSET(node, 0, sizeof(du_op_uuid));
 	snprintf(node->uuid, sizeof(node->uuid), "%s", uuid);
 	snprintf(node->operation, sizeof(node->operation), "%s", "Install");
 
@@ -315,7 +315,7 @@ static int cwmp_launch_du_update(char *url, char *uuid, char *user, char *pass, 
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
-	memset(node, 0, sizeof(du_op_uuid));
+	CWMP_MEMSET(node, 0, sizeof(du_op_uuid));
 	snprintf(node->uuid, sizeof(node->uuid), "%s", uuid);
 	snprintf(node->operation, sizeof(node->operation), "%s", "Update");
 
@@ -355,7 +355,7 @@ static int cwmp_launch_du_uninstall(char *du_path, char *uuid, struct opresult *
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
-	memset(node, 0, sizeof(du_op_uuid));
+	CWMP_MEMSET(node, 0, sizeof(du_op_uuid));
 	snprintf(node->uuid, sizeof(node->uuid), "%s", uuid);
 	snprintf(node->operation, sizeof(node->operation), "%s", "Uninstall");
 
@@ -407,16 +407,16 @@ int change_du_state_fault(struct change_du_state *pchange_du_state, struct du_st
 		// cppcheck-suppress uninitvar
 		if (CWMP_STRLEN(p->uuid) == 0) {
 			char *uuid = generate_uuid();
-			res->uuid = strdup(uuid);
+			res->uuid = CWMP_STRDUP(uuid);
 			FREE(uuid);
 		} else {
-			res->uuid = strdup(p->uuid);
+			res->uuid = CWMP_STRDUP(p->uuid);
 		}
 
-		res->version = strdup(p->version);
+		res->version = CWMP_STRDUP(p->version);
 		res->current_state = strdup("Failed");
-		res->start_time = strdup(get_time(time(NULL)));
-		res->complete_time = strdup(res->start_time);
+		res->start_time = CWMP_STRDUP(get_time(time(NULL)));
+		res->complete_time = CWMP_STRDUP(res->start_time);
 		res->fault = error;
 	}
 	if ((cwmp_main->cdu_complete_id < 0) || (cwmp_main->cdu_complete_id >= MAX_INT_ID)) {
@@ -467,7 +467,7 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 
 	error = FAULT_CPE_NO_FAULT;
 	INIT_LIST_HEAD(&(pdu_state_change_complete->list_opresult));
-	pdu_state_change_complete->command_key = strdup(pchange_du_state->command_key);
+	pdu_state_change_complete->command_key = CWMP_STRDUP(pchange_du_state->command_key);
 	pdu_state_change_complete->timeout = pchange_du_state->timeout;
 
 	list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
@@ -501,10 +501,10 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 			package_name = get_package_name_by_url(p->url);
 
 			if (error != FAULT_CPE_NO_FAULT) {
-				res->uuid = strdup(p->uuid);
+				res->uuid = CWMP_STRDUP(p->uuid);
 				res->current_state = strdup("Failed");
 				res->resolved = 0;
-				res->complete_time = strdup(get_time(time(NULL)));
+				res->complete_time = CWMP_STRDUP(get_time(time(NULL)));
 				res->fault = error;
 				/* du state change event will be scheduled here, so remove uuid from list */
 				remove_node_from_uuid_list(p->uuid, "Install");
@@ -531,7 +531,7 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 			snprintf(du_path, sizeof(du_path), "Device.SoftwareModules.DeploymentUnit.%s.", du_ref);
 
 			error = cwmp_launch_du_update(p->url, p->uuid, p->username, p->password, du_path, &res);
-			res->uuid = strdup(p->uuid);
+			res->uuid = CWMP_STRDUP(p->uuid);
 
 			if (error != FAULT_CPE_NO_FAULT) {
 				struct cwmp_dm_parameter dm_param = {0};
@@ -543,8 +543,8 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 				res->current_state = strdup("Failed");
 				res->resolved = 0;
 				res->version = strdup(dm_param.value ? dm_param.value : "");
-				res->du_ref = strdup(du_path);
-				res->complete_time = strdup(get_time(time(NULL)));
+				res->du_ref = CWMP_STRDUP(du_path);
+				res->complete_time = CWMP_STRDUP(get_time(time(NULL)));
 				res->fault = error;
 				/* du state change event will be scheduled here, so remove uuid from list */
 				remove_node_from_uuid_list(p->uuid, "Update");
@@ -588,10 +588,10 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 			if (error != FAULT_CPE_NO_FAULT) {
 				res->current_state = strdup("Installed");
 				res->resolved = 1;
-				res->du_ref = strdup(du_path);
-				res->uuid = strdup(p->uuid);
+				res->du_ref = CWMP_STRDUP(du_path);
+				res->uuid = CWMP_STRDUP(p->uuid);
 				res->version = strdup(package_version ? package_version : "");
-				res->complete_time = strdup(get_time(time(NULL)));
+				res->complete_time = CWMP_STRDUP(get_time(time(NULL)));
 				res->fault = error;
 				/* du state change event will be scheduled here, so remove uuid from list */
 				remove_node_from_uuid_list(p->uuid, "Uninstall");
@@ -675,7 +675,7 @@ void remove_node_from_uuid_list(char *uuid, char *operation)
 
 	du_op_uuid *tmp, *q;
 	list_for_each_entry_safe(tmp, q, &du_uuid_list, list) {
-		if (strcmp(tmp->uuid, uuid) == 0 && strcmp(tmp->operation, operation) == 0) {
+		if (CWMP_STRCMP(tmp->uuid, uuid) == 0 && CWMP_STRCMP(tmp->operation, operation) == 0) {
 			list_del(&tmp->list);
 			free(tmp);
 			break;
@@ -690,7 +690,7 @@ bool exists_in_uuid_list(char *uuid, char *operation)
 
 	du_op_uuid *tmp, *q;
 	list_for_each_entry_safe(tmp, q, &du_uuid_list, list) {
-		if (strcmp(tmp->uuid, uuid) == 0 && strcmp(tmp->operation, operation) == 0)
+		if (CWMP_STRCMP(tmp->uuid, uuid) == 0 && CWMP_STRCMP(tmp->operation, operation) == 0)
 			return true;
 	}
 

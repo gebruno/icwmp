@@ -385,7 +385,7 @@ void start_cwmp_session()
 	CWMP_LOG(INFO, "Start session");
 
 	uci_get_value(UCI_CPE_EXEC_DOWNLOAD, &exec_download);
-	if (exec_download && strcmp(exec_download, "1") == 0) {
+	if (CWMP_STRCMP(exec_download, "1") == 0) {
 		CWMP_LOG(INFO, "Firmware downloaded and applied successfully");
 		cwmp_uci_set_value("cwmp", "cpe", "exec_download", "0");
 		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);

@@ -211,7 +211,7 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 
 	curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);
 	if (CWMP_STRLEN(ip)) {
-		if (ip_acs[0] == '\0' || strcmp(ip_acs, ip) != 0) {
+		if (ip_acs[0] == '\0' || CWMP_STRCMP(ip_acs, ip) != 0) {
 			CWMP_STRNCPY(ip_acs, ip, sizeof(ip_acs));
 			tmp = inet_pton(AF_INET, ip, buf);
 			if (tmp == 1)
@@ -326,7 +326,7 @@ static void http_cr_new_client(int client, bool service_available)
 	}
 
 	snprintf(cr_http_get_head, sizeof(cr_http_get_head), "GET %s HTTP/1.1", cr_path);
-	memset(auth_digest_buffer, 0, BUFSIZ);
+	CWMP_MEMSET(auth_digest_buffer, 0, BUFSIZ);
 
 	/* Initialize timeout of select, so that it will wait for specific time
 	 * period before timed out to receive data from client. Otherwise if client
@@ -437,7 +437,7 @@ static void http_cr_new_client(int client, bool service_available)
 				bool ignore = false;
 				char rec_http_get_head[HTTP_GET_HDR_LEN] = {0};
 
-				memset(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
+				CWMP_MEMSET(rec_http_get_head, 0, HTTP_GET_HDR_LEN);
 				for (size_t i = 0; i < strlen(data) && j < (HTTP_GET_HDR_LEN - 1); i++) {
 					if (data[i] == '?')
 						ignore = true;
@@ -462,7 +462,7 @@ static void http_cr_new_client(int client, bool service_available)
 				snprintf(request_host, sizeof(request_host), "http://%s", data + strlen("Host: "));
 			}
 
-			memset(data, 0, sizeof(data));
+			CWMP_MEMSET(data, 0, sizeof(data));
 		}
 	}
 

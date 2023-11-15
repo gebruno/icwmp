@@ -124,7 +124,7 @@ static void ubus_transaction_callback(struct ubus_request *req, int type __attri
 		blobmsg_for_each_attr(service, updated_services, rem) {
 			char *service_name = blobmsg_get_string(service);
 
-			if (CWMP_STRLEN(service_name) == 0 || strcmp(service_name, "cwmp") == 0)
+			if (CWMP_STRLEN(service_name) == 0 || CWMP_STRCMP(service_name, "cwmp") == 0)
 				continue;
 
 			CWMP_LOG(DEBUG, "Detected service: %s will be restarted in the end session", service_name);
@@ -144,9 +144,9 @@ bool cwmp_transaction(const char *cmd, bool restart_services)
 	if (CWMP_STRLEN(cmd) == 0)
 		return false;
 
-	int start_cmp = strcmp(cmd, "start");
-	int commit_cmp = strcmp(cmd, "commit");
-	int abort_cmp = strcmp(cmd, "abort");
+	int start_cmp = CWMP_STRCMP(cmd, "start");
+	int commit_cmp = CWMP_STRCMP(cmd, "commit");
+	int abort_cmp = CWMP_STRCMP(cmd, "abort");
 
 	if (start_cmp != 0 && commit_cmp != 0 && abort_cmp != 0)
 		return false;
@@ -157,7 +157,7 @@ bool cwmp_transaction(const char *cmd, bool restart_services)
 
 	CWMP_LOG(INFO, "Transaction %s ...", cmd);
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 
 	blob_buf_init(&b, 0);
 	bb_add_string(&b, "cmd", cmd);
@@ -229,7 +229,7 @@ bool cwmp_get_parameter_value(const char *parameter_name, struct cwmp_dm_paramet
 	if (len == 0 || parameter_name[len - 1] == '.')
 		return false;
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	bb_add_string(&b, "path", parameter_name);
@@ -292,7 +292,7 @@ static void ubus_get_parameter_callback(struct ubus_request *req, int type __att
 		char *param_name = blobmsg_get_string(tb[0]);
 		char *param_value = tb[1] ? blobmsg_get_string(tb[1]) : "";
 		char *param_type = tb[2] ? blobmsg_get_string(tb[2]) : "";
-		bool writable = strcmp(param_value, "1") == 0 ? true : false;
+		bool writable = CWMP_STRCMP(param_value, "1") == 0 ? true : false;
 
 		add_dm_parameter_to_list(result->parameters_list, param_name, param_value, param_type, 0, writable);
 	}
@@ -312,7 +312,7 @@ char *cwmp_get_parameter_values(const char *parameter_name, struct list_head *pa
 
 	const char *param = len ? parameter_name : "";
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	bb_add_string(&b, "path", param);
@@ -352,7 +352,7 @@ char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, stru
 
 	const char *object = len ? parameter_name : "";
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	bb_add_string(&b, "path", object);
@@ -434,7 +434,7 @@ int cwmp_set_parameter_value(const char *parameter_name, const char *parameter_v
 	if (param_len == 0 || parameter_name[param_len - 1] == '.' || parameter_value == NULL)
 		return FAULT_CPE_INVALID_ARGUMENTS;
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	bb_add_string(&b, "path", parameter_name);
@@ -524,7 +524,7 @@ char *cwmp_add_object(const char *object_name, char **instance)
 	};
 	struct blob_buf b = {0};
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	bb_add_string(&b, "path", object_name);
@@ -559,7 +559,7 @@ char *cwmp_delete_object(const char *object_name)
 	};
 	struct blob_buf b = {0};
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	bb_add_string(&b, "path", object_name);

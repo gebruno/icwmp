@@ -199,7 +199,7 @@ static bool set_specific_diagnostic_object_parameter_structure_value(struct diag
 		return false;
 
 	for (int i = 0; i < number_inputs; i++) {
-		if (strcmp((*diagnostics_array)[i].parameter_name, parameter) == 0) {
+		if (CWMP_STRCMP((*diagnostics_array)[i].parameter_name, parameter) == 0) {
 			FREE((*diagnostics_array)[i].value);
 			(*diagnostics_array)[i].value = strdup(value ? value : "");
 			return true;
@@ -225,7 +225,7 @@ static int cwmp_diagnostics_operate(char *command, char *command_key, struct dia
 {
 	struct blob_buf b = {0};
 
-	memset(&b, 0, sizeof(struct blob_buf));
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
 	bb_add_string(&b, "command", command);

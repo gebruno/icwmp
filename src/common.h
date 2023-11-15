@@ -33,15 +33,16 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-#define CWMP_STRCMP(S1, S2) ((S1 != NULL && S2 != NULL) ? strcmp(S1, S2) : (S1 == S2))
-#define CWMP_STRDUP(S1) ((S1 != NULL) ? strdup(S1) : NULL)
-#define CWMP_STRLEN(S1) ((S1 != NULL) ? strlen(S1) : 0)
+#define CWMP_STRCMP(S1, S2) cwmp_strcmp(S1, S2, __func__, __LINE__)
+#define CWMP_STRNCMP(S1, S2, LEN) cwmp_strncmp(S1, S2, LEN, __func__, __LINE__)
+#define CWMP_STRLEN(S1) cwmp_strlen(S1, __func__, __LINE__)
+#define CWMP_STRSTR(S1, S2) cwmp_strstr(S1, S2, __func__, __LINE__)
+#define CWMP_LSTRCASECMP(S1, S2) cwmp_strcasecmp(S1, S2, __func__, __LINE__)
+#define CWMP_STRDUP(S1) cwmp_strdup(S1, __func__, __LINE__)
+#define CWMP_STRNCPY(DST, SRC, SIZE) cwmp_strncpy(DST, SRC, SIZE, __func__, __LINE__)
 
-#define CWMP_STRNCPY(DST, SRC, SIZE) \
-	do { \
-		strncpy(DST, SRC, SIZE - 1); \
-		DST[SIZE - 1] = '\0'; \
-	} while (0)
+#define CWMP_MEMSET(SRC, VAL, SIZE) cwmp_memset(SRC, VAL, SIZE, __func__, __LINE__)
+#define CWMP_MEMCPY(DST, SRC, SIZE) cwmp_memcpy(DST, SRC, SIZE, __func__, __LINE__)
 
 #define BBFDM_OBJECT_NAME "bbfdm"
 #define MAX_EVENTS 64
@@ -626,4 +627,15 @@ void check_firewall_restart_state();
 void add_day_to_time(struct tm *time);
 int set_rpc_acs_to_supported(const char *rpc_name);
 void set_rpc_parameter_key(char *param_key);
+
+int cwmp_strcmp(const char *s1, const char *s2, const char *origin, int pos);
+int cwmp_strncmp(const char *s1, const char *s2, int len, const char *origin, int pos);
+int cwmp_strlen(const char *s1, const char *origin, int pos);
+int cwmp_strcasecmp(const char *s1, const char *s2, const char *origin, int pos);
+char *cwmp_strstr(const char *s1, const char *s2, const char *origin, int pos);
+char *cwmp_strncpy(char *dst, const char *src, int size, const char *origin, int pos);
+char *cwmp_strdup(const char *s1, const char *origin, int pos);
+void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos);
+void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, int pos);
+
 #endif
