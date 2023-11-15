@@ -669,6 +669,9 @@ char *get_xml_node_name_switch(char *node_name)
 	size_t total_size = sizeof(xml_nodes_names_switches) / sizeof(struct xml_switch);
 	for (i = 0; i < total_size; i++)
 	{
+		if (xml_nodes_names_switches[i].node_name == NULL)
+			continue;
+
 		if (CWMP_STRCMP(node_name, xml_nodes_names_switches[i].node_name) == 0)
 			return xml_nodes_names_switches[i].switch_node_name;
 	}
@@ -684,6 +687,9 @@ char *get_xml_node_name_by_switch_name(char *switch_node_name)
 	size_t total_size = sizeof(xml_nodes_names_switches) / sizeof(struct xml_switch);
 	for (i = 0; i < total_size; i++)
 	{
+		if (xml_nodes_names_switches[i].switch_node_name == NULL)
+			continue;
+
 		if (CWMP_STRCMP(switch_node_name, xml_nodes_names_switches[i].switch_node_name) == 0)
 			return xml_nodes_names_switches[i].node_name;
 	}
@@ -698,6 +704,9 @@ int get_xml_tag_index(const char *name)
 
 	size_t total_size = sizeof(xml_tags_names) / sizeof(char*);
 	for (i = 0; i < total_size; i++) {
+		if (xml_tags_names[i] == NULL)
+			continue;
+
 		if (CWMP_STRCMP(name, xml_tags_names[i]) == 0)
 			return i;
 	}
@@ -713,6 +722,9 @@ int get_xml_soap_tag_index(int soap_ref, const char *name)
 
 	size_t total_size = sizeof(xml_nodes_data[soap_ref].xml_tags) / sizeof(struct xml_tag);
 	for (i = 0; i < total_size; i++) {
+		if (xml_nodes_data[soap_ref].xml_tags[i].tag_name == NULL)
+			continue;
+
 		if (CWMP_STRCMP(name, xml_nodes_data[soap_ref].xml_tags[i].tag_name) == 0)
 			return i;
 	}
@@ -727,7 +739,7 @@ int load_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_str
 	while (b) {
 		if (mxmlGetType(b) == MXML_ELEMENT) {
 			const char *b_name = b ? mxmlGetElement(b) : NULL;
-			if (CWMP_STRCMP(xml_nodes_data[node_ref].tag_list_name, b_name) == 0) {
+			if (b_name && CWMP_STRCMP(xml_nodes_data[node_ref].tag_list_name, b_name) == 0) {
 				struct xml_list_data *xml_data = calloc(1, sizeof(struct xml_list_data));
 
 				struct xml_data_struct xml_attrs_args = {0};
@@ -778,6 +790,9 @@ bool validate_xml_node_opaque_value(char *node_name, char *opaque, struct xml_ta
 		return false;
 	}
 	for (i = 0; i < nbre_validations; i++) {
+		if (validations[i].tag_name == NULL)
+			continue;
+
 		if (CWMP_STRCMP(node_name, validations[i].tag_name) == 0) {
 			if (validations[i].validation_type == VALIDATE_STR_SIZE) {
 				if (!icwmp_validate_string_length(opaque, validations[i].max))
@@ -809,6 +824,9 @@ bool check_node_is_switch_by_node_name(int node_ref, char *node_name)
 	size_t total_size = sizeof(xml_nodes_data[node_ref].xml_tags) / sizeof(struct xml_tag);
 	for (i = 0; i < total_size; i++)
 	{
+		if (xml_nodes_data[node_ref].xml_tags[i].tag_name == NULL)
+			continue;
+
 		if (CWMP_STRCMP(xml_nodes_data[node_ref].xml_tags[i].tag_name, node_name) == 0 && xml_nodes_data[node_ref].xml_tags[i].rec_ref == XML_SWITCH)
 			return true;
 	}
@@ -1293,7 +1311,7 @@ char *xml__get_attribute_name_by_value(mxml_node_t *node,	const char  *value)
 	for (i = 0; i < attributes_nbre; i++) {
 		char *attr_name = NULL;
 		const char *attr_value = mxmlElementGetAttrByIndex(node, i, (const char **)&attr_name);
-		if (CWMP_STRCMP(attr_value, value) == 0)
+		if (attr_value && CWMP_STRCMP(attr_value, value) == 0)
 			return attr_name;
 	}
 	return NULL;

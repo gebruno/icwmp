@@ -102,7 +102,7 @@ char *check_valid_parameter_path(char *parameter_name)
 	/*check if parameter name is valid parameter path*/
 	error = cwmp_get_parameter_names(parameter_name, false, &parameters_list);
 
-	if (CWMP_STRCMP(error, "9003") == 0)
+	if (error && CWMP_STRCMP(error, "9003") == 0)
 		error = cwmp_get_parameter_values(parameter_name, &parameters_list);
 
 	cwmp_free_all_dm_parameter_list(&parameters_list);
