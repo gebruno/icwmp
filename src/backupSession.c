@@ -385,6 +385,7 @@ void bkp_session_insert_transfer_complete(struct transfer_complete *ptransfer_co
 		bkp_xml_tc.complete_time = ptransfer_complete->complete_time ? &ptransfer_complete->complete_time : NULL;
 		bkp_xml_tc.old_software_version = ptransfer_complete->old_software_version ? &ptransfer_complete->old_software_version : NULL;
 		bkp_xml_tc.fault_code = &ptransfer_complete->fault_code;
+		bkp_xml_tc.fault_string = ptransfer_complete->fault_string ? &ptransfer_complete->fault_string : NULL;
 		bkp_xml_tc.type = &ptransfer_complete->type;
 		build_xml_node_data(BKP_TRANSFER_COMPLETE_BUILD, bkp_tree, &bkp_xml_tc);
 	}
@@ -629,6 +630,7 @@ static void load_transfer_complete(mxml_node_t *tree)
 	bkp_xml_transfer_complete.complete_time = &ptransfer_complete->complete_time;
 	bkp_xml_transfer_complete.old_software_version = &ptransfer_complete->old_software_version;
 	bkp_xml_transfer_complete.fault_code = &ptransfer_complete->fault_code;
+	bkp_xml_transfer_complete.fault_string = &ptransfer_complete->fault_string;
 	bkp_xml_transfer_complete.type = &ptransfer_complete->type;
 
 	load_xml_node_data(BKP_TRANSFER_COMPLETE, tree, &bkp_xml_transfer_complete);

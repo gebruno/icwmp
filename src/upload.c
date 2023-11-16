@@ -199,6 +199,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	char file_path[128] = {'\0'};
 	bkp_session_delete_element("upload", pupload->id);
 	bkp_session_save();
+	char err_msg[256] = {0};
 
 	if (pupload->file_type[0] == '1') {
 		snprintf(file_path, sizeof(file_path), "/tmp/all_configs");
@@ -212,10 +213,13 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 			// cppcheck-suppress uninitvar
 			if (copy(name, file_path) != 0) {
 				error = FAULT_CPE_UPLOAD_FAILURE;
+				snprintf(err_msg, sizeof(err_msg), "Failed to copy the file content from %s to %s", file_path, name);
 				FREE(name);
 			}
-		} else
+		} else {
 			error = FAULT_CPE_UPLOAD_FAILURE;
+			snprintf(err_msg, sizeof(err_msg), "No filename found");
+		}
 	} else if (pupload->file_type[0] == '3') {
 		lookup_vcf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
@@ -226,6 +230,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 			FREE(name);
 		} else {
 			error = FAULT_CPE_UPLOAD_FAILURE;
+			snprintf(err_msg, sizeof(err_msg), "No filename found");
 			goto end_upload;
 		}
 	} else { //file_type is 4
@@ -234,23 +239,30 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 			snprintf(file_path, sizeof(file_path), "/tmp/.cwmp_upload");
 			if (copy(name, file_path) != 0) {
 				error = FAULT_CPE_UPLOAD_FAILURE;
+				snprintf(err_msg, sizeof(err_msg), "Failed to copy the file content from %s to %s", file_path, name);
 				FREE(name);
 			}
 			FREE(name);
-		} else
+		} else {
 			error = FAULT_CPE_UPLOAD_FAILURE;
+			snprintf(err_msg, sizeof(err_msg), "No filename found");
+		}
 	}
 
 	if (error != FAULT_CPE_NO_FAULT || CWMP_STRLEN(file_path) == 0) {
 		error = FAULT_CPE_UPLOAD_FAILURE;
+		if (strlen(err_msg) == 0)
+			snprintf(err_msg, sizeof(err_msg), "Failed to write the file path in buffer, string operation failure");
 		goto end_upload;
 	}
 
 	int ret = upload_file_in_subprocess(file_path, pupload->url, pupload->username, pupload->password);
 	if (ret == 200 || ret == 204)
 		error = FAULT_CPE_NO_FAULT;
-	else
+	else {
 		error = FAULT_CPE_UPLOAD_FAILURE;
+		snprintf(err_msg, sizeof(err_msg), "File upload failed (err_code: %d)", ret);
+	}
 	remove(file_path);
 
 end_upload:
@@ -267,7 +279,7 @@ end_upload:
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;
 	}
-
+	p->fault_string = strdup(err_msg);
 	*ptransfer_complete = p;
 	return error;
 }

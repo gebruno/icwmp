@@ -28,7 +28,7 @@
 
 char *commandKey = NULL;
 bool cwmp_stop = false;
-long int flashsize = 256000000;
+unsigned int flashsize = 256000000;
 struct cwmp *cwmp_main = NULL;
 struct session_timer_event *global_session_event = NULL;
 static int nbre_services = 0;
@@ -323,7 +323,7 @@ void cwmp_factory_reset() //use the ubus rpc-sys factory
 	CWMP_LOG(ERROR, "# Problem in system factory reset #");
 }
 
-long int get_file_size(char *file_name)
+unsigned int get_file_size(char *file_name)
 {
 	FILE *fp = fopen(file_name, "r");
 
@@ -333,7 +333,7 @@ long int get_file_size(char *file_name)
 	}
 
 	fseek(fp, 0L, SEEK_END);
-	long int res = ftell(fp);
+	unsigned int res = ftell(fp);
 
 	fclose(fp);
 

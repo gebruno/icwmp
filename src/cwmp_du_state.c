@@ -265,12 +265,14 @@ static int cwmp_launch_du_install(char *url, char *uuid, char *user, char *pass,
 	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 
 	if (uuid == NULL) {
+		(*pchange_du_state_complete)->fault_msg = strdup("No UUID information present");
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
 	/* store uuid in list for du state change event */
 	du_op_uuid *node = (du_op_uuid *)malloc(sizeof(du_op_uuid));
 	if (node == NULL) {
+		(*pchange_du_state_complete)->fault_msg = strdup("Failed to allocate memory");
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
@@ -306,12 +308,14 @@ static int cwmp_launch_du_update(char *url, char *uuid, char *user, char *pass, 
 	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 
 	if (uuid == NULL) {
+		(*pchange_du_state_complete)->fault_msg = strdup("No UUID information");
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
 	/* store uuid in list for du state change event */
 	du_op_uuid *node = (du_op_uuid *)malloc(sizeof(du_op_uuid));
 	if (node == NULL) {
+		(*pchange_du_state_complete)->fault_msg = strdup("Failed to allocate memory");
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
@@ -346,12 +350,14 @@ static int cwmp_launch_du_uninstall(char *du_path, char *uuid, struct opresult *
 	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 
 	if (uuid == NULL) {
+		(*pchange_du_state_complete)->fault_msg = strdup("No UUID value provided");
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
 	/* store uuid in list for du state change event */
 	du_op_uuid *node = (du_op_uuid *)malloc(sizeof(du_op_uuid));
 	if (node == NULL) {
+		(*pchange_du_state_complete)->fault_msg = strdup("Failed to allocate memory");
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
@@ -418,6 +424,7 @@ int change_du_state_fault(struct change_du_state *pchange_du_state, struct du_st
 		res->start_time = strdup(get_time(time(NULL)));
 		res->complete_time = strdup(res->start_time);
 		res->fault = error;
+		res->fault_msg = strdup("Timeout expired");
 	}
 	if ((cwmp_main->cdu_complete_id < 0) || (cwmp_main->cdu_complete_id >= MAX_INT_ID)) {
 		cwmp_main->cdu_complete_id = 0;
@@ -446,6 +453,11 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 
 	//struct session_timer_event cdu_inform_event = {.session_timer_evt = {.cb = cwmp_schedule_session_with_event}, .event = CDU_Evt};
 	struct session_timer_event *cdu_inform_event = calloc(1, sizeof(struct session_timer_event));
+	if (cdu_inform_event == NULL) {
+		CWMP_LOG(ERROR, "%s:%d Failed to allocate memory", __func__, __LINE__);
+		return;
+	}
+
 	struct change_du_state *pchange_du_state = container_of(utimeout, struct change_du_state, handler_timer);
 
 	time_t current_time = time(NULL);
@@ -462,6 +474,7 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 
 	pdu_state_change_complete = calloc(1, sizeof(struct du_state_change_complete));
 	if (pdu_state_change_complete == NULL) {
+		CWMP_LOG(ERROR, "%s:%d CDU state change failed in memory allocation", __func__, __LINE__);
 		return;
 	}
 
@@ -472,12 +485,18 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 
 	list_for_each_entry_safe (p, q, &pchange_du_state->list_operation, list) {
 		res = calloc(1, sizeof(struct opresult));
+		if (res == NULL) {
+			CWMP_LOG(ERROR, "%s:%d CDU state change failed in memory allocation", __func__, __LINE__);
+			break;
+		}
+
 		list_add_tail(&(res->list), &(pdu_state_change_complete->list_opresult));
 		switch (p->type) {
 		case DU_INSTALL:
 			if (CWMP_STRLEN(p->executionenvref) != 0) {
 				if (!environment_exists(p->executionenvref)) {
 					res->fault = FAULT_CPE_INTERNAL_ERROR; //TODO
+					res->fault_msg = strdup("Invalid execution environment reference");
 					break;
 				}
 			}
@@ -490,6 +509,7 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 				p->uuid = generate_uuid();
 				if (p->uuid == NULL) {
 					res->fault = FAULT_CPE_INTERNAL_ERROR;
+					res->fault_msg = strdup("Failed to generate UUID");
 					break;
 				}
 
@@ -506,6 +526,9 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 				res->resolved = 0;
 				res->complete_time = strdup(get_time(time(NULL)));
 				res->fault = error;
+
+				if (res->fault_msg == NULL)
+					res->fault_msg = strdup(FAULT_CPE_ARRAY[error].DESCRIPTION);
 				/* du state change event will be scheduled here, so remove uuid from list */
 				remove_node_from_uuid_list(p->uuid, "Install");
 			}
@@ -519,12 +542,14 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 		case DU_UPDATE:
 			if (p->url == NULL || p->uuid == NULL || *(p->url) == '\0' || *(p->uuid) == '\0') {
 				error = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				res->fault_msg = strdup("No such argument to identify exact DU");
 				break;
 			}
 
 			du_ref = get_deployment_unit_by_uuid(p->uuid);
 			if (CWMP_STRLEN(du_ref) == 0) {
 				error = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				res->fault_msg = strdup("Failed to identify the DU from the UUID");
 				break;
 			}
 
@@ -546,6 +571,10 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 				res->du_ref = strdup(du_path);
 				res->complete_time = strdup(get_time(time(NULL)));
 				res->fault = error;
+
+				if (res->fault_msg == NULL)
+					res->fault_msg = strdup(FAULT_CPE_ARRAY[error].DESCRIPTION);
+
 				/* du state change event will be scheduled here, so remove uuid from list */
 				remove_node_from_uuid_list(p->uuid, "Update");
 			}
@@ -556,12 +585,14 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 		case DU_UNINSTALL:
 			if (p->uuid == NULL || *(p->uuid) == '\0') {
 				res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				res->fault_msg = strdup("No UUID has been provided");
 				break;
 			}
 
 			get_deployment_unit_name_version(p->uuid, &package_name, &package_version, &package_env);
 			if (!package_name || *package_name == '\0' || !package_env || *package_env == '\0') {
 				res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				res->fault_msg = strdup("Failed to get DU name and environment");
 				break;
 			}
 
@@ -572,6 +603,7 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 
 				if (req_eeid != pkg_eeid) {
 					res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+					res->fault_msg = strdup("Invalid execution environment information");
 					break;
 				}
 			}
@@ -579,6 +611,7 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 			du_ref = get_deployment_unit_by_uuid(p->uuid);
 			if (CWMP_STRLEN(du_ref) == 0) {
 				res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				res->fault_msg = strdup("Failed to identify the DU from UUID");
 				break;
 			}
 
@@ -593,6 +626,10 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 				res->version = strdup(package_version ? package_version : "");
 				res->complete_time = strdup(get_time(time(NULL)));
 				res->fault = error;
+
+				if (res->fault_msg == NULL)
+					res->fault_msg = strdup(FAULT_CPE_ARRAY[error].DESCRIPTION);
+
 				/* du state change event will be scheduled here, so remove uuid from list */
 				remove_node_from_uuid_list(p->uuid, "Uninstall");
 			}
@@ -620,20 +657,37 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 end:
 	cdu_inform_event->extra_data = pdu_state_change_complete;
 	cdu_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;
-	cdu_inform_event->event = Schedule_Inform_Evt;
+	cdu_inform_event->event = CDU_Evt;
 	trigger_cwmp_session_timer_with_event(&cdu_inform_event->session_timer_evt);
 
 }
 
 int cwmp_rpc_acs_destroy_data_du_state_change_complete(struct rpc *rpc)
 {
-	if (rpc->extra_data != NULL) {
+	if (rpc && rpc->extra_data) {
 		struct du_state_change_complete *p;
 		p = (struct du_state_change_complete *)rpc->extra_data;
 		bkp_session_delete_element("du_state_change_complete", p->id);
 		bkp_session_save();
 		FREE(p->command_key);
+
+		struct opresult *data = NULL, *tmp = NULL;
+		list_for_each_entry_safe(data, tmp, &(p->list_opresult), list) {
+			FREE(data->uuid);
+			FREE(data->du_ref);
+			FREE(data->version);
+			FREE(data->current_state);
+			FREE(data->execution_unit_ref);
+			FREE(data->start_time);
+			FREE(data->complete_time);
+			FREE(data->fault_msg);
+			list_del(&(data->list));
+			FREE(data);
+		}
+
+		FREE(rpc->extra_data);
 	}
+
 	return 0;
 }
 

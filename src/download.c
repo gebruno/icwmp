@@ -164,7 +164,7 @@ int cwmp_check_image()
 	CWMP_LOG(INFO, "Check downloaded image ...");
 	e = icwmp_ubus_invoke("rpc-sys", "upgrade_test", b.head, ubus_check_image_callback, &code);
 	if (e != 0) {
-		CWMP_LOG(INFO, "rpc-sys upbrade_test ubus method failed: Ubus err code: %d", e);
+		CWMP_LOG(INFO, "rpc-sys upgrade_test ubus method failed: Ubus err code: %d", e);
 		code = 1;
 	}
 	blob_buf_free(&b);
@@ -345,7 +345,7 @@ int cwmp_apply_multiple_firmware()
 
 	if (e != 0) {
 		CWMP_LOG(INFO, "fwbank upgrade ubus method failed: Ubus err code: %d", e);
-		return -1;
+		return -2;
 	}
 	//wait until the apply completes
 	wait_firmware_to_be_applied(bank_id);
@@ -374,6 +374,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 	int error = FAULT_CPE_NO_FAULT;
 	char *download_startTime;
 	struct transfer_complete *p;
+	char err_msg[256] = {0};
 
 	download_startTime = get_time(time(NULL));
 
@@ -382,16 +383,20 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 
 	if (flashsize < pdownload->file_size) {
 		error = FAULT_CPE_DOWNLOAD_FAILURE;
+		snprintf(err_msg, sizeof(err_msg), "File size (%u) is larger than flash size (%u)", pdownload->file_size, flashsize);
 		goto end_download;
 	}
 
 	int http_code = download_file_in_subprocess(ICWMP_DOWNLOAD_FILE, pdownload->url, pdownload->username, pdownload->password);
-	if (http_code == 404)
+	if (http_code == 404) {
 		error = FAULT_CPE_DOWNLOAD_FAIL_CONTACT_SERVER;
-	else if (http_code == 401)
+		snprintf(err_msg, sizeof(err_msg), "Failed to contact the file server (err_code: %d)", http_code);
+	} else if (http_code == 401) {
 		error = FAULT_CPE_DOWNLOAD_FAIL_FILE_AUTHENTICATION;
-	else if (http_code != 200) {
+		snprintf(err_msg, sizeof(err_msg), "File server authentication failed (err_code: %d)", http_code);
+	} else if (http_code != 200) {
 		error = FAULT_CPE_DOWNLOAD_FAILURE;
+		snprintf(err_msg, sizeof(err_msg), "File download failed (err_code: %d)", http_code);
 	}
 
 	if (error != FAULT_CPE_NO_FAULT)
@@ -399,14 +404,16 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 
 	if (pdownload->file_type == NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
+		snprintf(err_msg, sizeof(err_msg), "File type: null is not a valid value");
 		goto end_download;
 	}
 	if (CWMP_STRCMP(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0 || CWMP_STRCMP(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
 		rename(ICWMP_DOWNLOAD_FILE, FIRMWARE_UPGRADE_IMAGE);
 		if (cwmp_check_image() == 0) {
-			long int file_size = get_file_size(FIRMWARE_UPGRADE_IMAGE);
+			unsigned int file_size = get_file_size(FIRMWARE_UPGRADE_IMAGE);
 			if (file_size > flashsize) {
-				error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
+				error = FAULT_CPE_DOWNLOAD_FAILURE;
+				snprintf(err_msg, sizeof(err_msg), "File size: (%u) is larger than flash size: (%u)", file_size, flashsize);;
 				remove(FIRMWARE_UPGRADE_IMAGE);
 				goto end_download;
 			} else {
@@ -415,6 +422,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 			}
 		} else {
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
+			snprintf(err_msg, sizeof(err_msg), "Downloaded file is not a valid firmware image");
 			remove(FIRMWARE_UPGRADE_IMAGE);
 		}
 	} else if (CWMP_STRCMP(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
@@ -439,11 +447,13 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 	} else {
 		remove(ICWMP_DOWNLOAD_FILE);
 		error = FAULT_CPE_INVALID_ARGUMENTS;
+		snprintf(err_msg, sizeof(err_msg), "Invalid file type: (%s)", pdownload->file_type);
 	}
 
 end_download:
 	p = calloc(1, sizeof(struct transfer_complete));
 	if (p == NULL || ptransfer_complete == NULL) {
+		CWMP_LOG(ERROR, "%s: Failed to allocate memory", __FUNCTION__);
 		error = FAULT_CPE_INTERNAL_ERROR;
 		return error;
 	}
@@ -456,6 +466,8 @@ end_download:
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;
 	}
+
+	p->fault_string = strdup(err_msg);
 	*ptransfer_complete = p;
 
 	return error;
@@ -476,6 +488,8 @@ char *get_file_name_by_download_url(char *url)
 int apply_downloaded_file(struct download *pdownload, char *download_file_name, struct transfer_complete *ptransfer_complete)
 {
 	int error = FAULT_CPE_NO_FAULT;
+	char err_msg[256] = {0};
+
 	if (pdownload->file_type[0] == '1') {
 		ptransfer_complete->old_software_version = cwmp_main->deviceid.softwareversion;
 	}
@@ -491,12 +505,15 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 	if (CWMP_STRCMP(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
 		cwmp_uci_set_value("cwmp", "cpe", "exec_download", "1");
 		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
-		if (cwmp_apply_firmware() != 0)
+		if (cwmp_apply_firmware() != 0) {
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
+			snprintf(err_msg, sizeof(err_msg), "Failed in applying the downloaded firmware image, may be corrupted file");
+		}
 
 		if (error == FAULT_CPE_NO_FAULT) {
 			sleep(70);
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
+			snprintf(err_msg, sizeof(err_msg), "Downloaded firmware could not applied or reboot has not been taken after upgrade");
 		}
 
 	} else if (CWMP_STRCMP(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
@@ -518,10 +535,13 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		cwmp_uci_exit();
 		if (err == CWMP_OK)
 			error = FAULT_CPE_NO_FAULT;
-		else if (err == CWMP_GEN_ERR)
+		else if (err == CWMP_GEN_ERR) {
 			error = FAULT_CPE_INTERNAL_ERROR;
-		else if (err == -1)
+			snprintf(err_msg, sizeof(err_msg), "Failed to commit the config file changes");
+		} else if (err == -1) {
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
+			snprintf(err_msg, sizeof(err_msg), "UCI operation failed, could not import config file");
+		}
 	} else if (CWMP_STRCMP(pdownload->file_type, TONE_FILE_TYPE) == 0) {
 		//TODO Not Supported
 		error = FAULT_CPE_NO_FAULT;
@@ -534,10 +554,17 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		//int err = cwmp_apply_multiple_firmware_in_subprocess();
 		if (err == CWMP_OK)
 			error = FAULT_CPE_NO_FAULT;
-		else
-			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
-	} else
+		else {
+			error = FAULT_CPE_DOWNLOAD_FAILURE;
+			if (err == -1)
+				snprintf(err_msg, sizeof(err_msg), "Failed to get available bank id");
+			else
+				snprintf(err_msg, sizeof(err_msg), "Failed in fwbank upgrade ubus method");
+		}
+	} else {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
+		snprintf(err_msg, sizeof(err_msg), "Invalid file type argument (%s)", pdownload->file_type);
+	}
 
 	if ((error == FAULT_CPE_NO_FAULT) && (pdownload->file_type[0] == '1' || pdownload->file_type[0] == '3')) {
 		set_rpc_parameter_key(pdownload->command_key);
@@ -559,6 +586,8 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		cwmp_main->tc_id++;
 		ptransfer_complete->id = cwmp_main->tc_id;
 	}
+	ptransfer_complete->fault_string = strdup(err_msg);
+
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
 	//cwmp_root_cause_transfer_complete(ptransfer_complete);
@@ -673,7 +702,7 @@ int cwmp_scheduled_Download_remove_all()
 
 int cwmp_rpc_acs_destroy_data_transfer_complete(struct rpc *rpc)
 {
-	if (rpc && rpc->extra_data != NULL) {
+	if (rpc && rpc->extra_data) {
 		struct transfer_complete *p = (struct transfer_complete *)rpc->extra_data;
 		bkp_session_delete_element_by_key("transfer_complete", "start_time", p->start_time);
 
@@ -683,6 +712,7 @@ int cwmp_rpc_acs_destroy_data_transfer_complete(struct rpc *rpc)
 		FREE(p->complete_time);
 		FREE(p->old_software_version);
 		FREE(p->file_type);
+		FREE(p->fault_string);
 	}
 	if (rpc)
 		FREE(rpc->extra_data);

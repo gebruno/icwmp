@@ -22,7 +22,7 @@ fi
 remove_icwmp_log
 curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.SSH.Server.2"] }' >/dev/null 2>&1
 check_ret $?
-sleep 2
+sleep 3
 check_session "GetParameterValues"
 
 echo "PASS: $TEST_NAME"

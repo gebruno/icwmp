@@ -344,6 +344,9 @@ void free_autonomous_transfer_complete_data(auto_transfer_complete *p)
 }
 int cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete(struct rpc *rpc)
 {
+	if (rpc == NULL)
+		return 0;
+
 	auto_du_state_change_compl *p = (auto_du_state_change_compl *)rpc->extra_data;
 	if (p) {
 		bkp_session_delete_element("autonomous_du_state_change_complete", p->id);

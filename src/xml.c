@@ -133,9 +133,9 @@ struct xml_node_data xml_nodes_data[] = {
 		[BKP_CDU_UNINSTALL] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"ExecutionEnvRef", XML_STRING, XML_SWITCH, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}}},
 		[BKP_CDU_COMPLETE_BUILD] = {XML_SINGLE, 0, NULL, {{"du_state_change_complete", XML_REC, BKP_CDU_COMPLETE, NULL}}},
 		[BKP_CDU_COMPLETE] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}, {"opresult", XML_FUNC, 0, load_cdu_complete_backup_operation}}},
-		[BKP_CDU_COMPLETE_OPRES] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"execution_unit_ref", XML_STRING, 0, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"CurrentState", XML_STRING, XML_SWITCH, NULL}, {"Resolved", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}}},
+		[BKP_CDU_COMPLETE_OPRES] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"execution_unit_ref", XML_STRING, 0, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"CurrentState", XML_STRING, XML_SWITCH, NULL}, {"Resolved", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"FaultString", XML_STRING, XML_SWITCH, NULL}}},
 		[BKP_TRANSFER_COMPLETE_BUILD] = {XML_SINGLE, 0, NULL, {{"transfer_complete", XML_REC, BKP_TRANSFER_COMPLETE, NULL}}},
-		[BKP_TRANSFER_COMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"old_software_version", XML_STRING, 0, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"type", XML_LINTEGER, 0, NULL}}},
+		[BKP_TRANSFER_COMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"old_software_version", XML_STRING, 0, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"FaultString", XML_STRING, XML_SWITCH, NULL}, {"type", XML_LINTEGER, 0, NULL}}},
 		[BKP_AUTO_CDU_BUILD] = {XML_SINGLE, 0, NULL, {{"autonomous_du_state_change_complete", XML_REC, BKP_AUTO_CDU, NULL}}},
 		[BKP_AUTO_CDU] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"UUID", XML_STRING, XML_SWITCH, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"CurrentState", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"operation", XML_STRING, 0, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"FaultString", XML_STRING, XML_SWITCH, NULL}}},
 		[BKP_AUTO_TRANSFER_COMPLETE_BUILD] = {XML_SINGLE, 0, NULL, {{"autonomous_transfer_complete", XML_REC, BKP_AUTO_TRANSFER_COMPLETE, NULL}}},
@@ -256,6 +256,7 @@ void delete_xml_data_from_list(struct xml_list_data *xml_data)
 	FREE(xml_data->current_state);
 	FREE(xml_data->execution_env_ref);
 	FREE(xml_data->du_ref);
+	FREE(xml_data->username);
 	FREE(xml_data->password);
 	FREE(xml_data->rpc_name);
 	FREE(xml_data->url);
@@ -1009,8 +1010,8 @@ void xml_data_list_to_cdu_operations_list(struct list_head *xml_data_list, struc
 
 void cdu_operations_result_list_to_xml_data_list(struct list_head *du_op_res_list, struct list_head *xml_data_list)
 {
-	struct opresult *du_op_res_data = NULL;
-	list_for_each_entry (du_op_res_data, du_op_res_list, list) {
+	struct opresult *du_op_res_data = NULL, *tmp = NULL;
+	list_for_each_entry_safe (du_op_res_data, tmp, du_op_res_list, list) {
 		struct xml_list_data *xml_data =  calloc(1, sizeof(struct xml_list_data));
 		list_add_tail(&xml_data->list, xml_data_list);
 		xml_data->uuid = strdup(du_op_res_data->uuid ? du_op_res_data->uuid : "");
@@ -1020,7 +1021,7 @@ void cdu_operations_result_list_to_xml_data_list(struct list_head *du_op_res_lis
 		xml_data->start_time = strdup(du_op_res_data->start_time ? du_op_res_data->start_time : "");
 		xml_data->complete_time = strdup(du_op_res_data->complete_time ? du_op_res_data->complete_time : "");
 		xml_data->fault_code = du_op_res_data->fault ? atoi(FAULT_CPE_ARRAY[du_op_res_data->fault].CODE) : 0;
-		xml_data->fault_string = du_op_res_data->fault ? strdup(FAULT_CPE_ARRAY[du_op_res_data->fault].DESCRIPTION) : strdup("");
+		xml_data->fault_string = du_op_res_data->fault_msg ? strdup(du_op_res_data->fault_msg) : strdup("");
 	}
 }
 

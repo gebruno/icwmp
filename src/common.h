@@ -466,7 +466,7 @@ typedef struct download {
 	struct list_head list;
 	struct uloop_timeout handler_timer;
 	time_t scheduled_time;
-	int file_size;
+	unsigned int file_size;
 	char *command_key;
 	char *file_type;
 	char *url;
@@ -528,6 +528,7 @@ typedef struct transfer_complete {
 	char *complete_time;
 	char *old_software_version;
 	char *file_type;
+	char *fault_string;
 	int type;
 	int id;
 } transfer_complete;
@@ -555,7 +556,7 @@ typedef struct autonomous_transfer_complete {
 	char *fault_string;
 	int fault_code;
 	bool is_download;
-	int file_size;
+	unsigned int file_size;
 	int id;
 
 } auto_transfer_complete;
@@ -578,6 +579,7 @@ typedef struct opresult {
 	char *start_time;
 	char *complete_time;
 	int fault;
+	char *fault_msg;
 } opresult;
 
 typedef struct opfault {
@@ -602,7 +604,7 @@ typedef struct force_inform_node {
 } force_inform_node;
 
 extern struct cwmp *cwmp_main;
-extern long int flashsize;
+extern unsigned int flashsize;
 extern struct FAULT_CPE FAULT_CPE_ARRAY[];
 extern struct cwmp_namespaces ns;
 extern struct session_timer_event *global_session_event;
@@ -619,7 +621,7 @@ void cwmp_reboot(char *command_key);
 void cwmp_factory_reset();
 void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name);
 int download_file(const char *file_path, const char *url, const char *username, const char *password);
-long int get_file_size(char *file_name);
+unsigned int get_file_size(char *file_name);
 int cwmp_check_image();
 int cwmp_apply_firmware();
 int opkg_install_package(char *package_path);

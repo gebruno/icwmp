@@ -612,6 +612,7 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct rpc *rpc)
 {
 	mxml_node_t *tree, *n;
 	struct transfer_complete *p;
+	char *faultstring = NULL;
 
 	p = (struct transfer_complete *)rpc->extra_data;
 	load_response_xml_schema(&tree);
@@ -633,11 +634,16 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct rpc *rpc)
 	if (p) {
 		transfer_complete_xml_attrs.start_time = &p->start_time;
 		transfer_complete_xml_attrs.complete_time = &p->complete_time;
+
+		if (CWMP_STRLEN(p->fault_string) != 0)
+			faultstring = strdup(p->fault_string);
 	}
 
 	int faultcode = (p && p->fault_code && (p->fault_code < __FAULT_CPE_MAX)) ? atoi(FAULT_CPE_ARRAY[p->fault_code].CODE) : 0;
 	transfer_complete_xml_attrs.fault_code = &faultcode;
-	char *faultstring = strdup((p && p->fault_code) ? FAULT_CPE_ARRAY[p->fault_code].DESCRIPTION : "");
+
+	if (faultstring == NULL)
+		faultstring = strdup((p && p->fault_code) ? FAULT_CPE_ARRAY[p->fault_code].DESCRIPTION : "");
 	transfer_complete_xml_attrs.fault_string = &faultstring;
 
 	int fault = build_xml_node_data(SOAP_ACS_TRANSCOMPLETE, n, &transfer_complete_xml_attrs);
@@ -707,7 +713,13 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct rpc *rpc)
 	mxml_node_t *tree = NULL, *n;
 	struct du_state_change_complete *p;
 
+	if (rpc == NULL)
+		goto error;
+
 	p = (struct du_state_change_complete *)rpc->extra_data;
+	if (p == NULL)
+		goto error;
+
 	load_response_xml_schema(&tree);
 	if (!tree)
 		goto error;
@@ -723,7 +735,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct rpc *rpc)
 		goto error;
 
 	LIST_HEAD(opt_result_list);
-	cdu_operations_list_to_xml_data_list(&p->list_opresult, &opt_result_list);
+	cdu_operations_result_list_to_xml_data_list(&p->list_opresult, &opt_result_list);
 
 	struct xml_data_struct cdu_complete_xml_attrs = {0};
 
@@ -802,13 +814,18 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	mxml_node_t *b = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR;
 	int counter = 0;
+	char *err_msg = NULL;
 
-	if (cwmp_main->session->tree_out == NULL)
+	if (cwmp_main->session->tree_out == NULL) {
+		err_msg = "Output xml tree does not exist";
 		goto fault;
+	}
 
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "GetParameterValues");
-	if (b == NULL)
+	if (b == NULL) {
+		err_msg = "Failed to populate the SOAP message for GPV response";
 		goto fault;
+	}
 
 	LIST_HEAD(gpv_xml_data_list);
 
@@ -819,8 +836,10 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	gpv_xml_attrs.nbre_validations = 1;
 
 	fault_code = load_xml_node_data(SOAP_REQ_GPV, cwmp_main->session->body_in, &gpv_xml_attrs);
-	if (fault_code)
+	if (fault_code) {
+		err_msg = "Failed to load the attributes from GPV requests message";
 		goto fault;
+	}
 
 	gpv_xml_attrs.rpc_enum = SOAP_PARAM_STRUCT;
 	gpv_xml_attrs.counter = &counter;
@@ -840,7 +859,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, fault_code, ""))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		return -1;
 	return 0;
 }
@@ -854,6 +873,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 	char *parameter_name = NULL;
 	bool next_level = true;
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
+	char *err_msg = NULL;
 	LIST_HEAD(parameters_list);
 
 	struct xml_data_struct gpn_xml_attrs = {0};
@@ -865,23 +885,29 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 	gpn_xml_attrs.nbre_validations = 2;
 
 	fault_code = load_xml_node_data(SOAP_REQ_GPN, cwmp_main->session->body_in, &gpn_xml_attrs);
-	if (fault_code != CWMP_OK)
+	if (fault_code != CWMP_OK) {
+		err_msg = "Failed to load attributes from GPN request message";
 		goto fault;
+	}
 
 	char *err = cwmp_get_parameter_names(parameter_name ? parameter_name : "", next_level, &parameters_list);
 	if (err) {
 		fault_code = cwmp_get_fault_code_by_string(err);
+		FREE(parameter_name);
 		goto fault;
 	}
 	FREE(parameter_name);
 
-	if (cwmp_main->session->tree_out == NULL)
+	if (cwmp_main->session->tree_out == NULL) {
+		err_msg = "Output xml tree does not exist";
 		goto fault;
+	}
 
 	n = build_top_body_soap_response(cwmp_main->session->tree_out, "GetParameterNames");
 
 	if (!n) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to populate the SOAP message for GPN response";
 		goto fault;
 	}
 
@@ -903,14 +929,16 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 	cwmp_free_all_dm_parameter_list(&parameters_list);
 	cwmp_free_all_xml_data_list(&prameters_xml_list);
 
-	if (fault_code != CWMP_OK)
+	if (fault_code != CWMP_OK) {
+		err_msg = "Failed to build the xml data nodes for GPN response message";
 		goto fault;
+	}
 
 	return 0;
 
 fault:
 	cwmp_free_all_dm_parameter_list(&parameters_list);
-	if (cwmp_create_fault_message(rpc, fault_code, ""))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		return -1;
 	return 0;
 }
@@ -922,12 +950,15 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct rpc *rpc)
 {
 	mxml_node_t *n, *b;
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
+	char *err_msg = NULL;
 
 	b = cwmp_main->session->body_in;
 
 	n = build_top_body_soap_response(cwmp_main->session->tree_out, "GetParameterAttributes");
-	if (!n)
+	if (!n) {
+		err_msg = "Failed to build SOAP message for GetParameterAttributes response";
 		goto fault;
+	}
 
 	LIST_HEAD(gpa_xml_data_list);
 
@@ -941,6 +972,7 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct rpc *rpc)
 	int fault = load_xml_node_data(SOAP_REQ_GPA, b, &gpa_xml_attrs);
 	if (fault) {
 		fault_code = fault;
+		err_msg = "Failed to load data from GetParameterAttributes request message";
 		goto fault;
 	}
 	gpa_xml_attrs.rpc_enum = SOAP_GPA_STRUCT;
@@ -961,7 +993,7 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct rpc *rpc)
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, fault_code, ""))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		return -1;
 	return 0;
 }
@@ -992,6 +1024,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	mxml_node_t *b = NULL;
 	char *parameter_key = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
+	char *err_msg = NULL;
 
 	LIST_HEAD(xml_list_set_param_value);
 	LIST_HEAD(list_set_param_value);
@@ -1006,20 +1039,25 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	spv_xml_attrs.nbre_validations = 2;
 
 	fault_code = load_xml_node_data(SOAP_REQ_SPV, cwmp_main->session->body_in, &spv_xml_attrs);
-	if (fault_code)
+	if (fault_code) {
+		err_msg = "Failed to load attributes from SPV request message";
 		goto fault;
+	}
 
 	xml_data_list_to_dm_parameter_list(&xml_list_set_param_value, &list_set_param_value);
 
 	if (!cwmp_transaction("start", false)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to start new transaction";
 		goto fault;
 	}
 
 	/* Before set check if exists Device.ManagementServer.InformParameter.{i}.ParameterName with ForcedInform Parameter */
 	fault_code = validate_inform_parameter_name(&list_set_param_value);
-	if (fault_code != FAULT_CPE_NO_FAULT)
+	if (fault_code != FAULT_CPE_NO_FAULT) {
+		err_msg = "Forced inform parameter can not be configured in Device.ManagementServer.InformParameter";
 		goto fault;
+	}
 
 	fault_code = cwmp_set_multi_parameters_value(&list_set_param_value, rpc->list_set_value_fault);
 	if (fault_code != FAULT_CPE_NO_FAULT)
@@ -1042,6 +1080,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 	if (!b) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to prepare SOAP response message of SPV request";
 		goto fault;
 	}
 
@@ -1049,11 +1088,14 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 	struct xml_data_struct spv_resp_xml_attrs = {.status = &status};
 	fault_code = build_xml_node_data(SOAP_RESP_SPV, b, &spv_resp_xml_attrs);
-	if (fault_code)
+	if (fault_code) {
+		err_msg = "Failed to build xml data nodes for SPV response message";
 		goto fault;
+	}
 
 	if (!cwmp_transaction("commit", true)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to commit the transaction";
 		goto fault;
 	}
 
@@ -1062,7 +1104,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 fault:
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
-	if (cwmp_create_fault_message(rpc, fault_code, ""))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;
 
 	cwmp_free_all_list_param_fault(rpc->list_set_value_fault);
@@ -1079,14 +1121,19 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 	mxml_node_t *n;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
 	char c[256];
+	char *err_msg = NULL;
 
-	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "SetParameterAttributes") == -1)
+	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "SetParameterAttributes") == -1) {
+		err_msg = "Failed to write in buffer, string operation failure";
 		goto fault;
+	}
 
 	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
 
-	if (!n)
+	if (!n) {
+		err_msg = "SetParameterAttributes element does not exist in xml input tree";
 		goto fault;
+	}
 
 	LIST_HEAD(prameters_xml_list);
 	struct xml_data_struct spa_xml_attrs = {0};
@@ -1096,8 +1143,11 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 	spa_xml_attrs.nbre_validations = 3;
 
 	fault_code = load_xml_node_data(SOAP_REQ_SPA, n, &spa_xml_attrs);
-	if (fault_code)
+	if (fault_code) {
+		err_msg = "Failed to load data from SetParameterAttributes request message";
 		goto fault;
+	}
+
 	struct list_head *l = prameters_xml_list.next;
 	struct xml_list_data *p = NULL;
 	while (l != &prameters_xml_list) {
@@ -1114,14 +1164,16 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 	cwmp_free_all_xml_data_list(&prameters_xml_list);
 
 	mxml_node_t *resp = build_top_body_soap_response(cwmp_main->session->tree_out, "SetParameterAttributes");
-	if (!resp)
+	if (!resp) {
+		err_msg = "Failed to populate SOAP response for SetParameterAttributes request";
 		goto fault;
+	}
 
 	cwmp_set_end_session(END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RESTART_SERVICES | END_SESSION_INIT_NOTIFY);
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, fault_code, ""))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;
 
 	return ret;
@@ -1137,6 +1189,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	char *parameter_key = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
 	struct object_result res = {0};
+	char *err_msg = NULL;
 
 	struct xml_data_struct add_obj_xml_attrs = {0};
 	add_obj_xml_attrs.object_name = &object_name;
@@ -1147,32 +1200,42 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 
 	fault_code = load_xml_node_data(SOAP_REQ_ADDOBJ, cwmp_main->session->body_in, &add_obj_xml_attrs);
 
-	if (fault_code)
+	if (fault_code) {
+		err_msg = "Failed to load data from AddObject request message";
 		goto fault;
+	}
 
-	if (!cwmp_transaction("start", false))
+	if (!cwmp_transaction("start", false)) {
+		err_msg = "Failed to start new transaction";
 		goto fault;
+	}
 
 	if (object_name) {
 		bool err = cwmp_add_object(object_name, &res);
 		if (!err) {
 			fault_code = cwmp_get_fault_code(res.fault_code);
+			err_msg = res.fault_msg;
 			goto fault;
 		}
 	} else {
 		fault_code = FAULT_CPE_INVALID_PARAMETER_NAME;
+		err_msg = "No object name is found in AddObject request";
 		goto fault;
 	}
 
 	set_rpc_parameter_key(parameter_key);
 
-	if (res.instance == NULL)
+	if (res.instance == NULL) {
+		err_msg = "No new instance number found after AddObject";
 		goto fault;
+	}
 
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "AddObject");
 
-	if (!b)
+	if (!b) {
+		err_msg = "Failed to build SOAP message for AddObject response";
 		goto fault;
+	}
 
 	struct xml_data_struct add_resp_xml_attrs = {0};
 	int instance_int = atoi(res.instance);
@@ -1182,11 +1245,15 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	add_resp_xml_attrs.status = &status;
 
 	fault_code = build_xml_node_data(SOAP_RESP_ADDOBJ, b, &add_resp_xml_attrs);
-	if (fault_code != CWMP_OK)
+	if (fault_code != CWMP_OK) {
+		err_msg = "Failed to add xml data nodes in AddObject response message";
 		goto fault;
+	}
 
-	if (!cwmp_transaction("commit", false))
+	if (!cwmp_transaction("commit", false)) {
+		err_msg = "Failed to commit the transaction";
 		goto fault;
+	}
 
 	char object_path[1024] = {0};
 	snprintf(object_path, sizeof(object_path), "%s%s.", object_name, res.instance);
@@ -1201,7 +1268,7 @@ fault:
 	FREE(object_name);
 	FREE(parameter_key);
 	FREE(res.instance);
-	if (cwmp_create_fault_message(rpc, fault_code, res.fault_msg))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;
 
 	cwmp_transaction("abort", false);
@@ -1218,6 +1285,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	char *parameter_key = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
 	struct object_result res = {0};
+	char *err_msg = NULL;
 
 	struct xml_data_struct del_obj_xml_attrs = {0};
 	del_obj_xml_attrs.object_name = &object_name;
@@ -1228,20 +1296,26 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 
 	fault_code = load_xml_node_data(SOAP_REQ_DELOBJ, cwmp_main->session->body_in, &del_obj_xml_attrs);
 
-	if (fault_code)
+	if (fault_code) {
+		err_msg = "Failed to load data from DeleteObject request message";
 		goto fault;
+	}
 
-	if (!cwmp_transaction("start", false))
+	if (!cwmp_transaction("start", false)) {
+		err_msg = "Failed to start new transaction";
 		goto fault;
+	}
 
 	if (object_name) {
 		bool err = cwmp_delete_object(object_name, &res);
 		if (!err) {
 			fault_code = cwmp_get_fault_code(res.fault_code);
+			err_msg = res.fault_msg;
 			goto fault;
 		}
 	} else {
 		fault_code = FAULT_CPE_INVALID_PARAMETER_NAME;
+		err_msg = "No object name found in DeleteObject request message";
 		goto fault;
 	}
 	set_rpc_parameter_key(parameter_key);
@@ -1249,6 +1323,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 
 	if (!b) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to build SOAP message for DeleteObject response";
 		goto fault;
 	}
 
@@ -1257,11 +1332,14 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	add_resp_xml_attrs.status = &status;
 
 	fault_code = build_xml_node_data(SOAP_RESP_DELOBJ, b, &add_resp_xml_attrs);
-	if (fault_code != CWMP_OK)
+	if (fault_code != CWMP_OK) {
+		err_msg = "Failed to add xml data in DeleteObject response message";
 		goto fault;
+	}
 
 	if (!cwmp_transaction("commit", true)) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to commit the transaction";
 		goto fault;
 	}
 	FREE(object_name);
@@ -1274,7 +1352,7 @@ fault:
 	FREE(res.instance);
 	FREE(object_name);
 	FREE(parameter_key);
-	if (cwmp_create_fault_message(rpc, fault_code, res.fault_msg))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;
 
 	cwmp_transaction("abort", false);
@@ -1289,11 +1367,14 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 	mxml_node_t *n;
 	int i, counter = 0;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR;
+	char *err_msg = NULL;
 
 	n = build_top_body_soap_response(cwmp_main->session->tree_out, "GetRPCMethods");
 
-	if (!n)
+	if (!n) {
+		err_msg = "Failed to prepare SOAP response message for GetRPCMethods";
 		goto fault;
+	}
 
 
 	LIST_HEAD(rpcs_list);
@@ -1320,13 +1401,15 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 	fault_code = build_xml_node_data(SOAP_RESP_GETRPC, n, &getrpc_resp_xml_attrs);
 	cwmp_free_all_xml_data_list(&rpcs_list);
 
-	if (fault_code != CWMP_OK)
+	if (fault_code != CWMP_OK) {
+		err_msg = "Failed to build xml data nodes for GetRPCMethods response";
 		goto fault;
+	}
 
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, fault_code, ""))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		return -1;
 	return 0;
 
@@ -1338,18 +1421,21 @@ fault:
 int cwmp_handle_rpc_cpe_factory_reset(struct rpc *rpc)
 {
 	mxml_node_t *b;
+	char *err_msg = NULL;
 
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "FactoryReset");
 
-	if (!b)
+	if (!b) {
+		err_msg = "Failed to build SOAP message for FactoryReset response";
 		goto fault;
+	}
 
 	cwmp_set_end_session(END_SESSION_FACTORY_RESET);
 
 	return 0;
 
 fault:
-	if (cwmp_create_fault_message(rpc, FAULT_CPE_INTERNAL_ERROR, ""))
+	if (cwmp_create_fault_message(rpc, FAULT_CPE_INTERNAL_ERROR, err_msg))
 		goto error;
 	return 0;
 
@@ -1390,6 +1476,8 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 	mxml_node_t *b;
 	char *command_key = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR;
+	char *err_msg = NULL;
+
 	b = cwmp_main->session->body_in;
 
 	struct xml_data_struct canceltrancer_obj_xml_attrs = {0};
@@ -1403,13 +1491,16 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 	if (command_key)
 		cancel_transfer(command_key);
 
-	if (fault_code)
+	if (fault_code) {
+		err_msg = "Failed to load data from CancelTransfer request message";
 		goto fault;
+	}
 
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "CancelTransfer");
 
 	if (!b) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to build the SOAP message from CancelTransfer response";
 		goto fault;
 	}
 	FREE(command_key);
@@ -1417,7 +1508,7 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 
 fault:
 	FREE(command_key);
-	if (cwmp_create_fault_message(rpc, fault_code, ""))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		goto error;
 	return 0;
 
@@ -1469,6 +1560,7 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 	char *command_key = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR;
 	b = cwmp_main->session->body_in;
+	char *err_msg = NULL;
 
 	struct xml_data_struct reboot_obj_xml_attrs = {0};
 	reboot_obj_xml_attrs.command_key = &command_key;
@@ -1478,21 +1570,27 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 
 	fault_code = load_xml_node_data(SOAP_REQ_REBOOT, cwmp_main->session->body_in, &reboot_obj_xml_attrs);
 
-	if (fault_code)
+	if (fault_code) {
+		err_msg = "Failed to load data from reboot request";
 		goto fault;
+	}
 
 	commandKey = icwmp_strdup(command_key ? command_key : "");
 
 	event_container = cwmp_add_event_container(EVENT_IDX_M_Reboot, command_key ? command_key : "");
-	if (event_container == NULL)
+	if (event_container == NULL) {
+		err_msg = "Reboot failed due to memory allocation failure";
 		goto fault;
+	}
 
 	cwmp_save_event_container(event_container);
 
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "Reboot");
 
-	if (!b)
+	if (!b) {
+		err_msg = "Failed to build the SOAP message for reboot response";
 		goto fault;
+	}
 
 	cwmp_set_end_session(END_SESSION_REBOOT);
 
@@ -1501,7 +1599,7 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 
 fault:
 	FREE(command_key);
-	if (cwmp_create_fault_message(rpc, fault_code, ""))
+	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		goto error;
 	return 0;
 
@@ -1521,7 +1619,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 	struct list_head *ilist;
 	int fault = FAULT_CPE_NO_FAULT;
 	int delay_seconds = 0;
-
+	char err_msg[256] = {0};
 
 
 	struct xml_data_struct schedinform_obj_xml_attrs = {0};
@@ -1533,11 +1631,14 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 
 	fault = load_xml_node_data(SOAP_REQ_SCHEDINF, cwmp_main->session->body_in, &schedinform_obj_xml_attrs);
 
-	if (fault)
+	if (fault) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to load data from ScheduleInform request message");
 		goto fault;
+	}
 
 	if (count_schedule_inform_queue >= MAX_SCHEDULE_INFORM_QUEUE) {
 		fault = FAULT_CPE_RESOURCES_EXCEEDED;
+		snprintf(err_msg, sizeof(err_msg), "ScheduleInform queue is full, Max queue size (%d) and current request count (%d)", MAX_SCHEDULE_INFORM_QUEUE, count_schedule_inform_queue+1);
 		goto fault;
 	}
 	count_schedule_inform_queue++;
@@ -1552,13 +1653,18 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 
 	n = build_top_body_soap_response(cwmp_main->session->tree_out, "ScheduleInform");
 
-	if (!n)
+	if (!n) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to build SOAP message for ScheduleInform response");
 		goto fault;
+	}
 
 	CWMP_LOG(INFO, "Schedule inform event will start in %us", delay_seconds);
 	schedule_inform = calloc(1, sizeof(struct schedule_inform));
-	if (schedule_inform == NULL)
+	if (schedule_inform == NULL) {
+		snprintf(err_msg, sizeof(err_msg), "Memory allocation failed of %zu bytes", sizeof(struct schedule_inform));
 		goto fault;
+	}
+
 	schedule_inform->handler_timer.cb = cwmp_start_schedule_inform;
 	schedule_inform->commandKey = CWMP_STRDUP(command_key);
 	schedule_inform->scheduled_time = scheduled_time;
@@ -1577,7 +1683,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 
 fault:
 	FREE(command_key);
-	if (cwmp_create_fault_message(rpc, fault, ""))
+	if (cwmp_create_fault_message(rpc, fault, err_msg))
 		return -1;
 
 	return 0;
@@ -1592,19 +1698,25 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 	struct change_du_state *change_du_state = NULL;
 	int error = FAULT_CPE_NO_FAULT;
 	char c[256];
+	char err_msg[256] = {0};
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "ChangeDUState") == -1) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Failed to write in buffer, string operation failed");
 		goto fault;
 	}
 
 	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
-	if (!n)
-		return -1;
+	if (!n) {
+		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "ChangeDUState element does not exist in input xml tree");
+		goto fault;
+	}
 
 	change_du_state = calloc(1, sizeof(struct change_du_state));
 	if (change_du_state == NULL) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Memory allocation failed of %zu bytes", sizeof(struct change_du_state));
 		goto fault;
 	}
 
@@ -1621,8 +1733,10 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 
 	error = load_xml_node_data(SOAP_REQ_CDU, n, &cdu_xml_attrs);
 
-	if (error)
+	if (error) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to load data from ChangeDUState request message");
 		goto fault;
+	}
 
 	xml_data_list_to_cdu_operations_list(&xml_list_operations, &change_du_state->list_operation);
 
@@ -1630,6 +1744,7 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 
 	if (!t) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Failed to build ChangeDUState response SOAP message");
 		goto fault;
 	}
 
@@ -1648,7 +1763,7 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 
 fault:
 	cwmp_free_change_du_state_request(change_du_state);
-	if (cwmp_create_fault_message(rpc, error, ""))
+	if (cwmp_create_fault_message(rpc, error, err_msg))
 		goto error;
 	return 0;
 
@@ -1668,9 +1783,11 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 	struct list_head *ilist;
 	time_t scheduled_time = 0;
 	time_t download_delay = 0;
+	char err_msg[256] = {0};
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "Download") == -1) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Failure in buffer writting, string operation failed");
 		goto fault;
 	}
 
@@ -1678,12 +1795,14 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 
 	if (!n) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Download element not present in xml input tree");
 		goto fault;
 	}
 
 	download = calloc(1, sizeof(struct download));
 	if (download == NULL) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Memory outage, failed to allocate %zu bytes memory space", sizeof(struct download));
 		goto fault;
 	}
 
@@ -1702,24 +1821,37 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 
 	error = load_xml_node_data(SOAP_REQ_DOWNLOAD, n, &download_xml_attrs);
 
-	if (error)
+	if (error) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to load download request attributes from SOAP message");
 		goto fault;
+	}
 
 	if (CWMP_STRCMP(download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && CWMP_STRCMP(download->file_type, WEB_CONTENT_FILE_TYPE) && CWMP_STRCMP(download->file_type, VENDOR_CONFIG_FILE_TYPE) && CWMP_STRCMP(download->file_type, TONE_FILE_TYPE) && CWMP_STRCMP(download->file_type, RINGER_FILE_TYPE) && CWMP_STRCMP(download->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
+		snprintf(err_msg, sizeof(err_msg), "(%s) is an invalid file type in download request", download->file_type ? download->file_type : "");
 	} else if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
+		snprintf(err_msg, sizeof(err_msg), "Download queue is full, queue size: %d, current request count: %d", MAX_DOWNLOAD_QUEUE, count_download_queue+1);
 	} else if (CWMP_STRLEN(download->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
+		snprintf(err_msg, sizeof(err_msg), "URL is empty in download request");
 	} else if (CWMP_STRSTR(download->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
+		snprintf(err_msg, sizeof(err_msg), "User credential is present in URL: (%s)", download->url);
 	} else if (CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0 && CWMP_STRNCMP(download->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
+		snprintf(err_msg, sizeof(err_msg), "Requested protocol (%s) is not supported", download->url);
 	}
 	if (error != FAULT_CPE_NO_FAULT)
 		goto fault;
 
 	mxml_node_t *t = build_top_body_soap_response(cwmp_main->session->tree_out, "Download");
+	if (!t) {
+		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Failed to populate download response SOAP message");
+		goto fault;
+	}
+
 	char *start_time = "0001-01-01T00:00:00+00:00";
 	char *complete_time = "0001-01-01T00:00:00+00:00";
 	int status = 1;
@@ -1729,8 +1861,10 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 	download_resp_xml_attrs.start_time = &start_time;
 	download_resp_xml_attrs.complete_time = &complete_time;
 	error = build_xml_node_data(SOAP_RESP_DOWNLOAD, t, &download_resp_xml_attrs);
-	if (error != CWMP_OK)
+	if (error != CWMP_OK) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to create xml data nodes in download response SOAP message");
 		goto fault;
+	}
 
 	if (error == FAULT_CPE_NO_FAULT) {
 		if (download_delay != 0)
@@ -1767,7 +1901,7 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 
 fault:
 	cwmp_free_download_request(download);
-	if (cwmp_create_fault_message(rpc, error, ""))
+	if (cwmp_create_fault_message(rpc, error, err_msg))
 		return -1;
 	return 0;
 }
@@ -1782,21 +1916,27 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 	int i = 0, j = 0;
 	int error = FAULT_CPE_NO_FAULT;
 	struct download *schedule_download = NULL;
-	time_t schedule_download_delay[4] = { 0, 0, 0, 0 };
+	long int schedule_download_delay[4] = { 0, 0, 0, 0 };
+	char err_msg[256] = {0};
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "ScheduleDownload") == -1) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Failure in buffer writting, string operation failed");
 		goto fault;
 	}
 
 	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
 
-	if (!n)
-		return -1;
+	if (!n) {
+		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "ScheduleDownload element does not exist in input xml tree");
+		goto fault;
+	}
 
 	schedule_download = calloc(1, sizeof(struct download));
 	if (schedule_download == NULL) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Memory allocation failed of %zu bytes", sizeof(struct download));
 		goto fault;
 	}
 
@@ -1817,43 +1957,60 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 
 	error = load_xml_node_data(SOAP_REQ_SCHEDDOWN, n, &sched_download_xml_attrs);
 
-	if (error)
+	if (error) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to load data from ScheduleDownload request message");
 		goto fault;
+	}
 
 	struct xml_list_data *list_data = NULL;
 	if (time_window_intervals.next) {
+		i++;
 		list_data = container_of(time_window_intervals.next, struct xml_list_data, list);
 		schedule_download->timewindowstruct[0].windowmode = list_data->windowmode;
 		schedule_download->timewindowstruct[0].usermessage = list_data->usermessage;
 		schedule_download->timewindowstruct[0].maxretries = list_data->max_retries;
-		schedule_download->timewindowstruct[0].windowstart = list_data->windowstart;
-		schedule_download->timewindowstruct[0].windowend = list_data->windowend;
+		schedule_download_delay[0] = list_data->windowstart;
+		schedule_download_delay[1] = list_data->windowend;
 		if (time_window_intervals.next->next) {
+			i++;
 			list_data = container_of(time_window_intervals.next->next, struct xml_list_data, list);
 			schedule_download->timewindowstruct[1].windowmode = list_data->windowmode;
 			schedule_download->timewindowstruct[1].usermessage = list_data->usermessage;
 			schedule_download->timewindowstruct[1].maxretries = list_data->max_retries;
-			schedule_download->timewindowstruct[1].windowstart = list_data->windowstart;
-			schedule_download->timewindowstruct[1].windowend = list_data->windowend;
+			schedule_download_delay[2] = list_data->windowstart;
+			schedule_download_delay[3] = list_data->windowend;
 		}
 	}
 
 	if (CWMP_STRCMP(schedule_download->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, WEB_CONTENT_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, VENDOR_CONFIG_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, TONE_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, RINGER_FILE_TYPE) && CWMP_STRCMP(schedule_download->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE)) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
+		snprintf(err_msg, sizeof(err_msg), "Invalid file type: (%s)", schedule_download->file_type ? schedule_download->file_type : "");
 	} else if ((CWMP_STRCMP(schedule_download->timewindowstruct[0].windowmode, "1 At Any Time") && CWMP_STRCMP(schedule_download->timewindowstruct[0].windowmode, "2 Immediately") && CWMP_STRCMP(schedule_download->timewindowstruct[0].windowmode, "3 When Idle")) || (CWMP_STRCMP(schedule_download->timewindowstruct[1].windowmode, "1 At Any Time") && CWMP_STRCMP(schedule_download->timewindowstruct[1].windowmode, "2 Immediately") && CWMP_STRCMP(schedule_download->timewindowstruct[1].windowmode, "3 When Idle"))) {
 		error = FAULT_CPE_REQUEST_DENIED;
+		snprintf(err_msg, sizeof(err_msg), "Invalid window mode => TimeWindowStruct[1].WindowMode (%s), TimeWindowStruct[2].WindowMode (%s)",
+			schedule_download->timewindowstruct[0].windowmode ? schedule_download->timewindowstruct[0].windowmode : "",
+			schedule_download->timewindowstruct[1].windowmode ? schedule_download->timewindowstruct[1].windowmode : "");
 	} else if (count_download_queue >= MAX_DOWNLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
+		snprintf(err_msg, sizeof(err_msg), "Download queue is full, Queue size: %d and current request count: %d",
+			MAX_DOWNLOAD_QUEUE, count_download_queue+1);
 	} else if (CWMP_STRLEN(schedule_download->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
+		snprintf(err_msg, sizeof(err_msg), "No url found in ScheduleDownload request message");
 	} else if (CWMP_STRSTR(schedule_download->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
+		snprintf(err_msg, sizeof(err_msg), "URL (%s) contains user credentials", schedule_download->url);
 	} else if (CWMP_STRNCMP(schedule_download->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(schedule_download->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
+		snprintf(err_msg, sizeof(err_msg), "Invalid file type: (%s)", schedule_download->url);
 	} else {
 		for (j = 0; j < 3; j++) {
 			if (schedule_download_delay[j] > schedule_download_delay[j + 1]) {
 				error = FAULT_CPE_INVALID_ARGUMENTS;
+				snprintf(err_msg, sizeof(err_msg), "Invalid window start-end=> TimeWindowStruct[1].WindowStart (%ld), \
+					TimeWindowStruct[1].WindowEnd (%ld), TimeWindowStruct[2].WindowStart (%ld), \
+					TimeWindowStruct[2].WindowEnd (%ld)", schedule_download_delay[0], schedule_download_delay[1],
+					schedule_download_delay[2], schedule_download_delay[3]);
 				break;
 			}
 		}
@@ -1901,7 +2058,7 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 
 fault:
 	cwmp_free_schedule_download_request(schedule_download);
-	if (cwmp_create_fault_message(rpc, error, ""))
+	if (cwmp_create_fault_message(rpc, error, err_msg))
 		goto error;
 	return 0;
 
@@ -1921,9 +2078,11 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 	time_t scheduled_time = 0;
 	time_t upload_delay = 0;
 	char c[256];
+	char err_msg[256] = {0};
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "Upload") == -1) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Failed to write on buffer, string operation failure");
 		goto fault;
 	}
 
@@ -1931,12 +2090,14 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 
 	if (!n) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Upload element does not exist in input xml tree");
 		goto fault;
 	}
 
 	upload = calloc(1, sizeof(struct upload));
 	if (upload == NULL) {
 		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg, sizeof(err_msg), "Memory allocation failed of %zu bytes", sizeof(struct upload));
 		goto fault;
 	}
 	upload->f_instance = 0;
@@ -1957,23 +2118,35 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 
 	error = load_xml_node_data(SOAP_REQ_UPLOAD, n, &upload_xml_attrs);
 
-	if (error)
+	if (error) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to load data from upload request message");
 		goto fault;
+	}
 
 	if (count_upload_queue >= MAX_UPLOAD_QUEUE) {
 		error = FAULT_CPE_RESOURCES_EXCEEDED;
+		snprintf(err_msg, sizeof(err_msg), "Maximum queue limit %d exceeded, current request number: %d", MAX_UPLOAD_QUEUE, count_upload_queue+1);
 	} else if (CWMP_STRLEN(upload->url) == 0) {
 		error = FAULT_CPE_REQUEST_DENIED;
+		snprintf(err_msg, sizeof(err_msg), "No url found in upload request");
 	} else if (CWMP_STRSTR(upload->url, "@") != NULL) {
 		error = FAULT_CPE_INVALID_ARGUMENTS;
+		snprintf(err_msg, sizeof(err_msg), "Request ignored due to user credential exist in upload url (%s)", upload->url);
 	} else if (CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_HTTPS, strlen(DOWNLOAD_PROTOCOL_HTTPS)) != 0  && CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_HTTP, strlen(DOWNLOAD_PROTOCOL_HTTP)) != 0 && CWMP_STRNCMP(upload->url, DOWNLOAD_PROTOCOL_FTP, strlen(DOWNLOAD_PROTOCOL_FTP)) != 0) {
 		error = FAULT_CPE_FILE_TRANSFER_UNSUPPORTED_PROTOCOL;
+		snprintf(err_msg, sizeof(err_msg), "Requested protocol is not supported (%s)", upload->url);
 	}
 
 	if (error != FAULT_CPE_NO_FAULT)
 		goto fault;
 
 	mxml_node_t *t = build_top_body_soap_response(cwmp_main->session->tree_out, "Upload");
+	if (t == NULL) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to build SOAP message for upload response");
+		error = FAULT_CPE_INTERNAL_ERROR;
+		goto fault;
+	}
+
 	char *start_time = "0001-01-01T00:00:00+00:00";
 	char *complete_time = "0001-01-01T00:00:00+00:00";
 	int status = 1;
@@ -1983,8 +2156,10 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 	upload_resp_xml_attrs.start_time = &start_time;
 	upload_resp_xml_attrs.complete_time = &complete_time;
 	error = build_xml_node_data(SOAP_RESP_UPLOAD, t, &upload_resp_xml_attrs);
-	if (error != CWMP_OK)
+	if (error != CWMP_OK) {
+		snprintf(err_msg, sizeof(err_msg), "Failed to add xml node in upload response message");
 		goto fault;
+	}
 
 	if (error == FAULT_CPE_NO_FAULT) {
 		if (upload_delay != 0)
@@ -2020,7 +2195,7 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 
 fault:
 	cwmp_free_upload_request(upload);
-	if (cwmp_create_fault_message(rpc, error, ""))
+	if (cwmp_create_fault_message(rpc, error, err_msg))
 		return -1;
 	return 0;
 }
@@ -2079,7 +2254,7 @@ int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, char *fault_m
 	CWMP_LOG(INFO, "Fault detected");
 
 	cwmp_main->session->fault_code = fault_code;
-	snprintf(cwmp_main->session->fault_msg, sizeof(cwmp_main->session->fault_msg), "%s", fault_msg);
+	snprintf(cwmp_main->session->fault_msg, sizeof(cwmp_main->session->fault_msg), "%s", fault_msg ? fault_msg : "");
 
 	MXML_DELETE(cwmp_main->session->tree_out);
 

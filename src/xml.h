@@ -210,7 +210,7 @@ struct xml_data_struct {
 	int *id;
 	int *bkp_id;
 	int *time;
-	int *file_size;
+	unsigned int *file_size;
 	int *notification;
 	int *scheddown_max_retries;
 	int *max_retries1;
