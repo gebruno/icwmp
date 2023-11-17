@@ -359,6 +359,43 @@ char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, stru
 	return NULL;
 }
 
+char *cwmp_validate_parameter_name(const char *param_name, bool next_level, struct list_head *param_list)
+{
+	struct blob_buf buf = {0};
+	struct list_params_result get_result = {
+			.parameters_list = param_list,
+			.error = FAULT_CPE_NO_FAULT
+	};
+	unsigned int len = CWMP_STRLEN(param_name);
+
+	if (len > 2 && param_name[len - 1] == '.' && param_name[len - 2] == '*')
+		return "9005";
+
+	const char *object = len ? param_name : "";
+
+	CWMP_MEMSET(&buf, 0, sizeof(struct blob_buf));
+	blob_buf_init(&buf, 0);
+
+	bb_add_string(&buf, "path", object);
+	blobmsg_add_u8(&buf, "first_level", next_level);
+	prepare_optional_table(&buf);
+
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "schema", buf.head, ubus_get_parameter_callback, &get_result);
+	blob_buf_free(&buf);
+
+	if (e < 0)
+		return "9002";
+
+	if (get_result.error) {
+		char err[8] = {0};
+
+		snprintf(err, sizeof(err), "%d", get_result.error);
+		return icwmp_strdup(err);
+	}
+
+	return NULL;
+}
+
 /*
  * Set multiple parameter values
  */

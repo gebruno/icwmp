@@ -100,7 +100,7 @@ char *check_valid_parameter_path(char *parameter_name)
 	LIST_HEAD(parameters_list);
 
 	/*check if parameter name is valid parameter path*/
-	error = cwmp_get_parameter_names(parameter_name, false, &parameters_list);
+	error = cwmp_validate_parameter_name(parameter_name, false, &parameters_list);
 
 	if (error && CWMP_STRCMP(error, "9003") == 0)
 		error = cwmp_get_parameter_values(parameter_name, &parameters_list);
@@ -544,7 +544,6 @@ void set_default_forced_active_parameters_notifications()
 			continue;
 
 		if (strcmp(fault, "9005") == 0) {
-			CWMP_LOG(WARNING, "The parameter %s is wrong path", default_active_notifications_parameters[i]);
 			continue;
 		}
 
