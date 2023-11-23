@@ -35,7 +35,7 @@ run_unit_test:
 
 run_api_test:
     stage: functional_test
-    image: "${COMMON_IMAGE}"
+    image: "dev.iopsys.eu:5050/iopsys/gitlab-ci-pipeline/code-analysis:0.31"
     services:
       - name: dev.iopsys.eu:5050/lcm/swmodd/acs:latest
         alias: acs
@@ -56,7 +56,7 @@ run_api_test:
 
 run_functional_test:
     stage: functional_test
-    image: "${COMMON_IMAGE}"
+    image: "dev.iopsys.eu:5050/iopsys/gitlab-ci-pipeline/code-analysis:0.31"
     services:
       - name: dev.iopsys.eu:5050/lcm/swmodd/acs:latest
         alias: acs
