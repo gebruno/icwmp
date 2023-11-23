@@ -80,14 +80,16 @@ int subprocess_start(task_function task_fun)
     if (p == 0) {
     	while(1) {
     		char from_parent[512];
+		int ret = 0;
+
     		read(pipefd1[0], from_parent, 512); //The received string should has the form {"task":"TaskName", "arg1_name":"xxx", "arg2_name":"xxxx"}
     		if (strlen(from_parent) == 0)
     			continue;
     		//get the task name
     		//if the task name is end
-    		if (check_task_is_end(from_parent)){
-    			write(pipefd2[1], EXIT_TASK, strlen(EXIT_TASK)+1);
-    			exit(EXIT_SUCCESS);
+		if (check_task_is_end(from_parent)) {
+			exit((write(pipefd2[1], EXIT_TASK, strlen(EXIT_TASK)+1) == -1)
+			     ? EXIT_FAILURE : EXIT_SUCCESS);
     		}
     		char *to_child = task_fun(from_parent);
 
@@ -96,11 +98,16 @@ int subprocess_start(task_function task_fun)
     		blob_buf_init(&bbuf, 0);
 		blobmsg_add_string(&bbuf, "ret", to_child ? to_child : "500");
     		char *to_child_json = blobmsg_format_json(bbuf.head, true);
-    		write(pipefd2[1], to_child_json, CWMP_STRLEN(to_child_json)+1);
+
+		ret = write(pipefd2[1], to_child_json, CWMP_STRLEN(to_child_json)+1);
 
     		FREE(to_child);
     		FREE(to_child_json);
     		blob_buf_free(&bbuf);
+
+		if (ret == -1) {
+			exit(EXIT_FAILURE);
+		}
     	}
     }
     return CWMP_OK;
@@ -112,11 +119,15 @@ char *execute_task_in_subprocess(char *task)
 	int len = 0;
 
 	len = CWMP_STRLEN(task);
+	if (len == 0) {
+		task = END_TASK;
+		len = strlen(END_TASK);
+	}
 
-	if (len == 0)
-		write(pipefd1[1], END_TASK, strlen(END_TASK) +1);
-	else
-		write(pipefd1[1], task, len + 1);
+	if (write(pipefd1[1], task, len + 1) == -1) {
+		CWMP_LOG(ERROR, "write to child failed\n");
+		goto out;
+	}
 
 	while(1) {
 		char from_child[512];
@@ -125,8 +136,6 @@ char *execute_task_in_subprocess(char *task)
 			continue;
 		//The received string from the child should has the format {"task":"exit"} or {"ret":"exit"}
 		if (check_task_is_exit(from_child)){
-			close(pipefd2[1]);
-			close(pipefd2[0]);
 			break;
 		}
 
@@ -145,10 +154,17 @@ char *execute_task_in_subprocess(char *task)
 			continue;
 		}
 		ret = blobmsg_get_string(tb[0]);
-		write(pipefd1[1], END_TASK, strlen(END_TASK) +1);
+		if (write(pipefd1[1], END_TASK, strlen(END_TASK) +1) == -1) {
+			CWMP_LOG(ERROR, "write to child failed\n");
+			goto out;
+		}
 	}
 
-    	close(pipefd1[0]);
-    	close(pipefd1[1]);
-    	return ret;
+out:
+	close(pipefd2[1]);
+	close(pipefd2[0]);
+	close(pipefd1[0]);
+	close(pipefd1[1]);
+
+	return ret;
 }
