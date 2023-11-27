@@ -836,7 +836,7 @@ void cwmp_lwnotification()
 	udplw_server_param(&servaddr);
 	xml_prepare_lwnotification_message(&msg_out);
 	if (msg_out == NULL) {
-		CWMP_LOG(ERROR, "notifications %s: msg_out is null", __FUNCTION__);
+		CWMP_LOG(ERROR, "%s: msg_out is null", __FUNCTION__);
 		return;
 	}
 	message_compute_signature(msg_out, signature, sizeof(signature));

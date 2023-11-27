@@ -224,6 +224,32 @@ char* xml_tags_names[] = {
 		"IsDownload"
 };
 
+static char *convert_xml_node_to_string(mxml_node_t *node, mxml_save_cb_t cb)
+{
+	char *str = NULL;
+	int bytes = 0;
+
+	// Determine the size of the XML node
+	bytes = mxmlSaveString(node, NULL, 0, cb);
+	if (bytes <= 0) {
+		CWMP_LOG(ERROR, "XML node received is empty");
+		return NULL;
+	}
+
+	// Allocate a buffer of the required size
+	str = (char *)malloc(bytes + 1);
+	if (str == NULL) {
+		CWMP_LOG(ERROR, "Failed to allocate %d bytes for the XML node string due to insufficient space", bytes + 1);
+		return NULL;
+	}
+
+	// Save the XML node into the allocated buffer
+	mxmlSaveString(node, str, bytes + 1, cb);
+
+	// Return the allocated string
+	return str;
+}
+
 int get_xml_tags_array_total_size(int tag_ref)
 {
 	int i;
@@ -1375,9 +1401,9 @@ int xml_send_message(struct rpc *rpc)
 
 	if (cwmp_main->session->tree_out) {
 		unsigned char *zmsg_out;
-		msg_out = mxmlSaveAllocString(cwmp_main->session->tree_out, MXML_NO_CALLBACK);
+		msg_out = convert_xml_node_to_string(cwmp_main->session->tree_out, MXML_NO_CALLBACK);
 		if (msg_out == NULL) {
-			CWMP_LOG(ERROR, "Received tree_out is empty");
+			CWMP_LOG(ERROR, "%s: msg_out is null", __FUNCTION__);
 			return -1;
 		}
 
@@ -1596,15 +1622,12 @@ int xml_prepare_lwnotification_message(char **msg_out)
 
 	load_notification_xml_schema(&lw_tree);
 	if (!lw_tree)
-		goto error;
+		return -1;;
 
-	*msg_out = mxmlSaveAllocString(lw_tree, MXML_NO_CALLBACK);
+	*msg_out = convert_xml_node_to_string(lw_tree, MXML_NO_CALLBACK);
 
 	mxmlDelete(lw_tree);
 	return 0;
-
-error:
-	return -1;
 }
 
 void load_notification_xml_schema(mxml_node_t **tree)
