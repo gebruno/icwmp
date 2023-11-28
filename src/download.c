@@ -524,8 +524,13 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		int err = CWMP_OK;
 		if (download_file_name != NULL) {
 			char file_path[512];
+
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", download_file_name);
-			err = cwmp_uci_import(download_file_name, file_path, UCI_STANDARD_CONFIG);
+			if (strstr(download_file_name, ".uci.conf") != NULL) {
+				err = cwmp_uci_import(NULL, file_path, UCI_STANDARD_CONFIG);
+			} else {
+				err = cwmp_uci_import(download_file_name, file_path, UCI_STANDARD_CONFIG);
+			}
 			remove(file_path);
 		} else {
 			err = cwmp_uci_import("vendor_conf_file", VENDOR_CONFIG_FILE, UCI_STANDARD_CONFIG);
