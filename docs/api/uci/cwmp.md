@@ -426,6 +426,15 @@
                       <div class="td_row_odd">If set to <b>1</b>, it forces the connectivity over v4 IP address.</div>
                     </td>
                   </tr>
+                  <tr>
+                    <td class="td_row_odd"><div class="td_row_odd">keep_settings</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">boolean</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">no</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">1</div></td>
+                    <td class="td_row_odd">
+                      <div class="td_row_odd">If set to <b>1</b>, icwmp will keep the uci setting while doing firmware upgrade using Download RPC with '1 Firmware Upgrade Image'.</div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </td>

@@ -157,6 +157,7 @@ typedef struct config {
 	bool http_disable_100continue;
 	int cr_timeout;
 	bool force_ipv4;
+	bool keep_settings;
 } config;
 
 struct deviceid {

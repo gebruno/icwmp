@@ -340,6 +340,13 @@
           "required": "no",
           "default": "",
           "description": "If set to 1, it forces the connectivity over v4 IP address."
+        },
+        {
+          "name": "keep_settings",
+          "type": "boolean",
+          "required": "no",
+          "default": "1",
+          "description": "If set to **1**, icwmp will keep the uci setting while doing firmware upgrade using Download RPC with '1 Firmware Upgrade Image'."
         }
       ]
     },
