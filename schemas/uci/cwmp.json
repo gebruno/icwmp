@@ -342,7 +342,7 @@
           "description": "If set to 1, it forces the connectivity over v4 IP address."
         },
         {
-          "name": "keep_settings",
+          "name": "fw_upgrade_keep_settings",
           "type": "boolean",
           "required": "no",
           "default": "1",

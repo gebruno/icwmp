@@ -427,7 +427,7 @@
                     </td>
                   </tr>
                   <tr>
-                    <td class="td_row_odd"><div class="td_row_odd">keep_settings</div></td>
+                    <td class="td_row_odd"><div class="td_row_odd">fw_upgrade_keep_settings</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">boolean</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">no</div></td>
                     <td class="td_row_odd"><div class="td_row_odd">1</div></td>

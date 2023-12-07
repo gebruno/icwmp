@@ -297,7 +297,7 @@ int cwmp_apply_firmware()
 	struct blob_buf b = { 0 };
 	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	blobmsg_add_u8(&b, "keep", cwmp_main->conf.keep_settings);
+	blobmsg_add_u8(&b, "keep", cwmp_main->conf.fw_upgrade_keep_settings);
 
 	CWMP_LOG(INFO, "Apply downloaded image ...");
 	e = icwmp_ubus_invoke("rpc-sys", "upgrade_start", b.head, NULL, NULL);

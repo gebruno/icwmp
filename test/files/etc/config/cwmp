@@ -37,7 +37,7 @@ config cpe 'cpe'
 	option exec_download '0'
 	option periodic_notify_enable '1'
 	option periodic_notify_interval '10'
-	option keep_settings '1'
+	option fw_upgrade_keep_settings '1'
 	
 config lwn 'lwn'
 	option enable '1'
