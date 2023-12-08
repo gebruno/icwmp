@@ -56,8 +56,6 @@ int cwmp_uci_get_option_value_list(char *package, char *section, char *option, u
 
 int uci_get_state_value(char *cmd, char **value);
 
-int uci_set_value_by_path(char *cmd, char *value, uci_config_paths uci_type);
-
 int uci_get_value(char *cmd, char **value);
 
 struct uci_section *cwmp_uci_walk_section(char *package, char *stype, struct uci_section *prev_section, uci_config_paths uci_type, int walk);
@@ -66,7 +64,6 @@ int cwmp_uci_get_value_by_section_string(struct uci_section *s, char *option, ch
 
 int cwmp_commit_package(char *package, uci_config_paths uci_type);
 int cwmp_uci_import(char *package_name, const char *input_path, uci_config_paths uci_type);
-
 
 int cwmp_uci_export_package(char *package, const char *output_path, uci_config_paths uci_type);
 int cwmp_uci_export(const char *output_path, uci_config_paths uci_type);

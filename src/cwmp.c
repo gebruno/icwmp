@@ -238,10 +238,6 @@ static int cwmp_init(void)
 	if ((error = create_cwmp_notifications_package()))
 		return error;
 
-	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
-	cwmp_config_load();
-	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
-
 	cwmp_main->prev_periodic_enable = cwmp_main->conf.periodic_enable;
 	cwmp_main->prev_periodic_interval = cwmp_main->conf.period;
 	cwmp_main->prev_periodic_time = cwmp_main->conf.time;
@@ -252,9 +248,13 @@ static int cwmp_init(void)
 	if (cwmp_stop == true)
 		return CWMP_GEN_ERR;
 
-	cwmp_get_deviceid();
-
 	cwmp_uci_init();
+
+	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
+	cwmp_config_load();
+	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
+
+	cwmp_get_deviceid();
 
 	/* Load default force inform parameters */
 	CWMP_MEMSET(&force_inform_list, 0, sizeof(struct list_head));

@@ -112,7 +112,6 @@ int clean_cwmp_session_structure();
 void set_cwmp_session_status(int status, int retry_time);
 int cwmp_session_init();
 int cwmp_session_exit();
-int cwmp_schedule_rpc();
 int cwmp_apply_acs_changes(void);
 void rpc_exit();
 void trigger_cwmp_restart_timer(void);

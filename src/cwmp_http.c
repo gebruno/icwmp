@@ -15,22 +15,7 @@
 #include "log.h"
 #include "cwmp_uci.h"
 
-struct uloop_fd http_event6;
-
 pthread_t http_cr_server_thread;
-
-void http_server_listen_uloop(struct uloop_fd *ufd __attribute__((unused)), unsigned events __attribute__((unused)))
-{
-	icwmp_http_server_listen();
-}
-
-void http_server_start_uloop(void)
-{
-	icwmp_http_server_init();
-	http_event6.fd = cwmp_main->cr_socket_desc;
-	http_event6.cb = http_server_listen_uloop;
-	uloop_fd_add(&http_event6, ULOOP_READ | ULOOP_EDGE_TRIGGER);
-}
 
 static void *thread_http_cr_server_listen(void *v __attribute__((unused)))
 {

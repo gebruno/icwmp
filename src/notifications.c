@@ -141,7 +141,7 @@ bool check_parent_with_different_notification(char *parameter_name, int notifica
 	struct uci_list *list_notif = NULL;
 	struct uci_element *e = NULL;
 	int i;
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < ARRAY_SIZE(notifications); i++) {
 		int option_type;
 
 		if (i == notification)
@@ -172,7 +172,7 @@ bool update_notifications_list(char *parameter_name, int notification)
 	/*
 	 * Parse all possible lists of of notifications one by one
 	 */
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < ARRAY_SIZE(notifications); i++) {
 		int option_type;
 
 		option_type = cwmp_uci_get_option_value_list("cwmp_notifications", "@notifications[0]", notifications[i], UCI_ETCICWMPD_CONFIG, &list_notif);
@@ -234,7 +234,7 @@ int get_parameter_family_notifications(char *parameter_name, struct list_head *c
 
 	if (parameter_name == NULL)
 		parameter_name = "Device.";
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < ARRAY_SIZE(notifications); i++) {
 		int option_type;
 
 		option_type = cwmp_uci_get_option_value_list("cwmp_notifications", "@notifications[0]", notifications[i], UCI_ETCICWMPD_CONFIG, &list_notif);
@@ -357,7 +357,7 @@ void create_list_param_obj_notify()
 	struct uci_element *e = NULL;
 	int i;
 
-	for (i = 0; i < 7; i++) {
+	for (i = 0; i < ARRAY_SIZE(notifications); i++) {
 		int option_type;
 		option_type = cwmp_uci_get_option_value_list("cwmp_notifications", "@notifications[0]", notifications[i], UCI_ETCICWMPD_CONFIG, &list_notif);
 		if (list_notif) {

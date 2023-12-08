@@ -118,7 +118,7 @@ static int cwmp_rpc_cpe_handle_message(struct rpc *rpc_cpe)
 	return 0;
 }
 
-int cwmp_schedule_rpc()
+static int cwmp_schedule_rpc()
 {
 	struct list_head *ilist;
 	struct rpc *rpc_acs;
