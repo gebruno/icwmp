@@ -309,6 +309,27 @@ int cwmp_apply_firmware()
 	return e;
 }
 
+/*
+ * Apply the web content
+ */
+int cwmp_apply_web_content(char *filepath)
+{
+	int e;
+	struct blob_buf b = { 0 };
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+	blobmsg_add_string(&b, "filepath", filepath ? filepath: "");
+
+	CWMP_LOG(INFO, "Apply downloaded web content ...");
+	e = icwmp_ubus_invoke("web-content", "install", b.head, NULL, NULL);
+	if (e != 0) {
+		CWMP_LOG(INFO, "web-content install ubus method failed: Ubus err code: %d", e);
+	}
+
+	blob_buf_free(&b);
+	return e;
+}
+
 void wait_firmware_to_be_applied(int bank_id)
 {
 	int count = 0;
@@ -426,8 +447,15 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 			remove(FIRMWARE_UPGRADE_IMAGE);
 		}
 	} else if (CWMP_STRCMP(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
-		//TODO Not Supported
+		if (download_file_name != NULL) {
+			char file_path[512];
+			snprintf(file_path, sizeof(file_path), "/tmp/%s", download_file_name);
+			rename(ICWMP_DOWNLOAD_FILE, file_path);
+		} else
+			rename(ICWMP_DOWNLOAD_FILE, WEB_CONTENT_FILE);
+
 		error = FAULT_CPE_NO_FAULT;
+		goto end_download;
 	} else if (CWMP_STRCMP(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
 		if (download_file_name != NULL) {
 			char file_path[512];
@@ -517,8 +545,21 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		}
 
 	} else if (CWMP_STRCMP(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {
-		//TODO Not Supported
-		error = FAULT_CPE_NO_FAULT;
+		// apply web content file
+		char file_path[512] = {0};
+		if (download_file_name != NULL) {
+			snprintf(file_path, sizeof(file_path), "/tmp/%s", download_file_name);
+		} else {
+			snprintf(file_path, sizeof(file_path), "%s", WEB_CONTENT_FILE);
+		}
+
+		if (cwmp_apply_web_content(file_path) != 0) {
+			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
+			snprintf(err_msg, sizeof(err_msg), "Failed in applying the downloaded web content, may be corrupted file");
+		} else
+			error = FAULT_CPE_NO_FAULT;
+
+		remove(file_path);
 	} else if (CWMP_STRCMP(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
 		cwmp_uci_init();
 		int err = CWMP_OK;
@@ -571,10 +612,11 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		snprintf(err_msg, sizeof(err_msg), "Invalid file type argument (%s)", pdownload->file_type);
 	}
 
-	if ((error == FAULT_CPE_NO_FAULT) && (pdownload->file_type[0] == '1' || pdownload->file_type[0] == '3')) {
+	if ((error == FAULT_CPE_NO_FAULT) &&
+	    (pdownload->file_type[0] == '1' || pdownload->file_type[0] == '3' || pdownload->file_type[0] == '2')) {
 		set_rpc_parameter_key(pdownload->command_key);
-		if (pdownload->file_type[0] == '3') {
-			CWMP_LOG(INFO, "Download and apply new vendor config file is done successfully");
+		if (pdownload->file_type[0] == '3' || pdownload->file_type[0] == '2') {
+			CWMP_LOG(INFO, "Download and apply new file type \"%s\" is done successfully", pdownload->file_type);
 			//cwmp_root_cause_transfer_complete(ptransfer_complete);
 			bkp_session_delete_element_by_key("transfer_complete", "start_time", ptransfer_complete->start_time);
 		}

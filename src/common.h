@@ -625,6 +625,7 @@ int download_file(const char *file_path, const char *url, const char *username, 
 unsigned int get_file_size(char *file_name);
 int cwmp_check_image();
 int cwmp_apply_firmware();
+int cwmp_apply_web_content(char *filepath);
 int opkg_install_package(char *package_path);
 int copy(const char *from, const char *to);
 int cwmp_get_fault_code(int fault_code);
