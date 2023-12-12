@@ -115,11 +115,11 @@ function build_icwmp()
 	exec_cmd make
 
 	echo "installing icwmpd binary and libcwmpdm.so library"
-	exec_cmd cp icwmpd ../
-	exec_cmd cp libcwmpdm.so ../
+	exec_cmd cp src/icwmpd ../src/
+	exec_cmd cp bbf_plugin/libcwmpdm.so ../bbf_plugin/
 	exec_cmd make install
 	[ -f "/usr/sbin/icwmpd" ] && rm /usr/sbin/icwmpd
-	exec_cmd ln -s ${BINP}/icwmpd /usr/sbin/icwmpd
+	exec_cmd ln -s ${BINP}/src/icwmpd /usr/sbin/icwmpd
 	cd ..
 }
 
