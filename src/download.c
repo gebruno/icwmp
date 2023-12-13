@@ -177,7 +177,7 @@ int cwmp_check_image()
 void ubus_get_available_bank_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
 	if (msg == NULL) {
-		CWMP_LOG(ERROR, "download %s: msg is null");
+		CWMP_LOG(ERROR, "download: msg is null");
 		return;
 	}
 	int *bank_id = (int *)req->priv;
@@ -312,22 +312,47 @@ int cwmp_apply_firmware()
 /*
  * Apply the web content
  */
-int cwmp_apply_web_content(char *filepath)
+static void ubus_get_download_status(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
+{
+	if (msg == NULL) {
+		CWMP_LOG(ERROR, "received msg is null");
+		return;
+	}
+
+	bool *status = (bool *)req->priv;
+	if (status == NULL)
+		return;
+
+	const struct blobmsg_policy p[1] = { { "success", BLOBMSG_TYPE_BOOL } };
+	struct blob_attr *tb[1] = { NULL };
+	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
+	if (tb[0] == NULL) {
+		CWMP_LOG(ERROR, "status not exists in received msg");
+		return;
+	}
+
+	*status = blobmsg_get_bool(tb[0]);
+}
+
+bool cwmp_apply_web_content(char *filepath)
 {
 	int e;
+	bool status = false;
 	struct blob_buf b = { 0 };
 	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	blobmsg_add_string(&b, "filepath", filepath ? filepath: "");
+	blobmsg_add_string(&b, "url", filepath ? filepath: "");
+	blobmsg_add_string(&b, "filetype", WEB_CONTENT_FILE_TYPE);
 
 	CWMP_LOG(INFO, "Apply downloaded web content ...");
-	e = icwmp_ubus_invoke("web-content", "install", b.head, NULL, NULL);
+	e = icwmp_ubus_invoke("cwmp.rpc", "download", b.head, ubus_get_download_status, &status);
 	if (e != 0) {
 		CWMP_LOG(INFO, "web-content install ubus method failed: Ubus err code: %d", e);
+		status = false;
 	}
 
 	blob_buf_free(&b);
-	return e;
+	return status;
 }
 
 void wait_firmware_to_be_applied(int bank_id)
@@ -548,12 +573,12 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		// apply web content file
 		char file_path[512] = {0};
 		if (download_file_name != NULL) {
-			snprintf(file_path, sizeof(file_path), "/tmp/%s", download_file_name);
+			snprintf(file_path, sizeof(file_path), "file:///tmp/%s", download_file_name);
 		} else {
-			snprintf(file_path, sizeof(file_path), "%s", WEB_CONTENT_FILE);
+			snprintf(file_path, sizeof(file_path), "file://%s", WEB_CONTENT_FILE);
 		}
 
-		if (cwmp_apply_web_content(file_path) != 0) {
+		if (cwmp_apply_web_content(file_path) == false) {
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 			snprintf(err_msg, sizeof(err_msg), "Failed in applying the downloaded web content, may be corrupted file");
 		} else
