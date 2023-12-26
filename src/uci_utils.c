@@ -224,6 +224,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_JSON_FORCED_INFORM_FILE,
 		UCI_CPE_FORCE_IPV4,
 		UCI_CPE_KEEP_SETTINGS,
+		UCI_CPE_DEFAULT_WAN_IFACE,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -244,7 +245,8 @@ static void config_get_cpe_elements(struct uci_section *s)
 		[UCI_CPE_JSON_FORCED_INFORM_FILE] = { .name = "forced_inform_json", .type = UCI_TYPE_STRING },
 		[UCI_CPE_CON_REQ_TIMEOUT] = { .name = "cr_timeout", .type = UCI_TYPE_STRING },
 		[UCI_CPE_FORCE_IPV4] = { .name = "force_ipv4", .type = UCI_TYPE_STRING },
-		[UCI_CPE_KEEP_SETTINGS] = { .name = "fw_upgrade_keep_settings", .type = UCI_TYPE_STRING }
+		[UCI_CPE_KEEP_SETTINGS] = { .name = "fw_upgrade_keep_settings", .type = UCI_TYPE_STRING },
+		[UCI_CPE_DEFAULT_WAN_IFACE] = { .name = "default_wan_interface", .type = UCI_TYPE_STRING }
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS];
@@ -346,6 +348,15 @@ static void config_get_cpe_elements(struct uci_section *s)
 
 	cwmp_main->conf.fw_upgrade_keep_settings = cpe_tb[UCI_CPE_KEEP_SETTINGS] ? str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_KEEP_SETTINGS])) : true;
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe keep settings enable: %d", cwmp_main->conf.fw_upgrade_keep_settings);
+
+	char *value = get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]);
+	char *wan_intf = CWMP_STRLEN(value) ? value : "wan";
+
+	if (strcmp(cwmp_main->conf.default_wan_iface, wan_intf) != 0) {
+		snprintf(cwmp_main->conf.default_wan_iface, sizeof(cwmp_main->conf.default_wan_iface), "%s", wan_intf);
+		memset(cwmp_main->net.interface, 0, sizeof(cwmp_main->net.interface));
+	}
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe default_wan_interface: %s", cwmp_main->conf.default_wan_iface);
 }
 
 static void config_get_lwn_elements(struct uci_section *s)

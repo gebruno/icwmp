@@ -399,7 +399,6 @@ void start_cwmp_session(void)
 
 	if (cwmp_main->session->error == CWMP_RETRY_SESSION && (!list_empty(&(cwmp_main->session->events)) || (list_empty(&(cwmp_main->session->events)) && cwmp_main->cwmp_cr_event == 0))) { //CWMP Retry session
 		schedule_session_retry();
-		cwmp_set_end_session(END_SESSION_RELOAD);
 	} else {
 		save_acs_bkp_config();
 		if (!cwmp_main->session->session_status.is_heartbeat)
@@ -418,6 +417,18 @@ void start_cwmp_session(void)
 	}
 	run_session_end_func();
 	cwmp_session_exit();
+
+	if (cwmp_main->acs_changed) {
+		CWMP_LOG(INFO, "%s: Schedule session with new ACS since URL changed", __func__);
+		uloop_timeout_cancel(&heartbeat_session_timer);
+		cwmp_main->session->session_status.next_heartbeat = true;
+		cwmp_main->session->session_status.is_heartbeat = false;
+		cwmp_main->retry_count_session = 0;
+		trigger_cwmp_session_timer();
+		cwmp_main->acs_changed = false;
+		return;
+	}
+
 	CWMP_LOG(INFO, "Waiting the next session");
 	if (cwmp_main->session->session_status.next_heartbeat && (cwmp_main->session->session_status.last_status == SESSION_SUCCESS)) {
 		cwmp_main->session->session_status.next_heartbeat = false;
@@ -625,26 +636,19 @@ void cwmp_set_end_session(unsigned int flag)
 
 int run_session_end_func(void)
 {
+	CWMP_LOG(INFO, "Handling end session with: (%u)", end_session_flag);
+
 	if (end_session_flag & END_SESSION_RESTART_SERVICES) {
 		CWMP_LOG(INFO, "Restart modified services");
 		icwmp_restart_services();
 	}
 
-	if (end_session_flag & END_SESSION_RELOAD) {
-		CWMP_LOG(INFO, "Config reload: end session request");
-		if (cwmp_apply_acs_changes() != CWMP_OK) {
-			CWMP_LOG(ERROR, "config reload failed at session end");
-		}
-
-		if (cwmp_main->acs_changed && cwmp_main->retry_count_session == 0) {
-			CWMP_LOG(DEBUG, "%s: Restart icwmp since ACS url modified", __func__);
-			trigger_cwmp_restart_timer();
-			return CWMP_OK;
-		}
-
-		reinit_cwmp_periodic_session_feature();
-		reinit_heartbeat_procedures();
+	if (cwmp_apply_acs_changes() != CWMP_OK) {
+		CWMP_LOG(ERROR, "config reload failed at session end");
 	}
+
+	reinit_cwmp_periodic_session_feature();
+	reinit_heartbeat_procedures();
 
 	if (end_session_flag & END_SESSION_INIT_NOTIFY) {
 		CWMP_LOG(INFO, "SetParameterAttributes end session: reinit list notify");

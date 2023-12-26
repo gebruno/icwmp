@@ -134,27 +134,8 @@ if [ "${wan_intf}" == "${INTERFACE}" ]; then
 		return 0
 	fi
 
-	uci -q commit cwmp
-
 	# ACS url has been set, inform icwmpd to reload new configuration
-
 	sleep 10 # wait for some time to avoid interface fluctuation
 
-	ret=$(ubus call service list '{"name":"icwmpd"}' | jsonfilter -qe '@.icwmpd.instances.icwmp.running')
-	if [ "$ret" != "true" ]; then
-		log "Restarting icwmp daemon"
-		/etc/init.d/icwmpd restart
-	else
-		tr069_status="$(ubus -t 1 call tr069 status)"
-		ret="$?"
-		if [ "$ret" = "7" ]; then
-			# ubus timed out may be due to uloop is busy in some task so return
-			return 0
-		fi
-
-		status="$(echo "${tr069_status}" | jsonfilter -qe '@.cwmp.status')"
-		if [ "$status" = "up" ]; then
-			ubus -t 1 call tr069 command '{"command":"reload"}'
-		fi
-	fi
+	ubus call uci commit '{"config":"cwmp"}'
 fi
