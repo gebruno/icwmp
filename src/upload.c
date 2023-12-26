@@ -22,13 +22,13 @@
 #include "subprocess.h"
 #include "session.h"
 
-#define CURL_TIMEOUT 20
+#define CURL_TIMEOUT 30
 
 int count_upload_queue = 0;
 
 LIST_HEAD(list_upload);
 
-int lookup_vcf_name(int instance, char **value)
+static int lookup_vcf_name(int instance, char **value)
 {
 	char vcf_name_parameter[256];
 	LIST_HEAD(vcf_parameters);
@@ -46,7 +46,7 @@ int lookup_vcf_name(int instance, char **value)
 	return 0;
 }
 
-int lookup_vlf_name(int instance, char **value)
+static int lookup_vlf_name(int instance, char **value)
 {
 	char vlf_name_parameter[256];
 	LIST_HEAD(vlf_parameters);
@@ -67,9 +67,9 @@ int lookup_vlf_name(int instance, char **value)
 /*
  * Upload file
  */
-int upload_file(const char *file_path, const char *url, const char *username, const char *password)
+static long upload_file(const char *file_path, const char *url, const char *username, const char *password)
 {
-	int res_code = 0;
+	long res_code = 0;
 	CURL *curl;
 	CURLcode res;
 	FILE *fd_upload;
@@ -77,24 +77,31 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 
 	if (url == NULL) {
 		CWMP_LOG(ERROR, "upload %s: url is null", __FUNCTION__);
-		return -1;
+		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
 	if (file_path == NULL) {
 		CWMP_LOG(ERROR, "upload file name unknown");
-		return -1;
+		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
-	if (0 != stat(file_path, &file_info)) {
-		CWMP_LOG(ERROR, "upload file %s not exists", file_path);
-		return -1;
+	if (!file_exists(file_path)) {
+		CWMP_LOG(ERROR, "upload_file %s does not exist", file_path);
+		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
 	fd_upload = fopen(file_path, "rb");
 	if (fd_upload == NULL) {
-		CWMP_LOG(ERROR, "Failed to open url[%s] for upload", file_path);
+		CWMP_LOG(ERROR, "Failed to open file[%s] for upload", file_path);
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
+
+	if (fstat(fileno(fd_upload), &file_info) != 0) {
+		CWMP_LOG(ERROR, "Failed to get file info for %s\n", file_path);
+		fclose(fd_upload);
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
+
 	curl_global_init(CURL_GLOBAL_ALL);
 	curl = curl_easy_init();
 
@@ -104,18 +111,20 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 			snprintf(userpass, sizeof(userpass), "%s:%s", username, password ? password : "");
 			curl_easy_setopt(curl, CURLOPT_USERPWD, userpass);
 		}
+
 		if (CWMP_STRNCMP(url, "https://", 8) == 0)
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
+
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
 		curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-		//curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)CURLAUTH_ANY);
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_READDATA, fd_upload);
 		curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_info.st_size);
+
 		res = curl_easy_perform(curl);
-		if(res != CURLE_OK) {
+		if (res != CURLE_OK) {
 			CWMP_LOG(ERROR, "## curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 		}
 
@@ -130,13 +139,13 @@ int upload_file(const char *file_path, const char *url, const char *username, co
 
 char *upload_file_task_function(char *task)
 {
-
 	struct blob_buf bbuf;
 
 	if (task == NULL) {
 		CWMP_LOG(ERROR, "upload %s: task is null", __FUNCTION__);
 		return NULL;
 	}
+
 	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
@@ -156,10 +165,13 @@ char *upload_file_task_function(char *task)
 	char *username = blobmsg_get_string(tb[3]);
 	char *password = blobmsg_get_string(tb[4]);
 
-	int http_code = upload_file(file_path, url, username, password);
-	char *http_ret = (char *)malloc(4 * sizeof(char));
-	snprintf(http_ret, 4, "%d", http_code);
-	http_ret[3] = 0;
+	long http_code = upload_file(file_path, url, username, password);
+	char *http_ret = (char *)malloc(16 * sizeof(char));
+	if (http_ret == NULL)
+		return NULL;
+
+	snprintf(http_ret, 16, "%ld", http_code);
+
 	return http_ret;
 }
 
@@ -184,7 +196,7 @@ int upload_file_in_subprocess(const char *file_path, const char *url, const char
 
 	if (upload_task != NULL) {
 		char *ret = execute_task_in_subprocess(upload_task);
-		return atoi(ret);
+		return ret ? atoi(ret) : 500;
 	}
 	return 500;
 }
@@ -201,16 +213,23 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	bkp_session_save();
 	char err_msg[256] = {0};
 
+	if (!folder_exists(ICWMP_TMP_PATH)) {
+		int status = mkdir(ICWMP_TMP_PATH, S_IRWXU);
+		if (status != 0) {
+			snprintf(err_msg, sizeof(err_msg), "Failed to create (%s) folder", ICWMP_TMP_PATH);
+			goto end_upload;
+		}
+	}
+
 	if (pupload->file_type[0] == '1') {
-		snprintf(file_path, sizeof(file_path), "/tmp/all_configs");
+		snprintf(file_path, sizeof(file_path), "%s/all_configs", ICWMP_TMP_PATH);
 		cwmp_uci_init();
 		cwmp_uci_export(file_path, UCI_STANDARD_CONFIG);
 		cwmp_uci_exit();
 	} else if (pupload->file_type[0] == '2') {
 		lookup_vlf_name(1, &name);
 		if (name && strlen(name) > 0) {
-			snprintf(file_path, sizeof(file_path), "/tmp/messages");
-			// cppcheck-suppress uninitvar
+			snprintf(file_path, sizeof(file_path), "%s/messages", ICWMP_TMP_PATH);
 			if (copy(name, file_path) != 0) {
 				error = FAULT_CPE_UPLOAD_FAILURE;
 				snprintf(err_msg, sizeof(err_msg), "Failed to copy the file content from %s to %s", file_path, name);
@@ -223,7 +242,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	} else if (pupload->file_type[0] == '3') {
 		lookup_vcf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
-			snprintf(file_path, sizeof(file_path), "/tmp/%s", name);
+			snprintf(file_path, sizeof(file_path), "%s/%s", ICWMP_TMP_PATH, name);
 			cwmp_uci_init();
 			cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);
 			cwmp_uci_exit();
@@ -236,7 +255,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	} else { //file_type is 4
 		lookup_vlf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
-			snprintf(file_path, sizeof(file_path), "/tmp/.cwmp_upload");
+			snprintf(file_path, sizeof(file_path), "%s/.cwmp_upload", ICWMP_TMP_PATH);
 			if (copy(name, file_path) != 0) {
 				error = FAULT_CPE_UPLOAD_FAILURE;
 				snprintf(err_msg, sizeof(err_msg), "Failed to copy the file content from %s to %s", file_path, name);

@@ -120,6 +120,7 @@ int download_file_in_subprocess(const char *file_path, const char *url, const ch
 		CWMP_LOG(ERROR, "download %s: url is null");
 		return 500;
 	}
+
 	struct blob_buf bbuf;
 	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
@@ -133,8 +134,9 @@ int download_file_in_subprocess(const char *file_path, const char *url, const ch
 
 	if (download_task != NULL) {
 		char *ret = execute_task_in_subprocess(download_task);
-		return atoi(ret);
+		return ret ? atoi(ret) : 500;
 	}
+
 	return 500;
 }
 /*
@@ -412,7 +414,7 @@ int cwmp_apply_multiple_firmware_in_subprocess()
 {
 	subprocess_start(apply_multiple_firmware_task_function);
 	char *ret = execute_task_in_subprocess("{}"); //empty json object
-	return atoi(ret);
+	return ret ? atoi(ret) : 500;
 }
 
 int cwmp_launch_download(struct download *pdownload, char *download_file_name, enum load_type ltype, struct transfer_complete **ptransfer_complete)
