@@ -85,49 +85,32 @@ int get_preinit_config()
 
 static int global_conf_init()
 {
-	int error = CWMP_OK;
+	get_global_config();
 
-	if ((error = get_global_config())) {
-		cwmp_main->init_complete = false;
-		goto end;
-	}
-
-	cwmp_main->init_complete = true;
 	/* Launch reboot methods if needed */
 	launch_reboot_methods();
 
-end:
-	return error;
+	return 0;
 }
 
 void cwmp_config_load()
 {
-	int ret = CWMP_GEN_ERR;
 	int error = CWMP_GEN_ERR;
 
-	ret = global_conf_init();
+	global_conf_init();
 
 	if (cwmp_stop == true)
 		return;
 
-	if (ret == CWMP_OK) {
-		cwmp_main->net.ipv6_status = is_ipv6_enabled();
-		error = icwmp_check_http_connection();
-	}
+	cwmp_main->net.ipv6_status = is_ipv6_enabled();
+	error = icwmp_check_http_connection();
 
 	while (error != CWMP_OK && cwmp_stop != true) {
-		if (ret != CWMP_OK) {
-			CWMP_LOG(DEBUG, "Error reading uci ret = %d", ret);
-		} else {
-			CWMP_LOG(DEBUG, "Init: failed to check http connection");
-		}
-
+		CWMP_LOG(DEBUG, "Init: failed to check http connection");
 		sleep(UCI_OPTION_READ_INTERVAL);
-		ret = global_conf_init();
-		if (ret == CWMP_OK) {
-			cwmp_main->net.ipv6_status = is_ipv6_enabled();
-			error = icwmp_check_http_connection();
-		}
+		global_conf_init();
+		cwmp_main->net.ipv6_status = is_ipv6_enabled();
+		error = icwmp_check_http_connection();
 	}
 }
 
