@@ -139,11 +139,6 @@ static const struct blobmsg_policy icwmp_cmd_policy[] = {
 
 static int icwmp_command_handler(struct ubus_context *ctx, struct ubus_object *obj __attribute__((unused)), struct ubus_request_data *req, const char *method __attribute__((unused)), struct blob_attr *msg)
 {
-	if (cwmp_main->init_complete == false) {
-		CWMP_LOG(INFO, "Request can't be handled since icwmpd is still in init state");
-		return 0;
-	}
-
 	if (ctx == NULL)
 		return -1;
 	struct blob_attr *tb[__COMMAND_MAX] = {0};
@@ -219,7 +214,7 @@ static void bb_add_icwmp_status(struct blob_buf *bb)
 		return;
 	}
 	void *tbl = blobmsg_open_table(bb, "cwmp");
-	bb_add_string(bb, "status", cwmp_main->init_complete ? "up" : "init");
+	bb_add_string(bb, "status", "up");
 	bb_add_string(bb, "start_time", get_time(cwmp_main->start_time));
 	bb_add_string(bb, "acs_url", cwmp_main->conf.acs_url);
 	blobmsg_close_table(bb, tbl);
@@ -319,14 +314,6 @@ static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *ob
 	struct blob_buf bb;
 	CWMP_MEMSET(&bb, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bb, 0);
-
-	if (cwmp_main->init_complete == false) {
-		CWMP_LOG(WARNING, "Inform can't be sent since icwmpd is still in init state");
-		blobmsg_add_u32(&bb, "status", -1);
-		blobmsg_add_string(&bb, "info", "icwmpd is still in init state");
-		goto end;
-	}
-
 
 	struct blob_attr *tb[__INFORM_MAX] = {0};
 	bool is_get_rpc = false;

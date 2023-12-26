@@ -181,7 +181,6 @@ typedef struct cwmp {
 	struct connection net;
 	struct session *session;
 	bool cwmp_cr_event;
-	bool init_complete;
 	bool prev_periodic_enable;
 	bool prev_heartbeat_enable;
 	bool heart_session;
