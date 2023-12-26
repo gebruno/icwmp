@@ -16,6 +16,7 @@
 #include "session.h"
 #include "cwmp_event.h"
 #include "autonomous_complpolicy.h"
+#include "heartbeat.h"
 
 typedef int (*callback)(struct blob_buf *b);
 
@@ -85,8 +86,14 @@ static int reload_cmd(struct blob_buf *b)
 			blobmsg_add_string(b, "info", "icwmpd config reloaded");
 
 			if (cwmp_main->acs_changed) {
-				CWMP_LOG(DEBUG, "%s: Restart icwmp due to ACS url changed", __func__);
-				trigger_cwmp_restart_timer();
+				CWMP_LOG(INFO, "%s: Schedule session with new ACS since URL changed", __func__);
+				uloop_timeout_cancel(&session_timer);
+				cwmp_main->retry_count_session = 0;
+				uloop_timeout_cancel(&heartbeat_session_timer);
+				cwmp_main->session->session_status.next_heartbeat = true;
+				cwmp_main->session->session_status.is_heartbeat = false;
+				trigger_cwmp_session_timer();
+				cwmp_main->acs_changed = false;
 			}
 		}
 	}
