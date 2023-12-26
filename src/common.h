@@ -72,6 +72,7 @@
 #define BUF_SIZE_256 (256 + 1)
 #define BUF_SIZE_2048 (2048 + 1)
 
+#define ICWMP_TMP_PATH "/tmp/icwmp"
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
 #define CWMP_VARSTATE_UCI_PACKAGE "/var/state/icwmp"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."

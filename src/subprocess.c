@@ -68,48 +68,52 @@ int subprocess_start(task_function task_fun)
 		return CWMP_GEN_ERR;
 
 	pid_t p;
+
     if (pipe(pipefd1) == -1) {
             CWMP_LOG(ERROR, "pipefd1 failed\n");
             return CWMP_GEN_ERR;
     }
+
     if (pipe(pipefd2) == -1) {
         CWMP_LOG(ERROR, "pipefd2 failed\n");
         return CWMP_GEN_ERR;
     }
-    p = fork();
-    if (p == 0) {
-    	while(1) {
-    		char from_parent[512];
-		int ret = 0;
 
-    		read(pipefd1[0], from_parent, 512); //The received string should has the form {"task":"TaskName", "arg1_name":"xxx", "arg2_name":"xxxx"}
-    		if (strlen(from_parent) == 0)
-    			continue;
-    		//get the task name
-    		//if the task name is end
-		if (check_task_is_end(from_parent)) {
-			exit((write(pipefd2[1], EXIT_TASK, strlen(EXIT_TASK)+1) == -1)
-			     ? EXIT_FAILURE : EXIT_SUCCESS);
-    		}
-    		char *to_child = task_fun(from_parent);
+	p = fork();
+	if (p == 0) {
+		while(1) {
+			char from_parent[512];
+			int ret = 0;
 
-    		struct blob_buf bbuf;
-    		CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
-    		blob_buf_init(&bbuf, 0);
-		blobmsg_add_string(&bbuf, "ret", to_child ? to_child : "500");
-    		char *to_child_json = blobmsg_format_json(bbuf.head, true);
+			read(pipefd1[0], from_parent, 512); //The received string should has the form {"task":"TaskName", "arg1_name":"xxx", "arg2_name":"xxxx"}
+			if (strlen(from_parent) == 0)
+				continue;
 
-		ret = write(pipefd2[1], to_child_json, CWMP_STRLEN(to_child_json)+1);
+			//get the task name if the task name is end
+			if (check_task_is_end(from_parent)) {
+				exit((write(pipefd2[1], EXIT_TASK, strlen(EXIT_TASK)+1) == -1)
+						? EXIT_FAILURE : EXIT_SUCCESS);
+			}
 
-    		FREE(to_child);
-    		FREE(to_child_json);
-    		blob_buf_free(&bbuf);
+			char *to_child = task_fun(from_parent);
 
-		if (ret == -1) {
-			exit(EXIT_FAILURE);
+			struct blob_buf bbuf;
+			CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
+			blob_buf_init(&bbuf, 0);
+			blobmsg_add_string(&bbuf, "ret", to_child ? to_child : "500");
+			char *to_child_json = blobmsg_format_json(bbuf.head, true);
+
+			ret = write(pipefd2[1], to_child_json, CWMP_STRLEN(to_child_json)+1);
+
+			FREE(to_child);
+			FREE(to_child_json);
+			blob_buf_free(&bbuf);
+
+			if (ret == -1) {
+				exit(EXIT_FAILURE);
+			}
 		}
-    	}
-    }
+	}
     return CWMP_OK;
 }
 
