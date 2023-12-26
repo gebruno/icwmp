@@ -13,7 +13,6 @@
 
 #include "common.h"
 #include "cwmp_cli.h"
-#include "cwmp_uci.h"
 #include "notifications.h"
 
 LIST_HEAD(parameters_list);

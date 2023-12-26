@@ -16,7 +16,6 @@
 #include "common.h"
 #include "config.h"
 #include "session.h"
-#include "cwmp_uci.h"
 #include "backupSession.h"
 #include "log.h"
 #include "event.h"

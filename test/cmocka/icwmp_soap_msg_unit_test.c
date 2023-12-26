@@ -23,8 +23,8 @@
 #include "backupSession.h"
 #include "log.h"
 #include "download.h"
-#include "cwmp_uci.h"
 #include "xml.h"
+#include "uci_utils.h"
 
 #include "icwmp_soap_msg_unit_test.h"
 #include "cwmp_event.h"

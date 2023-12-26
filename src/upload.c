@@ -18,9 +18,9 @@
 #include "log.h"
 #include "backupSession.h"
 #include "event.h"
-#include "cwmp_uci.h"
 #include "subprocess.h"
 #include "session.h"
+#include "uci_utils.h"
 
 #define CURL_TIMEOUT 30
 
@@ -223,9 +223,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 
 	if (pupload->file_type[0] == '1') {
 		snprintf(file_path, sizeof(file_path), "%s/all_configs", ICWMP_TMP_PATH);
-		cwmp_uci_init();
-		cwmp_uci_export(file_path, UCI_STANDARD_CONFIG);
-		cwmp_uci_exit();
+		export_std_uci(file_path);
 	} else if (pupload->file_type[0] == '2') {
 		lookup_vlf_name(1, &name);
 		if (name && strlen(name) > 0) {
@@ -243,9 +241,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 		lookup_vcf_name(pupload->f_instance, &name);
 		if (name && strlen(name) > 0) {
 			snprintf(file_path, sizeof(file_path), "%s/%s", ICWMP_TMP_PATH, name);
-			cwmp_uci_init();
-			cwmp_uci_export_package(name, file_path, UCI_STANDARD_CONFIG);
-			cwmp_uci_exit();
+			export_uci_package(name, file_path);
 			FREE(name);
 		} else {
 			error = FAULT_CPE_UPLOAD_FAILURE;

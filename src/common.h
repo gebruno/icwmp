@@ -74,7 +74,6 @@
 
 #define ICWMP_TMP_PATH "/tmp/icwmp"
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
-#define CWMP_VARSTATE_UCI_PACKAGE "/var/state/icwmp"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
 #define DM_IP_INTERFACE_PATH "Device\\.IP\\.Interface\\."
 #define DEFAULT_CR_TIMEOUT 5 /* In Seconds */
@@ -656,7 +655,7 @@ bool is_reload_parameter(const char *object_name);
 time_t convert_datetime_to_timestamp(char *value);
 int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);
-bool uci_str_to_bool(char *value);
+bool str_to_bool(char *value);
 bool match_reg_exp(char *reg_exp, char *param_name);
 void cwmp_invoke_intf_reset(char *path);
 void check_firewall_restart_state();

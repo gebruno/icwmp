@@ -25,7 +25,7 @@
 #include "upload.h"
 #include "sched_inform.h"
 #include "diagnostic.h"
-#include "cwmp_uci.h"
+#include "uci_utils.h"
 #include "cwmp_event.h"
 #include "autonomous_complpolicy.h"
 
@@ -362,18 +362,18 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	if (cwmp_main->session->session_status.is_heartbeat)
 		goto end;
 
-	struct uci_section *s = NULL;
-	cwmp_uci_foreach_sections("cwmp", "inform_parameter", UCI_STANDARD_CONFIG, s)
-	{
-		char *enable = NULL;
-		cwmp_uci_get_value_by_section_string(s, "enable", &enable);
+	
+	LIST_HEAD(local_inform_list);
+	struct cwmp_dm_parameter *param_iter = NULL;
 
-		if (uci_str_to_bool(enable) == false)
+	get_inform_parameters_uci(&local_inform_list);
+	list_for_each_entry(param_iter, &list_param_obj_notify, list) {
+		bool enable = param_iter->writable;
+
+		if (enable == false)
 			continue;
 
-		char *parameter_name = NULL;
-		cwmp_uci_get_value_by_section_string(s, "parameter_name", &parameter_name);
-
+		char *parameter_name = param_iter->name;
 		if (CWMP_STRLEN(parameter_name) == 0)
 			continue;
 
@@ -382,9 +382,7 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		if (err || list_empty(&parameters_list))
 			continue;
 
-		char *events_str_list = NULL;
-		cwmp_uci_get_value_by_section_string(s, "events_list", &events_str_list);
-
+		char *events_str_list = param_iter->value;
 		if (!check_inform_parameter_events_list_corresponding(events_str_list, &(cwmp_main->session->events)))
 			continue;
 

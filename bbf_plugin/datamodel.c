@@ -1019,7 +1019,8 @@ static int set_inform_parameter_parameter_name(char *refparam, struct dmctx *ctx
 static int get_inform_parameter_event_list(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
 	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
-	dmuci_get_value_by_section_string(inform_param_args->config_section, "events_list", value);	return 0;
+	dmuci_get_value_by_section_string(inform_param_args->config_section, "events_list", value);
+	return 0;
 }
 
 static int set_inform_parameter_event_list(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)

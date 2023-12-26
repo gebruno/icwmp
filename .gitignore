@@ -44,3 +44,5 @@ cmake_install.cmake
 install_manifest.txt
 /report
 docs/index.md
+/src/icwmpd
+/build

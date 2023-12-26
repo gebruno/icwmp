@@ -110,7 +110,7 @@ if [[ $notif2 == *"Device.DeviceInfo.ProvisioningCode"* ]]; then
 fi
 
 logfile=`cat /var/log/icwmpd.log`
-if [[ $logfile != *"[WARNING] This parameter Device.DeviceInfo.ProvisioningCode is forced notification parameter, can't be changed"* ]]; then
+if [[ $logfile != *"[ERROR]   Invalid/forced parameter Device.DeviceInfo.ProvisioningCode, skipped 9009"* ]]; then
 	echo "FAIL: Device.DeviceInfo.ProvisioningCode is forced notification parameter, can't be changed"
 	exit 1
 fi 
@@ -148,7 +148,7 @@ if [[ $notif2 == *"Device.WiFi.SSID.1.SD"* ]]; then
 fi
 
 logfile=`cat /var/log/icwmpd.log`
-if [[ $logfile != *"[WARNING] The parameter Device.WiFi.SSID.1.SD is wrong path"* ]]; then
+if [[ $logfile != *"[ERROR]   Invalid/forced parameter Device.WiFi.SSID.1.SD, skipped 9005"* ]]; then
 	echo "FAIL: Log file should contain WARNING that Device.WiFi.SSID.1.SD is wrong parameter path."
 	exit 1
 fi 

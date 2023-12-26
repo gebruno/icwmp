@@ -14,13 +14,13 @@
 
 #include "download.h"
 #include "ubus_utils.h"
-#include "cwmp_uci.h"
 #include "backupSession.h"
 #include "log.h"
 #include "event.h"
 #include "common.h"
 #include "subprocess.h"
 #include "session.h"
+#include "uci_utils.h"
 
 LIST_HEAD(list_download);
 LIST_HEAD(list_schedule_download);
@@ -558,8 +558,7 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
 	if (CWMP_STRCMP(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0) {
-		cwmp_uci_set_value("cwmp", "cpe", "exec_download", "1");
-		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+		set_uci_path_value(NULL, "cwmp.cpe.exec_download", "1");
 		if (cwmp_apply_firmware() != 0) {
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
 			snprintf(err_msg, sizeof(err_msg), "Failed in applying the downloaded firmware image, may be corrupted file");
@@ -588,24 +587,22 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 
 		remove(file_path);
 	} else if (CWMP_STRCMP(pdownload->file_type, VENDOR_CONFIG_FILE_TYPE) == 0) {
-		cwmp_uci_init();
 		int err = CWMP_OK;
 		if (download_file_name != NULL) {
 			char file_path[512];
 
 			snprintf(file_path, sizeof(file_path), "/tmp/%s", download_file_name);
 			if (strstr(download_file_name, ".uci.conf") != NULL) {
-				err = cwmp_uci_import(NULL, file_path, UCI_STANDARD_CONFIG);
+				err = import_uci_package(NULL, file_path);
 			} else {
-				err = cwmp_uci_import(download_file_name, file_path, UCI_STANDARD_CONFIG);
+				err = import_uci_package(download_file_name, file_path);
 			}
 			remove(file_path);
 		} else {
-			err = cwmp_uci_import("vendor_conf_file", VENDOR_CONFIG_FILE, UCI_STANDARD_CONFIG);
+			err = import_uci_package("vendor_conf_file", VENDOR_CONFIG_FILE);
 			remove(VENDOR_CONFIG_FILE);
 		}
 
-		cwmp_uci_exit();
 		if (err == CWMP_OK)
 			error = FAULT_CPE_NO_FAULT;
 		else if (err == CWMP_GEN_ERR) {

@@ -16,7 +16,7 @@
 
 #include "common.h"
 #include "notifications.h"
-#include "cwmp_uci.h"
+#include "uci_utils.h"
 #include "session.h"
 
 /*
@@ -101,24 +101,30 @@ static int get_parameter_notification_from_list_head(struct list_head *params_li
 static int get_parameter_notification_from_notifications_uci_list(char *parameter_name)
 {
 	int i, notification = 0;
-	struct uci_list *list_notif;
-	struct uci_element *e;
+
 	for (i = 0; i < 7; i++) {
-		int option_type;
-		option_type = cwmp_uci_get_option_value_list("cwmp_notifications", "@notifications[0]", notifications_test[i], UCI_ETCICWMPD_CONFIG, &list_notif);
-		if (list_notif) {
-			uci_foreach_element(list_notif, e) {
-				if (strcmp(e->name, parameter_name) == 0) {
-					notification = i;
-					break;
-				}
+		char *parent_param = NULL;
+		char notif_path[BUF_SIZE_256] = {0};
+		LIST_HEAD(local_notify_list);
+		struct cwmp_dm_parameter *param_iter = NULL;
+
+		snprintf(notif_path, BUF_SIZE_256, "cwmp_notifications.notifications.%s", notifications_test[i]);
+		get_uci_dm_list(ICWMPD_CONFIG, notif_path, &local_notify_list, i);
+
+		list_for_each_entry(param_iter, &local_notify_list, list) {
+			if (CWMP_STRLEN(param_iter->name) == 0)
+				continue;
+
+			if (strcmp(param_iter->name, parameter_name) == 0) {
+				notification = i;
+				break;
 			}
 		}
-		if (option_type == UCI_TYPE_STRING)
-			cwmp_free_uci_list(list_notif);
+		cwmp_free_all_dm_parameter_list(&local_notify_list);
 		if(notification > 0)
 			break;
 	}
+
 	return notification;
 }
 
