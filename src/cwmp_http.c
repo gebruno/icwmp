@@ -13,7 +13,7 @@
 #include "cwmp_http.h"
 #include "http.h"
 #include "log.h"
-#include "cwmp_uci.h"
+#include "uci_utils.h"
 
 struct uloop_fd http_event6;
 
@@ -54,9 +54,7 @@ void http_server_stop(void)
 static void set_http_ip_resolve(long ip_resolve)
 {
 	cwmp_main->net.ip_resolve = ip_resolve;
-
-	cwmp_uci_set_varstate_value("icwmp", "acs", "ip_version", (ip_resolve == CURL_IPRESOLVE_V6) ? "6" : "4");
-	cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
+	set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip_version", (ip_resolve == CURL_IPRESOLVE_V6) ? "6" : "4");
 }
 
 int icwmp_check_http_connection(void)

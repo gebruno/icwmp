@@ -13,7 +13,6 @@
 #include "log.h"
 #include "sched_inform.h"
 #include "event.h"
-#include "cwmp_uci.h"
 #include "session.h"
 #include "cwmp_event.h"
 #include "autonomous_complpolicy.h"

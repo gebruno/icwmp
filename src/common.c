@@ -22,7 +22,7 @@
 
 #include "common.h"
 #include "cwmp_cli.h"
-#include "cwmp_uci.h"
+#include "uci_utils.h"
 #include "ubus_utils.h"
 #include "log.h"
 
@@ -241,12 +241,6 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	return written;
 }
 
-int get_firewall_restart_state(char **state)
-{
-	cwmp_uci_reinit();
-	return uci_get_state_value("icwmp.cpe.firewall_restart", state);
-}
-
 // wait till firewall restart is not complete or 5 sec, whichever is less
 void check_firewall_restart_state()
 {
@@ -254,19 +248,15 @@ void check_firewall_restart_state()
 	bool init = false;
 
 	do {
-		char *state = NULL;
+		char state[BUF_SIZE_32] = {0};
 
-		if (get_firewall_restart_state(&state) != CWMP_OK)
-			break;
-
+		get_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.firewall_restart", state, BUF_SIZE_32);
 		if (CWMP_STRCMP(state, "init") == 0) {
 			init = true;
-			FREE(state);
 			break;
 		}
 
 		sleep(1);
-		FREE(state);
 		count++;
 	} while(count < 10);
 
@@ -274,15 +264,13 @@ void check_firewall_restart_state()
 	g_firewall_restart = false;
 	if (init == false) { // In case of timeout reset the firewall_restart flag
 		CWMP_LOG(ERROR, "Firewall restart took longer than usual");
-		cwmp_uci_set_varstate_value("icwmp", "cpe", "firewall_restart", "init");
-		cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
+		set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.firewall_restart", "init");
 	}
 }
 
 void set_rpc_parameter_key(char *param_key)
 {
-	cwmp_uci_set_value("cwmp", "cpe", "ParameterKey", param_key ? param_key : "");
-	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+	set_uci_path_value(NULL, "cwmp.cpe.ParameterKey", param_key ? param_key : "");
 }
 
 /*
@@ -613,8 +601,7 @@ void icwmp_restart_services()
 	}
 	if (g_firewall_restart) {
 			CWMP_LOG(INFO, "Initiating Firewall restart");
-			cwmp_uci_set_varstate_value("icwmp", "cpe", "firewall_restart", "in_progress");
-			cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
+			set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.firewall_restart", "in_progress");
 	}
 	icwmp_free_list_services();
 	sleep(5); // wait for services to get restarted
@@ -864,7 +851,7 @@ time_t convert_datetime_to_timestamp(char *value)
 	return mktime(&tm);
 }
 
-bool uci_str_to_bool(char *value)
+bool str_to_bool(char *value)
 {
 	if (!value)
 		return false;

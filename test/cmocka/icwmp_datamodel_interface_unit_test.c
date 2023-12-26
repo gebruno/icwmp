@@ -22,6 +22,7 @@
 #include "rpc.h"
 #include "session.h"
 #include "log.h"
+#include "uci_utils.h"
 
 static LIST_HEAD(list_set_param_value);
 static LIST_HEAD(faults_array);
@@ -32,7 +33,7 @@ static int dm_iface_unit_tests_init(void **state)
 	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	create_cwmp_session_structure();
 	cwmp_session_init();
-	global_conf_init();
+	get_global_config();
 	return 0;
 }
 

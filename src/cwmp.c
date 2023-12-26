@@ -23,7 +23,7 @@
 #include "xml.h"
 #include "notifications.h"
 #include "event.h"
-#include "cwmp_uci.h"
+#include "uci_utils.h"
 #include "log.h"
 #include "session.h"
 #include "diagnostic.h"
@@ -96,16 +96,18 @@ void set_interface_reset_request(char *param_name, char *value)
 
 static int create_cwmp_temporary_files(void)
 {
-	/*
-	 * Create Notifications empty uci package
-	 */
-	if (!file_exists(CWMP_VARSTATE_UCI_PACKAGE)) {
-		FILE *fptr = fopen(CWMP_VARSTATE_UCI_PACKAGE, "w+");
-		if (fptr)
-			fclose(fptr);
-		else
-			return CWMP_GEN_ERR;
+	if (!file_exists(VARSTATE_CONFIG"/icwmp")) {
+		creat(VARSTATE_CONFIG"/icwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	}
+
+	set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs", "acs");
+	set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe", "cpe");
+
+	if (!file_exists(CWMP_NOTIFICATIONS_PACKAGE)) {
+		creat(CWMP_NOTIFICATIONS_PACKAGE, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	}
+
+	set_uci_path_value("/etc/icwmpd", "cwmp_notifications.notifications", "notifications");
 
 	if (!folder_exists("/var/run/icwmpd")) {
 		if (mkdir("/var/run/icwmpd", S_IRWXU | S_IRWXG | S_IRWXO) == -1) {
@@ -201,8 +203,6 @@ end:
 
 static int cwmp_init(void)
 {
-	int error = 0;
-
 	openlog("cwmp", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 
 	cwmp_main = (struct cwmp *)calloc(1, sizeof(struct cwmp));
@@ -232,12 +232,6 @@ static int cwmp_init(void)
 	if (cwmp_main->pid_file)
 		fclose(cwmp_main->pid_file);
 
-	if ((error = create_cwmp_temporary_files()))
-		return error;
-
-	if ((error = create_cwmp_notifications_package()))
-		return error;
-
 	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
 	cwmp_config_load();
 	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
@@ -254,8 +248,6 @@ static int cwmp_init(void)
 
 	cwmp_get_deviceid();
 
-	cwmp_uci_init();
-
 	/* Load default force inform parameters */
 	CWMP_MEMSET(&force_inform_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&force_inform_list);
@@ -266,7 +258,6 @@ static int cwmp_init(void)
 	load_custom_notify_json();
 	set_default_forced_active_parameters_notifications();
 	init_list_param_notify();
-	cwmp_uci_exit();
 
 	create_cwmp_session_structure();
 	get_nonce_key();
@@ -290,7 +281,6 @@ static void cwmp_free()
 	bkp_tree_clean();
 	icwmp_uloop_ubus_exit();
 	icwmp_cleanmem();
-	cwmp_uci_exit();
 	rpc_exit();
 	clean_cwmp_session_structure();
 	FREE(cwmp_main);
@@ -334,6 +324,9 @@ int main(int argc, char **argv)
 
 	CWMP_MEMSET(&env, 0, sizeof(struct env));
 	if ((error = global_env_init(argc, argv, &env)))
+		return error;
+
+	if ((error = create_cwmp_temporary_files()))
 		return error;
 
 	if ((error = cwmp_init()))

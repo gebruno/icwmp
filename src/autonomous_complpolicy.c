@@ -11,7 +11,6 @@
  */
 
 #include "autonomous_complpolicy.h"
-#include "cwmp_uci.h"
 #include "cwmp_du_state.h"
 #include "log.h"
 #include <libubox/blobmsg_json.h>

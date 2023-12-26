@@ -22,7 +22,6 @@
 #include "xml.h"
 #include "config.h"
 #include "event.h"
-#include "cwmp_uci.h"
 #include "cwmp_cli.h"
 
 static char *add_instance = NULL;

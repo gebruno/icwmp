@@ -11,9 +11,9 @@
 
 #include <unistd.h>
 #include "session.h"
-#include "cwmp_uci.h"
 #include "log.h"
 #include "reboot.h"
+#include "uci_utils.h"
 
 void cwmp_schedule_reboot(struct uloop_timeout *timeout  __attribute__((unused)));
 void cwmp_delay_reboot(struct uloop_timeout *timeout  __attribute__((unused)));
@@ -23,8 +23,7 @@ struct uloop_timeout delay_reboot_timer = { .cb = cwmp_delay_reboot };
 
 void cwmp_schedule_reboot(struct uloop_timeout *timeout  __attribute__((unused)))
 {
-	cwmp_uci_set_value("cwmp", "cpe", "schedule_reboot", "0001-01-01T00:00:00Z");
-	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+	set_uci_path_value(NULL, "cwmp.cpe.schedule_reboot", "0001-01-01T00:00:00Z");
 	if (time(NULL) > cwmp_main->conf.schedule_reboot)
 		return;
 	cwmp_reboot("schedule_reboot");
@@ -32,8 +31,7 @@ void cwmp_schedule_reboot(struct uloop_timeout *timeout  __attribute__((unused))
 
 void cwmp_delay_reboot(struct uloop_timeout *timeout  __attribute__((unused)))
 {
-	cwmp_uci_set_value("cwmp", "cpe", "delay_reboot", "-1");
-	cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+	set_uci_path_value(NULL, "cwmp.cpe.delay_reboot", "-1");
 	if (cwmp_main->session->session_status.last_status == SESSION_RUNNING) {
 		cwmp_set_end_session(END_SESSION_REBOOT);
 	} else {

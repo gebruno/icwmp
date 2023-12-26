@@ -16,19 +16,20 @@
 #include <sys/ioctl.h>
 
 #include "http.h"
-#include "cwmp_uci.h"
 #include "log.h"
 #include "event.h"
 #include "ubus_utils.h"
 #include "config.h"
 #include "digauth.h"
 #include "session.h"
+#include "uci_utils.h"
 
 #define REALM "authenticate@cwmp"
 #define OPAQUE "11733b200778ce33060f31c9af70a870ba96ddd4"
 #define HTTP_GET_HDR_LEN 512
 #define HTTP_FD_FEEDS_COUNT 10 /* Maximum number of lines to be read from HTTP header */
 
+extern pthread_mutex_t mutex_config_load;
 static struct curl_slist *header_list = NULL;
 
 static CURL *curl = NULL;
@@ -310,13 +311,17 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 		if (ip_acs[0] == '\0' || strcmp(ip_acs, ip) != 0) {
 			CWMP_STRNCPY(ip_acs, ip, sizeof(ip_acs));
 			tmp = inet_pton(AF_INET, ip, buf);
-			if (tmp == 1)
+			if (tmp == 1) {
 				tmp = 0;
-			else
+			} else {
 				tmp = inet_pton(AF_INET6, ip, buf);
+			}
 
-			cwmp_uci_set_varstate_value("icwmp", "acs", tmp ? "ip6" : "ip", ip_acs);
-			cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
+			if (tmp) {
+				set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip6", ip_acs);
+			} else {
+				set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip", ip_acs);
+			}
 
 			// Trigger firewall to reload firewall.cwmp
 			if (cwmp_main->cr_policy != CR_POLICY_Port_Only) {
@@ -662,12 +667,9 @@ void icwmp_http_server_init(void)
 		char cr_port_str[6];
 		snprintf(cr_port_str, 6, "%hu", cr_port);
 		cr_port_str[5] = '\0';
-		cwmp_uci_init();
-		cwmp_uci_set_value("cwmp", "cpe", "port", cr_port_str);
-		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+		set_uci_path_value(NULL, "cwmp.cpe.port", cr_port_str);
 		system(FIREWALL_CWMP);
 		connection_request_port_value_change(cr_port);
-		cwmp_uci_exit();
 	}
 
 	CWMP_LOG(INFO, "Connection Request server initiated with the port: %d", cr_port);

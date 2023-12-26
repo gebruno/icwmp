@@ -33,6 +33,7 @@
 #include "sched_inform.h"
 #include "cwmp_du_state.h"
 #include "cwmp_http.h"
+#include "uci_utils.h"
 
 
 static void cwmp_periodic_session_timer(struct uloop_timeout *timeout);
@@ -63,7 +64,6 @@ int cwmp_session_init()
 
 	cwmp_main->cwmp_cr_event = 0;
 
-	cwmp_uci_init();
 	/*
 	 * Set Required methods as initial value of
 	 */
@@ -101,7 +101,6 @@ int cwmp_session_rpc_destructor(struct rpc *rpc)
 int cwmp_session_exit()
 {
 	rpc_exit();
-	cwmp_uci_exit();
 	icwmp_cleanmem();
 	return CWMP_OK;
 }
@@ -253,10 +252,8 @@ static void set_cwmp_session_status_state(int status)
 {
 	char *state = NULL;
 
-	if (!file_exists(VARSTATE_CONFIG"/icwmp"))
-		creat(VARSTATE_CONFIG"/icwmp", S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-	cwmp_uci_add_section_with_specific_name("icwmp", "sess_status", "sess_status", UCI_VARSTATE_CONFIG);
+	// Create sess_status config section
+	set_uci_path_value(VARSTATE_CONFIG, "icwmp.sess_status", "sess_status");
 
 	switch (status) {
 	case SESSION_WAITING:
@@ -273,9 +270,7 @@ static void set_cwmp_session_status_state(int status)
 		break;
 	}
 
-	cwmp_uci_set_varstate_value("icwmp", "sess_status", "current_status", state ? state : "N/A");
-
-	cwmp_commit_package("icwmp", UCI_VARSTATE_CONFIG);
+	set_uci_path_value(VARSTATE_CONFIG, "icwmp.sess_status.current_status", state ? state : "N/A");
 }
 
 void set_cwmp_session_status(int status, int retry_time)
@@ -334,7 +329,7 @@ static void schedule_session_retry(void)
 void start_cwmp_session(void)
 {
 	int error;
-	char *exec_download = NULL;
+	char exec_download[BUF_SIZE_256] = {0};
 
 	uloop_timeout_cancel(&check_notify_timer);
 	if (cwmp_session_init() != CWMP_OK) {
@@ -378,13 +373,11 @@ void start_cwmp_session(void)
 
 	CWMP_LOG(INFO, "Start session");
 
-	uci_get_value("cwmp.cpe.exec_download", &exec_download);
+	get_uci_path_value(NULL, "cwmp.cpe.exec_download", exec_download, BUF_SIZE_256);
 	if (CWMP_STRCMP(exec_download, "1") == 0) {
 		CWMP_LOG(INFO, "Firmware downloaded and applied successfully");
-		cwmp_uci_set_value("cwmp", "cpe", "exec_download", "0");
-		cwmp_commit_package("cwmp", UCI_STANDARD_CONFIG);
+		set_uci_path_value(NULL, "cwmp.cpe.exec_download", "0");
 	}
-	FREE(exec_download);
 
 	error = cwmp_schedule_rpc();
 	if (error != CWMP_OK) {
@@ -602,8 +595,6 @@ struct rpc *cwmp_add_session_rpc_acs(int type)
 int cwmp_apply_acs_changes(void)
 {
 	int error;
-
-	cwmp_uci_reinit();
 
 	if ((error = cwmp_config_reload()))
 		return error;
