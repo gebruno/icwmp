@@ -121,7 +121,15 @@ static void config_get_acs_elements(struct uci_section *s)
 
 	char *url = get_value_from_uci_option(acs_tb[UCI_ACS_URL]);
 	char *dhcp_url = get_value_from_uci_option(acs_tb[UCI_ACS_DHCP_URL]);
-	snprintf(cwmp_main->conf.acs_url, sizeof(cwmp_main->conf.acs_url), "%s", cwmp_main->conf.dhcp_discovery ? (strlen(dhcp_url) ? dhcp_url : url) : url);
+	char *new_url = cwmp_main->conf.dhcp_discovery ? (CWMP_STRLEN(dhcp_url) ? dhcp_url : url) : url;
+
+	if (CWMP_STRCMP(cwmp_main->conf.acs_url, new_url) != 0) {
+		if (CWMP_STRLEN(cwmp_main->conf.acs_url) != 0 && CWMP_STRLEN(new_url) != 0)
+			cwmp_main->acs_changed = true;
+
+		snprintf(cwmp_main->conf.acs_url, sizeof(cwmp_main->conf.acs_url), "%s", new_url);
+	}
+
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs url: %s", cwmp_main->conf.acs_url);
 
 	snprintf(cwmp_main->conf.acs_userid, sizeof(cwmp_main->conf.acs_userid), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_USERID]));
@@ -605,6 +613,8 @@ int get_uci_path_value(const char *conf_dir, char *path, char *value, size_t max
 		return -1;
 	}
 
+	// init with default null data
+	value[0]='\0';
 	pthread_mutex_lock(&mutex_config_load);
 	uci_ctx = uci_alloc_context();
 	if (!uci_ctx) {
@@ -624,13 +634,29 @@ int get_uci_path_value(const char *conf_dir, char *path, char *value, size_t max
 		goto exit;
 	}
 
-	if ((ptr.flags & UCI_LOOKUP_COMPLETE)
-		&& (ptr.o != NULL)
-		&& (ptr.o->v.string!=NULL)) {
+	if (ptr.flags & UCI_LOOKUP_COMPLETE) {
 		ret = 0;
-		CWMP_STRNCPY(value, ptr.o->v.string, max_value_len);
+		if (ptr.o->type == UCI_TYPE_STRING) {
+			CWMP_STRNCPY(value, ptr.o->v.string, max_value_len);
+		} else if (ptr.o->type == UCI_TYPE_LIST) {
+			struct uci_element *e;
+			size_t len;
+
+			uci_foreach_element(&ptr.o->v.list, e) {
+				len = CWMP_STRLEN(value);
+				if (max_value_len < len + CWMP_STRLEN(e->name)) {
+					break;
+				}
+				snprintf(value + len, max_value_len - len, "%s,", e->name);
+			}
+			len = CWMP_STRLEN(value);
+			value[len - 1] = '\0';
+		} else if (ptr.s) {
+			CWMP_STRNCPY(value, ptr.s->type, max_value_len);
+		}
 	}
 
+	CWMP_LOG(DEBUG, "UCI [%s::%s]", path, value);
 exit:
 	FREE(str);
 	if (uci_ctx) {

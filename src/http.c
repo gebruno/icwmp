@@ -299,7 +299,7 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 				errbuf[len - 1] = '\0';
 			CWMP_LOG(ERROR, "libcurl: (%d) %s", res, errbuf);
 		} else {
-			CWMP_LOG(ERROR, "libcurl: (%d) %s", res, curl_easy_strerror(res));
+			CWMP_LOG(ERROR, "libcurl: [%d] %s", res, curl_easy_strerror(res));
 		}
 	}
 

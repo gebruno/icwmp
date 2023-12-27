@@ -275,6 +275,7 @@ static void set_cwmp_session_status_state(int status)
 
 void set_cwmp_session_status(int status, int retry_time)
 {
+	CWMP_LOG(DEBUG, "%s:%d entry", __func__, __LINE__);
 	cwmp_main->session->session_status.last_status = status;
 	set_cwmp_session_status_state(status);
 	if (status == SESSION_SUCCESS) {
@@ -290,6 +291,7 @@ void set_cwmp_session_status(int status, int retry_time)
 		cwmp_main->session->session_status.next_retry = time(NULL) + retry_time;
 		cwmp_main->session->session_status.failure_session++;
 	}
+	CWMP_LOG(DEBUG, "%s:%d exit", __func__, __LINE__);
 }
 
 void rpc_exit()
@@ -401,18 +403,21 @@ void start_cwmp_session(void)
 		schedule_session_retry();
 	} else {
 		save_acs_bkp_config();
-		if (!cwmp_main->session->session_status.is_heartbeat)
+		if (!cwmp_main->session->session_status.is_heartbeat) {
 			cwmp_remove_all_session_events();
-		else
+		} else {
 			remove_single_event(EVENT_IDX_14HEARTBEAT);
+		}
+
 		cwmp_main->retry_count_session = 0;
 		set_cwmp_session_status(SESSION_SUCCESS, 0);
 		if (cwmp_main->throttle_session_triggered == true) {
 			cwmp_main->throttle_session_triggered = false;
-			if (!cwmp_main->throttle_session)
+			if (!cwmp_main->throttle_session) {
 				uloop_timeout_cancel(&throttle_session_timer);
-			else
+			} else {
 				cwmp_main->throttle_session = false;
+			}
 		}
 	}
 	run_session_end_func();

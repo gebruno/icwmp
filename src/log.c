@@ -31,7 +31,7 @@ static pthread_mutex_t mutex_log = PTHREAD_MUTEX_INITIALIZER;
 
 int log_set_severity_idx(char *value)
 {
-	if (value == NULL)
+	if (CWMP_STRLEN(value) == 0)
 		return 1;
 
 	int i;
@@ -46,7 +46,7 @@ int log_set_severity_idx(char *value)
 
 int log_set_log_file_name(char *value)
 {
-	if (value != NULL) {
+	if (CWMP_STRLEN(value) != 0) {
 		snprintf(log_file_name, sizeof(log_file_name), "%s", value);
 	} else {
 		snprintf(log_file_name, sizeof(log_file_name), "%s", DEFAULT_LOG_FILE_NAME);
@@ -56,7 +56,7 @@ int log_set_log_file_name(char *value)
 
 int log_set_file_max_size(char *value)
 {
-	if (value != NULL) {
+	if (CWMP_STRLEN(value) != 0) {
 		log_max_size = atol(value);
 	} else {
 		log_max_size = 102400;
@@ -66,7 +66,7 @@ int log_set_file_max_size(char *value)
 
 int log_set_on_console(char *value)
 {
-	if (value == NULL)
+	if (CWMP_STRLEN(value) == 0)
 		return 1;
 
 	enable_log_stdout = str_to_bool(value);
@@ -75,7 +75,7 @@ int log_set_on_console(char *value)
 
 int log_set_on_file(char *value)
 {
-	if (value == NULL)
+	if (CWMP_STRLEN(value) == 0)
 		return 1;
 
 	enable_log_file = str_to_bool(value);
@@ -84,7 +84,7 @@ int log_set_on_file(char *value)
 
 int log_set_on_syslog(char *value)
 {
-	if (value == NULL)
+	if (CWMP_STRLEN(value) == 0)
 		return 1;
 
 	enable_log_syslog = str_to_bool(value);
