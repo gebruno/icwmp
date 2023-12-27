@@ -117,8 +117,8 @@ static int cwmp_root_cause_event_bootstrap(void)
 	if (acsurl == NULL || CWMP_STRCMP(cwmp_main->conf.acs_url, acsurl) != 0) {
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(EVENT_IDX_0BOOTSTRAP, "");
-		FREE(acsurl);
 		if (event_container == NULL) {
+			FREE(acsurl);
 			CWMP_LOG(ERROR, "event %s: event_container is null", __FUNCTION__);
 			return CWMP_MEM_ERR;
 		}
@@ -128,12 +128,9 @@ static int cwmp_root_cause_event_bootstrap(void)
 		cwmp_scheduledDownload_remove_all();
 		cwmp_scheduled_Download_remove_all();
 		cwmp_scheduledUpload_remove_all();
-
-		cwmp_main->acs_changed = true;
-	} else {
-		FREE(acsurl);
-		cwmp_main->acs_changed = false;
 	}
+
+	FREE(acsurl);
 
 	return CWMP_OK;
 }

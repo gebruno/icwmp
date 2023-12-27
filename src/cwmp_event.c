@@ -60,6 +60,7 @@ void move_next_session_events_to_actual_session()
 
 int cwmp_remove_all_session_events()
 {
+	CWMP_LOG(DEBUG, "%s:%d entry", __func__, __LINE__);
 	struct list_head *events_ptr = cwmp_main->session->events.next;
 	while (events_ptr != &cwmp_main->session->events) {
 		struct event_container *event_container;
@@ -76,11 +77,13 @@ int cwmp_remove_all_session_events()
 		events_ptr = cwmp_main->session->events.next;
 	}
 	bkp_session_save();
+	CWMP_LOG(DEBUG, "%s:%d exit", __func__, __LINE__);
 	return CWMP_OK;
 }
 
 int remove_single_event(int event_code)
 {
+	CWMP_LOG(DEBUG, "%s:%d entry", __func__, __LINE__);
 	while (cwmp_main->session->events.next != &cwmp_main->session->events) {
 		struct event_container *event_container;
 		event_container = list_entry(cwmp_main->session->events.next, struct event_container, list);
@@ -104,5 +107,6 @@ int remove_single_event(int event_code)
 			free(event_container);
 		}
 	}
+	CWMP_LOG(DEBUG, "%s:%d exit", __func__, __LINE__);
 	return CWMP_OK;
 }

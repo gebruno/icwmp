@@ -118,20 +118,30 @@ int cwmp_get_deviceid()
 {
 	struct cwmp_dm_parameter dm_param = {0};
 
-	cwmp_get_parameter_value("Device.DeviceInfo.Manufacturer", &dm_param);
-	snprintf(cwmp_main->deviceid.manufacturer, sizeof(cwmp_main->deviceid.manufacturer), "%s", dm_param.value ? dm_param.value : "");
+	if (CWMP_STRLEN(cwmp_main->deviceid.manufacturer) == 0) {
+		cwmp_get_parameter_value("Device.DeviceInfo.Manufacturer", &dm_param);
+		snprintf(cwmp_main->deviceid.manufacturer, sizeof(cwmp_main->deviceid.manufacturer), "%s", dm_param.value ? dm_param.value : "");
+	}
 
-	cwmp_get_parameter_value("Device.DeviceInfo.SerialNumber", &dm_param);
-	snprintf(cwmp_main->deviceid.serialnumber, sizeof(cwmp_main->deviceid.serialnumber), "%s", dm_param.value ? dm_param.value : "");
+	if (CWMP_STRLEN(cwmp_main->deviceid.serialnumber) == 0) {
+		cwmp_get_parameter_value("Device.DeviceInfo.SerialNumber", &dm_param);
+		snprintf(cwmp_main->deviceid.serialnumber, sizeof(cwmp_main->deviceid.serialnumber), "%s", dm_param.value ? dm_param.value : "");
+	}
 
-	cwmp_get_parameter_value("Device.DeviceInfo.ProductClass", &dm_param);
-	snprintf(cwmp_main->deviceid.productclass, sizeof(cwmp_main->deviceid.productclass), "%s", dm_param.value ? dm_param.value : "");
+	if (CWMP_STRLEN(cwmp_main->deviceid.productclass) == 0) {
+		cwmp_get_parameter_value("Device.DeviceInfo.ProductClass", &dm_param);
+		snprintf(cwmp_main->deviceid.productclass, sizeof(cwmp_main->deviceid.productclass), "%s", dm_param.value ? dm_param.value : "");
+	}
 
-	cwmp_get_parameter_value("Device.DeviceInfo.ManufacturerOUI", &dm_param);
-	snprintf(cwmp_main->deviceid.oui, sizeof(cwmp_main->deviceid.oui), "%s", dm_param.value ? dm_param.value : "");
+	if (CWMP_STRLEN(cwmp_main->deviceid.oui) == 0) {
+		cwmp_get_parameter_value("Device.DeviceInfo.ManufacturerOUI", &dm_param);
+		snprintf(cwmp_main->deviceid.oui, sizeof(cwmp_main->deviceid.oui), "%s", dm_param.value ? dm_param.value : "");
+	}
 
-	cwmp_get_parameter_value("Device.DeviceInfo.SoftwareVersion", &dm_param);
-	snprintf(cwmp_main->deviceid.softwareversion, sizeof(cwmp_main->deviceid.softwareversion), "%s", dm_param.value ? dm_param.value : "");
+	if (CWMP_STRLEN(cwmp_main->deviceid.softwareversion) == 0) {
+		cwmp_get_parameter_value("Device.DeviceInfo.SoftwareVersion", &dm_param);
+		snprintf(cwmp_main->deviceid.softwareversion, sizeof(cwmp_main->deviceid.softwareversion), "%s", dm_param.value ? dm_param.value : "");
+	}
 
 	return CWMP_OK;
 }
