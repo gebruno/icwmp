@@ -7,7 +7,7 @@ variables:
 include:
   - project: 'iopsys/gitlab-ci-pipeline'
     file: '/static-code-analysis.yml'
-    ref: '0.30'
+    ref: '0.32'
   - project: 'docs/portal2/pipeline-template'
     file: 'MkDocs.gitlab-ci.yml'
     rules:
@@ -16,7 +16,7 @@ include:
 stages:
     - static_code_analysis
     - unit_test
-    - functional_test
+    - functional_api_test
     - deploy
 
 run_unit_test:
@@ -33,29 +33,8 @@ run_unit_test:
          - memory-report.xml
          - unit-test-coverage.xml
 
-run_api_test:
-    stage: functional_test
-    image: "dev.iopsys.eu:5050/iopsys/gitlab-ci-pipeline/code-analysis:0.31"
-    services:
-      - name: dev.iopsys.eu:5050/lcm/swmodd/acs:latest
-        alias: acs
-    allow_failure: false
-    script:
-    - "./gitlab-ci/install-dependencies.sh"
-    - "./gitlab-ci/setup.sh"
-    - "./gitlab-ci/api-test.sh"
-
-    artifacts:
-        when: always
-        reports:
-            junit: ./report/tap.xml
-        paths:
-            - api-test-coverage.xml
-            - memory-report.xml
-            - api-test-result.log
-
 run_functional_test:
-    stage: functional_test
+    stage: functional_api_test
     image: "dev.iopsys.eu:5050/iopsys/gitlab-ci-pipeline/code-analysis:0.31"
     services:
       - name: dev.iopsys.eu:5050/lcm/swmodd/acs:latest
@@ -65,16 +44,16 @@ run_functional_test:
     script:
     - "./gitlab-ci/install-dependencies.sh"
     - "./gitlab-ci/setup.sh"
-    - "./gitlab-ci/functional-test.sh"
+    - "./gitlab-ci/functional-api-test.sh"
 
     artifacts:
         when: always
         reports:
             junit: ./report/tap.xml
         paths:
+            - functional-api-result.txt
             - funl-test-coverage.xml
-            - funl-test-result.log
-            - funl-test-debug.log
+            - funl-test-debug.txt
             - memory-report.xml
             - memory-report-download.xml
             - icwmpd_debug.txt
