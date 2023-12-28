@@ -457,7 +457,9 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 	}
 	if (CWMP_STRCMP(pdownload->file_type, FIRMWARE_UPGRADE_IMAGE_FILE_TYPE) == 0 || CWMP_STRCMP(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
 		rename(ICWMP_DOWNLOAD_FILE, FIRMWARE_UPGRADE_IMAGE);
-		if (cwmp_check_image() == 0) {
+		int ret = cwmp_check_image();
+
+		if (ret == 0) {
 			unsigned int file_size = get_file_size(FIRMWARE_UPGRADE_IMAGE);
 			if (file_size > flashsize) {
 				error = FAULT_CPE_DOWNLOAD_FAILURE;
@@ -470,7 +472,7 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 			}
 		} else {
 			error = FAULT_CPE_DOWNLOAD_FAIL_FILE_CORRUPTED;
-			snprintf(err_msg, sizeof(err_msg), "Downloaded file is not a valid firmware image");
+			snprintf(err_msg, sizeof(err_msg), "Failed validation with %d of Downloaded file", ret);
 			remove(FIRMWARE_UPGRADE_IMAGE);
 		}
 	} else if (CWMP_STRCMP(pdownload->file_type, WEB_CONTENT_FILE_TYPE) == 0) {

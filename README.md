@@ -81,7 +81,6 @@ To successfully build icwmp, the following libraries are needed:
 | libubox     | https://git.openwrt.org/project/libubox.git | BSD            |
 | libubus     | https://git.openwrt.org/project/ubus.git    | LGPL 2.1       |
 | libjson-c   | https://s3.amazonaws.com/json-c_releases    | MIT            |
-| libwolfssl  | https://github.com/wolfSSL/wolfssl          | GPL-2.0        |
 | libcurl     | https://dl.uxnr.de/mirror/curl              | MIT            |
 | mxml        | https://github.com/michaelrsweet/mxml       | GPL-2.0       |
 

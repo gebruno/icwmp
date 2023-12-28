@@ -13,7 +13,7 @@ As described in TR-069 standard, the CWMP stack comprises several components tha
 | RPC Methods | rpc.c | Handling of both acs and cwmp rpc methods as defined in TR069 |
 | SOAP | xml.c |A standard XML-based syntax used here to encode remote procedure calls along with SOAP handling |
 |HTTP |http.c, digauth.c | Responsible to send SOAP messages over HTTP using libcurl library. |
-| SSL/TLS | ssl_utils.c | Provides SSL/TLS functionality over HTTP with OpenSSL/mbedtls/wolfssl |
+| SSL/TLS | ssl_utils.c | Provides SSL/TLS functionality over HTTP with OpenSSL |
 
 
 | Common source files |

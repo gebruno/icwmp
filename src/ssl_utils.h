@@ -9,21 +9,6 @@
 #ifndef _SSL_UTILS
 #define _SSL_UTILS
 
-#ifdef LOPENSSL
-#include <openssl/sha.h>
-#include <openssl/evp.h>
-#endif
-
-#ifdef LWOLFSSL
-#include <wolfssl/options.h>
-#include <wolfssl/openssl/sha.h>
-#include <wolfssl/openssl/evp.h>
-#endif
-
-#ifdef LMBEDTLS
-#include <mbedtls/md.h>
-#endif
-
 #include <libubox/list.h>
 
 char *generate_random_string(size_t size);
