@@ -10,7 +10,7 @@ echo "Running: $TEST_NAME"
 remove_icwmp_log
 curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.SSH.Server.1.Enable"] }' >/dev/null 2>&1
 check_ret $?
-sleep 2
+wait_for_session_end
 check_session "GetParameterValues"
 param_value_before=$(print_tag_value "cwmp:GetParameterValuesResponse" "Value xsi:type=\"xsd:boolean\"")
 if [ "$param_value_before" != "1" ]; then
@@ -21,7 +21,7 @@ fi
 remove_icwmp_log
 curl $connection_request_path -X POST --data '{"name": "setParameterValues", "parameterValues": [["Device.SSH.Server.1.Enable",false]]}' >/dev/null 2>&1
 check_ret $?
-sleep 2
+wait_for_session_end
 check_session "SetParameterValues"
 get_status=$(print_tag_value "cwmp:SetParameterValuesResponse" "Status")
 if [ "$get_status" != "1" ]; then
@@ -32,7 +32,7 @@ fi
 remove_icwmp_log
 curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.SSH.Server.1.Enable"] }' >/dev/null 2>&1
 check_ret $?
-sleep 2
+wait_for_session_end
 check_session "GetParameterValues"
 param_value_after=$(print_tag_value "cwmp:GetParameterValuesResponse" "Value xsi:type=\"xsd:boolean\"")
 if [ "$param_value_after" != "0" ]; then
@@ -41,6 +41,6 @@ if [ "$param_value_after" != "0" ]; then
 fi
 
 curl $connection_request_path -X POST --data '{"name": "setParameterValues", "parameterValues": [["Device.SSH.Server.1.Enable",true]]}' >/dev/null 2>&1
-sleep 2
+wait_for_session_end
 
 echo "PASS: $TEST_NAME"

@@ -72,6 +72,14 @@ static void cwmp_uci_add_tests(void **state)
 	assert_int_equal(error, UCI_OK);
 	assert_string_equal(value, "abc");
 
+	error = set_uci_path_value(NULL, "cwmp.new_acs.test", "");
+	assert_int_equal(error, UCI_OK);
+
+	memset(value, 0, BUF_SIZE_256);
+	error = get_uci_path_value(NULL, "cwmp.new_acs.test", value, BUF_SIZE_256);
+	assert_int_equal(error, UCI_ERR_NOTFOUND);
+	assert_string_equal(value, "");
+
 	error = set_uci_path_value(NULL, "cwmp.new_acs", "acs");
 	assert_int_equal(error, UCI_OK);
 }

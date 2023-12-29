@@ -72,3 +72,22 @@ function print_tag_value()
 	tag_value=`grep -oPm1 "(?<=<$tag>)[^<]+" <<< "$xml_data"`
 	echo $tag_value
 }
+
+function wait_for_session_end()
+{
+	count=5
+
+	while [ $count -gt 0 ];
+	do
+		res="$(ubus -t 1 call tr069 status)"
+		ret="$?"
+		if [ "${ret}" = "7" ] || [ -z "${res}" ]; then
+			# ubus timeout, may be busy in session
+			count=`expr $count - 1`
+			sleep 1
+			continue
+		fi
+
+		break;
+	done
+}

@@ -10,7 +10,9 @@ echo "Running: $TEST_NAME"
 remove_icwmp_log
 curl $connection_request_path -X POST --data '{"name": "addObject","objectName":"Device.SSH.Server"}' >/dev/null 2>&1
 check_ret $?
-sleep 2
+
+wait_for_session_end
+
 check_session "AddObject"
 obj_instance=$(print_tag_value "cwmp:AddObjectResponse" "InstanceNumber")
 status=$(print_tag_value "cwmp:AddObjectResponse" "Status")
@@ -22,7 +24,9 @@ fi
 remove_icwmp_log
 curl $connection_request_path -X POST --data '{"name": "getParameterValues", "parameterNames": ["Device.SSH.Server.2"] }' >/dev/null 2>&1
 check_ret $?
-sleep 3
+
+wait_for_session_end
+
 check_session "GetParameterValues"
 
 echo "PASS: $TEST_NAME"
