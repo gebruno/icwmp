@@ -719,7 +719,7 @@ int set_uci_path_value(const char *conf_dir, char *path, char *value)
 	int ret = -1;
 	char str[BUF_SIZE_256] = {0};
 
-	if ((CWMP_STRLEN(path) == 0) || (CWMP_STRLEN(value) == 0)) {
+	if ((CWMP_STRLEN(path) == 0) || (value == NULL)) {
 		CWMP_LOG(ERROR, "Invalid input options");
 		return -1;
 	}
