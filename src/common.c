@@ -591,7 +591,11 @@ void icwmp_restart_services()
 		blob_buf_init(&b, 0);
 		bb_add_string(&b, "config", list_services[i]);
 
-		icwmp_ubus_invoke("uci", "commit", b.head, NULL, NULL);
+		if (CWMP_STRCMP(list_services[i], "cwmp") == 0) {
+			commit_uci_package("cwmp");
+		} else {
+			icwmp_ubus_invoke("uci", "commit", b.head, NULL, NULL);
+		}
 
 		blob_buf_free(&b);
 
