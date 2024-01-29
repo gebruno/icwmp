@@ -255,6 +255,7 @@ bool check_inform_parameter_events_list_corresponding(char *events_str_list, str
 
 static void load_inform_xml_schema(mxml_node_t **tree)
 {
+	LIST_HEAD(local_inform_list);
 	char declaration[1024] = {0};
 	char c[256] = {0};
 
@@ -276,16 +277,12 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 
 	int fault = build_xml_node_data(SOAP_ENV, xml, &env_xml_attrs);
 
-	if (envelope == NULL || fault != CWMP_OK) {
-		MXML_DELETE(xml);
-		return;
-	}
+	if (envelope == NULL || fault != CWMP_OK)
+		goto error;
 
 	mxml_node_t *inform = build_top_body_soap_request(envelope, "Inform");
-	if (inform == NULL) {
-		MXML_DELETE(xml);
-		return;
-	}
+	if (inform == NULL)
+		goto error;
 
 	struct xml_data_struct inform_xml_attrs = {0};
 
@@ -309,17 +306,14 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	inform_xml_attrs.data_list = &xml_events_list;
 
 	fault = build_xml_node_data(SOAP_INFORM_CWMP, inform, &inform_xml_attrs);
-	if (fault != CWMP_OK) {
-		MXML_DELETE(xml);
-		return;
-	}
+	if (fault != CWMP_OK)
+		goto error;
+
 	move_next_session_events_to_actual_session();
 	cwmp_free_all_xml_data_list(&xml_events_list);
 	mxml_node_t *param_list = mxmlNewElement(inform, "ParameterList");
-	if (param_list == NULL) {
-		MXML_DELETE(xml);
-		return;
-	}
+	if (param_list == NULL)
+		goto error;
 
 	mxmlElementSetAttr(param_list, "soap_enc:arrayType", "cwmp:ParameterValueStruct[0]");
 	struct list_head *ilist, *jlist;
@@ -330,10 +324,8 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		struct event_container *event_container = list_entry(ilist, struct event_container, list);
 		list_for_each (jlist, &(event_container->head_dm_parameter)) {
 			dm_parameter = list_entry(jlist, struct cwmp_dm_parameter, list);
-			if (xml_prepare_parameters_inform(dm_parameter, param_list, &size)) {
-				MXML_DELETE(xml);
-				return;
-			}
+			if (xml_prepare_parameters_inform(dm_parameter, param_list, &size))
+				goto error;
 		}
 	}
 
@@ -348,26 +340,21 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		if (strcmp(iter->path, "Device.ManagementServer.ConnectionRequestURL") == 0 &&
 				CWMP_STRLEN(cwmp_dm_param.value) == 0) {
 			CWMP_LOG(ERROR, "# Empty CR URL[%s] value", iter->path);
-			MXML_DELETE(xml);
-			return;
+			goto error;
 		}
 
-		if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size)) {
-			MXML_DELETE(xml);
-			return;
-		}
+		if (xml_prepare_parameters_inform(&cwmp_dm_param, param_list, &size))
+			goto error;
 	}
 
 	//only forced inform parameters are included in heartbeat inform session
 	if (cwmp_main->session->session_status.is_heartbeat)
 		goto end;
 
-	
-	LIST_HEAD(local_inform_list);
 	struct cwmp_dm_parameter *param_iter = NULL;
 
 	get_inform_parameters_uci(&local_inform_list);
-	list_for_each_entry(param_iter, &list_param_obj_notify, list) {
+	list_for_each_entry(param_iter, &local_inform_list, list) {
 		bool enable = param_iter->writable;
 
 		if (enable == false)
@@ -390,13 +377,19 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		struct cwmp_dm_parameter *dm_param = NULL;
 		list_for_each_entry(dm_param, data_list, list) {
 			if (xml_prepare_parameters_inform(dm_param, param_list, &size)) {
-				MXML_DELETE(xml);
 				cwmp_free_all_dm_parameter_list(&parameters_list);
-				return;
+				goto error;
 			}
 		}
 		cwmp_free_all_dm_parameter_list(&parameters_list);
 	}
+	cwmp_free_all_dm_parameter_list(&local_inform_list);
+	goto end;
+
+error:
+	cwmp_free_all_dm_parameter_list(&local_inform_list);
+	MXML_DELETE(xml);
+	return;
 
 end:
 	if (snprintf(c, sizeof(c), "cwmp:ParameterValueStruct[%d]", size) == -1) {
