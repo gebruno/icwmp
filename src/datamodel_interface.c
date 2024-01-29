@@ -184,14 +184,20 @@ static void ubus_get_single_parameter_callback(struct ubus_request *req, int typ
 	}
 
 	blobmsg_for_each_attr(cur, parameters, rem) {
-		struct blob_attr *tb[3] = {0};
-		const struct blobmsg_policy p[3] = {
+		struct blob_attr *tb[4] = {0};
+		const struct blobmsg_policy p[4] = {
 				{ "path", BLOBMSG_TYPE_STRING },
 				{ "data", BLOBMSG_TYPE_STRING },
-				{ "type", BLOBMSG_TYPE_STRING }
+				{ "type", BLOBMSG_TYPE_STRING },
+				{ "fault", BLOBMSG_TYPE_INT32 }
 		};
 
-		blobmsg_parse(p, 3, tb, blobmsg_data(cur), blobmsg_len(cur));
+		blobmsg_parse(p, 4, tb, blobmsg_data(cur), blobmsg_len(cur));
+
+		if (tb[3]) {
+			result->notification = blobmsg_get_u32(tb[3]);
+			return;
+		}
 
 		result->name = icwmp_strdup(tb[0] ? blobmsg_get_string(tb[0]) : "");
 		result->value = icwmp_strdup(tb[1] ? blobmsg_get_string(tb[1]) : "");
