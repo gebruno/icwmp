@@ -28,11 +28,6 @@ struct setm_values_res {
 	struct list_head *faults_list;
 };
 
-struct transaction_info {
-	bool status;
-	bool restart_services;
-};
-
 /*
  * Common functions
  */
@@ -76,25 +71,22 @@ static void ubus_transaction_callback(struct ubus_request *req, int type __attri
 	if (msg == NULL || req == NULL)
 		return;
 
-	struct transaction_info *trans_info = (struct transaction_info *)req->priv;
+	bool *status = (bool *)req->priv;
 
 	blobmsg_parse(p, 3, tb, blobmsg_data(msg), blobmsg_len(msg));
 
 	if (!tb[0]) {
-		trans_info->status = false;
+		*status = false;
 		return;
 	}
 
-	trans_info->status = blobmsg_get_u8(tb[0]);
-	if (trans_info->status == false)
+	*status = blobmsg_get_u8(tb[0]);
+	if (*status == false)
 		return;
 
 	if (tb[1]) {
 		transaction_id = blobmsg_get_u32(tb[1]);
 	}
-
-	if (trans_info->restart_services == false)
-		return;
 
 	if (tb[2]) {
 		struct blob_attr *updated_services = tb[2];
@@ -113,13 +105,10 @@ static void ubus_transaction_callback(struct ubus_request *req, int type __attri
 	}
 }
 
-bool cwmp_transaction(const char *cmd, bool restart_services)
+bool cwmp_transaction(const char *cmd)
 {
 	struct blob_buf b = {0};
-	struct transaction_info trans_info = {
-			.status = false,
-			.restart_services = restart_services
-	};
+	bool status = false;
 
 	if (CWMP_STRLEN(cmd) == 0)
 		return false;
@@ -144,7 +133,7 @@ bool cwmp_transaction(const char *cmd, bool restart_services)
 	blobmsg_add_u8(&b, "restart_services", false);
 	prepare_optional_table(&b);
 
-	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "transaction", b.head, ubus_transaction_callback, &trans_info);
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "transaction", b.head, ubus_transaction_callback, &status);
 
 	blob_buf_free(&b);
 
@@ -156,7 +145,7 @@ bool cwmp_transaction(const char *cmd, bool restart_services)
 		return false;
 	}
 
-	if (!trans_info.status) {
+	if (!status) {
 		CWMP_LOG(INFO, "Transaction %s failed: Status => false", cmd);
 		return false;
 	}

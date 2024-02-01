@@ -1037,7 +1037,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 	xml_data_list_to_dm_parameter_list(&xml_list_set_param_value, &list_set_param_value);
 
-	if (!cwmp_transaction("start", false)) {
+	if (!cwmp_transaction("start")) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		err_msg = "Failed to start new transaction";
 		goto fault;
@@ -1084,7 +1084,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("commit", true)) {
+	if (!cwmp_transaction("commit")) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		err_msg = "Failed to commit the transaction";
 		goto fault;
@@ -1100,7 +1100,7 @@ fault:
 
 	cwmp_free_all_list_param_fault(rpc->list_set_value_fault);
 
-	cwmp_transaction("abort", false);
+	cwmp_transaction("abort");
 	return ret;
 }
 
@@ -1196,7 +1196,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("start", false)) {
+	if (!cwmp_transaction("start")) {
 		err_msg = "Failed to start new transaction";
 		goto fault;
 	}
@@ -1241,7 +1241,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("commit", false)) {
+	if (!cwmp_transaction("commit")) {
 		err_msg = "Failed to commit the transaction";
 		goto fault;
 	}
@@ -1262,7 +1262,7 @@ fault:
 	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;
 
-	cwmp_transaction("abort", false);
+	cwmp_transaction("abort");
 	return ret;
 }
 
@@ -1292,7 +1292,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("start", false)) {
+	if (!cwmp_transaction("start")) {
 		err_msg = "Failed to start new transaction";
 		goto fault;
 	}
@@ -1328,7 +1328,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("commit", true)) {
+	if (!cwmp_transaction("commit")) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
 		err_msg = "Failed to commit the transaction";
 		goto fault;
@@ -1346,7 +1346,7 @@ fault:
 	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;
 
-	cwmp_transaction("abort", false);
+	cwmp_transaction("abort");
 	return ret;
 }
 
