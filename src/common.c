@@ -604,7 +604,6 @@ void icwmp_restart_services()
 			set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.firewall_restart", "in_progress");
 	}
 	icwmp_free_list_services();
-	sleep(5); // wait for services to get restarted
 }
 
 /*
