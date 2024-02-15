@@ -387,6 +387,7 @@ int cwmp_apply_multiple_firmware()
 	bb_add_string(&b, "path", FIRMWARE_UPGRADE_IMAGE);
 	blobmsg_add_u8(&b, "auto_activate", false);
 	blobmsg_add_u32(&b, "bank", bank_id);
+	blobmsg_add_u8(&b, "keep_settings", cwmp_main->conf.fw_upgrade_keep_settings);
 
 	e = icwmp_ubus_invoke("fwbank", "upgrade", b.head, NULL, NULL);
 	blob_buf_free(&b);
