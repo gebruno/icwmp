@@ -139,6 +139,10 @@ static void config_get_acs_elements(struct uci_section *s)
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs password: %s", cwmp_main->conf.acs_passwd);
 
 	snprintf(cwmp_main->conf.acs_ssl_capath, sizeof(cwmp_main->conf.acs_ssl_capath), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_SSL_CAPATH]));
+	// Use default system cert path if ssl_capath not defined
+	if (CWMP_STRLEN(cwmp_main->conf.acs_ssl_capath) == 0) {
+		CWMP_STRNCPY(cwmp_main->conf.acs_ssl_capath, "/etc/ssl/certs", sizeof(cwmp_main->conf.acs_ssl_capath));
+	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs ssl capath: %s", cwmp_main->conf.acs_ssl_capath);
 
 	cwmp_main->conf.retry_min_wait_interval = DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
