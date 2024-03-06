@@ -481,7 +481,7 @@ static int get_upd_cr_address(char *refparam, struct dmctx *ctx, void *data, cha
 	enabled = dmuci_string_to_boolean(stunc_enabled);
 
 	if (enabled == true)
-		dmuci_get_option_value_string_varstate("stunc", "stunc", "crudp_address", value);
+		dmuci_get_option_value_string_varstate("stun", "stunc", "crudp_address", value);
 	else
 		get_management_ip_port(value);
 
@@ -792,7 +792,7 @@ static int get_nat_detected(char *refparam, struct dmctx *ctx, void *data, char 
 	en = dmuci_string_to_boolean(v);
 
 	if (en == true) { //stunc is enabled
-		dmuci_get_option_value_string_varstate("stunc", "stunc", "nat_detected", &v);
+		dmuci_get_option_value_string_varstate("stun", "stunc", "nat_detected", &v);
 		en = dmuci_string_to_boolean(v);
 		*value = (en == true) ? "1" : "0";
 	} else {
