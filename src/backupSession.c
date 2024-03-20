@@ -491,7 +491,7 @@ static void load_download(mxml_node_t *tree)
 	list_add(&(download_request->list), ilist->prev);
 	if (download_request->scheduled_time != 0)
 		count_download_queue++;
-	cwmp_set_end_session(END_SESSION_DOWNLOAD);
+	cwmp_set_end_session(END_SESSION_DOWNLOAD, true);
 }
 
 static void load_schedule_download(mxml_node_t *tree)
@@ -540,7 +540,7 @@ static void load_schedule_download(mxml_node_t *tree)
 	list_add(&(download_request->list), ilist->prev);
 	if (download_request->timewindowstruct[0].windowstart != 0)
 		count_download_queue++;
-	cwmp_set_end_session(END_SESSION_SCHEDULE_DOWNLOAD);
+	cwmp_set_end_session(END_SESSION_SCHEDULE_DOWNLOAD, true);
 }
 
 static void load_upload(mxml_node_t *tree)
@@ -578,7 +578,7 @@ static void load_upload(mxml_node_t *tree)
 	list_add(&(upload_request->list), ilist->prev);
 	if (upload_request->scheduled_time != 0)
 		count_upload_queue++;
-	cwmp_set_end_session(END_SESSION_UPLOAD);
+	cwmp_set_end_session(END_SESSION_UPLOAD, true);
 }
 
 static void load_change_du_state(mxml_node_t *tree)
@@ -600,7 +600,7 @@ static void load_change_du_state(mxml_node_t *tree)
 	load_xml_node_data(BKP_CDU, tree, &bkp_xml_cdu);
 
 	list_add_tail(&(change_du_state_request->list_operation), &(list_change_du_state));
-	cwmp_set_end_session(END_SESSION_CDU);
+	cwmp_set_end_session(END_SESSION_CDU, true);
 }
 
 void load_du_state_change_complete(mxml_node_t *tree)

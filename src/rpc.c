@@ -1090,7 +1090,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		goto fault;
 	}
 
-	cwmp_set_end_session(END_SESSION_RESTART_SERVICES | END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD);
+	cwmp_set_end_session(END_SESSION_RESTART_SERVICES | END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD, true);
 	return 0;
 
 fault:
@@ -1160,7 +1160,7 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 		goto fault;
 	}
 
-	cwmp_set_end_session(END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RESTART_SERVICES | END_SESSION_INIT_NOTIFY);
+	cwmp_set_end_session(END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RESTART_SERVICES | END_SESSION_INIT_NOTIFY, true);
 	return 0;
 
 fault:
@@ -1252,7 +1252,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	FREE(object_name);
 	FREE(parameter_key);
 	FREE(res.instance);
-	cwmp_set_end_session(END_SESSION_RESTART_SERVICES);
+	cwmp_set_end_session(END_SESSION_RESTART_SERVICES, true);
 	return 0;
 
 fault:
@@ -1336,7 +1336,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	FREE(object_name);
 	FREE(parameter_key);
 	FREE(res.instance);
-	cwmp_set_end_session(END_SESSION_RESTART_SERVICES);
+	cwmp_set_end_session(END_SESSION_RESTART_SERVICES, true);
 	return 0;
 
 fault:
@@ -1421,7 +1421,7 @@ int cwmp_handle_rpc_cpe_factory_reset(struct rpc *rpc)
 		goto fault;
 	}
 
-	cwmp_set_end_session(END_SESSION_FACTORY_RESET);
+	cwmp_set_end_session(END_SESSION_FACTORY_RESET, true);
 
 	return 0;
 
@@ -1446,7 +1446,7 @@ int cwmp_handle_rpc_cpe_x_factory_reset_soft(struct rpc *rpc)
 	if (!b)
 		goto fault;
 
-	cwmp_set_end_session(END_SESSION_X_FACTORY_RESET_SOFT);
+	cwmp_set_end_session(END_SESSION_X_FACTORY_RESET_SOFT, true);
 
 	return 0;
 
@@ -1583,7 +1583,7 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 		goto fault;
 	}
 
-	cwmp_set_end_session(END_SESSION_REBOOT);
+	cwmp_set_end_session(END_SESSION_REBOOT, true);
 
 	FREE(command_key);
 	return 0;
@@ -1669,7 +1669,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 	bkp_session_save();
 
 	FREE(command_key);
-	cwmp_set_end_session(END_SESSION_SCHEDULE_INFORM);
+	cwmp_set_end_session(END_SESSION_SCHEDULE_INFORM, true);
 	return 0;
 
 fault:
@@ -1749,7 +1749,7 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 	change_du_state->id = cwmp_main->cdu_id;
 	bkp_session_insert_change_du_state(change_du_state);
 	bkp_session_save();
-	cwmp_set_end_session(END_SESSION_CDU);
+	cwmp_set_end_session(END_SESSION_CDU, true);
 	return 0;
 
 fault:
@@ -1885,7 +1885,7 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 		} else {
 			CWMP_LOG(INFO, "Download will start at the end of session");
 		}
-		cwmp_set_end_session(END_SESSION_DOWNLOAD);
+		cwmp_set_end_session(END_SESSION_DOWNLOAD, true);
 	}
 
 	return 0;
@@ -2044,7 +2044,7 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 		error = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
-	cwmp_set_end_session(END_SESSION_SCHEDULE_DOWNLOAD);
+	cwmp_set_end_session(END_SESSION_SCHEDULE_DOWNLOAD, true);
 	return 0;
 
 fault:
@@ -2180,7 +2180,7 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 		} else {
 			CWMP_LOG(INFO, "Upload will start at the end of session");
 		}
-		cwmp_set_end_session(END_SESSION_UPLOAD);
+		cwmp_set_end_session(END_SESSION_UPLOAD, true);
 	}
 	return 0;
 

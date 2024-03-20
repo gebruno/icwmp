@@ -90,7 +90,7 @@ enum enum_session_status
 
 extern unsigned int end_session_flag;
 
-void cwmp_set_end_session(unsigned int flag);
+void cwmp_set_end_session(unsigned int flag, bool set);
 struct rpc *build_sessin_rcp_cpe(int type);
 struct rpc *cwmp_add_session_rpc_acs(int type);
 struct rpc *cwmp_add_session_rpc_acs_head(int type);

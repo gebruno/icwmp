@@ -33,7 +33,7 @@ void cwmp_delay_reboot(struct uloop_timeout *timeout  __attribute__((unused)))
 {
 	set_uci_path_value(NULL, "cwmp.cpe.delay_reboot", "-1");
 	if (cwmp_main->session->session_status.last_status == SESSION_RUNNING) {
-		cwmp_set_end_session(END_SESSION_REBOOT);
+		cwmp_set_end_session(END_SESSION_REBOOT, true);
 	} else {
 		cwmp_reboot("delay_reboot");
 		exit(EXIT_SUCCESS);

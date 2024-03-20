@@ -154,64 +154,71 @@ struct diagnostic_input nslookup_diagnostics[] = {
 
 void set_diagnostic_state_end_session_flag(char *parameter_name, char *value)
 {
+	bool flag;
+
 	if (CWMP_STRLEN(parameter_name) == 0 || CWMP_STRLEN(value) == 0)
 		return;
 
-	if (strcmp(value, "Requested") != 0)
+	if (strcmp(value, "Requested") == 0) {
+		flag = true;
+	} else if (strcmp(value, "Canceled") == 0) {
+		flag = false;
+	} else {
 		return;
+	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.DownloadDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_DOWNLOAD_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_DOWNLOAD_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.UploadDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_UPLOAD_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_UPLOAD_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPPing.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_IPPING_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_IPPING_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.ServerSelectionDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_SERVERSELECTION_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_SERVERSELECTION_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.TraceRoute.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_TRACEROUTE_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_TRACEROUTE_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.UDPEchoDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_UDPECHO_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_UDPECHO_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.DNS.Diagnostics.NSLookupDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_NSLOOKUP_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_NSLOOKUP_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPLayerCapacityMetrics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.WiFi.NeighboringWiFiDiagnostic.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.PacketCaptureDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_PACKETCAPTURE_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_PACKETCAPTURE_DIAGNOSTIC, flag);
 		return;
 	}
 
 	if (strcmp(parameter_name, "Device.SelfTestDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_SELFTEST_DIAGNOSTIC);
+		cwmp_set_end_session(END_SESSION_SELFTEST_DIAGNOSTIC, flag);
 		return;
 	}
 }
