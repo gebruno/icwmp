@@ -1,5 +1,11 @@
 #!/bin/bash
 
+function log()
+{
+	echo "$*" >> ./funl-test-debug.log
+	echo "$*"
+}
+
 function cleanup()
 {
 	echo ""

@@ -150,7 +150,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	/*
 	 * Test of non writable, valid parameter path
 	 */
-	add_dm_parameter_to_list(&list_set_param_value, "Device.ATM.Link.1.Status", "Up", NULL, 0, false);
+	add_dm_parameter_to_list(&list_set_param_value, "Device.DeviceInfo.UpTime", "1234", NULL, 0, false);
 	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value,&faults_array);
 	assert_int_not_equal(fault, 0);
@@ -212,7 +212,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.1.SSID", "wifi_ssid_2", NULL, 0, false);
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.1.Enable", "tre", NULL, 0, false);
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.2.Alis", "wifi_2", NULL, 0, false);
-	add_dm_parameter_to_list(&list_set_param_value, "Device.ATM.Link.1.Status", "Up", NULL, 0, false);
+	add_dm_parameter_to_list(&list_set_param_value, "Device.DeviceInfo.UpTime", "123", NULL, 0, false);
 	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_int_not_equal(fault, 0);
