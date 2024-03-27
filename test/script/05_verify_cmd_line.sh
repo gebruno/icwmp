@@ -99,11 +99,13 @@ if [[ $res != *"9009"* ]]; then
 fi
 
 echo "ADD METHOD: Correct Path" >> ./funl-test-debug.log
-res=$(./icwmpd -c add Device.IP.Interface. 2>&1)
-if [[ $res != *"Device.IP.Interface."* ]]; then
+res=$(./icwmpd -c add Device.DHCPv4.Relay.Forwarding. 2>&1)
+if [[ $res != *"Device.DHCPv4.Relay.Forwarding."* ]]; then
 	echo "Error: Add Method with correct path doesn't work correctly" >> ./funl-test-debug.log
 	exit 1
 fi
+
+del_path=$(echo "${res}" | cut -d' ' -f 2)
 
 echo "ADD METHOD: Wrong Path" >> ./funl-test-debug.log
 res=$(./icwmpd -c add Device.DeviceInfo.VendorLogFil 2>&1)
@@ -119,16 +121,16 @@ if [[ $res != *"9005"* ]]; then
 	exit 1
 fi
 
-echo "DELETE METHOD: Correct Path && one instance" >> ./funl-test-debug.log
-res=$(./icwmpd -c del Device.IP.Interface.2. 2>&1)
-if [[ $res != *"Deleted Device.IP.Interface.2."* ]]; then
+echo "DELETE METHOD: Correct Path ${del_path} && one instance" >> ./funl-test-debug.log
+res=$(./icwmpd -c del "${del_path}" 2>&1)
+if [[ $res != *"Deleted ${del_path}"* ]]; then
 	echo "Error: Delete Method with correct path && one instance doesn't work correctly" >> ./funl-test-debug.log
 	exit 1
 fi
 
 echo "DELETE METHOD: Correct Path && all instance" >> ./funl-test-debug.log
-res=$(./icwmpd -c del Device.IP.Interface. 2>&1)
-if [[ $res != *"Deleted Device.IP.Interface."* ]]; then
+res=$(./icwmpd -c del Device.DHCPv4.Relay.Forwarding. 2>&1)
+if [[ $res != *"Deleted Device.DHCPv4.Relay.Forwarding."* ]]; then
 	echo "Error: Delete Method with correct path && all instances doesn't work correctly" >> ./funl-test-debug.log
 	exit 1
 fi
