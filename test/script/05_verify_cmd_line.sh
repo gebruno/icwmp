@@ -99,11 +99,13 @@ if [[ $res != *"9009"* ]]; then
 fi
 
 log "ADD METHOD: Correct Path"
-res=$(./icwmpd -c add Device.IP.Interface. 2>&1)
-if [[ $res != *"Device.IP.Interface."* ]]; then
+res=$(./icwmpd -c add Device.DHCPv4.Relay.Forwarding. 2>&1)
+if [[ $res != *"Device.DHCPv4.Relay.Forwarding."* ]]; then
 	log "Error: Add Method with correct path doesn't work correctly"
 	exit 1
 fi
+
+del_path=$(echo "${res}" | cut -d' ' -f 2)
 
 log "ADD METHOD: Wrong Path"
 res=$(./icwmpd -c add Device.DeviceInfo.VendorLogFil 2>&1)
@@ -119,16 +121,16 @@ if [[ $res != *"9005"* ]]; then
 	exit 1
 fi
 
-log "DELETE METHOD: Correct Path && one instance"
-res=$(./icwmpd -c del Device.IP.Interface.2. 2>&1)
-if [[ $res != *"Deleted Device.IP.Interface.2."* ]]; then
+log "DELETE METHOD: Correct Path ${del_path} && one instance"
+res=$(./icwmpd -c del "${del_path}" 2>&1)
+if [[ $res != *"Deleted ${del_path}"* ]]; then
 	log "Error: Delete Method with correct path && one instance doesn't work correctly"
 	exit 1
 fi
 
 log "DELETE METHOD: Correct Path && all instance"
-res=$(./icwmpd -c del Device.IP.Interface. 2>&1)
-if [[ $res != *"Deleted Device.IP.Interface."* ]]; then
+res=$(./icwmpd -c del Device.DHCPv4.Relay.Forwarding. 2>&1)
+if [[ $res != *"Deleted Device.DHCPv4.Relay.Forwarding."* ]]; then
 	log "Error: Delete Method with correct path && all instances doesn't work correctly"
 	exit 1
 fi

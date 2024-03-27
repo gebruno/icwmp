@@ -634,13 +634,14 @@ struct rpc *cwmp_add_session_rpc_acs_head(int type)
 	return rpc_acs;
 }
 
-void cwmp_set_end_session(unsigned int flag, bool set)
+void cwmp_set_end_session(unsigned int flag)
 {
-	if (set) {
-		end_session_flag |= flag;
-	} else {
-		end_session_flag &= ~(flag);
-	}
+	end_session_flag |= flag;
+}
+
+void cwmp_clear_end_session(unsigned int flag)
+{
+	end_session_flag &= ~(flag);
 }
 
 int run_session_end_func(void)
