@@ -152,68 +152,77 @@ struct diagnostic_input nslookup_diagnostics[] = {
 	{ "Timeout", "Device.DNS.Diagnostics.NSLookupDiagnostics.Timeout", NULL }
 };
 
-void set_diagnostic_state_end_session_flag(char *parameter_name, char *value)
+static unsigned int get_diagnostic_flag(const char *parameter_name)
 {
-	if (CWMP_STRLEN(parameter_name) == 0 || CWMP_STRLEN(value) == 0)
-		return;
-
-	if (strcmp(value, "Requested") != 0)
-		return;
+	if (CWMP_STRLEN(parameter_name) == 0)
+		return 0;
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.DownloadDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_DOWNLOAD_DIAGNOSTIC);
-		return;
+		return END_SESSION_DOWNLOAD_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.UploadDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_UPLOAD_DIAGNOSTIC);
-		return;
+		return END_SESSION_UPLOAD_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPPing.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_IPPING_DIAGNOSTIC);
-		return;
+		return END_SESSION_IPPING_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.ServerSelectionDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_SERVERSELECTION_DIAGNOSTIC);
-		return;
+		return END_SESSION_SERVERSELECTION_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.TraceRoute.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_TRACEROUTE_DIAGNOSTIC);
-		return;
+		return END_SESSION_TRACEROUTE_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.UDPEchoDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_UDPECHO_DIAGNOSTIC);
-		return;
+		return END_SESSION_UDPECHO_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.DNS.Diagnostics.NSLookupDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_NSLOOKUP_DIAGNOSTIC);
-		return;
+		return END_SESSION_NSLOOKUP_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.IP.Diagnostics.IPLayerCapacityMetrics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC);
-		return;
+		return END_SESSION_IPLAYERCAPACITY_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.WiFi.NeighboringWiFiDiagnostic.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC);
-		return;
+		return END_SESSION_NEIGBORING_WIFI_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.PacketCaptureDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_PACKETCAPTURE_DIAGNOSTIC);
-		return;
+		return END_SESSION_PACKETCAPTURE_DIAGNOSTIC;
 	}
 
 	if (strcmp(parameter_name, "Device.SelfTestDiagnostics.DiagnosticsState") == 0) {
-		cwmp_set_end_session(END_SESSION_SELFTEST_DIAGNOSTIC);
-		return;
+		return END_SESSION_SELFTEST_DIAGNOSTIC;
 	}
+
+	return 0;
+}
+
+void set_diagnostic_state_end_session_flag(char *parameter_name, char *value)
+{
+	unsigned int flag = 0;
+
+	if (CWMP_STRLEN(parameter_name) == 0 || CWMP_STRLEN(value) == 0)
+		return;
+
+	flag = get_diagnostic_flag(parameter_name);
+
+	if (flag == 0)
+		return;
+
+	if (strcmp(value, "Requested") == 0) {
+		cwmp_set_end_session(flag);
+	} else if (strcmp(value, "Canceled") == 0) {
+		cwmp_clear_end_session(flag);
+	}
+
+	return;
 }
 
 static bool set_specific_diagnostic_object_parameter_structure_value(struct diagnostic_input (*diagnostics_array)[], int number_inputs, char *parameter, char *value)

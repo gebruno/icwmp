@@ -639,6 +639,11 @@ void cwmp_set_end_session(unsigned int flag)
 	end_session_flag |= flag;
 }
 
+void cwmp_clear_end_session(unsigned int flag)
+{
+	end_session_flag &= ~(flag);
+}
+
 int run_session_end_func(void)
 {
 	CWMP_LOG(INFO, "Handling end session with: (%u)", end_session_flag);
