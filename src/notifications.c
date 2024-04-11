@@ -609,19 +609,19 @@ int check_value_change(void)
 				if ((cwmp_main->md_value_change_last_time <= 0) || (time_from_last_vc >= cwmp_main->conf.md_notif_limit)) {
 					cwmp_main->md_value_change_last_time = time(NULL);
 					add_list_value_change(MANAGEABLE_DEVICES_NBRE, dm_value, dm_type);
+					notif_ret |= NOTIF_ACTIVE;
 				}
-			} else if (notification == 1 || notification == 2)
+			} else if (notification == 1 || notification == 2) {
 				add_list_value_change(parameter, dm_value, dm_type);
-			else
+
+				if (notification == 1)
+					notif_ret |= NOTIF_PASSIVE;
+				if (notification == 2)
+					notif_ret |= NOTIF_ACTIVE;
+			} else {
 				add_lw_list_value_change(parameter, dm_value, dm_type);
-
-			if (notification == 1)
-				notif_ret |= NOTIF_PASSIVE;
-			if (notification == 2)
-				notif_ret |= NOTIF_ACTIVE;
-
-			if (notification == 5 || notification == 6)
 				notif_ret |= NOTIF_LW_ACTIVE;
+			}
 		}
 		FREE(dm_value);
 		FREE(dm_type);

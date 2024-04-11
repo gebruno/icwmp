@@ -37,7 +37,6 @@ struct manageable_device_args {
 	char oui[7];
 	char serial[65];
 	char class[65];
-	char host[1025];
 };
 
 struct manageable_device_node
@@ -184,16 +183,10 @@ static int browseManageableDevice(struct dmctx *dmctx, DMNODE *parent_node, void
 		if (DM_STRLEN(device.mac) < 17)
 			continue;
 
-		char *linker = NULL;
-		adm_entry_get_reference_param(dmctx, "Device.Hosts.Host.*.PhysAddress", device.mac, &linker);
-		if (DM_STRLEN(linker) == 0)
-			continue;
-
 		/* check that the host is still active or not */
 		if (!is_active_host(device.mac, res))
 			continue;
 
-		strncpy(device.host, linker, 1024);
 		get_option125_suboption(line, OPT_OUI, device.oui, sizeof(device.oui));
 		get_option125_suboption(line, OPT_SERIAL, device.serial, sizeof(device.serial));
 		get_option125_suboption(line, OPT_CLASS, device.class, sizeof(device.class));
@@ -838,7 +831,7 @@ static int set_manageable_device_notification_limit(char *refparam, struct dmctx
 {
 	switch (action) {
 		case VALUECHECK:
-			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{"1",NULL}}, 1))
+			if (bbfdm_validate_unsignedInt(ctx, value, RANGE_ARGS{{"0",NULL}}, 1))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
@@ -1069,8 +1062,8 @@ static int get_manageable_device_class(char *refparam, struct dmctx *ctx, void *
 static int get_manageable_device_host(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
 	struct manageable_device_args *device = (struct manageable_device_args *)data;
-	*value = dmstrdup(device->host);
-	return 0;
+
+	return bbf_get_reference_param("Device.Hosts.Host.", "PhysAddress", device->mac, value);
 }
 
 static int get_transfer_compl_policy_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
@@ -1359,7 +1352,7 @@ DMLEAF tManageableDeviceParams[] = {
 {"ManufacturerOUI", &DMREAD, DMT_STRING, get_manageable_device_oui, NULL, BBFDM_CWMP},
 {"SerialNumber", &DMREAD, DMT_STRING, get_manageable_device_serial, NULL, BBFDM_CWMP},
 {"ProductClass", &DMREAD, DMT_STRING, get_manageable_device_class, NULL, BBFDM_CWMP},
-{"Host", &DMREAD, DMT_STRING, get_manageable_device_host, NULL, BBFDM_CWMP},
+{"Host", &DMREAD, DMT_STRING, get_manageable_device_host, NULL, BBFDM_CWMP, DM_FLAG_REFERENCE},
 {0}
 };
 
