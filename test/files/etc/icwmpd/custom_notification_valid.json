@@ -1,7 +1,7 @@
 {
   "custom_notification": [
     {
-      "parameter": "Device.SSH.",
+      "parameter": "Device.X_IOPSYS_EU_Dropbear.",
       "notify_type": "2"
     },
     {
