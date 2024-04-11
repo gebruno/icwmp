@@ -23,7 +23,7 @@ struct object_result {
 
 extern unsigned int transaction_id;
 
-bool cwmp_transaction(const char *cmd, bool restart_services);
+bool cwmp_transaction(const char *cmd);
 
 bool cwmp_get_parameter_value(const char *parameter_name, struct cwmp_dm_parameter *dm_parameter);
 

@@ -110,17 +110,17 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	 * Test of one valid parameter
 	 */
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.1.Alias", "wifi_alias_1", NULL, 0, false);
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_int_equal(fault, 0);
-	cwmp_transaction("commit", true);
+	cwmp_transaction("commit");
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 
 	add_dm_parameter_to_list(&list_set_param_value, "Device.ManagementServer.Username", "iopsys_user", NULL, 0, false);
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_int_equal(fault, 0);
-	cwmp_transaction("commit", true);
+	cwmp_transaction("commit");
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	fault = 0;
 
@@ -128,7 +128,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	 * Test of non valid parameter path
 	 */
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.1.Alis", "wifi_alias_1", NULL, 0, false);
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_non_null(fault);
 	list_for_each_entry (param_fault, &faults_array, list) {
@@ -139,7 +139,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	assert_int_not_equal(fault, 0);
 	assert_int_equal(fault_code, 9005);
 	assert_non_null(fault_name);
-	cwmp_transaction("abort", false);
+	cwmp_transaction("abort");
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	cwmp_free_all_list_param_fault(&faults_array);
 	fault_code = 0;
@@ -151,7 +151,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	 * Test of non writable, valid parameter path
 	 */
 	add_dm_parameter_to_list(&list_set_param_value, "Device.DeviceInfo.UpTime", "1234", NULL, 0, false);
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value,&faults_array);
 	assert_int_not_equal(fault, 0);
 	list_for_each_entry (param_fault, &faults_array, list) {
@@ -162,7 +162,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	assert_int_not_equal(fault, 0);
 	assert_int_equal(fault_code, 9008);
 	assert_non_null(fault_name);
-	cwmp_transaction("abort", false);
+	cwmp_transaction("abort");
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	cwmp_free_all_list_param_fault(&faults_array);
 	fault = 0;
@@ -174,7 +174,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	 * Test of writable, valid parameter path wrong value
 	 */
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.1.Enable", "tre", NULL, 0, false);
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_non_null(fault);
 	list_for_each_entry (param_fault, &faults_array, list) {
@@ -185,7 +185,7 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	assert_int_not_equal(fault, 0);
 	assert_int_equal(fault_code, 9007);
 	assert_non_null(fault_name);
-	cwmp_transaction("abort", false);
+	cwmp_transaction("abort");
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	cwmp_free_all_list_param_fault(&faults_array);
 	fault_code = 0;
@@ -199,10 +199,10 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.1.Alias", "wifi_alias1_1", NULL, 0, false);
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.1.SSID", "wifi_ssid_2", NULL, 0, false);
 	add_dm_parameter_to_list(&list_set_param_value, "Device.ManagementServer.Username", "iopsys_user_1", NULL, 0, false);
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_int_equal(fault, 0);
-	cwmp_transaction("commit", true);
+	cwmp_transaction("commit");
 	cwmp_free_all_list_param_fault(&faults_array);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 
@@ -213,13 +213,13 @@ static void dm_set_multiple_parameter_values_test(void **state)
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.1.Enable", "tre", NULL, 0, false);
 	add_dm_parameter_to_list(&list_set_param_value, "Device.WiFi.SSID.2.Alis", "wifi_2", NULL, 0, false);
 	add_dm_parameter_to_list(&list_set_param_value, "Device.ATM.Link.1.Status", "Up", NULL, 0, false);
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	fault = cwmp_set_multi_parameters_value(&list_set_param_value, &faults_array);
 	assert_int_not_equal(fault, 0);
 	list_for_each_entry (param_fault, &faults_array, list) {
 		assert_in_set(param_fault->fault_code, faults_values, 3);
 	}
-	cwmp_transaction("commit", true);
+	cwmp_transaction("commit");
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 }
 
@@ -234,11 +234,11 @@ static void dm_add_object_test(void **state)
 
 	memset(&res, 0, sizeof(struct object_result));
 
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	status = cwmp_add_object("Device.WiFi.SSID.", &res);
 	assert_non_null(res.instance);
 	assert_true(status);
-	cwmp_transaction("commit", false);
+	cwmp_transaction("commit");
 	FREE(res.instance);
 
 	/*
@@ -247,12 +247,12 @@ static void dm_add_object_test(void **state)
 
 	memset(&res, 0, sizeof(struct object_result));
 
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	status = cwmp_add_object("Device.WiFi.SIDl.", &res);
 	assert_false(status);
 	assert_int_equal(res.fault_code, FAULT_9005);
 	assert_null(res.instance);
-	cwmp_transaction("commit", false);
+	cwmp_transaction("commit");
 	FREE(res.instance);
 
 	/*
@@ -261,12 +261,12 @@ static void dm_add_object_test(void **state)
 
 	memset(&res, 0, sizeof(struct object_result));
 
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	status = cwmp_add_object("Device.DeviceInfo.Processor.", &res);
 	assert_false(status);
 	assert_int_equal(res.fault_code, FAULT_9005);
 	assert_null(res.instance);
-	cwmp_transaction("commit", false);
+	cwmp_transaction("commit");
 	FREE(res.instance);
 }
 
@@ -281,10 +281,10 @@ static void dm_delete_object_test(void **state)
 
 	memset(&res, 0, sizeof(struct object_result));
 
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	status = cwmp_delete_object("Device.WiFi.SSID.2.", &res);
 	assert_true(status);
-	cwmp_transaction("commit", true);
+	cwmp_transaction("commit");
 
 	/*
 	 * Delete not valid path object
@@ -292,11 +292,11 @@ static void dm_delete_object_test(void **state)
 
 	memset(&res, 0, sizeof(struct object_result));
 
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	status = cwmp_delete_object("Device.WiFi.SIDl.3.", &res);
 	assert_false(status);
 	assert_int_equal(res.fault_code, FAULT_9005);
-	cwmp_transaction("commit", true);
+	cwmp_transaction("commit");
 
 	/*
 	 * Delte valid path not writable object
@@ -304,11 +304,11 @@ static void dm_delete_object_test(void **state)
 
 	memset(&res, 0, sizeof(struct object_result));
 
-	cwmp_transaction("start", false);
+	cwmp_transaction("start");
 	status = cwmp_delete_object("Device.DeviceInfo.Processor.2.", &res);
 	assert_false(status);
 	assert_int_equal(res.fault_code, FAULT_9005);
-	cwmp_transaction("commit", true);
+	cwmp_transaction("commit");
 }
 
 static void dm_get_parameter_names_test(void **state)
