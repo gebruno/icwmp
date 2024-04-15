@@ -580,33 +580,40 @@ void icwmp_free_list_services()
 
 void icwmp_restart_services()
 {
-	int i;
+	struct blob_buf bb = {0};
 
-	for (i = 0; i < nbre_services; i++) {
+	memset(&bb, 0, sizeof(struct blob_buf));
+
+	blob_buf_init(&bb, 0);
+
+	void *array = blobmsg_open_array(&bb, "services");
+
+	for (int i = 0; i < nbre_services; i++) {
 		if (list_services[i] == NULL)
 			continue;
 
-		struct blob_buf b = { 0 };
-		CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
-		blob_buf_init(&b, 0);
-		bb_add_string(&b, "config", list_services[i]);
-
 		if (CWMP_STRCMP(list_services[i], "cwmp") == 0) {
 			commit_uci_package("cwmp");
-		} else {
-			icwmp_ubus_invoke("uci", "commit", b.head, NULL, NULL);
+			continue;
 		}
 
-		blob_buf_free(&b);
-
-		if (CWMP_STRCMP(list_services[i], "firewall") == 0) {
+		if (CWMP_STRCMP(list_services[i], "firewall") == 0)
 			g_firewall_restart = true;
-		}
+
+		blobmsg_add_string(&bb, NULL, list_services[i]);
 	}
+
+	blobmsg_close_array(&bb, array);
+
+	icwmp_ubus_invoke("bbf.config", "commit", bb.head, NULL, NULL);
+
+	blob_buf_free(&bb);
+
 	if (g_firewall_restart) {
 			CWMP_LOG(INFO, "Initiating Firewall restart");
 			set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.firewall_restart", "in_progress");
 	}
+
 	icwmp_free_list_services();
 }
 
