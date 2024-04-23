@@ -138,8 +138,13 @@ static void config_get_acs_elements(struct uci_section *s)
 	snprintf(cwmp_main->conf.acs_passwd, sizeof(cwmp_main->conf.acs_passwd), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_PASSWR]));
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs password: %s", cwmp_main->conf.acs_passwd);
 
-	snprintf(cwmp_main->conf.acs_ssl_capath, sizeof(cwmp_main->conf.acs_ssl_capath), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_SSL_CAPATH]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs ssl capath: %s", cwmp_main->conf.acs_ssl_capath);
+	char *cert = get_value_from_uci_option(acs_tb[UCI_ACS_SSL_CAPATH]);
+	if (folder_exists(cert) == true) {
+		snprintf(cwmp_main->conf.acs_ssl_capath, sizeof(cwmp_main->conf.acs_ssl_capath), "%s", cert);
+	} else if (file_exists(cert) == true) {
+		snprintf(cwmp_main->conf.acs_ssl_cabundle, sizeof(cwmp_main->conf.acs_ssl_cabundle), "%s", cert);
+	}
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs ssl capath: %s", cert);
 
 	cwmp_main->conf.retry_min_wait_interval = DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
 	char *acs_retry_min_wait_interval = get_value_from_uci_option(acs_tb[UCI_ACS_RETRY_MIN_WAIT_INTERVAL]);

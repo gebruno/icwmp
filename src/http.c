@@ -107,7 +107,11 @@ static void http_set_security_options()
 	curl_easy_setopt(curl, CURLOPT_PASSWORD, cwmp_main->conf.acs_passwd);
 	curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC | CURLAUTH_DIGEST);
 
-	curl_easy_setopt(curl, CURLOPT_CAPATH, cwmp_main->conf.acs_ssl_capath);
+	if (CWMP_STRLEN(cwmp_main->conf.acs_ssl_capath) !=0 ) {
+		curl_easy_setopt(curl, CURLOPT_CAPATH, cwmp_main->conf.acs_ssl_capath);
+	} else if (CWMP_STRLEN(cwmp_main->conf.acs_ssl_cabundle) != 0) {
+		curl_easy_setopt(curl, CURLOPT_CAINFO, cwmp_main->conf.acs_ssl_cabundle);
+	}
 
 	if (cwmp_main->conf.insecure_enable) {
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
