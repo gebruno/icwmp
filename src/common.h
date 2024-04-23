@@ -109,6 +109,7 @@ typedef struct config {
 	char acs_userid[BUF_SIZE_256];
 	char acs_passwd[BUF_SIZE_256];
 	char acs_ssl_capath[BUF_SIZE_256];
+	char acs_ssl_cabundle[BUF_SIZE_256];
 	char cpe_userid[BUF_SIZE_256];
 	char cpe_passwd[BUF_SIZE_256];
 	char custom_notify_json[BUF_SIZE_256];
