@@ -7,8 +7,8 @@ ADD_DEFINITIONS(-D_GNU_SOURCE)
 
 # Compile and install libcwmpdm.so
 ADD_LIBRARY(cwmpdm SHARED datamodel.c)
-INSTALL(DIRECTORY DESTINATION etc/bbfdm/plugins)
-INSTALL(TARGETS cwmpdm LIBRARY DESTINATION etc/bbfdm/plugins)
+INSTALL(DIRECTORY DESTINATION usr/share/bbfdm/plugins)
+INSTALL(TARGETS cwmpdm LIBRARY DESTINATION usr/share/bbfdm/plugins)
 
 # Copy libcwmpdm.so to the main repo
 add_custom_command(
