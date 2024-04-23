@@ -86,7 +86,10 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 	if (tb[1]) {
 		char *uuid = NULL, *oper = NULL;
 
-		CWMP_LOG(INFO, "%s\n", blobmsg_format_json_indent(tb[1], true, -1));
+		char *str = blobmsg_format_json_indent(tb[1], true, -1);
+		CWMP_LOG(INFO, "%s\n", str);
+		FREE(str);
+
 		struct blob_attr *tb1[9] = {NULL};
 		blobmsg_parse(p1, 9, tb1, blobmsg_data(tb[1]), blobmsg_len(tb[1]));
 
@@ -217,7 +220,10 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 	if (tb[1]) {
 		char file_type[256] = {0};
 
-		CWMP_LOG(INFO, "%s\n", blobmsg_format_json_indent(tb[1], true, -1));
+		char *str = blobmsg_format_json_indent(tb[1], true, -1);
+		CWMP_LOG(INFO, "%s\n", str);
+		FREE(str);
+
 		struct blob_attr *tb1[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 		blobmsg_parse(p1, 6, tb1, blobmsg_data(tb[1]), blobmsg_len(tb[1]));
 

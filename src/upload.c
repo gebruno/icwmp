@@ -196,6 +196,7 @@ int upload_file_in_subprocess(const char *file_path, const char *url, const char
 
 	if (upload_task != NULL) {
 		char *ret = execute_task_in_subprocess(upload_task);
+		FREE(upload_task);
 		return ret ? atoi(ret) : 500;
 	}
 	return 500;
