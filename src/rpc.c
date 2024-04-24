@@ -881,7 +881,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 		goto fault;
 	}
 
-	char *err = cwmp_get_parameter_names(parameter_name ? parameter_name : "", next_level, &parameters_list);
+	char *err = cwmp_get_parameter_names(parameter_name ? parameter_name : "", next_level, &parameters_list, &err_msg);
 	if (err) {
 		fault_code = cwmp_get_fault_code_by_string(err);
 		FREE(parameter_name);

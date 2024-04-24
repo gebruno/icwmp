@@ -242,7 +242,7 @@ char *cmd_get_names_exec_func(struct cmd_input in, union cmd_result *res)
 		in.first_input = "";
 	res->param_list = &parameters_list;
 	bool next_level = (CWMP_STRCMP(in.second_input, "1") == 0 || CWMP_LSTRCASECMP(in.second_input, "true") == 0) ? true : false;
-	char *fault = cwmp_get_parameter_names(in.first_input, next_level, res->param_list);
+	char *fault = cwmp_get_parameter_names(in.first_input, next_level, res->param_list, NULL);
 	return fault;
 }
 

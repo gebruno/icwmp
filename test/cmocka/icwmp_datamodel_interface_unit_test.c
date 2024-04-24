@@ -318,7 +318,7 @@ static void dm_get_parameter_names_test(void **state)
 	/*
 	 * Valid multi-instance object path
 	 */
-	fault = cwmp_get_parameter_names("Device.WiFi.SSID.", true, &parameters_list);
+	fault = cwmp_get_parameter_names("Device.WiFi.SSID.", true, &parameters_list, NULL);
 	assert_null(fault);
 	struct cwmp_dm_parameter *param_value = NULL;
 	int nbre_objs = 0;
@@ -332,7 +332,7 @@ static void dm_get_parameter_names_test(void **state)
 	/*
 	 * Valid not multi-instance object path
 	 */
-	fault = cwmp_get_parameter_names("Device.DeviceInfo.", true, &parameters_list);
+	fault = cwmp_get_parameter_names("Device.DeviceInfo.", true, &parameters_list, NULL);
 	assert_null(fault);
 	list_for_each_entry (param_value, &parameters_list, list) {
 		nbre_objs++;
@@ -344,7 +344,7 @@ static void dm_get_parameter_names_test(void **state)
 	/*
 	 * Not valid object path
 	 */
-	fault = cwmp_get_parameter_names("Device.Devicenfo.", true, &parameters_list);
+	fault = cwmp_get_parameter_names("Device.Devicenfo.", true, &parameters_list, NULL);
 	assert_non_null(fault);
 	assert_string_equal(fault, "9005");
 }

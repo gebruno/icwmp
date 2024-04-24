@@ -21,6 +21,7 @@ unsigned int transaction_id = 0;
 struct list_params_result {
 	struct list_head *parameters_list;
 	int error;
+	char *error_msg;
 };
 
 struct setm_values_res {
@@ -249,6 +250,7 @@ static void ubus_get_parameter_callback(struct ubus_request *req, int type __att
 
 	if (parameters == NULL) {
 		result->error = FAULT_CPE_INTERNAL_ERROR;
+		result->error_msg = "JSON message output is not correctly created";
 		return;
 	}
 
@@ -313,17 +315,20 @@ char *cwmp_get_parameter_values(const char *parameter_name, struct list_head *pa
 	return NULL;
 }
 
-char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, struct list_head *parameters_list)
+char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, struct list_head *parameters_list, char **err_msg)
 {
 	struct blob_buf b = {0};
 	struct list_params_result get_result = {
 			.parameters_list = parameters_list,
-			.error = FAULT_CPE_NO_FAULT
+			.error = FAULT_CPE_NO_FAULT,
+			.error_msg = 0
 	};
 	unsigned int len = CWMP_STRLEN(parameter_name);
 
-	if (len > 2 && parameter_name[len - 1] == '.' && parameter_name[len - 2] == '*')
+	if (len > 2 && parameter_name[len - 1] == '.' && parameter_name[len - 2] == '*') {
+		if (err_msg) *err_msg = "Parameter name should not finished with instance wildcard(.*.)";
 		return "9005";
+	}
 
 	const char *object = len ? parameter_name : "";
 
@@ -339,6 +344,7 @@ char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, stru
 
 	if (e < 0) {
 		CWMP_LOG(INFO, "object_names ubus method failed: Ubus err code: %d", e);
+		if (err_msg) *err_msg = "Internal error in ubus method bbfdm schema";
 		return "9002";
 	}
 
@@ -348,6 +354,7 @@ char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, stru
 		CWMP_LOG(WARNING, "Get parameter Names (%s) failed: fault_code: %d", object, get_result.error);
 
 		snprintf(buf, sizeof(buf), "%d", get_result.error);
+		if (err_msg) *err_msg = get_result.error_msg;
 		return icwmp_strdup(buf);
 	}
 
