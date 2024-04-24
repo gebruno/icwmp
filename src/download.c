@@ -134,6 +134,7 @@ int download_file_in_subprocess(const char *file_path, const char *url, const ch
 
 	if (download_task != NULL) {
 		char *ret = execute_task_in_subprocess(download_task);
+		FREE(download_task);
 		return ret ? atoi(ret) : 500;
 	}
 
