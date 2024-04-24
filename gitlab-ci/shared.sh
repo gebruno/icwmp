@@ -117,7 +117,7 @@ function build_icwmp()
 	# compile icwmp
 	mkdir -p build
 	cd build
-	cmake ../ -DCMAKE_C_FLAGS="$COV_CFLAGS " -DCMAKE_EXE_LINKER_FLAGS="$COV_LDFLAGS" -DWITH_OPENSSL=ON -DCMAKE_INSTALL_PREFIX=/
+	cmake ../ -DCMAKE_C_FLAGS="$COV_CFLAGS " -DCMAKE_EXE_LINKER_FLAGS="$COV_LDFLAGS" -DCMAKE_INSTALL_PREFIX=/
 	exec_cmd make
 
 	echo "installing icwmpd binary and libcwmpdm.so library"
