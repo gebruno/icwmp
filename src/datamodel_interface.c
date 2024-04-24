@@ -96,7 +96,7 @@ static void ubus_transaction_callback(struct ubus_request *req, int type __attri
 		blobmsg_for_each_attr(service, updated_services, rem) {
 			char *service_name = blobmsg_get_string(service);
 
-			if (CWMP_STRLEN(service_name) == 0 || CWMP_STRCMP(service_name, "cwmp") == 0)
+			if (CWMP_STRLEN(service_name) == 0)
 				continue;
 
 			CWMP_LOG(DEBUG, "Detected service: %s will be restarted in the end session", service_name);

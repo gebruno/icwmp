@@ -919,3 +919,35 @@ exit:
 	pthread_mutex_unlock(&mutex_config_load);
 	return ret;
 }
+
+int commit_uci_package(char *package)
+{
+	struct uci_context *uci_ctx = NULL;
+	struct uci_ptr ptr = {0};
+	int ret = 0;
+
+	pthread_mutex_lock(&mutex_config_load);
+	uci_ctx = uci_alloc_context();
+	if (!uci_ctx) {
+		ret = -1;
+		goto exit;
+	}
+
+	if (uci_lookup_ptr(uci_ctx, &ptr, package, true) != UCI_OK) {
+		ret = -1;
+		goto exit;
+	}
+
+	if (uci_commit(uci_ctx, &ptr.p, false) != UCI_OK) {
+		ret = -1;
+		goto exit;
+	}
+
+exit:
+	if (uci_ctx) {
+		uci_free_context(uci_ctx);
+	}
+	pthread_mutex_unlock(&mutex_config_load);
+
+	return ret;
+}

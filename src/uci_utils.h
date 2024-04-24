@@ -39,6 +39,7 @@ int set_uci_path_value(const char *conf_dir, char *path, char *value);
 int set_uci_list_value(const char *conf_dir, char *path, char *value);
 int del_uci_list_value(const char *conf_dir, char *path, char *value);
 int get_inform_parameters_uci(struct list_head *inform_head);
+int commit_uci_package(char *package);
 int get_global_config();
 
 
