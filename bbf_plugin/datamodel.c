@@ -1282,8 +1282,8 @@ DM_MAP_OBJ tDynamicObj[] = {
 DMOBJ tCWMPObj[] = {
 /* OBJ, permission, addobj, delobj, checkdep, browseinstobj, nextdynamicobj, dynamicleaf, nextobj, leaf, linker, bbfdm_type, uniqueKeys*/
 {"ManagementServer", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, tManagementServerObj, tManagementServerParams, NULL, BBFDM_CWMP},
-{"XMPP", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, BBFDM_CWMP},
 {"CWMPManagementServer", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, BBFDM_USP},
+{"XMPP", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, BBFDM_CWMP},
 {0}
 };
 
