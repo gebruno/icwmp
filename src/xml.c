@@ -613,9 +613,25 @@ int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *x
 	if (xml_attrs->parameter_name == NULL)
 		return CWMP_OK;
 
-	if (xml_attrs->rpc_enum == SOAP_PARAM_STRUCT)
+	if (xml_attrs->rpc_enum == SOAP_PARAM_STRUCT) {
 		err = cwmp_get_parameter_values(*(xml_attrs->parameter_name), &parameters_list);
-	else if (xml_attrs->rpc_enum == SOAP_GPA_STRUCT)
+		if (err) {
+			// If an error occurs, try up to two more times to ensure the path is invalid
+			for (int i = 0; i < 2; i++) {
+				CWMP_LOG(ERROR, "Failed to get parameter value for '%s', error: %s. Retrying in 1 second...", *(xml_attrs->parameter_name), err);
+
+				// Wait for 1 second before retrying
+				sleep(1);
+
+				// Retry to get the parameter value
+				err = cwmp_get_parameter_values(*(xml_attrs->parameter_name), &parameters_list);
+
+				// If the operation is successful, exit the loop
+				if (err == NULL)
+					break;
+			}
+		}
+	} else if (xml_attrs->rpc_enum == SOAP_GPA_STRUCT)
 		err = cwmp_get_parameter_attributes(*(xml_attrs->parameter_name), &parameters_list);
 	else
 		return FAULT_CPE_INTERNAL_ERROR;

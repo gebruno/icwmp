@@ -99,8 +99,8 @@ if [[ $res != *"9009"* ]]; then
 fi
 
 log "ADD METHOD: Correct Path"
-res=$(./icwmpd -c add Device.DHCPv4.Relay.Forwarding. 2>&1)
-if [[ $res != *"Device.DHCPv4.Relay.Forwarding."* ]]; then
+res=$(./icwmpd -c add Device.X_IOPSYS_EU_Dropbear. 2>&1)
+if [[ $res != *"Device.X_IOPSYS_EU_Dropbear."* ]]; then
 	log "Error: Add Method with correct path doesn't work correctly"
 	exit 1
 fi
@@ -129,8 +129,8 @@ if [[ $res != *"Deleted ${del_path}"* ]]; then
 fi
 
 log "DELETE METHOD: Correct Path && all instance"
-res=$(./icwmpd -c del Device.DHCPv4.Relay.Forwarding. 2>&1)
-if [[ $res != *"Deleted Device.DHCPv4.Relay.Forwarding."* ]]; then
+res=$(./icwmpd -c del Device.X_IOPSYS_EU_Dropbear. 2>&1)
+if [[ $res != *"Deleted Device.X_IOPSYS_EU_Dropbear."* ]]; then
 	log "Error: Delete Method with correct path && all instances doesn't work correctly"
 	exit 1
 fi

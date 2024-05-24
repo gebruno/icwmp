@@ -883,6 +883,23 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 
 	char *err = cwmp_get_parameter_names(parameter_name ? parameter_name : "", next_level, &parameters_list, &err_msg);
 	if (err) {
+		// If an error occurs, try up to two more times to ensure the path is invalid
+		for (int i = 0; i < 2; i++) {
+			CWMP_LOG(ERROR, "Failed to get parameter name for '%s', error: %s. Retrying in 1 second...", parameter_name ? parameter_name : "", err);
+
+			// Wait for 1 second before retrying
+			sleep(1);
+
+			// Retry to get the parameter name
+			err = cwmp_get_parameter_names(parameter_name ? parameter_name : "", next_level, &parameters_list, &err_msg);
+
+			// If the operation is successful, exit the loop
+			if (err == NULL)
+				break;
+		}
+	}
+
+	if (err) {
 		fault_code = cwmp_get_fault_code_by_string(err);
 		FREE(parameter_name);
 		goto fault;
