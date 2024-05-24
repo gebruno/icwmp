@@ -1063,7 +1063,7 @@ static int get_manageable_device_host(char *refparam, struct dmctx *ctx, void *d
 {
 	struct manageable_device_args *device = (struct manageable_device_args *)data;
 
-	return bbf_get_reference_param("Device.Hosts.Host.", "PhysAddress", device->mac, value);
+	return _bbfdm_get_references(ctx, "Device.Hosts.Host.", "PhysAddress", device->mac, value);
 }
 
 static int get_transfer_compl_policy_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
