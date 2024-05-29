@@ -114,34 +114,32 @@ void cwmp_config_load()
 	}
 }
 
-int cwmp_get_deviceid()
-{
+static void cwmp_get_device_info(const char *param, char *value, size_t size) {
 	struct cwmp_dm_parameter dm_param = {0};
 
-	if (CWMP_STRLEN(cwmp_main->deviceid.manufacturer) == 0) {
-		cwmp_get_parameter_value("Device.DeviceInfo.Manufacturer", &dm_param);
-		snprintf(cwmp_main->deviceid.manufacturer, sizeof(cwmp_main->deviceid.manufacturer), "%s", dm_param.value ? dm_param.value : "");
+	if (param == NULL || value == NULL)
+		return;
+
+	if (strlen(value) != 0)
+		return;
+
+	cwmp_get_parameter_value(param, &dm_param);
+
+	while (CWMP_STRLEN(dm_param.value) == 0) {
+		CWMP_LOG(ERROR, "Init: failed to get value of %s", param);
+		cwmp_get_parameter_value(param, &dm_param);
 	}
 
-	if (CWMP_STRLEN(cwmp_main->deviceid.serialnumber) == 0) {
-		cwmp_get_parameter_value("Device.DeviceInfo.SerialNumber", &dm_param);
-		snprintf(cwmp_main->deviceid.serialnumber, sizeof(cwmp_main->deviceid.serialnumber), "%s", dm_param.value ? dm_param.value : "");
-	}
+	snprintf(value, size, "%s", dm_param.value);
+}
 
-	if (CWMP_STRLEN(cwmp_main->deviceid.productclass) == 0) {
-		cwmp_get_parameter_value("Device.DeviceInfo.ProductClass", &dm_param);
-		snprintf(cwmp_main->deviceid.productclass, sizeof(cwmp_main->deviceid.productclass), "%s", dm_param.value ? dm_param.value : "");
-	}
-
-	if (CWMP_STRLEN(cwmp_main->deviceid.oui) == 0) {
-		cwmp_get_parameter_value("Device.DeviceInfo.ManufacturerOUI", &dm_param);
-		snprintf(cwmp_main->deviceid.oui, sizeof(cwmp_main->deviceid.oui), "%s", dm_param.value ? dm_param.value : "");
-	}
-
-	if (CWMP_STRLEN(cwmp_main->deviceid.softwareversion) == 0) {
-		cwmp_get_parameter_value("Device.DeviceInfo.SoftwareVersion", &dm_param);
-		snprintf(cwmp_main->deviceid.softwareversion, sizeof(cwmp_main->deviceid.softwareversion), "%s", dm_param.value ? dm_param.value : "");
-	}
+int cwmp_get_deviceid()
+{
+	cwmp_get_device_info("Device.DeviceInfo.Manufacturer", cwmp_main->deviceid.manufacturer, sizeof(cwmp_main->deviceid.manufacturer));
+	cwmp_get_device_info("Device.DeviceInfo.SerialNumber", cwmp_main->deviceid.serialnumber, sizeof(cwmp_main->deviceid.serialnumber));
+	cwmp_get_device_info("Device.DeviceInfo.ProductClass", cwmp_main->deviceid.productclass, sizeof(cwmp_main->deviceid.productclass));
+	cwmp_get_device_info("Device.DeviceInfo.ManufacturerOUI", cwmp_main->deviceid.oui, sizeof(cwmp_main->deviceid.oui));
+	cwmp_get_device_info("Device.DeviceInfo.SoftwareVersion", cwmp_main->deviceid.softwareversion, sizeof(cwmp_main->deviceid.softwareversion));
 
 	return CWMP_OK;
 }
