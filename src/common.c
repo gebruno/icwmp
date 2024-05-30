@@ -34,7 +34,6 @@ struct session_timer_event *global_session_event = NULL;
 static int nbre_services = 0;
 static char *list_services[MAX_NBRE_SERVICES] = { 0 };
 LIST_HEAD(cwmp_memory_list);
-extern bool g_firewall_restart;
 
 struct cwmp_mem {
 	struct list_head list;
@@ -239,33 +238,6 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 {
 	size_t written = fwrite(ptr, size, nmemb, stream);
 	return written;
-}
-
-// wait till firewall restart is not complete or 5 sec, whichever is less
-void check_firewall_restart_state()
-{
-	int count = 0;
-	bool init = false;
-
-	do {
-		char state[BUF_SIZE_32] = {0};
-
-		get_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.firewall_restart", state, BUF_SIZE_32);
-		if (CWMP_STRCMP(state, "init") == 0) {
-			init = true;
-			break;
-		}
-
-		sleep(1);
-		count++;
-	} while(count < 10);
-
-	// mark the firewall restart as done
-	g_firewall_restart = false;
-	if (init == false) { // In case of timeout reset the firewall_restart flag
-		CWMP_LOG(ERROR, "Firewall restart took longer than usual");
-		set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.firewall_restart", "init");
-	}
 }
 
 void set_rpc_parameter_key(char *param_key)
@@ -597,9 +569,6 @@ void icwmp_restart_services()
 			continue;
 		}
 
-		if (CWMP_STRCMP(list_services[i], "firewall") == 0)
-			g_firewall_restart = true;
-
 		blobmsg_add_string(&bb, NULL, list_services[i]);
 	}
 
@@ -608,11 +577,6 @@ void icwmp_restart_services()
 	icwmp_ubus_invoke("bbf.config", "commit", bb.head, NULL, NULL);
 
 	blob_buf_free(&bb);
-
-	if (g_firewall_restart) {
-			CWMP_LOG(INFO, "Initiating Firewall restart");
-			set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.firewall_restart", "in_progress");
-	}
 
 	icwmp_free_list_services();
 }

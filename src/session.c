@@ -164,10 +164,6 @@ int cwmp_schedule_rpc()
 				break;
 		}
 
-		// If restart service caused firewall restart, wait for firewall restart to complete
-		if (g_firewall_restart == true)
-			check_firewall_restart_state();
-
 		CWMP_LOG(INFO, "Send empty message to the ACS");
 		if (xml_send_message(NULL) || cwmp_stop)
 			goto retry;

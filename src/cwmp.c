@@ -41,7 +41,6 @@
 #include "heartbeat.h"
 #include "cwmp_http.h"
 
-bool g_firewall_restart = false;
 struct list_head intf_reset_list;
 struct list_head du_uuid_list;
 struct list_head force_inform_list;
