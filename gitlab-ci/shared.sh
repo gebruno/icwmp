@@ -144,6 +144,15 @@ function install_bbfdmd()
 	exec_cmd ./gitlab-ci/setup.sh install
 }
 
+function install_wifidmd_as_plugin()
+{
+	exec_cmd git clone https://dev.iopsys.eu/bbf/wifidmd.git /opt/dev/wifidmd
+
+	exec_cmd make -C /opt/dev/wifidmd/src/ clean && make -C /opt/dev/wifidmd/src/
+	exec_cmd cp -f /opt/dev/wifidmd/src/libwifi.so /usr/share/bbfdm/plugins/
+	exec_cmd cp -f /opt/dev/wifidmd/src/libdataelements.so /usr/share/bbfdm/plugins/
+}
+
 function check_valgrind_xml() {
 	echo "Checking memory leaks..."
 	cp /tmp/memory-report.xml memory-report.xml
