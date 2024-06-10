@@ -904,36 +904,51 @@ static int set_heart_beat_policy_initiation_time(char *refparam, struct dmctx *c
 
 static int browseInformParameterInst(struct dmctx *dmctx, DMNODE *parent_node, void *prev_data, char *prev_instance)
 {
-	struct uci_section *s = NULL;
+	struct dm_data *curr_data = NULL;
 	char *inst = NULL;
-	uci_foreach_sections("cwmp", "inform_parameter", s) {
-		inst = handle_instance(dmctx, parent_node, s, "informparam_instance", "informparam_alias");
-		struct dmmap_dup inform_param_afgs = {.config_section = s };
-		if (DM_LINK_INST_OBJ(dmctx, parent_node, (void *)&inform_param_afgs, inst) == DM_STOP)
+	LIST_HEAD(dup_list);
+
+	synchronize_specific_config_sections_with_dmmap("cwmp", "inform_parameter", "dmmap_cwmp", &dup_list);
+	list_for_each_entry(curr_data, &dup_list, list) {
+
+		inst = handle_instance(dmctx, parent_node, curr_data->dmmap_section, "informparam_instance", "informparam_alias");
+
+		if (DM_LINK_INST_OBJ(dmctx, parent_node, curr_data, inst) == DM_STOP)
 			break;
 	}
+	free_dmmap_config_dup_list(&dup_list);
 	return 0;
 }
 
 static int add_inform_parameter(char *refparam, struct dmctx *ctx, void *data, char **instance)
 {
-	struct uci_section *s = NULL;
+	struct uci_section *s = NULL, *dmmap = NULL;
 
 	dmuci_add_section("cwmp", "inform_parameter", &s);
-	dmuci_set_value_by_section(s, "informparam_instance", *instance);
 	dmuci_set_value_by_section(s, "enable", "0");
+
+	dmuci_add_section_bbfdm("dmmap_cwmp", "inform_parameter", &dmmap);
+	dmuci_set_value_by_section(dmmap, "section_name", section_name(s));
+	dmuci_set_value_by_section(dmmap, "informparam_instance", *instance);
 	return 0;
 }
 
 static int delete_inform_parameter(char *refparam, struct dmctx *ctx, void *data, char *instance, unsigned char del_action)
 {
 	struct uci_section *s = NULL, *stmp = NULL;
+
 	switch (del_action) {
 		case DEL_INST:
-			dmuci_delete_by_section(((struct dmmap_dup *)data)->config_section, NULL, NULL);
+			dmuci_delete_by_section(((struct dm_data *)data)->config_section, NULL, NULL);
+			dmuci_delete_by_section(((struct dm_data *)data)->dmmap_section, NULL, NULL);
 			break;
 		case DEL_ALL:
 			uci_foreach_sections_safe("cwmp", "inform_parameter", stmp, s) {
+				struct uci_section *dmmap_section = NULL;
+
+				get_dmmap_section_of_config_section("dmmap_cwmp", "inform_parameter", section_name(s), &dmmap_section);
+				dmuci_delete_by_section(dmmap_section, NULL, NULL);
+
 				dmuci_delete_by_section(s, NULL, NULL);
 			}
 			return 0;
@@ -943,21 +958,19 @@ static int delete_inform_parameter(char *refparam, struct dmctx *ctx, void *data
 
 static int get_inform_parameter_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
-	dmuci_get_value_by_section_string(inform_param_args->config_section, "enable", value);
+	dmuci_get_value_by_section_string(((struct dm_data *)data)->config_section, "enable", value);
 	return 0;
 }
 
 static int set_inform_parameter_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
 {
-	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
 	switch (action) {
 		case VALUECHECK:
 			if (bbfdm_validate_boolean(ctx, value))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section(inform_param_args->config_section, "enable", value);
+			dmuci_set_value_by_section(((struct dm_data *)data)->config_section, "enable", value);
 			return 0;
 	}
 	return 0;
@@ -965,45 +978,29 @@ static int set_inform_parameter_enable(char *refparam, struct dmctx *ctx, void *
 
 static int get_inform_parameter_alias(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
-	dmuci_get_value_by_section_string(inform_param_args->config_section, "informparam_alias", value);
-	if ((*value)[0] == '\0')
-		dmasprintf(value, "cpe-%s", instance);
-	return 0;
+	return bbf_get_alias(ctx, ((struct dm_data *)data)->dmmap_section, "informparam_alias", instance, value);
 }
 
 static int set_inform_parameter_alias(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
 {
-	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
-	switch (action) {
-		case VALUECHECK:
-			if (bbfdm_validate_string(ctx, value, -1, 64, NULL, NULL))
-				return FAULT_9007;
-			return 0;
-		case VALUESET:
-			dmuci_set_value_by_section(inform_param_args->config_section, "informparam_alias", value);
-			return 0;
-	}
-	return 0;
+	return bbf_set_alias(ctx, ((struct dm_data *)data)->dmmap_section, "informparam_alias", instance, value);
 }
 
 static int get_inform_parameter_parameter_name(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
-	dmuci_get_value_by_section_string(inform_param_args->config_section, "parameter_name", value);
+	dmuci_get_value_by_section_string(((struct dm_data *)data)->config_section, "parameter_name", value);
 	return 0;
 }
 
 static int set_inform_parameter_parameter_name(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
 {
-	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
 	switch (action) {
 		case VALUECHECK:
 			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, Forced_Inform_Parmeters, NULL) == 0)
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section(inform_param_args->config_section, "parameter_name", value);
+			dmuci_set_value_by_section(((struct dm_data *)data)->config_section, "parameter_name", value);
 			return 0;
 	}
 	return 0;
@@ -1011,21 +1008,19 @@ static int set_inform_parameter_parameter_name(char *refparam, struct dmctx *ctx
 
 static int get_inform_parameter_event_list(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
-	dmuci_get_value_by_section_string(inform_param_args->config_section, "events_list", value);
+	dmuci_get_value_by_section_string(((struct dm_data *)data)->config_section, "events_list", value);
 	return 0;
 }
 
 static int set_inform_parameter_event_list(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
 {
-	struct dmmap_dup *inform_param_args = (struct dmmap_dup *)data;
 	switch (action) {
 		case VALUECHECK:
 			if (bbfdm_validate_string_list(ctx, value, -1, -1, -1, -1, -1, CWMP_EVENTS, NULL))
 				return FAULT_9007;
 			return 0;
 		case VALUESET:
-			dmuci_set_value_by_section(inform_param_args->config_section, "events_list", value);
+			dmuci_set_value_by_section(((struct dm_data *)data)->config_section, "events_list", value);
 			return 0;
 	}
 	return 0;
