@@ -157,8 +157,95 @@ static bool is_active_host(const char *mac, json_object *res)
 	return active;
 }
 
+// Get IPv4 address assigned to an interface using ioctl
+// return ==> dynamically allocated IPv4 address on success,
+//        ==> empty string on failure
+// Note: Ownership of returned dynamically allocated IPv4 address is with caller
+static char *dm_ioctl_get_ipv4(char *interface_name)
+{
+	struct ifreq ifr;
+	char *ip = "";
+	int fd;
+
+	if (!DM_STRLEN(interface_name))
+		return ip;
+
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd == -1)
+		goto exit;
+
+	ifr.ifr_addr.sa_family = AF_INET;
+	DM_STRNCPY(ifr.ifr_name, interface_name, IFNAMSIZ);
+
+	if (ioctl(fd, SIOCGIFADDR, &ifr) == -1)
+		goto exit;
+
+	ip = dmstrdup(inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr )->sin_addr));
+
+exit:
+	close(fd);
+
+	return ip;
+}
+
+// Get Global IPv6 address assigned to an interface using ifaddrs
+// return ==> dynamically allocated IPv6 address on success,
+//        ==> empty string on failure
+// Note: Ownership of returned dynamically allocated IPv6 address is with caller
+static char *dm_ifaddrs_get_global_ipv6(char *interface_name)
+{
+	struct ifaddrs *ifaddr = NULL,*ifa = NULL;
+	void *in_addr = NULL;
+	int family, err = 0;
+	char *ip = "";
+
+	if (!DM_STRLEN(interface_name))
+		return ip;
+
+	err = getifaddrs(&ifaddr);
+	if (err != 0)
+		return ip;
+
+	for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+
+		if (ifa->ifa_addr == NULL || ifa->ifa_name == NULL || strcmp(ifa->ifa_name, interface_name) != 0)
+			continue;
+
+		// Skip this result, if it is not an IPv6 node
+		family = ifa->ifa_addr->sa_family;
+		if (family != AF_INET6)
+		    continue;
+
+		#define NOT_GLOBAL_UNICAST(addr) \
+            		( (IN6_IS_ADDR_UNSPECIFIED(addr)) || (IN6_IS_ADDR_LOOPBACK(addr))  ||   \
+              		(IN6_IS_ADDR_MULTICAST(addr))   || (IN6_IS_ADDR_LINKLOCAL(addr)) ||   \
+              		(IN6_IS_ADDR_SITELOCAL(addr)) )
+
+
+		char buf[INET6_ADDRSTRLEN] = {0};
+
+		in_addr = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+
+		// Skip this result, if it is an IPv6 address, but not globally routable
+		if (NOT_GLOBAL_UNICAST((struct in6_addr *)in_addr))
+			continue;
+
+		inet_ntop(family, in_addr, buf, sizeof(buf));
+
+		ip = dmstrdup(buf);
+		break;
+	}
+
+	if (ifaddr)
+		freeifaddrs(ifaddr);
+
+	return ip;
+}
+
 static int browseManageableDevice(struct dmctx *dmctx, DMNODE *parent_node, void *prev_data, char *prev_instance)
 {
+#define DHCP_CLIENT_OPTIONS_FILE "/var/dhcp.client.options"
+
 	FILE *f = fopen(DHCP_CLIENT_OPTIONS_FILE, "r");
 	if (f == NULL)
 		return 0;
@@ -440,9 +527,9 @@ static void get_management_ip_port(char **listen_addr)
 		return;
 
 	if (DM_STRCMP(ip_version, "6") == 0)
-		ip = ifaddrs_get_global_ipv6(l3_device);
+		ip = dm_ifaddrs_get_global_ipv6(l3_device);
 	else
-		ip = ioctl_get_ipv4(l3_device);
+		ip = dm_ioctl_get_ipv4(l3_device);
 
 	if (DM_STRLEN(ip) && DM_STRLEN(port))
 		dmasprintf(listen_addr, !DM_STRCMP(ip_version, "6") ? "[%s]:%s" : "%s:%s", ip, port);
@@ -727,6 +814,8 @@ static int get_instance_mode(char *refparam, struct dmctx *ctx, void *data, char
 
 static int set_instance_mode(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
 {
+	char *InstanceMode[] = {"InstanceNumber", "InstanceAlias", NULL};
+
 	switch (action) {
 		case VALUECHECK:
 			if (bbfdm_validate_string(ctx, value, -1, -1, InstanceMode, NULL))
