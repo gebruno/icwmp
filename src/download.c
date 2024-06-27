@@ -145,30 +145,44 @@ int download_file_in_subprocess(const char *file_path, const char *url, const ch
  */
 void ubus_check_image_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
 {
-	if (msg == NULL) {
-		CWMP_LOG(ERROR, "download %s: msg is null");
+	const struct blobmsg_policy p[1] = {{ "code", BLOBMSG_TYPE_INT32 }};
+	struct blob_attr *tb[1] = { NULL };
+	int *code;
+
+	if (!req) {
+		CWMP_LOG(ERROR, "image_check: req is null");
 		return;
 	}
-	int *code = (int *)req->priv;
-	const struct blobmsg_policy p[2] = { { "code", BLOBMSG_TYPE_INT32 }, { "stdout", BLOBMSG_TYPE_STRING } };
-	struct blob_attr *tb[2] = { NULL, NULL };
-	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
 
-	*code = tb[0] ? blobmsg_get_u32(tb[0]) : 1;
+	code = (int *)req->priv;
+
+	if (msg == NULL) {
+		*code = 2;
+		CWMP_LOG(ERROR, "image_check: msg is null");
+		return;
+	}
+
+	if (blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg)) != 0) {
+		*code = 3;
+		CWMP_LOG(ERROR, "image_check: msg parse error");
+		return;
+	}
+
+	*code = tb[0] ? blobmsg_get_u32(tb[0]) : 4;
 }
 
 int cwmp_check_image()
 {
 	int code = 0, e;
 	struct blob_buf b = { 0 };
-	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
+
 	blob_buf_init(&b, 0);
 
 	CWMP_LOG(INFO, "Check downloaded image ...");
 	e = icwmp_ubus_invoke("rpc-sys", "upgrade_test", b.head, ubus_check_image_callback, &code);
 	if (e != 0) {
 		CWMP_LOG(INFO, "rpc-sys upgrade_test ubus method failed: Ubus err code: %d", e);
-		code = 1;
+		code = 5;
 	}
 	blob_buf_free(&b);
 	return code;

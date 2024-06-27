@@ -654,27 +654,27 @@ char *string_to_hex(const unsigned char *str, size_t size)
 
 int copy_file(char *source_file, char *target_file)
 {
-	char ch;
+	int ch;
 	FILE *source, *target;
-	source = fopen(source_file, "r");
+	size_t len = 0;
+	source = fopen(source_file, "rb");
 	if (source == NULL) {
 		CWMP_LOG(ERROR, "Not able to open the source file: %s\n", source_file);
 		return -1;
 	}
-	target = fopen(target_file, "w");
+	target = fopen(target_file, "wb");
 	if (target == NULL) {
 		fclose(source);
 		CWMP_LOG(ERROR, "Not able to open the target file: %s\n", target_file);
 		return -1;
 	}
 
-	ch = fgetc(source);
-	while( feof(source) != EOF) {
+	while((ch = fgetc(source)) != EOF) {
 		fputc(ch, target);
-		ch = fgetc(source);
+		len++;
 	}
 
-	CWMP_LOG(ERROR, "File copied successfully.\n");
+	CWMP_LOG(ERROR, "File copied successfully, len %zd", len);
 	fclose(source);
 	fclose(target);
 	return 0;
