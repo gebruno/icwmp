@@ -136,15 +136,24 @@ char *cmd_add_exec_func(struct cmd_input in, union cmd_result *res)
 
 static void display_add_cmd_result(struct cmd_input in, union cmd_result res, char *fault)
 {
+	char ob_path[1024] = {0};
+
 	if (fault != NULL) {
 		fprintf(stderr, "Fault %s: %s\n", fault, strlen(res.obj_res.fault_msg) ? res.obj_res.fault_msg : get_fault_message_by_fault_code(fault));
 		return;
 	}
 
-	if (in.first_input[strlen(in.first_input) - 1] == '.')
-		fprintf(stdout, "Added %s%s.\n", in.first_input, res.obj_res.instance);
-	else
-		fprintf(stdout, "Added %s.%s.\n", in.first_input, res.obj_res.instance);
+	snprintf(ob_path, sizeof(ob_path), "%s", in.first_input);
+	if (in.first_input[strlen(in.first_input) - 2] == ']') {
+		char *tmp = NULL;
+
+		tmp = strrchr(ob_path, '[');
+		if (tmp) {
+			*tmp = '\0';
+		}
+	}
+
+	fprintf(stdout, "Added %s%s.\n", ob_path, res.obj_res.instance);
 
 	FREE(res.obj_res.instance);
 }

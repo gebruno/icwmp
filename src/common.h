@@ -278,6 +278,12 @@ struct cwmp_dm_parameter {
 	bool forced_notification_param;
 };
 
+struct cwmp_dm_alias {
+	struct list_head list;
+	char *org_name;
+	char *trs_name;
+};
+
 enum amd_version_enum {
 	AMD_1 = 1,
 	AMD_2,
@@ -610,7 +616,9 @@ extern struct cwmp_namespaces ns;
 extern struct session_timer_event *global_session_event;
 
 void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *param_data, char *param_type, int notification, bool writable);
+void add_dm_alias_to_list(struct list_head *head, char *param_name, char *param_data, char **l_param, char **l_trans);
 void cwmp_free_all_dm_parameter_list(struct list_head *list);
+void cwmp_free_all_dm_alias_list(struct list_head *list);
 int global_env_init(int argc, char **argv, struct env *env);
 void cwmp_add_list_fault_param(char *param_name, char *fault_msg, int fault_code, struct list_head *list_set_value_fault);
 void cwmp_free_all_list_param_fault(struct list_head *list_param_fault);

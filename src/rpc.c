@@ -418,6 +418,10 @@ static int validate_inform_parameter_name(struct list_head *parameters_values_li
 		if (match_reg_exp(reg_exp, param_value->name) == false)
 			continue;
 
+		/* For now Alias instance is not supported in inform parameter */
+		if (CWMP_STRSTR(param_value->value, "[") != NULL)
+			return FAULT_CPE_INVALID_PARAMETER_VALUE;
+
 		force_inform_node *iter = NULL, *node = NULL;
 		list_for_each_entry_safe(iter, node, &force_inform_list, list) {
 			if (strcmp(iter->path, param_value->value) == 0)
@@ -1076,7 +1080,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	/* Before set check if exists Device.ManagementServer.InformParameter.{i}.ParameterName with ForcedInform Parameter */
 	fault_code = validate_inform_parameter_name(&list_set_param_value);
 	if (fault_code != FAULT_CPE_NO_FAULT) {
-		err_msg = "Forced inform parameter can not be configured in Device.ManagementServer.InformParameter";
+		err_msg = "Forced inform and AliasInstance in parameter can not be configured in Device.ManagementServer.InformParameter";
 		goto fault;
 	}
 

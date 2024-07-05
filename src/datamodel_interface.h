@@ -24,7 +24,7 @@ struct object_result {
 extern unsigned int transaction_id;
 
 bool cwmp_transaction(const char *cmd);
-
+int instantiate_param_name(const char *param, char **inst_path);
 bool cwmp_get_parameter_value(const char *parameter_name, struct cwmp_dm_parameter *dm_parameter);
 
 char *cwmp_get_parameter_values(const char *parameter_name, struct list_head *parameters_list);

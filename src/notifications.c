@@ -186,7 +186,7 @@ char *cwmp_set_parameter_attributes(char *parameter_name, int notification)
  
        if (parameter_name == NULL)
                parameter_name = "Device.";
- 
+
        /*Check if the parameter name is present in TR-181 datamodel*/
        error = check_valid_parameter_path(parameter_name);
        if (error != NULL)

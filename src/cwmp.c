@@ -64,33 +64,48 @@ static bool interface_reset_req(char *param_name, char *value)
 
 void set_interface_reset_request(char *param_name, char *value)
 {
+	char *inst_path = NULL;
+
 	if (param_name == NULL || value == NULL)
 		return;
 
-	if (interface_reset_req(param_name, value) == false) {
+	if (CWMP_OK != instantiate_param_name(param_name, &inst_path))
+		return;
+
+	if (!CWMP_STRLEN(inst_path))
+		return;
+
+	if (interface_reset_req(inst_path, value) == false) {
+		FREE(inst_path);
 		return;
 	}
 
 	// Store the interface path to handle after session end
 	int len = 0;
-	char *pos = strrchr(param_name, '.');
-	if (pos == NULL)
+	char *pos = strrchr(inst_path, '.');
+	if (pos == NULL) {
+		FREE(inst_path);
 		return;
+	}
 
-	len = pos - param_name + 2;
-	if (len <= 0)
+	len = pos - inst_path + 2;
+	if (len <= 0) {
+		FREE(inst_path);
 		return;
+	}
 
 	intf_reset_node *node = (intf_reset_node *)malloc(sizeof(intf_reset_node));
 	if (node == NULL) {
 		CWMP_LOG(ERROR, "Out of memory");
+		FREE(inst_path);
 		return;
 	}
 
 	CWMP_MEMSET(node, 0, sizeof(intf_reset_node));
-	snprintf(node->path, len, "%s", param_name);
+	snprintf(node->path, len, "%s", inst_path);
 	INIT_LIST_HEAD(&node->list);
 	list_add_tail(&node->list, &intf_reset_list);
+	FREE(inst_path);
 }
 
 static int create_cwmp_temporary_files(void)

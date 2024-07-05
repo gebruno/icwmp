@@ -92,6 +92,7 @@ static void show_help(void)
 int global_env_init(int argc, char **argv, struct env *env)
 {
 	int c, option_index = 0;
+	char value[BUF_SIZE_256] = {0};
 
 	/* This is to initialize the global context in mxml,
 	 *  with out init mxml sometimes segfaults, when calling the destructor.
@@ -108,6 +109,24 @@ int global_env_init(int argc, char **argv, struct env *env)
 			break;
 		case 'c':
 			cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
+			cwmp_main->conf.amd_version = DEFAULT_AMD_VERSION;
+			get_uci_path_value(NULL, "cwmp.cpe.amd_version", value, BUF_SIZE_256);
+			if (CWMP_STRLEN(value) != 0) {
+				int a = atoi(value);
+				cwmp_main->conf.amd_version = (a >= 1 && a <= 6) ? a : DEFAULT_AMD_VERSION;
+			}
+
+			memset(value, 0, sizeof(value));
+			cwmp_main->conf.instance_mode = DEFAULT_INSTANCE_MODE;
+			get_uci_path_value(NULL, "cwmp.cpe.instance_mode", value, BUF_SIZE_256);
+			if (strlen(value) != 0) {
+				if (CWMP_STRCMP(value, "InstanceNumber") == 0) {
+					cwmp_main->conf.instance_mode = INSTANCE_MODE_NUMBER;
+				} else {
+					cwmp_main->conf.instance_mode = INSTANCE_MODE_ALIAS;
+				}
+			}
+
 			execute_cwmp_cli_command(argv[2], argv + 3);
 			FREE(cwmp_main);
 			exit(0);
@@ -153,6 +172,93 @@ void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *pa
 	dm_parameter->writable = writable;
 }
 
+void add_dm_alias_to_list(struct list_head *head, char *param, char *val, char **l_param, char **l_trans)
+{
+	struct cwmp_dm_alias *dm_alias = NULL;
+	bool is_alias = false;
+	bool first_level_map = false;
+	char res_path[2048] = {0};
+	char tmp_path[1024] = {0};
+
+	if (!head || !param)
+		return;
+
+	char *s_path = strdup(param);
+	if (!s_path)
+		return;
+
+	char *tmp = strrchr(s_path, '.');
+	if (!tmp) {
+		FREE(s_path);
+		return;
+	}
+
+	if (strcmp(tmp, ".Alias") == 0)
+		is_alias = true;
+
+	*(tmp+1) = '\0';
+
+	if (CWMP_STRCMP(s_path, *l_param) == 0 && is_alias == false) {
+		FREE(s_path);
+		return;
+	}
+
+	snprintf(tmp_path, sizeof(tmp_path), "%s", s_path);
+
+	if (CWMP_STRNCMP(s_path, *l_param, CWMP_STRLEN(*l_param)) == 0) {
+		char *tmp1 = s_path + CWMP_STRLEN(*l_param);
+		snprintf(tmp_path, sizeof(tmp_path), "%s%s", *l_trans, tmp1);
+		first_level_map = true;
+	}
+
+	tmp = strrchr(tmp_path, '.');
+	list_for_each_entry(dm_alias, head, list) {
+		if (CWMP_STRCMP(s_path, dm_alias->org_name) == 0) {
+			if (!is_alias) {
+				FREE(s_path);
+				return;
+			}
+
+			*tmp = '\0';
+			tmp = strrchr(tmp_path, '.');
+			*tmp = '\0';
+			snprintf(res_path, sizeof(res_path), "%s.[%s].", tmp_path, val);
+
+			FREE(dm_alias->trs_name);
+			dm_alias->trs_name = strdup(res_path);
+			*l_trans = strdup(res_path);
+			FREE(s_path);
+			return;
+		} else if (!first_level_map && CWMP_STRNCMP(s_path, dm_alias->org_name, CWMP_STRLEN(dm_alias->org_name)) == 0) {
+			char *next = s_path + CWMP_STRLEN(dm_alias->org_name);
+			snprintf(tmp_path, sizeof(tmp_path), "%s%s", dm_alias->trs_name, next);
+			tmp = strrchr(tmp_path, '.');
+		}
+	}
+
+	dm_alias = calloc(1, sizeof(struct cwmp_dm_alias));
+	list_add_tail(&dm_alias->list, head);
+
+	dm_alias->org_name = strdup(s_path);
+	if (is_alias) {
+		*tmp = '\0';
+		tmp = strrchr(tmp_path, '.');
+		*tmp = '\0';
+		snprintf(res_path, sizeof(res_path), "%s.[%s].", tmp_path, val);
+
+		dm_alias->trs_name = strdup(res_path);
+
+		FREE(*l_param);
+		FREE(*l_trans);
+		*l_param = strdup(dm_alias->org_name);
+		*l_trans = strdup(dm_alias->trs_name);
+	} else {
+		dm_alias->trs_name = strdup(tmp_path);
+	}
+
+	FREE(s_path);
+}
+
 static void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter)
 {
 	list_del(&dm_parameter->list);
@@ -163,12 +269,29 @@ static void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter
 	FREE(dm_parameter);
 }
 
+static void delete_dm_alias_from_list(struct cwmp_dm_alias *dm_alias)
+{
+	list_del(&dm_alias->list);
+	FREE(dm_alias->org_name);
+	FREE(dm_alias->trs_name);
+	FREE(dm_alias);
+}
+
 void cwmp_free_all_dm_parameter_list(struct list_head *list)
 {
 	while (list->next != list) {
 		struct cwmp_dm_parameter *dm_parameter;
 		dm_parameter = list_entry(list->next, struct cwmp_dm_parameter, list);
 		delete_dm_parameter_from_list(dm_parameter);
+	}
+}
+
+void cwmp_free_all_dm_alias_list(struct list_head *list)
+{
+	while (list->next != list) {
+		struct cwmp_dm_alias *dm_alias;
+		dm_alias = list_entry(list->next, struct cwmp_dm_alias, list);
+		delete_dm_alias_from_list(dm_alias);
 	}
 }
 
