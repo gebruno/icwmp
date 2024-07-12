@@ -482,6 +482,19 @@ int cwmp_rpc_acs_parse_response_inform(struct rpc *this __attribute__((unused)))
 		}
 		goto error;
 	}
+	b = mxmlFindElement(tree, tree, "cwmp:UseCWMPVersion", NULL, NULL, MXML_DESCEND);
+	if (b && cwmp_main->conf.supported_amd_version >= 5) { //IF supported version !=5 acs response dosen't contain UseCWMPVersion
+		b = mxmlWalkNext(b, tree, MXML_DESCEND_FIRST);
+		if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
+			goto error;
+		c = (char *) mxmlGetOpaque(b);
+		if (c && *(c + 1) == '.') {
+			c += 2;
+			cwmp_main->conf.amd_version = atoi(c) + 1;
+			return 0;
+		}
+		goto error;
+	}
 	for (i = 0; cwmp_urls[i] != NULL; i++) {
 		cwmp_urn = cwmp_urls[i];
 		c = (char *)xml__get_attribute_name_by_value(tree, cwmp_urn);
