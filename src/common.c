@@ -363,9 +363,24 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	return written;
 }
 
+void convert_string_to_hex(const char *str, char *hex, size_t size)
+{
+	int i, len = CWMP_STRLEN(str);
+	unsigned pos = 0;
+
+	for (i = 0; i < len && pos < size - 2; i++) {
+		pos += snprintf((char *)hex + pos, size - pos, "%02X", str[i]);
+	}
+
+	hex[pos] = '\0';
+}
+
 void set_rpc_parameter_key(char *param_key)
 {
-	set_uci_path_value(NULL, "cwmp.cpe.ParameterKey", param_key ? param_key : "");
+	char buf[1024] = {0};
+
+	convert_string_to_hex(param_key, buf, sizeof(buf));
+	set_uci_path_value(NULL, "cwmp.cpe.ParameterKey", buf);
 }
 
 /*

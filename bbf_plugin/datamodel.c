@@ -445,7 +445,12 @@ static int set_management_server_delay_reboot(char *refparam, struct dmctx *ctx,
 /*#Device.ManagementServer.ParameterKey!UCI:cwmp/acs,acs/ParameterKey*/
 static int get_management_server_key(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
+	char buf[1024] = {0};
+
 	dmuci_get_option_value_string("cwmp", "cpe", "ParameterKey", value);
+	convert_hex_to_string(*value, buf, sizeof(buf));
+	*value = dmstrdup(buf);
+
 	return 0;
 }
 
