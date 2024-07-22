@@ -404,6 +404,7 @@ static void http_cr_new_client(int client, bool service_available)
 
 	if (!username || !password) {
 		// if we dont have username or password configured proceed with connecting to ACS
+		CWMP_LOG(WARNING, "CPE username/password not defined - 503");
 		service_available = false;
 		goto http_end;
 	}
@@ -435,6 +436,7 @@ static void http_cr_new_client(int client, bool service_available)
 		goto http_end;
 	}
 
+	CWMP_LOG(DEBUG, "Processing CR service_available %d, client %d", service_available, client);
 	bool read_done = false;
 	/* Perform read from FD until all required data are collected or
 	 * HTTP_FD_FEEDS_COUNT number of read operation has been performed.
@@ -483,6 +485,7 @@ static void http_cr_new_client(int client, bool service_available)
 				 */
 				size_t avail_space = (size_t)(sizeof(data) - strlen(data));
 				if (buf_len < avail_space) {
+					CWMP_LOG(DEBUG, "Continue buffer overrun %d=>%d", buf_len, avail_space);
 					strcat(data, buffer);
 					continue;
 				}
@@ -557,6 +560,7 @@ static void http_cr_new_client(int client, bool service_available)
 	int auth_check = validate_http_digest_auth("GET", cr_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, cwmp_main->conf.session_timeout, request_host);
 
 	if (auth_check == -1) { /* invalid nonce */
+		CWMP_LOG(INFO, "Auth check failed for incoming CR");
 		internal_error = true;
 		goto http_end;
 	}
@@ -687,7 +691,7 @@ void icwmp_http_server_listen(void)
 	struct sockaddr_in6 client;
 
 	//Listen
-	listen(cwmp_main->cr_socket_desc, 3);
+	listen(cwmp_main->cr_socket_desc, 5);
 
 	//Accept and incoming connection
 	c = sizeof(struct sockaddr_in);
@@ -700,7 +704,7 @@ void icwmp_http_server_listen(void)
 			CWMP_LOG(ERROR, "Could not accept connections for Connection Request!");
 			shutdown(cwmp_main->cr_socket_desc, SHUT_RDWR);
 			icwmp_http_server_init();
-			listen(cwmp_main->cr_socket_desc, 3);
+			listen(cwmp_main->cr_socket_desc, 5);
 			cr_request = 0;
 			restrict_start_time = 0;
 			continue;
@@ -717,6 +721,7 @@ void icwmp_http_server_listen(void)
 		} else {
 			cr_request++;
 			if (cr_request > CONNECTION_REQUEST_RESTRICT_REQUEST) {
+				CWMP_LOG(WARNING, "Too many connection requests %d, block CR for %d Sec", cr_request, CONNECTION_REQUEST_RESTRICT_PERIOD)
 				restrict_start_time = current_time;
 				service_available = false;
 			}

@@ -16,6 +16,10 @@
 #define DU_STATE_CHANGE_SEC_NAME "du_state_change"
 #define TRANSFER_COMPL_SEC_NAME "transfer_complete"
 
+#ifndef CWMP_DUAL_SUPPORT
+#define CWMP_DUAL_SUPPORT BBFDM_CWMP
+#endif
+
 static char *CWMP_EVENTS[] = {"0 BOOTSTRAP", "1 BOOT", "2 PERIODIC", "3 SCHEDULED", "5 KICKED", "6 CONNECTION REQUEST", "7 TRANSFER COMPLETE", "8 DIAGNOSTICS COMPLETE", "9 REQUEST DOWNLOAD", "10 AUTONOMOUS TRANSFER COMPLETE", "11 DU STATE CHANGE COMPLETE", "12 AUTONOMOUS DU STATE CHANGE COMPLETE", "13 WAKEUP", "M Reboot", "M ScheduleInform", "M Download", "M ScheduleDownload", "M Upload", "M ChangeDUState", "14 HEARTBEAT", NULL};
 static char *Forced_Inform_Parmeters[] = {"Device.RootDataModelVersion", "Device.DeviceInfo.HardwareVersion", "Device.DeviceInfo.SoftwareVersion", "Device.DeviceInfo.ProvisioningCode", "Device.ManagementServer.ParameterKey", "Device.ManagementServer.ConnectionRequestURL", "Device.ManagementServer.AliasBasedAddressing", NULL};
 static char *DUStateOperationType[] = {"Install", "Update", "Uninstall", NULL};
@@ -1365,7 +1369,7 @@ DM_MAP_OBJ tDynamicObj[] = {
 /*** Device. ***/
 DMOBJ tCWMPObj[] = {
 /* OBJ, permission, addobj, delobj, checkdep, browseinstobj, nextdynamicobj, dynamicleaf, nextobj, leaf, linker, bbfdm_type, uniqueKeys*/
-{"ManagementServer", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, tManagementServerObj, tManagementServerParams, NULL, BBFDM_CWMP},
+{"ManagementServer", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, tManagementServerObj, tManagementServerParams, NULL, CWMP_DUAL_SUPPORT},
 {"CWMPManagementServer", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, BBFDM_USP},
 {"XMPP", &DMREAD, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, BBFDM_CWMP},
 {0}
@@ -1384,9 +1388,9 @@ DMOBJ tManagementServerObj[] = {
 
 DMLEAF tManagementServerParams[] = {
 /* PARAM, permission, type, getvalue, setvalue, bbfdm_type, version*/
-{"URL", &DMWRITE, DMT_STRING, get_management_server_url, set_management_server_url, BBFDM_CWMP},
-{"Username", &DMWRITE, DMT_STRING, get_management_server_username, set_management_server_username, BBFDM_CWMP},
-{"Password", &DMWRITE, DMT_STRING, get_empty, set_management_server_passwd, BBFDM_CWMP},
+{"URL", &DMWRITE, DMT_STRING, get_management_server_url, set_management_server_url, CWMP_DUAL_SUPPORT},
+{"Username", &DMWRITE, DMT_STRING, get_management_server_username, set_management_server_username, CWMP_DUAL_SUPPORT},
+{"Password", &DMWRITE, DMT_STRING, get_empty, set_management_server_passwd, CWMP_DUAL_SUPPORT},
 {"ScheduleReboot", &DMWRITE, DMT_TIME, get_management_server_schedule_reboot, set_management_server_schedule_reboot, BBFDM_CWMP},
 {"DelayReboot", &DMWRITE, DMT_INT, get_management_server_delay_reboot, set_management_server_delay_reboot, BBFDM_CWMP},
 {"PeriodicInformEnable", &DMWRITE, DMT_BOOL, get_management_server_periodic_inform_enable, set_management_server_periodic_inform_enable,  BBFDM_CWMP},
@@ -1409,7 +1413,7 @@ DMLEAF tManagementServerParams[] = {
 {"InstanceMode", &DMWRITE, DMT_STRING, get_instance_mode, set_instance_mode, BBFDM_CWMP},
 {"SupportedConnReqMethods", &DMREAD, DMT_STRING, get_management_server_supported_conn_req_methods, NULL, BBFDM_CWMP},
 {"InstanceWildcardsSupported", &DMREAD, DMT_BOOL, get_management_server_instance_wildcard_supported, NULL, BBFDM_CWMP},
-{"EnableCWMP", &DMWRITE, DMT_BOOL, get_management_server_enable_cwmp, set_management_server_enable_cwmp, BBFDM_CWMP},
+{"EnableCWMP", &DMWRITE, DMT_BOOL, get_management_server_enable_cwmp, set_management_server_enable_cwmp, CWMP_DUAL_SUPPORT},
 {"UDPConnectionRequestAddress", &DMREAD, DMT_STRING, get_upd_cr_address, NULL, BBFDM_CWMP},
 {"NATDetected", &DMREAD, DMT_BOOL, get_nat_detected, NULL, BBFDM_CWMP},
 {"InformParameterNumberOfEntries", &DMREAD, DMT_UNINT, get_inform_parameter_number_of_entries, NULL, BBFDM_CWMP},
