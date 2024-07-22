@@ -799,7 +799,6 @@ int cwmp_rpc_acs_destroy_data_transfer_complete(struct rpc *rpc)
 		FREE(p->command_key);
 		FREE(p->start_time);
 		FREE(p->complete_time);
-		FREE(p->old_software_version);
 		FREE(p->file_type);
 		FREE(p->fault_string);
 	}
