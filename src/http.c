@@ -535,8 +535,11 @@ static void http_cr_new_client(int client, bool service_available)
 					}
 				}
 
-				if (!strncasecmp(rec_http_get_head, cr_http_get_head, strlen(cr_http_get_head)))
+				if (!strncasecmp(rec_http_get_head, cr_http_get_head, strlen(cr_http_get_head))) {
 					method_is_get = true;
+				} else {
+					CWMP_LOG(WARNING, "Get header [%s] mismatch[%s]", rec_http_get_head, cr_http_get_head);
+				}
 			}
 
 			if (!strncasecmp(data, "Authorization: Digest ", strlen("Authorization: Digest "))) {

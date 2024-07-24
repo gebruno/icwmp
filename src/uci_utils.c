@@ -292,7 +292,14 @@ static void config_get_cpe_elements(struct uci_section *s)
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request port: %d", cwmp_main->conf.connection_request_port);
 
 	char *crpath = get_value_from_uci_option(cpe_tb[UCI_CPE_CRPATH]);
-	snprintf(cwmp_main->conf.connection_request_path, sizeof(cwmp_main->conf.connection_request_path), "%s", strlen(crpath) ? (*crpath == '/') ? crpath + 1 : crpath : "/");
+	if (CWMP_STRLEN(crpath) == 0) {
+		snprintf(cwmp_main->conf.connection_request_path, sizeof(cwmp_main->conf.connection_request_path), "/");
+	} else {
+		if (crpath[0] == '/') {
+			crpath = crpath + 1;
+		}
+		snprintf(cwmp_main->conf.connection_request_path, sizeof(cwmp_main->conf.connection_request_path), "/%s",  crpath);
+	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request path: %s", cwmp_main->conf.connection_request_path);
 
 	cwmp_main->conf.periodic_notify_enable = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_NOTIFY_PERIODIC_ENABLE]));

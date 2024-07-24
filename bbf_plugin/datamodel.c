@@ -550,7 +550,14 @@ static int get_management_server_connection_request_url(char *refparam, struct d
 		char *path = NULL;
 
 		dmuci_get_option_value_string("cwmp", "cpe", "path", &path);
-		dmasprintf(value, "http://%s/%s", mgmt_addr, path ? path : "");
+		if (DM_STRLEN(path) == 0) {
+			dmasprintf(value, "http://%s/", mgmt_addr);
+		} else {
+			if (path[0] == '/') {
+				path = path + 1; // exclude first /
+			}
+			dmasprintf(value, "http://%s/%s", mgmt_addr, path);
+		}
 	}
 
 	return 0;
