@@ -38,6 +38,7 @@ config cpe 'cpe'
 	option periodic_notify_enable '1'
 	option periodic_notify_interval '10'
 	option fw_upgrade_keep_settings '1'
+	option path 'tr69'
 	
 config lwn 'lwn'
 	option enable '1'
