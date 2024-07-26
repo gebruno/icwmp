@@ -215,6 +215,42 @@ end:
 	return 0;
 }
 
+static void wait_for_time_sync(void)
+{
+	struct cwmp_dm_parameter cwmp_dm_param = {0};
+
+	int loop_count = (cwmp_main->conf.clock_sync_timeout / 2);
+
+	if (loop_count == 0)
+		return;
+
+	while (loop_count) {
+		sleep(2);
+
+		if (!cwmp_get_parameter_value("Device.Time.Status", &cwmp_dm_param)) {
+			CWMP_LOG(ERROR, "Failed to get TimeSync status");
+			return;
+		}
+
+		if (CWMP_STRCMP(cwmp_dm_param.value, "Disabled") == 0) {
+			CWMP_LOG(INFO, "TimeSync is disabled no need to wait more");
+			return;
+		}
+
+		if (CWMP_STRCMP(cwmp_dm_param.value, "Synchronized") != 0) {
+			CWMP_LOG(DEBUG, "Clock is unsynchronized, wait before sending inform");
+			loop_count--;
+			continue;
+		}
+
+		CWMP_LOG(INFO, "Clock is synchronized, ready to send inform");
+		return;
+	}
+
+	CWMP_LOG(ERROR, "Timeout occurred before clock sync or cwmp stopped");
+	return;
+}
+
 static int cwmp_init(void)
 {
 	openlog("cwmp", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
@@ -249,6 +285,8 @@ static int cwmp_init(void)
 	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
 	cwmp_config_load();
 	CWMP_LOG(DEBUG, "Successfully load icwmpd configuration");
+
+	wait_for_time_sync();
 
 	cwmp_main->prev_periodic_enable = cwmp_main->conf.periodic_enable;
 	cwmp_main->prev_periodic_interval = cwmp_main->conf.period;

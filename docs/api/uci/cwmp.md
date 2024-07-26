@@ -435,6 +435,15 @@
                       <div class="td_row_odd">If set to <b>1</b>, icwmp will keep the uci setting while doing firmware upgrade using Download RPC with '1 Firmware Upgrade Image'.</div>
                     </td>
                   </tr>
+                  <tr>
+                    <td class="td_row_even"><div class="td_row_even">clock_sync_timeout</div></td>
+                    <td class="td_row_even"><div class="td_row_even">integer</div></td>
+                    <td class="td_row_even"><div class="td_row_even">no</div></td>
+                    <td class="td_row_even"><div class="td_row_even">128</div></td>
+                    <td class="td_row_even">
+                      <div class="td_row_odd">The maximum time in seconds, icwmp should wait for the system clock to be synchronized with the time source before sending the initial inform message. Valid range is 0-180 seconds.</div>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </td>

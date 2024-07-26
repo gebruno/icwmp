@@ -64,6 +64,7 @@
 #define DEFAULT_INSTANCE_MODE 0
 #define DEFAULT_SESSION_TIMEOUT 60
 #define MAX_NBRE_SERVICES 256
+#define DEFAULT_SYNC_TIMEOUT 128
 
 #define BUF_SIZE_8 (8 + 1)
 #define BUF_SIZE_16 (16 + 1)
@@ -156,6 +157,7 @@ typedef struct config {
 	unsigned int session_timeout;
 	bool http_disable_100continue;
 	int cr_timeout;
+	int clock_sync_timeout;
 	bool force_ipv4;
 	bool fw_upgrade_keep_settings;
 } config;

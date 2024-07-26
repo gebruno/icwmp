@@ -238,6 +238,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_FORCE_IPV4,
 		UCI_CPE_KEEP_SETTINGS,
 		UCI_CPE_DEFAULT_WAN_IFACE,
+		UCI_CPE_CLOCK_SYNC_TIMEOUT,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -259,7 +260,8 @@ static void config_get_cpe_elements(struct uci_section *s)
 		[UCI_CPE_CON_REQ_TIMEOUT] = { .name = "cr_timeout", .type = UCI_TYPE_STRING },
 		[UCI_CPE_FORCE_IPV4] = { .name = "force_ipv4", .type = UCI_TYPE_STRING },
 		[UCI_CPE_KEEP_SETTINGS] = { .name = "fw_upgrade_keep_settings", .type = UCI_TYPE_STRING },
-		[UCI_CPE_DEFAULT_WAN_IFACE] = { .name = "default_wan_interface", .type = UCI_TYPE_STRING }
+		[UCI_CPE_DEFAULT_WAN_IFACE] = { .name = "default_wan_interface", .type = UCI_TYPE_STRING },
+		[UCI_CPE_CLOCK_SYNC_TIMEOUT] = { .name = "clock_sync_timeout", .type = UCI_TYPE_STRING }
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS];
@@ -377,6 +379,17 @@ static void config_get_cpe_elements(struct uci_section *s)
 		memset(cwmp_main->net.interface, 0, sizeof(cwmp_main->net.interface));
 	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe default_wan_interface: %s", cwmp_main->conf.default_wan_iface);
+
+	cwmp_main->conf.clock_sync_timeout = DEFAULT_SYNC_TIMEOUT;
+	char *sync_time = get_value_from_uci_option(cpe_tb[UCI_CPE_CLOCK_SYNC_TIMEOUT]);
+	if (CWMP_STRLEN(sync_time) != 0) {
+		int val = atoi(sync_time);
+		if (val >= 0 && val <= 180) {
+			cwmp_main->conf.clock_sync_timeout = val;
+		}
+	}
+
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe clock_sync_timeout: %d", cwmp_main->conf.clock_sync_timeout);
 }
 
 static void config_get_lwn_elements(struct uci_section *s)
