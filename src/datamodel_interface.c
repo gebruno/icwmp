@@ -624,6 +624,45 @@ char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, stru
 	return NULL;
 }
 
+char *cwmp_validate_multi_instance_path(const char *object, struct list_head *parameters_list)
+{
+	struct blob_buf b = {0};
+	struct list_params_result get_result = {
+		.parameters_list = parameters_list,
+		.alias_list = NULL,
+		.error = FAULT_CPE_NO_FAULT,
+		.error_msg = 0
+	};
+
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	bb_add_string(&b, "path", object);
+	blobmsg_add_u8(&b, "first_level", false);
+	void *table = blobmsg_open_table(&b, "optional");
+	bb_add_string(&b, "proto", "usp");
+	bb_add_string(&b, "format", "raw");
+	blobmsg_add_u32(&b, "transaction_id", transaction_id);
+	blobmsg_close_table(&b, table);
+
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "schema", b.head, ubus_get_parameter_callback, &get_result);
+	blob_buf_free(&b);
+
+	if (e < 0) {
+		CWMP_LOG(INFO, "object_names ubus method failed: Ubus err code: %d", e);
+		return "9002";
+	}
+
+	if (get_result.error) {
+		char buf[8] = {0};
+		snprintf(buf, sizeof(buf), "%d", get_result.error);
+		CWMP_LOG(WARNING, "Get parameter Names (%s) failed: fault_code: %d", object, get_result.error);
+		return icwmp_strdup(buf);
+	}
+
+	return NULL;
+}
+
 char *cwmp_validate_parameter_name(const char *param_name, bool next_level, struct list_head *param_list)
 {
 	struct blob_buf buf = {0};

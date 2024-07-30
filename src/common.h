@@ -684,4 +684,5 @@ char *cwmp_strdup(const char *s1, const char *origin, int pos);
 void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos);
 void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, int pos);
 void cwmp_restart_service(struct uloop_timeout *timeout  __attribute__((unused)));
+int regex_replace(char **str, const char *pattern, const char *replace, int *match_count);
 #endif

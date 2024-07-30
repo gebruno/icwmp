@@ -900,27 +900,56 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 
 	char *err = cwmp_get_parameter_names(parameter_name ? parameter_name : "", next_level, &parameters_list, &err_msg);
 	if (err) {
-		// If an error occurs, try up to two more times to ensure the path is invalid
-		for (int i = 0; i < 2; i++) {
-			CWMP_LOG(ERROR, "Failed to get parameter name for '%s', error: %s. Retrying in 1 second...", parameter_name ? parameter_name : "", err);
+		// If an error occurs, check if schema is valid for transient multi-instance object
+		char *inst_path = NULL;
+		int index_count = 0;
+		LIST_HEAD(params_list);
 
-			// Wait for 1 second before retrying
-			sleep(1);
-
-			// Retry to get the parameter name
-			err = cwmp_get_parameter_names(parameter_name ? parameter_name : "", next_level, &parameters_list, &err_msg);
-
-			// If the operation is successful, exit the loop
-			if (err == NULL)
-				break;
+		if (CWMP_OK != instantiate_param_name(parameter_name, &inst_path)) {
+			goto build_response;
 		}
+
+		unsigned int len = CWMP_STRLEN(inst_path);
+		if ((len == 0) || (inst_path[len - 1] != '.') || (len > 2 && inst_path[len - 2] == '*')) {
+			FREE(inst_path);
+			goto build_response;
+		}
+
+		if (regex_replace(&inst_path, ".[1-9][0-9]*.", ".{i}.", &index_count) != 0) {
+			FREE(inst_path);
+			goto build_response;
+		}
+
+		if (index_count == 0) { // Not an multi-instance object path
+			FREE(inst_path);
+			goto build_response;
+		}
+
+		char *fault = cwmp_validate_multi_instance_path(inst_path, &params_list);
+		if (fault) {
+			FREE(inst_path);
+			goto build_response;
+		}
+
+		struct cwmp_dm_parameter *pv = NULL;
+		list_for_each_entry (pv, &params_list, list) {
+			if (CWMP_STRCMP(pv->name, inst_path) == 0) {
+				err = NULL;
+				break;
+			}
+		}
+
+		cwmp_free_all_dm_parameter_list(&params_list);
+		FREE(inst_path);
 	}
 
+build_response:
 	if (err) {
 		fault_code = cwmp_get_fault_code_by_string(err);
 		FREE(parameter_name);
 		goto fault;
 	}
+
 	FREE(parameter_name);
 
 	if (cwmp_main->session->tree_out == NULL) {

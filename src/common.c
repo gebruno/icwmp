@@ -1176,3 +1176,53 @@ void cwmp_restart_service(struct uloop_timeout *timeout  __attribute__((unused))
 	blob_buf_free(&b);
 	CWMP_LOG(DEBUG, "Scheduled icwmpd restart");
 }
+
+int regex_replace(char **str, const char *pattern, const char *replace, int *match_count) {
+	regex_t reg;
+
+	if (!str || !pattern || !replace) {
+		return -1;
+	}
+
+	// if regex can't commpile pattern, do nothing
+	if (!regcomp(&reg, pattern, REG_EXTENDED)) {
+		size_t nmatch = reg.re_nsub;
+		regmatch_t m[nmatch + 1];
+		char *new = NULL;
+		char *search_start = *str;
+
+		if (CWMP_STRLEN(search_start) == 0) {
+			return -1;
+		}
+
+		int count = 0;
+		while(!regexec(&reg, search_start, nmatch + 1, m, REG_NOTBOL)) {
+			count = count + 1;
+
+			// make enough room
+			int len = strlen(*str) + strlen(replace) + 1;
+			new = (char *)malloc(len);
+			if(!new)
+				return -1;
+
+			memset(new, 0, len);
+			strncat(new, search_start, m[0].rm_so); // string before pattern
+			strcat(new, replace); // add the replacement
+			strcat(new, search_start + m[0].rm_eo); // add trailing text in string
+
+			free(*str);
+			*str = strdup(new);
+			search_start = *str;
+			free(new);
+		}
+
+		regfree(&reg);
+		if (match_count) {
+			*match_count = count;
+		}
+
+		return 0;
+	}
+
+	return -1;
+}
