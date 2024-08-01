@@ -239,6 +239,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_KEEP_SETTINGS,
 		UCI_CPE_DEFAULT_WAN_IFACE,
 		UCI_CPE_CLOCK_SYNC_TIMEOUT,
+		UCI_CPE_ENABLE,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -261,7 +262,8 @@ static void config_get_cpe_elements(struct uci_section *s)
 		[UCI_CPE_FORCE_IPV4] = { .name = "force_ipv4", .type = UCI_TYPE_STRING },
 		[UCI_CPE_KEEP_SETTINGS] = { .name = "fw_upgrade_keep_settings", .type = UCI_TYPE_STRING },
 		[UCI_CPE_DEFAULT_WAN_IFACE] = { .name = "default_wan_interface", .type = UCI_TYPE_STRING },
-		[UCI_CPE_CLOCK_SYNC_TIMEOUT] = { .name = "clock_sync_timeout", .type = UCI_TYPE_STRING }
+		[UCI_CPE_CLOCK_SYNC_TIMEOUT] = { .name = "clock_sync_timeout", .type = UCI_TYPE_STRING },
+		[UCI_CPE_ENABLE] = { .name = "enable", .type = UCI_TYPE_STRING }
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS];
@@ -390,6 +392,14 @@ static void config_get_cpe_elements(struct uci_section *s)
 	}
 
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe clock_sync_timeout: %d", cwmp_main->conf.clock_sync_timeout);
+
+	cwmp_main->conf.enable = true;
+	char *cwmp_enable = get_value_from_uci_option(cpe_tb[UCI_CPE_ENABLE]);
+	if (CWMP_STRLEN(cwmp_enable) != 0) {
+		cwmp_main->conf.enable = str_to_bool(cwmp_enable);
+	}
+
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe enable: %d", cwmp_main->conf.enable);
 }
 
 static void config_get_lwn_elements(struct uci_section *s)
@@ -899,6 +909,12 @@ exit:
 		uci_free_context(uci_ctx);
 	}
 	pthread_mutex_unlock(&mutex_config_load);
+
+	if (cwmp_main->conf.enable == false) {
+		CWMP_LOG(INFO, "icwmp service has been disabled.");
+		stop_service();
+	}
+
 	return CWMP_OK;
 }
 

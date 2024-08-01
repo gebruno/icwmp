@@ -608,8 +608,7 @@ int cwmp_apply_acs_changes(void)
 {
 	int error;
 
-	if ((error = cwmp_config_reload()))
-		return error;
+	cwmp_config_reload();
 
 	if ((error = cwmp_root_cause_events()))
 		return error;

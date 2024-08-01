@@ -136,6 +136,7 @@ typedef struct config {
 	unsigned int active_notif_throttle;
 	unsigned int md_notif_limit;
 
+	bool enable;
 	bool dhcp_discovery;
 	bool periodic_enable;
 	bool periodic_notify_enable;
@@ -685,4 +686,5 @@ void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos);
 void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, int pos);
 void cwmp_restart_service(struct uloop_timeout *timeout  __attribute__((unused)));
 int regex_replace(char **str, const char *pattern, const char *replace, int *match_count);
+void stop_service(void);
 #endif

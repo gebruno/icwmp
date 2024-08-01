@@ -1226,3 +1226,16 @@ int regex_replace(char **str, const char *pattern, const char *replace, int *mat
 
 	return -1;
 }
+
+void stop_service(void)
+{
+	struct blob_buf bb;
+
+	memset(&bb, 0, sizeof(struct blob_buf));
+	blob_buf_init(&bb, 0);
+
+	blobmsg_add_string(&bb, "name", "icwmpd");
+
+	icwmp_ubus_invoke("service", "delete", bb.head, NULL, NULL);
+	blob_buf_free(&bb);
+}

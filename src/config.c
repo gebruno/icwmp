@@ -83,14 +83,12 @@ int get_preinit_config()
 }
 
 
-static int global_conf_init()
+static void global_conf_init()
 {
 	get_global_config();
 
 	/* Launch reboot methods if needed */
 	launch_reboot_methods();
-
-	return 0;
 }
 
 void cwmp_config_load()
@@ -148,9 +146,7 @@ int cwmp_config_reload()
 {
 	CWMP_MEMSET(&cwmp_main->env, 0, sizeof(struct env));
 
-	int err = global_conf_init();
-	if (err != CWMP_OK)
-		return err;
+	global_conf_init();
 
 	return CWMP_OK;
 }
