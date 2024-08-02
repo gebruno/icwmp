@@ -251,7 +251,7 @@ static void ubus_get_parameter_callback(struct ubus_request *req, int type __att
 			{ "data", BLOBMSG_TYPE_STRING },
 			{ "type", BLOBMSG_TYPE_STRING },
 			{ "fault", BLOBMSG_TYPE_INT32 },
-			{ "info", BLOBMSG_TYPE_STRING }
+			{ "output", BLOBMSG_TYPE_ARRAY }
 	};
 
 	if (msg == NULL || req == NULL)
@@ -290,9 +290,24 @@ static void ubus_get_parameter_callback(struct ubus_request *req, int type __att
 		add_dm_parameter_to_list(result->parameters_list, param_name, param_value, param_type, 0, writable);
 
 		if (inst_mode == INSTANCE_MODE_ALIAS) {
-			/* in GPN alias values comes in tb[4] i.e the info field */
-			char *value = tb[4] ? blobmsg_get_string(tb[4]) : param_value;
-			add_dm_alias_to_list(result->alias_list, param_name, value, &last_path, &last_transform);
+			/* in GPN alias values comes in tb[4] i.e the output field */
+			if (tb[4]) {
+				struct blob_attr *_cur = NULL;
+				int _rem = 0;
+				const struct blobmsg_policy _p[1] = {
+						{ "data", BLOBMSG_TYPE_STRING }
+				};
+
+				blobmsg_for_each_attr(_cur, tb[4], _rem) {
+					struct blob_attr *_tb[1] = {0};
+
+					blobmsg_parse(_p, 1, _tb, blobmsg_data(_cur), blobmsg_len(_cur));
+
+					char *value = _tb[0] ? blobmsg_get_string(_tb[0]) : param_value;
+					add_dm_alias_to_list(result->alias_list, param_name, value, &last_path, &last_transform);
+					break;
+				}
+			}
 		}
 	}
 
