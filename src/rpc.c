@@ -456,7 +456,7 @@ error:
 int cwmp_rpc_acs_parse_response_inform(struct rpc *this __attribute__((unused)))
 {
 	mxml_node_t *tree, *b;
-	int i = -1;
+	int i;
 	char *c;
 	const char *cwmp_urn;
 
@@ -880,7 +880,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 	mxml_node_t *n;
 	char *parameter_name = NULL;
 	bool next_level = true;
-	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
+	int counter = 0, fault_code;
 	char *err_msg = NULL;
 	LIST_HEAD(parameters_list);
 
@@ -1077,7 +1077,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 {
 	mxml_node_t *b = NULL;
 	char *parameter_key = NULL;
-	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
+	int fault_code, ret = 0;
 	char *err_msg = NULL;
 
 	LIST_HEAD(xml_list_set_param_value);

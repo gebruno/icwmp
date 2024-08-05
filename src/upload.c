@@ -341,7 +341,7 @@ void cwmp_start_upload(struct uloop_timeout *timeout)
 {
 	struct upload *pupload;
 	int error = FAULT_CPE_NO_FAULT;
-	struct transfer_complete *ptransfer_complete;
+	struct transfer_complete *ptransfer_complete = NULL;
 
 	pupload = container_of(timeout, struct upload, handler_timer);
 

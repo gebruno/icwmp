@@ -279,18 +279,18 @@ static void delete_dm_alias_from_list(struct cwmp_dm_alias *dm_alias)
 
 void cwmp_free_all_dm_parameter_list(struct list_head *list)
 {
-	while (list->next != list) {
-		struct cwmp_dm_parameter *dm_parameter;
-		dm_parameter = list_entry(list->next, struct cwmp_dm_parameter, list);
+	struct cwmp_dm_parameter *dm_parameter = NULL, *node;
+
+	list_for_each_entry_safe(dm_parameter, node, list, list) {
 		delete_dm_parameter_from_list(dm_parameter);
 	}
 }
 
 void cwmp_free_all_dm_alias_list(struct list_head *list)
 {
-	while (list->next != list) {
-		struct cwmp_dm_alias *dm_alias;
-		dm_alias = list_entry(list->next, struct cwmp_dm_alias, list);
+	struct cwmp_dm_alias *dm_alias = NULL, *node;
+
+	list_for_each_entry_safe(dm_alias, node, list, list) {
 		delete_dm_alias_from_list(dm_alias);
 	}
 }
@@ -318,9 +318,9 @@ static void cwmp_del_list_fault_param(struct cwmp_param_fault *param_fault)
 
 void cwmp_free_all_list_param_fault(struct list_head *list_param_fault)
 {
-	while (list_param_fault->next != list_param_fault) {
-		struct cwmp_param_fault *param_fault;
-		param_fault = list_entry(list_param_fault->next, struct cwmp_param_fault, list);
+	struct cwmp_param_fault *param_fault = NULL, *node;
+
+	list_for_each_entry_safe(param_fault, node, list_param_fault, list) {
 		cwmp_del_list_fault_param(param_fault);
 	}
 }
@@ -634,13 +634,11 @@ void icwmp_free(void *m)
 
 void icwmp_cleanmem()
 {
-	struct cwmp_mem *mem;
-	while (cwmp_memory_list.next != &cwmp_memory_list) {
-		mem = list_entry(cwmp_memory_list.next, struct cwmp_mem, list);
-		if (mem != NULL) {
-			list_del(&mem->list);
-			free(mem);
-		}
+	struct cwmp_mem *mem = NULL, *node;
+
+	list_for_each_entry_safe(mem, node, &cwmp_memory_list, list) {
+		list_del(&mem->list);
+		free(mem);
 	}
 }
 

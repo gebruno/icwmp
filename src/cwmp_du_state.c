@@ -260,7 +260,7 @@ static bool environment_exists(char *environment_path)
 static int cwmp_launch_du_install(char *url, char *uuid, char *user, char *pass, char *path, char *env_ref, struct opresult **pchange_du_state_complete)
 {
 	int error = FAULT_CPE_NO_FAULT;
-	char *fault_code;
+	char *fault_code = NULL;
 
 	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 
@@ -303,7 +303,7 @@ static int cwmp_launch_du_install(char *url, char *uuid, char *user, char *pass,
 static int cwmp_launch_du_update(char *url, char *uuid, char *user, char *pass, char *du_path, struct opresult **pchange_du_state_complete)
 {
 	int error = FAULT_CPE_NO_FAULT;
-	char *fault_code;
+	char *fault_code = NULL;
 
 	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 
@@ -345,7 +345,7 @@ static int cwmp_launch_du_update(char *url, char *uuid, char *user, char *pass, 
 static int cwmp_launch_du_uninstall(char *du_path, char *uuid, struct opresult **pchange_du_state_complete)
 {
 	int error = FAULT_CPE_NO_FAULT;
-	char *fault_code;
+	char *fault_code = NULL;
 
 	(*pchange_du_state_complete)->start_time = strdup(get_time(time(NULL)));
 

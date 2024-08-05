@@ -805,11 +805,9 @@ void del_list_lw_notify(struct cwmp_dm_parameter *dm_parameter)
 
 static void free_all_list_lw_notify()
 {
-	while (list_lw_value_change.next != &list_lw_value_change) {
-		struct cwmp_dm_parameter *dm_parameter;
-		if (list_lw_value_change.next == NULL)
-			continue;
-		dm_parameter = list_entry(list_lw_value_change.next, struct cwmp_dm_parameter, list);
+	struct cwmp_dm_parameter *dm_parameter = NULL, *node;
+
+	list_for_each_entry_safe(dm_parameter, node, &list_lw_value_change, list) {
 		del_list_lw_notify(dm_parameter);
 	}
 }

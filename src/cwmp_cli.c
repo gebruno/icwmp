@@ -296,6 +296,9 @@ const struct cwmp_cli_command_struct icwmp_commands[] = {
 
 char *execute_cwmp_cli_command(char *cmd, char *args[])
 {
+	char *fault = NULL, *fault_ret = NULL;
+	union cmd_result cmd_out = {0};
+
 	if (CWMP_STRLEN(cmd) == 0) {
 		printf("You must add a command as input: \n\n");
 		goto cli_help;
@@ -309,8 +312,6 @@ char *execute_cwmp_cli_command(char *cmd, char *args[])
 			args[0] && args[1] ? args[1] : "",
 			args[0] && args[1] && args[2] ? args[2] : NULL
 	};
-	union cmd_result cmd_out = {0};
-	char *fault = NULL, *fault_ret = NULL;
 
 	for (size_t i = 0; i < ARRAY_SIZE(icwmp_commands); i++) {
 		if (CWMP_STRCMP(icwmp_commands[i].command_name, cmd) == 0) {

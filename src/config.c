@@ -93,7 +93,7 @@ static void global_conf_init()
 
 void cwmp_config_load()
 {
-	int error = CWMP_GEN_ERR;
+	int error;
 
 	global_conf_init();
 
