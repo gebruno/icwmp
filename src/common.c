@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <ifaddrs.h>
 #include <mxml.h>
+#include <libubox/blobmsg_json.h>
 
 #include "common.h"
 #include "cwmp_cli.h"
@@ -31,13 +32,18 @@ bool cwmp_stop = false;
 unsigned int flashsize = 256000000;
 struct cwmp *cwmp_main = NULL;
 struct session_timer_event *global_session_event = NULL;
-static int nbre_services = 0;
-static char *list_services[MAX_NBRE_SERVICES] = { 0 };
+LIST_HEAD(critical_service_list);
 LIST_HEAD(cwmp_memory_list);
+LIST_HEAD(services_reload);
 
 struct cwmp_mem {
 	struct list_head list;
 	char mem[0];
+};
+
+struct cwmp_services {
+	struct list_head list;
+	char *service;
 };
 
 struct option cwmp_long_options[] = {
@@ -645,35 +651,121 @@ void icwmp_cleanmem()
 /*
  * Services Management
  */
-void icwmp_init_list_services()
+void icwmp_init_critical_services()
 {
-	int i;
+	struct blob_buf bbuf = {0};
+	struct blob_attr *cur = NULL;
+	struct blob_attr *service_list = NULL;
+	int rem = 0;
 
-	nbre_services = 0;
-	for (i = 0; i < MAX_NBRE_SERVICES; i++)
-		list_services[i] = NULL;
+	if (!file_exists(CWMP_CRITICAL_SERVICES))
+		return;
+
+	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
+	blob_buf_init(&bbuf, 0);
+
+	if (blobmsg_add_json_from_file(&bbuf, CWMP_CRITICAL_SERVICES) == false) {
+		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", CWMP_CRITICAL_SERVICES);
+		blob_buf_free(&bbuf);
+		return;
+	}
+
+	struct blob_attr *tb_service[1] = {0};
+	const struct blobmsg_policy p_service[1] = {
+		{ "services_list", BLOBMSG_TYPE_ARRAY }
+	};
+
+	blobmsg_parse(p_service, 1, tb_service, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
+	if (tb_service[0] == NULL) {
+		CWMP_LOG(WARNING, "The JSON file %s doesn't contain any service", CWMP_CRITICAL_SERVICES);
+		blob_buf_free(&bbuf);
+		return;
+	}
+
+	service_list = tb_service[0];
+
+	blobmsg_for_each_attr(cur, service_list, rem) {
+		if (blobmsg_type(cur) != BLOBMSG_TYPE_STRING)
+			continue;
+
+		char *serv_name = blobmsg_get_string(cur);
+		if (CWMP_STRLEN(serv_name) == 0)
+			continue;
+
+		struct cwmp_services *serv = malloc(sizeof(struct cwmp_services));
+		if (serv == NULL)
+			break;
+
+		serv->service = CWMP_STRDUP(serv_name);
+		list_add(&serv->list, &critical_service_list);
+	}
+	blob_buf_free(&bbuf);
+}
+
+void icwmp_free_critical_services()
+{
+	struct cwmp_services *serv = NULL, *node = NULL;
+
+	list_for_each_entry_safe(serv, node, &critical_service_list, list) {
+		list_del(&serv->list);
+		FREE(serv->service);
+		free(serv);
+	}
+}
+
+bool icwmp_critical_service(const char *service)
+{
+	bool ret = false;
+
+	if (CWMP_STRLEN(service) == 0 || list_empty(&critical_service_list))
+		return ret;
+
+	struct cwmp_services *serv = NULL;
+	list_for_each_entry(serv, &critical_service_list, list) {
+		if (CWMP_STRCMP(service, serv->service) == 0) {
+			ret = true;
+			break;
+		}
+	}
+
+	return ret;
 }
 
 int icwmp_add_service(char *service)
 {
-	if (nbre_services >= MAX_NBRE_SERVICES)
+	if (CWMP_STRLEN(service) == 0)
 		return -1;
-	list_services[nbre_services++] = strdup(service);
+
+	struct cwmp_services *serv = malloc(sizeof(struct cwmp_services));
+	if (serv == NULL)
+		return -1;
+
+	serv->service = CWMP_STRDUP(service);
+	list_add(&serv->list, &services_reload);
+
 	return 0;
 }
 
 void icwmp_free_list_services()
 {
-	int i = 0;
-	for (i = 0; i < nbre_services; i++) {
-		FREE(list_services[i]);
+	struct cwmp_services *serv = NULL, *node = NULL;
+
+	list_for_each_entry_safe(serv, node, &services_reload, list) {
+		list_del(&serv->list);
+		FREE(serv->service);
+		free(serv);
 	}
-	nbre_services = 0;
 }
 
-void icwmp_restart_services()
+bool end_session_reload_pending()
+{
+	return !list_empty(&services_reload);
+}
+
+void icwmp_restart_services(int type)
 {
 	struct blob_buf bb = {0};
+	struct cwmp_services *serv = NULL, *node = NULL;
 
 	memset(&bb, 0, sizeof(struct blob_buf));
 
@@ -681,16 +773,35 @@ void icwmp_restart_services()
 
 	void *array = blobmsg_open_array(&bb, "services");
 
-	for (int i = 0; i < nbre_services; i++) {
-		if (list_services[i] == NULL)
+	list_for_each_entry_safe(serv, node, &services_reload, list) {
+		if (CWMP_STRLEN(serv->service) == 0) {
+			list_del(&serv->list);
+			FREE(serv->service);
+			free(serv);
 			continue;
+		}
 
-		if (CWMP_STRCMP(list_services[i], "cwmp") == 0) {
+		// If RELOAD_IMMIDIATE then only reload the non-critical services and delete from the list
+		// otherwise reload all services in the list and clear the list
+		if ((type == RELOAD_IMMIDIATE) && (icwmp_critical_service(serv->service) == true)) {
+			continue;
+		}
+
+		CWMP_LOG(DEBUG, "Detected service: %s will be restarted", serv->service);
+
+		if (CWMP_STRCMP(serv->service, "cwmp") == 0) {
+			list_del(&serv->list);
+			FREE(serv->service);
+			free(serv);
+
 			commit_uci_package("cwmp");
 			continue;
 		}
 
-		blobmsg_add_string(&bb, NULL, list_services[i]);
+		blobmsg_add_string(&bb, NULL, serv->service);
+		list_del(&serv->list);
+		FREE(serv->service);
+		free(serv);
 	}
 
 	blobmsg_close_array(&bb, array);
@@ -698,8 +809,6 @@ void icwmp_restart_services()
 	icwmp_ubus_invoke("bbf.config", "commit", bb.head, NULL, NULL);
 
 	blob_buf_free(&bb);
-
-	icwmp_free_list_services();
 }
 
 /*

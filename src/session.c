@@ -645,7 +645,7 @@ int run_session_end_func(void)
 
 	if (end_session_flag & END_SESSION_RESTART_SERVICES) {
 		CWMP_LOG(INFO, "Restart modified services");
-		icwmp_restart_services();
+		icwmp_restart_services(RELOAD_END_SESSION);
 	}
 
 	if (cwmp_apply_acs_changes() != CWMP_OK) {

@@ -101,7 +101,6 @@ static void ubus_transaction_callback(struct ubus_request *req, int type __attri
 			if (CWMP_STRLEN(service_name) == 0)
 				continue;
 
-			CWMP_LOG(DEBUG, "Detected service: %s will be restarted in the end session", service_name);
 			icwmp_add_service(service_name);
 		}
 	}

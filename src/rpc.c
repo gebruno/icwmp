@@ -1130,6 +1130,19 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	cwmp_free_all_xml_data_list(&xml_list_set_param_value);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 
+	if (!cwmp_transaction("commit")) {
+		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to commit the transaction";
+		goto fault;
+	}
+
+	icwmp_restart_services(RELOAD_IMMIDIATE);
+
+	int status = 0;
+	if (end_session_reload_pending() == true) {
+		status = 1;
+	}
+
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "SetParameterValues");
 
 	if (!b) {
@@ -1138,8 +1151,6 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		goto fault;
 	}
 
-	int status = 1;
-
 	struct xml_data_struct spv_resp_xml_attrs = {.status = &status};
 	fault_code = build_xml_node_data(SOAP_RESP_SPV, b, &spv_resp_xml_attrs);
 	if (fault_code) {
@@ -1147,13 +1158,11 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("commit")) {
-		fault_code = FAULT_CPE_INTERNAL_ERROR;
-		err_msg = "Failed to commit the transaction";
-		goto fault;
+	cwmp_set_end_session(END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD);
+	if (status == 1) {
+		cwmp_set_end_session(END_SESSION_RESTART_SERVICES);
 	}
 
-	cwmp_set_end_session(END_SESSION_RESTART_SERVICES | END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD);
 	return 0;
 
 fault:

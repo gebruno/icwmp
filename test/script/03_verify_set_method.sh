@@ -24,7 +24,7 @@ check_ret $?
 wait_for_session_end
 check_session "SetParameterValues"
 get_status=$(print_tag_value "cwmp:SetParameterValuesResponse" "Status")
-if [ "$get_status" != "1" ]; then
+if [ "$get_status" != "0" ]; then
 	echo "Error: Set Value doesn't work correctly" >> ./funl-test-debug.log
 	exit 1
 fi

@@ -75,6 +75,7 @@
 
 #define ICWMP_TMP_PATH "/tmp/icwmp"
 #define FIREWALL_CWMP "/etc/firewall.cwmp"
+#define CWMP_CRITICAL_SERVICES "/etc/icwmpd/critical_services.json"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
 #define DM_IP_INTERFACE_PATH "Device\\.IP\\.Interface\\."
 #define DEFAULT_CR_TIMEOUT 5 /* In Seconds */
@@ -92,6 +93,12 @@ extern struct uloop_timeout periodic_session_timer;
 extern struct uloop_timeout retry_session_timer;
 extern struct list_head intf_reset_list;
 extern struct list_head force_inform_list;
+
+enum service_apply_type {
+	RELOAD_END_SESSION,
+	RELOAD_IMMIDIATE,
+	__INVALID_TYPE
+};
 
 typedef struct env {
 	unsigned short boot;
@@ -647,10 +654,9 @@ char *icwmp_strdup(const char *s);
 int icwmp_asprintf(char **s, const char *format, ...);
 void icwmp_free(void *m);
 void icwmp_cleanmem();
-void icwmp_init_list_services();
 int icwmp_add_service(char *service);
-void icwmp_free_list_services();
-void icwmp_restart_services();
+void icwmp_free_list_services(void);
+void icwmp_restart_services(int type);
 bool icwmp_validate_string_length(char *arg, int max_length);
 bool icwmp_validate_boolean_value(char *arg);
 bool icwmp_validate_unsignedint(char *arg);
@@ -687,4 +693,8 @@ void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, i
 void cwmp_restart_service(struct uloop_timeout *timeout  __attribute__((unused)));
 int regex_replace(char **str, const char *pattern, const char *replace, int *match_count);
 void stop_service(void);
+void icwmp_init_critical_services(void);
+void icwmp_free_critical_services(void);
+bool end_session_reload_service(const char *service);
+bool end_session_reload_pending(void);
 #endif

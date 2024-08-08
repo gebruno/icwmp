@@ -299,7 +299,7 @@ static void soap_add_object_message_test(void **state)
 
 	int ret = cwmp_handle_rpc_cpe_add_object(rpc_cpe);
 	assert_int_equal(ret, 0);
-	icwmp_restart_services();
+	icwmp_restart_services(RELOAD_IMMIDIATE);
 
 	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
@@ -451,7 +451,7 @@ static void soap_delete_object_message_test(void **state)
 
 	int ret = cwmp_handle_rpc_cpe_delete_object(rpc_cpe);
 	assert_int_equal(ret, 0);
-	icwmp_restart_services();
+	icwmp_restart_services(RELOAD_IMMIDIATE);
 
 	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
