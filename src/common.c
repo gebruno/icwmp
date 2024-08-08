@@ -135,6 +135,7 @@ int global_env_init(int argc, char **argv, struct env *env)
 
 			execute_cwmp_cli_command(argv[2], argv + 3);
 			FREE(cwmp_main);
+			icwmp_free_ubus();
 			exit(0);
 		case 'h':
 			show_help();

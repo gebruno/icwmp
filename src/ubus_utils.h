@@ -21,10 +21,13 @@ int icwmp_register_object(struct ubus_context *ctx);
 int icwmp_delete_object(struct ubus_context *ctx);
 int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg,
 		      icwmp_ubus_cb icwmp_callback, void *callback_arg);
-int icwmp_uloop_ubus_init();
-void icwmp_uloop_ubus_exit();
+int icwmp_uloop_ubus_register(void);
+void icwmp_uloop_ubus_exit(void);
 int initiate_autonomous_complpolicy(void);
 void clean_autonomous_complpolicy(void);
 int initiate_interface_update(void);
 void clean_interface_update(void);
+int icwmp_connect_ubus(void);
+int wait_for_bbf_object(void);
+void icwmp_free_ubus(void);
 #endif /* __ICWMP_UBUS_UTILS_H__ */

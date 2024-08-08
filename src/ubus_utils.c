@@ -20,7 +20,9 @@
 
 typedef int (*callback)(struct blob_buf *b);
 
+static bool g_bbf_object_available = false;
 static struct ubus_context *ubus_ctx = NULL;
+struct uloop_timeout u_timeout;
 
 struct command_cb {
 	char *str;
@@ -398,9 +400,17 @@ void bb_add_string(struct blob_buf *bb, const char *name, const char *value)
 		blobmsg_add_string(bb, name, "");
 }
 
-int icwmp_uloop_ubus_init()
+int icwmp_connect_ubus()
 {
 	ubus_ctx = ubus_connect(NULL);
+	if (!ubus_ctx)
+		return -1;
+
+	return 0;
+}
+
+int icwmp_uloop_ubus_register()
+{
 	if (!ubus_ctx)
 		return -1;
 
@@ -426,23 +436,15 @@ int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg
 	uint32_t id;
 	int rc = 0;
 
-	struct ubus_context *ctx = NULL;
-
-	ctx = ubus_connect(NULL);
-	if (ctx == NULL) {
+	if (ubus_ctx == NULL) {
 		CWMP_LOG(ERROR, "Failed to connect with ubus err: %d", errno);
 		return -1;
 	}
 
-	if (!ubus_lookup_id(ctx, obj, &id))
-		rc = ubus_invoke(ctx, id, method, msg, icwmp_callback, callback_arg, 60000);
+	if (!ubus_lookup_id(ubus_ctx, obj, &id))
+		rc = ubus_invoke(ubus_ctx, id, method, msg, icwmp_callback, callback_arg, 60000);
 	else
 		rc = -1;
-
-	if (ctx) {
-		ubus_free(ctx);
-		ctx = NULL;
-	}
 
 	return rc;
 }
@@ -495,4 +497,90 @@ void clean_interface_update(void)
 		return;
 
 	ubus_unregister_event_handler(ubus_ctx, cwmp_main->intf_ev);
+}
+
+static void lookup_event_cb(struct ubus_context *ctx __attribute__((unused)),
+		struct ubus_event_handler *ev __attribute__((unused)),
+		const char *type, struct blob_attr *msg)
+{
+	const struct blobmsg_policy policy = {
+		"path", BLOBMSG_TYPE_STRING
+	};
+	struct blob_attr *attr;
+	const char *path;
+
+	if (CWMP_STRCMP(type, "ubus.object.add") != 0)
+		return;
+
+	blobmsg_parse(&policy, 1, &attr, blob_data(msg), blob_len(msg));
+	if (!attr)
+		return;
+
+	path = blobmsg_data(attr);
+	if (CWMP_STRCMP(path, BBFDM_OBJECT_NAME) == 0) {
+		g_bbf_object_available = true;
+		uloop_timeout_cancel(&u_timeout);
+		uloop_end();
+	}
+}
+
+static void lookup_timeout_cb(struct uloop_timeout *timeout __attribute__((unused)))
+{
+	uloop_end();
+}
+
+int wait_for_bbf_object()
+{
+#define BBF_WAIT_TIMEOUT 60
+
+	int ret;
+	uint32_t ubus_id;
+	struct ubus_event_handler add_event;
+
+	g_bbf_object_available = false;
+	if (ubus_ctx == NULL) {
+		CWMP_LOG(ERROR, "Can't create ubus context");
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
+
+	uloop_init();
+	ubus_add_uloop(ubus_ctx);
+
+	// register for add event
+	CWMP_MEMSET(&add_event, 0, sizeof(struct ubus_event_handler));
+	add_event.cb = lookup_event_cb;
+	ubus_register_event_handler(ubus_ctx, &add_event, "ubus.object.add");
+
+	// check if object already present
+	ret = ubus_lookup_id(ubus_ctx, BBFDM_OBJECT_NAME, &ubus_id);
+	if (ret == 0) {
+		g_bbf_object_available = true;
+		goto end;
+	}
+
+	// Set timeout to expire lookup
+	CWMP_MEMSET(&u_timeout, 0, sizeof(struct uloop_timeout));
+	u_timeout.cb = lookup_timeout_cb;
+	uloop_timeout_set(&u_timeout, BBF_WAIT_TIMEOUT * 1000);
+
+	uloop_run();
+	uloop_done();
+
+end:
+	ubus_remove_object(ubus_ctx, &add_event.obj);
+
+	if (g_bbf_object_available == false) {
+		CWMP_LOG(ERROR, "%s object not found", BBFDM_OBJECT_NAME);
+		return FAULT_CPE_INTERNAL_ERROR;
+	}
+
+	return 0;
+}
+
+void icwmp_free_ubus()
+{
+	if (ubus_ctx) {
+		ubus_free(ubus_ctx);
+		ubus_ctx = NULL;
+	}
 }
