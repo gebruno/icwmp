@@ -75,7 +75,7 @@ int icwmp_check_http_connection(void)
 			curl_easy_setopt(c, CURLOPT_IPRESOLVE, resolve);
 			curl_easy_setopt(c, CURLOPT_TIMEOUT, 2);
 
-			if (CWMP_STRLEN(cwmp_main->net.interface))
+			if (cwmp_main->net.use_curl_ifname && CWMP_STRLEN(cwmp_main->net.interface))
 				curl_easy_setopt(c, CURLOPT_INTERFACE, cwmp_main->net.interface);
 
 			ret = curl_easy_perform(c);

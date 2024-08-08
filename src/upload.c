@@ -67,7 +67,7 @@ static int lookup_vlf_name(int instance, char **value)
 /*
  * Upload file
  */
-static long upload_file(const char *file_path, const char *url, const char *username, const char *password)
+static long upload_file(const char *file_path, const char *url, const char *username, const char *password, const char *interface)
 {
 	long res_code = 0;
 	CURL *curl;
@@ -123,6 +123,10 @@ static long upload_file(const char *file_path, const char *url, const char *user
 		curl_easy_setopt(curl, CURLOPT_READDATA, fd_upload);
 		curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)file_info.st_size);
 
+		// Use l3 interface name
+		if (CWMP_STRLEN(interface))
+			curl_easy_setopt(curl, CURLOPT_INTERFACE, interface);
+
 		res = curl_easy_perform(curl);
 		if (res != CURLE_OK) {
 			CWMP_LOG(ERROR, "## curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
@@ -153,10 +157,10 @@ char *upload_file_task_function(char *task)
 		blob_buf_free(&bbuf);
 		return NULL;
 	}
-	const struct blobmsg_policy p[5] = { { "task", BLOBMSG_TYPE_STRING }, { "file_path", BLOBMSG_TYPE_STRING }, { "url", BLOBMSG_TYPE_STRING }, { "username", BLOBMSG_TYPE_STRING }, { "password", BLOBMSG_TYPE_STRING } };
+	const struct blobmsg_policy p[6] = { { "task", BLOBMSG_TYPE_STRING }, { "file_path", BLOBMSG_TYPE_STRING }, { "url", BLOBMSG_TYPE_STRING }, { "username", BLOBMSG_TYPE_STRING }, { "password", BLOBMSG_TYPE_STRING }, {"interface", BLOBMSG_TYPE_STRING}};
 
-	struct blob_attr *tb[5] = { NULL, NULL, NULL, NULL, NULL};
-	blobmsg_parse(p, 5, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
+	struct blob_attr *tb[6] = { NULL, NULL, NULL, NULL, NULL};
+	blobmsg_parse(p, 6, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 	char *task_name = blobmsg_get_string(tb[0]);
 	if (CWMP_STRCMP(task_name, "upload") != 0)
 		return NULL;
@@ -164,8 +168,9 @@ char *upload_file_task_function(char *task)
 	char *url = blobmsg_get_string(tb[2]);
 	char *username = blobmsg_get_string(tb[3]);
 	char *password = blobmsg_get_string(tb[4]);
+	char *interface = blobmsg_get_string(tb[5]);
 
-	long http_code = upload_file(file_path, url, username, password);
+	long http_code = upload_file(file_path, url, username, password, interface);
 	char *http_ret = (char *)malloc(16 * sizeof(char));
 	if (http_ret == NULL)
 		return NULL;
@@ -191,6 +196,10 @@ int upload_file_in_subprocess(const char *file_path, const char *url, const char
 	blobmsg_add_string(&bbuf, "url", url);
 	blobmsg_add_string(&bbuf, "username", username);
 	blobmsg_add_string(&bbuf, "password", password);
+
+	if (cwmp_main->net.use_curl_ifname && CWMP_STRLEN(cwmp_main->net.interface))
+		blobmsg_add_string(&bbuf, "interface", cwmp_main->net.interface);
+
 	char *upload_task = blobmsg_format_json(bbuf.head, true);
 	blob_buf_free(&bbuf);
 

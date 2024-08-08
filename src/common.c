@@ -931,7 +931,7 @@ static void ubus_network_interface_callback(struct ubus_request *req __attribute
 
 	snprintf(cwmp_main->net.interface, sizeof(cwmp_main->net.interface), "%s", l3_device);
 
-	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s && device: %s", cwmp_main->conf.default_wan_iface, cwmp_main->net.interface);
+	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s && l3_name: %s", cwmp_main->conf.default_wan_iface, cwmp_main->net.interface);
 }
 
 static bool is_ipv6_addr_available(const char *device)

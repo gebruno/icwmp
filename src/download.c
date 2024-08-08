@@ -35,7 +35,7 @@ int count_download_queue = 0;
 /*
  * Download File
  */
-int download_file(const char *file_path, const char *url, const char *username, const char *password)
+int download_file(const char *file_path, const char *url, const char *username, const char *password, const char *interface)
 {
 	if (url == NULL) {
 		CWMP_LOG(ERROR, "download %s: no url specified", __FUNCTION__);
@@ -59,6 +59,11 @@ int download_file(const char *file_path, const char *url, const char *username, 
 		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 10000L);
 		curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
 		curl_easy_setopt(curl, CURLOPT_FTP_SKIP_PASV_IP, 1L);
+
+		// Use l3 interface name
+		if (CWMP_STRLEN(interface))
+			curl_easy_setopt(curl, CURLOPT_INTERFACE, interface);
+
 		if (file_path == NULL)
 			file_path = "/tmp/download_file";
 		FILE *fp = fopen(file_path, "wb");
@@ -90,10 +95,10 @@ char *download_file_task_function(char *task)
 		blob_buf_free(&bbuf);
 		return NULL;
 	}
-	const struct blobmsg_policy p[5] = { { "task", BLOBMSG_TYPE_STRING }, { "file_path", BLOBMSG_TYPE_STRING }, { "url", BLOBMSG_TYPE_STRING }, { "username", BLOBMSG_TYPE_STRING }, { "password", BLOBMSG_TYPE_STRING } };
+	const struct blobmsg_policy p[6] = { { "task", BLOBMSG_TYPE_STRING }, { "file_path", BLOBMSG_TYPE_STRING }, { "url", BLOBMSG_TYPE_STRING }, { "username", BLOBMSG_TYPE_STRING }, { "password", BLOBMSG_TYPE_STRING }, {"interface", BLOBMSG_TYPE_STRING} };
 
-	struct blob_attr *tb[5] = { NULL, NULL, NULL, NULL, NULL};
-	blobmsg_parse(p, 5, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
+	struct blob_attr *tb[6] = { NULL, NULL, NULL, NULL, NULL};
+	blobmsg_parse(p, 6, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 	char *task_name = blobmsg_get_string(tb[0]);
 	if (CWMP_STRCMP(task_name, "download") != 0)
 		return NULL;
@@ -101,8 +106,9 @@ char *download_file_task_function(char *task)
 	char *url = blobmsg_get_string(tb[2]);
 	char *username = blobmsg_get_string(tb[3]);
 	char *password = blobmsg_get_string(tb[4]);
+	char *interface = blobmsg_get_string(tb[5]);
 
-	int http_code = download_file(file_path, url, username, password);
+	int http_code = download_file(file_path, url, username, password, interface);
 	char *http_ret = (char *)malloc(4 * sizeof(char));
 	snprintf(http_ret, 4, "%d", http_code);
 	http_ret[3] = 0;
@@ -129,6 +135,10 @@ int download_file_in_subprocess(const char *file_path, const char *url, const ch
 	blobmsg_add_string(&bbuf, "url", url ? url : "");
 	blobmsg_add_string(&bbuf, "username", username ? username : "");
 	blobmsg_add_string(&bbuf, "password", password ? password : "");
+
+	if (cwmp_main->net.use_curl_ifname && CWMP_STRLEN(cwmp_main->net.interface))
+		blobmsg_add_string(&bbuf, "interface", cwmp_main->net.interface);
+
 	char *download_task = blobmsg_format_json(bbuf.head, true);
 	blob_buf_free(&bbuf);
 

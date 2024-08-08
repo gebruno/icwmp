@@ -518,15 +518,16 @@ static int set_management_server_periodic_inform_time(char *refparam, struct dmc
 static void get_management_ip_port(char **listen_addr)
 {
 	char *ip = NULL, *port = NULL, *interface = NULL, *ip_version = NULL;
+	char *l3_device = NULL;
 
 	dmuci_get_option_value_string("cwmp", "cpe", "default_wan_interface", &interface);
+	dmuci_get_option_value_string("cwmp", "cpe", "interface", &l3_device);
 	dmuci_get_option_value_string("cwmp", "cpe", "port", &port);
 	dmuci_get_option_value_string_varstate("icwmp", "acs", "ip_version", &ip_version);
 
-	if (!DM_STRLEN(interface))
-		return;
+	if (DM_STRLEN(l3_device) == 0 && DM_STRLEN(interface) != 0)
+		l3_device = get_l3_device(interface);
 
-	char *l3_device = get_l3_device(interface);
 	if (!DM_STRLEN(l3_device))
 		return;
 

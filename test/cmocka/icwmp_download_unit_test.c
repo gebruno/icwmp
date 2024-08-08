@@ -46,6 +46,12 @@ static void free_download(struct download *p)
 	icwmp_free(p);
 }
 
+static int download_unit_test_init(void **state)
+{
+	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
+	return 0;
+}
+
 static int download_unit_tests_clean(void **state)
 {
 	icwmp_cleanmem();
@@ -53,6 +59,7 @@ static int download_unit_tests_clean(void **state)
 		free_transfer_complete(transfer_complete_test);
 	remove(ICWMP_DOWNLOAD_FILE);
 	remove(FIRMWARE_UPGRADE_IMAGE);
+	FREE(cwmp_main);
 	return 0;
 }
 
@@ -62,7 +69,7 @@ static void cwmp_download_file_unit_test(void **state)
 	/*
 	 * Valid URL
 	 */
-	int http_code = download_file(ICWMP_DOWNLOAD_FILE, "http://127.0.0.1/firmware_v1.0.bin", NULL, NULL);
+	int http_code = download_file(ICWMP_DOWNLOAD_FILE, "http://127.0.0.1/firmware_v1.0.bin", NULL, NULL, NULL);
 	assert_int_equal(http_code, 200);
 	assert_int_equal(access( ICWMP_DOWNLOAD_FILE, F_OK ), 0);
 	remove(ICWMP_DOWNLOAD_FILE);
@@ -70,7 +77,7 @@ static void cwmp_download_file_unit_test(void **state)
 	/*
 	 * Not Valid URL
 	 */
-	http_code = download_file(ICWMP_DOWNLOAD_FILE, "http://127.0.0.1/firmware.bin", NULL, NULL);
+	http_code = download_file(ICWMP_DOWNLOAD_FILE, "http://127.0.0.1/firmware.bin", NULL, NULL, NULL);
 	assert_int_equal(http_code, 404);
 	assert_int_equal(access( ICWMP_DOWNLOAD_FILE, F_OK ), 0);
 	remove(ICWMP_DOWNLOAD_FILE);
@@ -188,5 +195,5 @@ int icwmp_download_unit_test(void)
 			cmocka_unit_test(cwmp_launch_download_unit_test)
 	};
 
-	return cmocka_run_group_tests(tests, NULL, download_unit_tests_clean);
+	return cmocka_run_group_tests(tests, download_unit_test_init, download_unit_tests_clean);
 }

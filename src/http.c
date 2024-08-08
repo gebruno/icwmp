@@ -133,7 +133,7 @@ static void http_set_connection_options()
 	curl_easy_setopt(curl, CURLOPT_IPRESOLVE, cwmp_main->net.ip_resolve);
 
 
-	if (CWMP_STRLEN(cwmp_main->net.interface))
+	if (cwmp_main->net.use_curl_ifname && CWMP_STRLEN(cwmp_main->net.interface))
 		curl_easy_setopt(curl, CURLOPT_INTERFACE, cwmp_main->net.interface);
 }
 

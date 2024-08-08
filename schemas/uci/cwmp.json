@@ -195,6 +195,20 @@
           "description": "Configure the default wan interface that will be used for IPv4/IPv6 connection."
         },
         {
+          "name": "interface",
+          "type": "string",
+          "required": "no",
+          "default": "",
+          "description": "Use this option to define l3 device ifname directly, if this option is used default_wan_interface shall be ignored"
+        },
+        {
+          "name": "use_curl_ifname",
+          "type": "boolean",
+          "required": "no",
+          "default": "false",
+          "description": "If this option is set, then cwmp shall use l3 device ifname as CURLOPT_INTERFACE"
+        },
+        {
           "name": "log_to_console",
           "type": "string",
           "required": "no",

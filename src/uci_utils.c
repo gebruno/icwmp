@@ -238,8 +238,10 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_FORCE_IPV4,
 		UCI_CPE_KEEP_SETTINGS,
 		UCI_CPE_DEFAULT_WAN_IFACE,
+		UCI_CPE_INTERFACE,
 		UCI_CPE_CLOCK_SYNC_TIMEOUT,
 		UCI_CPE_ENABLE,
+		UCI_CPE_USE_CURL_IFNAME,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -262,8 +264,10 @@ static void config_get_cpe_elements(struct uci_section *s)
 		[UCI_CPE_FORCE_IPV4] = { .name = "force_ipv4", .type = UCI_TYPE_STRING },
 		[UCI_CPE_KEEP_SETTINGS] = { .name = "fw_upgrade_keep_settings", .type = UCI_TYPE_STRING },
 		[UCI_CPE_DEFAULT_WAN_IFACE] = { .name = "default_wan_interface", .type = UCI_TYPE_STRING },
+		[UCI_CPE_INTERFACE] = { .name = "interface", .type = UCI_TYPE_STRING },
 		[UCI_CPE_CLOCK_SYNC_TIMEOUT] = { .name = "clock_sync_timeout", .type = UCI_TYPE_STRING },
-		[UCI_CPE_ENABLE] = { .name = "enable", .type = UCI_TYPE_STRING }
+		[UCI_CPE_ENABLE] = { .name = "enable", .type = UCI_TYPE_STRING },
+		[UCI_CPE_USE_CURL_IFNAME] = { .name = "use_curl_ifname", .type = UCI_TYPE_STRING }
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS];
@@ -373,14 +377,22 @@ static void config_get_cpe_elements(struct uci_section *s)
 	cwmp_main->conf.fw_upgrade_keep_settings = cpe_tb[UCI_CPE_KEEP_SETTINGS] ? str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_KEEP_SETTINGS])) : true;
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe keep settings enable: %d", cwmp_main->conf.fw_upgrade_keep_settings);
 
-	char *value = get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]);
+	char *value = get_value_from_uci_option(cpe_tb[UCI_CPE_INTERFACE]);
+	if ((CWMP_STRLEN(cwmp_main->net.interface) == 0) && (CWMP_STRLEN(value) != 0)) {
+		snprintf(cwmp_main->net.interface, sizeof(cwmp_main->net.interface), "%s", value);
+	}
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe INTERFACE resolved[%s], defined [%s]", cwmp_main->net.interface, value);
+
+	value = get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]);
 	char *wan_intf = CWMP_STRLEN(value) ? value : "wan";
 
 	if (strcmp(cwmp_main->conf.default_wan_iface, wan_intf) != 0) {
 		snprintf(cwmp_main->conf.default_wan_iface, sizeof(cwmp_main->conf.default_wan_iface), "%s", wan_intf);
-		memset(cwmp_main->net.interface, 0, sizeof(cwmp_main->net.interface));
 	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe default_wan_interface: %s", cwmp_main->conf.default_wan_iface);
+
+	cwmp_main->net.use_curl_ifname = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_USE_CURL_IFNAME]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe use ifname in curl: %d", cwmp_main->net.use_curl_ifname);
 
 	cwmp_main->conf.clock_sync_timeout = DEFAULT_SYNC_TIMEOUT;
 	char *sync_time = get_value_from_uci_option(cpe_tb[UCI_CPE_CLOCK_SYNC_TIMEOUT]);

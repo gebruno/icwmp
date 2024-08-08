@@ -109,6 +109,7 @@ struct connection {
 	char interface[BUF_SIZE_16];
 	long ip_resolve;
 	bool ipv6_status;
+	bool use_curl_ifname;
 };
 
 typedef struct config {
@@ -638,7 +639,7 @@ bool file_exists(const char *path);
 void cwmp_reboot(char *command_key);
 void cwmp_factory_reset();
 void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name);
-int download_file(const char *file_path, const char *url, const char *username, const char *password);
+int download_file(const char *file_path, const char *url, const char *username, const char *password, const char *interface);
 unsigned int get_file_size(char *file_name);
 int cwmp_check_image();
 int cwmp_apply_firmware();
