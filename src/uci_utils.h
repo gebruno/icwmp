@@ -28,8 +28,6 @@ struct strNode {
 	char path[BUF_SIZE_256];
 };
 
-void add_str_list(struct list_head *head, char *str);
-void free_str_list(struct list_head *head);
 int export_uci_package(char *package, const char *output_path);
 int export_std_uci(const char *output_path);
 int import_uci_package(char *package_name, const char *input_path);
@@ -39,7 +37,7 @@ int set_uci_path_value(const char *conf_dir, char *path, char *value);
 int set_uci_list_value(const char *conf_dir, char *path, char *value);
 int del_uci_list_value(const char *conf_dir, char *path, char *value);
 int get_inform_parameters_uci(struct list_head *inform_head);
-int commit_uci_package(char *package);
+int commit_uci_package(char *package, const char *conf_dir, const char *save_dir);
 int get_global_config();
 
 

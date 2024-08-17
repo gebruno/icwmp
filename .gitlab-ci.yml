@@ -15,12 +15,11 @@ include:
 
 stages:
     - static_code_analysis
-    - unit_test
-    - functional_api_test
+    - pipeline_test
     - deploy
 
 run_unit_test:
-   stage: unit_test
+   stage: pipeline_test
    image: "${COMMON_IMAGE}"
    allow_failure: false
    script:
@@ -34,8 +33,8 @@ run_unit_test:
          - unit-test-coverage.xml
 
 run_functional_test:
-    stage: functional_api_test
-    image: "dev.iopsys.eu:5050/iopsys/gitlab-ci-pipeline/code-analysis:0.31"
+    stage: pipeline_test
+    image: "${COMMON_IMAGE}"
     services:
       - name: dev.iopsys.eu:5050/lcm/swmodd/acs:latest
         alias: acs

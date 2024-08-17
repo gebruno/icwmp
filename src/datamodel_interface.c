@@ -16,8 +16,6 @@
 #include "ubus_utils.h"
 #include "log.h"
 
-unsigned int transaction_id = 0;
-
 struct list_params_result {
 	struct list_head *parameters_list;
 	struct list_head *alias_list;
@@ -54,104 +52,7 @@ static void prepare_optional_table(struct blob_buf *b)
 	void *table = blobmsg_open_table(b, "optional");
 	bb_add_string(b, "proto", "cwmp");
 	bb_add_string(b, "format", "raw");
-	blobmsg_add_u32(b, "transaction_id", transaction_id);
 	blobmsg_close_table(b, table);
-}
-
-/*
- * Transaction Functions
- */
-static void ubus_transaction_callback(struct ubus_request *req, int type __attribute__((unused)), struct blob_attr *msg)
-{
-	struct blob_attr *tb[3] = {0};
-	const struct blobmsg_policy p[3] = {
-			{ "status", BLOBMSG_TYPE_BOOL },
-			{ "transaction_id", BLOBMSG_TYPE_INT32 },
-			{ "updated_services", BLOBMSG_TYPE_ARRAY }
-	};
-
-	if (msg == NULL || req == NULL)
-		return;
-
-	bool *status = (bool *)req->priv;
-
-	blobmsg_parse(p, 3, tb, blobmsg_data(msg), blobmsg_len(msg));
-
-	if (!tb[0]) {
-		*status = false;
-		return;
-	}
-
-	*status = blobmsg_get_u8(tb[0]);
-	if (*status == false)
-		return;
-
-	if (tb[1]) {
-		transaction_id = blobmsg_get_u32(tb[1]);
-	}
-
-	if (tb[2]) {
-		struct blob_attr *updated_services = tb[2];
-		struct blob_attr *service = NULL;
-		size_t rem;
-
-		blobmsg_for_each_attr(service, updated_services, rem) {
-			char *service_name = blobmsg_get_string(service);
-
-			if (CWMP_STRLEN(service_name) == 0)
-				continue;
-
-			icwmp_add_service(service_name);
-		}
-	}
-}
-
-bool cwmp_transaction(const char *cmd)
-{
-	struct blob_buf b = {0};
-	bool status = false;
-
-	if (CWMP_STRLEN(cmd) == 0)
-		return false;
-
-	int start_cmp = CWMP_STRCMP(cmd, "start");
-	int commit_cmp = CWMP_STRCMP(cmd, "commit");
-	int abort_cmp = CWMP_STRCMP(cmd, "abort");
-
-	if (start_cmp != 0 && commit_cmp != 0 && abort_cmp != 0)
-		return false;
-
-	if ((start_cmp == 0 && transaction_id != 0) ||
-			((commit_cmp == 0 || abort_cmp == 0) && transaction_id == 0))
-		return false;
-
-	CWMP_LOG(INFO, "Transaction %s ...", cmd);
-
-	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
-
-	blob_buf_init(&b, 0);
-	bb_add_string(&b, "cmd", cmd);
-	blobmsg_add_u8(&b, "restart_services", false);
-	prepare_optional_table(&b);
-
-	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "transaction", b.head, ubus_transaction_callback, &status);
-
-	blob_buf_free(&b);
-
-	if (commit_cmp == 0 || abort_cmp == 0)
-		transaction_id = 0;
-
-	if (e != 0) {
-		CWMP_LOG(INFO, "Transaction %s failed: Ubus err code: %d", cmd, e);
-		return false;
-	}
-
-	if (!status) {
-		CWMP_LOG(INFO, "Transaction %s failed: Status => false", cmd);
-		return false;
-	}
-
-	return true;
 }
 
 static int get_instance_mode(void)
@@ -656,7 +557,6 @@ char *cwmp_validate_multi_instance_path(const char *object, struct list_head *pa
 	void *table = blobmsg_open_table(&b, "optional");
 	bb_add_string(&b, "proto", "usp");
 	bb_add_string(&b, "format", "raw");
-	blobmsg_add_u32(&b, "transaction_id", transaction_id);
 	blobmsg_close_table(&b, table);
 
 	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "schema", b.head, ubus_get_parameter_callback, &get_result);

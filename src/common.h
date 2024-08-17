@@ -620,6 +620,11 @@ typedef struct force_inform_node {
 	struct list_head list;
 } force_inform_node;
 
+typedef struct {
+	char path[1024];
+	struct list_head list;
+} path_list_t;
+
 extern struct cwmp *cwmp_main;
 extern unsigned int flashsize;
 extern struct FAULT_CPE FAULT_CPE_ARRAY[];
@@ -655,9 +660,7 @@ char *icwmp_strdup(const char *s);
 int icwmp_asprintf(char **s, const char *format, ...);
 void icwmp_free(void *m);
 void icwmp_cleanmem();
-int icwmp_add_service(char *service);
-void icwmp_free_list_services(void);
-void icwmp_restart_services(int type);
+void icwmp_restart_services(int type, bool is_commit, bool monitor);
 bool icwmp_validate_string_length(char *arg, int max_length);
 bool icwmp_validate_boolean_value(char *arg);
 bool icwmp_validate_unsignedint(char *arg);
@@ -698,4 +701,6 @@ void icwmp_init_critical_services(void);
 void icwmp_free_critical_services(void);
 bool end_session_reload_service(const char *service);
 bool end_session_reload_pending(void);
+void add_path_list(struct list_head *list, char *str);
+void free_path_list(struct list_head *list);
 #endif

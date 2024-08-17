@@ -21,9 +21,6 @@ struct object_result {
 	int fault_code;
 };
 
-extern unsigned int transaction_id;
-
-bool cwmp_transaction(const char *cmd);
 int instantiate_param_name(const char *param, char **inst_path);
 bool cwmp_get_parameter_value(const char *parameter_name, struct cwmp_dm_parameter *dm_parameter);
 

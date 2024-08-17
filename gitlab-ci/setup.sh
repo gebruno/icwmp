@@ -4,7 +4,6 @@ echo "preparation script"
 pwd
 
 [ -d "/opt/dev/bbfdm" ] && cd /opt/dev/bbfdm && ./gitlab-ci/setup.sh && cd -
-rm -rf /etc/supervisor/conf.d/*.conf
 
 cp -rf ./test/files/* /
 echo "set ACS url in cwmp uci"
@@ -25,7 +24,7 @@ if=/dev/zero of=/tmp/firmware/invalid_firmware_v1.0.bin bs=25MB count=1 >/dev/nu
 echo "Invalid" > /tmp/firmware/invalid_firmware_v1.0.bin
 
 echo "Starting base services"
-cp ./gitlab-ci/service-base.conf /etc/supervisor/conf.d/
+cp ./gitlab-ci/icwmp-base.conf /etc/supervisor/conf.d/
 supervisorctl reread
 supervisorctl update
 sleep 5

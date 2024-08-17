@@ -973,7 +973,7 @@ exit:
 	return ret;
 }
 
-int commit_uci_package(char *package)
+int commit_uci_package(char *package, const char *conf_dir, const char *save_dir)
 {
 	struct uci_context *uci_ctx = NULL;
 	struct uci_ptr ptr = {0};
@@ -985,6 +985,15 @@ int commit_uci_package(char *package)
 		ret = -1;
 		goto exit;
 	}
+
+	if (conf_dir) {
+		uci_set_confdir(uci_ctx, conf_dir);
+	}
+
+	if (save_dir) {
+		uci_set_savedir(uci_ctx, save_dir);
+	}
+
 
 	if (uci_lookup_ptr(uci_ctx, &ptr, package, true) != UCI_OK) {
 		ret = -1;

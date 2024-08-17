@@ -254,7 +254,6 @@ static void cwmp_free()
 	rpc_exit();
 	clean_cwmp_session_structure();
 	icwmp_free_critical_services();
-	icwmp_free_list_services();
 	FREE(cwmp_main);
 	CWMP_LOG(INFO, "EXIT ICWMP");
 	closelog();

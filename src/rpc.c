@@ -1100,12 +1100,6 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 
 	xml_data_list_to_dm_parameter_list(&xml_list_set_param_value, &list_set_param_value);
 
-	if (!cwmp_transaction("start")) {
-		fault_code = FAULT_CPE_INTERNAL_ERROR;
-		err_msg = "Failed to start new transaction";
-		goto fault;
-	}
-
 	/* Before set check if exists Device.ManagementServer.InformParameter.{i}.ParameterName with ForcedInform Parameter */
 	fault_code = validate_inform_parameter_name(&list_set_param_value);
 	if (fault_code != FAULT_CPE_NO_FAULT) {
@@ -1130,13 +1124,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	cwmp_free_all_xml_data_list(&xml_list_set_param_value);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 
-	if (!cwmp_transaction("commit")) {
-		fault_code = FAULT_CPE_INTERNAL_ERROR;
-		err_msg = "Failed to commit the transaction";
-		goto fault;
-	}
-
-	icwmp_restart_services(RELOAD_IMMIDIATE);
+	icwmp_restart_services(RELOAD_IMMIDIATE, true, false);
 
 	int status = 0;
 	if (end_session_reload_pending() == true) {
@@ -1172,7 +1160,7 @@ fault:
 
 	cwmp_free_all_list_param_fault(rpc->list_set_value_fault);
 
-	cwmp_transaction("abort");
+	icwmp_restart_services(RELOAD_END_SESSION, false, false);
 	return ret;
 }
 
@@ -1268,11 +1256,6 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("start")) {
-		err_msg = "Failed to start new transaction";
-		goto fault;
-	}
-
 	if (object_name) {
 		bool err = cwmp_add_object(object_name, &res);
 		if (!err) {
@@ -1313,11 +1296,6 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("commit")) {
-		err_msg = "Failed to commit the transaction";
-		goto fault;
-	}
-
 	char object_path[1024] = {0};
 	snprintf(object_path, sizeof(object_path), "%s%s.", object_name, res.instance);
 	cwmp_set_parameter_attributes(object_path, 0);
@@ -1334,7 +1312,7 @@ fault:
 	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;
 
-	cwmp_transaction("abort");
+	icwmp_restart_services(RELOAD_END_SESSION, false, false);
 	return ret;
 }
 
@@ -1361,11 +1339,6 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 
 	if (fault_code) {
 		err_msg = "Failed to load data from DeleteObject request message";
-		goto fault;
-	}
-
-	if (!cwmp_transaction("start")) {
-		err_msg = "Failed to start new transaction";
 		goto fault;
 	}
 
@@ -1400,11 +1373,6 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 		goto fault;
 	}
 
-	if (!cwmp_transaction("commit")) {
-		fault_code = FAULT_CPE_INTERNAL_ERROR;
-		err_msg = "Failed to commit the transaction";
-		goto fault;
-	}
 	FREE(object_name);
 	FREE(parameter_key);
 	FREE(res.instance);
@@ -1418,7 +1386,7 @@ fault:
 	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;
 
-	cwmp_transaction("abort");
+	icwmp_restart_services(RELOAD_END_SESSION, false, false);
 	return ret;
 }
 

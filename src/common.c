@@ -32,9 +32,10 @@ bool cwmp_stop = false;
 unsigned int flashsize = 256000000;
 struct cwmp *cwmp_main = NULL;
 struct session_timer_event *global_session_event = NULL;
-LIST_HEAD(critical_service_list);
-LIST_HEAD(cwmp_memory_list);
-LIST_HEAD(services_reload);
+
+static LIST_HEAD(critical_service_list);
+static LIST_HEAD(cwmp_memory_list);
+static bool reload_pending = false;
 
 struct cwmp_mem {
 	struct list_head list;
@@ -44,6 +45,12 @@ struct cwmp_mem {
 struct cwmp_services {
 	struct list_head list;
 	char *service;
+};
+
+struct bbf_config {
+	bool is_commit;
+	bool monitor;
+	int type;
 };
 
 struct option cwmp_long_options[] = {
@@ -732,82 +739,125 @@ bool icwmp_critical_service(const char *service)
 	return ret;
 }
 
-int icwmp_add_service(char *service)
+bool end_session_reload_pending()
 {
-	if (CWMP_STRLEN(service) == 0)
-		return -1;
-
-	struct cwmp_services *serv = malloc(sizeof(struct cwmp_services));
-	if (serv == NULL)
-		return -1;
-
-	serv->service = CWMP_STRDUP(service);
-	list_add(&serv->list, &services_reload);
-
-	return 0;
+	return reload_pending;
 }
 
-void icwmp_free_list_services()
+static void apply_cwmp_changes(bool is_commit)
 {
-	struct cwmp_services *serv = NULL, *node = NULL;
+	struct blob_buf b = {0};
 
-	list_for_each_entry_safe(serv, node, &services_reload, list) {
-		list_del(&serv->list);
-		FREE(serv->service);
-		free(serv);
+	memset(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	void *array = blobmsg_open_array(&b, "services");
+	blobmsg_add_string(&b, NULL, "cwmp");
+	blobmsg_close_array(&b, array);
+
+	blobmsg_add_u8(&b, "monitor", false);
+	blobmsg_add_u8(&b, "reload", false);
+	blobmsg_add_string(&b, "proto", "cwmp");
+
+	icwmp_ubus_invoke("bbf.config", is_commit ? "commit" : "revert", b.head, NULL, NULL);
+
+	blob_buf_free(&b);
+}
+
+static void __apply_services(struct bbf_config *args, struct list_head *service_list)
+{
+	path_list_t *iter = NULL, *node;
+	struct blob_buf bb = {0};
+
+	memset(&bb, 0, sizeof(struct blob_buf));
+	blob_buf_init(&bb, 0);
+
+	void *array = blobmsg_open_array(&bb, "services");
+
+
+	list_for_each_entry_safe(iter, node, service_list, list) {
+		char *config_name = iter->path;
+
+		// If RELOAD_IMMIDIATE then only reload the non-critical services
+		// otherwise reload all services in the list
+		if ((args->type == RELOAD_IMMIDIATE) && (icwmp_critical_service(config_name) == true)) {
+			reload_pending = true;
+			continue;
+		}
+
+		CWMP_LOG(DEBUG, "Detected service: %s will be restarted", config_name);
+
+		if (CWMP_STRCMP(config_name, "cwmp") == 0) {
+			apply_cwmp_changes(args->is_commit);
+			continue;
+		}
+
+		blobmsg_add_string(&bb, NULL, config_name);
+	}
+
+	blobmsg_close_array(&bb, array);
+
+	blobmsg_add_string(&bb, "proto", "cwmp");
+	blobmsg_add_u8(&bb, "monitor", args->monitor);
+
+	icwmp_ubus_invoke("bbf.config", args->is_commit ? "commit" : "revert", bb.head, NULL, NULL);
+
+	blob_buf_free(&bb);
+
+	if (args->type == RELOAD_END_SESSION) {
+		reload_pending = false;
 	}
 }
 
-bool end_session_reload_pending()
+static void _updated_services_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 {
-	return !list_empty(&services_reload);
+	struct blob_attr *cur, *tb[1] = {0};
+	const struct blobmsg_policy p[1] = {
+			{ "configs", BLOBMSG_TYPE_ARRAY }
+	};
+	int rem = 0;
+
+	if (msg == NULL || req == NULL)
+		return;
+
+	struct list_head *service_list = (struct list_head *)req->priv;
+
+	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
+
+	if (!tb[0])
+		return;
+
+	blobmsg_for_each_attr(cur, tb[0], rem) {
+
+		if (blobmsg_type(cur) != BLOBMSG_TYPE_STRING)
+			continue;
+
+		char *config_name = blobmsg_get_string(cur);
+		if (CWMP_STRLEN(config_name)) {
+			add_path_list(service_list, config_name);
+		}
+	}
 }
 
-void icwmp_restart_services(int type)
+void icwmp_restart_services(int type, bool is_commit, bool monitor)
 {
 	struct blob_buf bb = {0};
-	struct cwmp_services *serv = NULL, *node = NULL;
+	struct bbf_config args = {
+			.is_commit = is_commit,
+			.monitor = monitor,
+			.type = type
+	};
+	LIST_HEAD(service_list);
 
 	memset(&bb, 0, sizeof(struct blob_buf));
 
 	blob_buf_init(&bb, 0);
 
-	void *array = blobmsg_open_array(&bb, "services");
+	blobmsg_add_string(&bb, "proto", "cwmp");
 
-	list_for_each_entry_safe(serv, node, &services_reload, list) {
-		if (CWMP_STRLEN(serv->service) == 0) {
-			list_del(&serv->list);
-			FREE(serv->service);
-			free(serv);
-			continue;
-		}
-
-		// If RELOAD_IMMIDIATE then only reload the non-critical services and delete from the list
-		// otherwise reload all services in the list and clear the list
-		if ((type == RELOAD_IMMIDIATE) && (icwmp_critical_service(serv->service) == true)) {
-			continue;
-		}
-
-		CWMP_LOG(DEBUG, "Detected service: %s will be restarted", serv->service);
-
-		if (CWMP_STRCMP(serv->service, "cwmp") == 0) {
-			list_del(&serv->list);
-			FREE(serv->service);
-			free(serv);
-
-			commit_uci_package("cwmp");
-			continue;
-		}
-
-		blobmsg_add_string(&bb, NULL, serv->service);
-		list_del(&serv->list);
-		FREE(serv->service);
-		free(serv);
-	}
-
-	blobmsg_close_array(&bb, array);
-
-	icwmp_ubus_invoke("bbf.config", "commit", bb.head, NULL, NULL);
+	icwmp_ubus_invoke("bbf.config", "changes", bb.head, _updated_services_cb, &service_list);
+	__apply_services(&args, &service_list);
+	free_path_list(&service_list);
 
 	blob_buf_free(&bb);
 }
@@ -1134,6 +1184,35 @@ void add_day_to_time(struct tm *time)
 			time->tm_mon = time->tm_mon + 1;
 	} else
 		time->tm_mday = time->tm_mday + 1;
+}
+
+void add_path_list(struct list_head *list, char *str)
+{
+	if (str == NULL) {
+		return;
+	}
+
+	path_list_t *node;
+
+	node = (path_list_t *)calloc(1, sizeof(*node));
+	if (!node) {
+		CWMP_LOG(ERROR, "Out of memory!");
+		return;
+	}
+
+	INIT_LIST_HEAD(&node->list);
+	CWMP_STRNCPY(node->path, str, 1024);
+	list_add_tail(&node->list, list);
+}
+
+void free_path_list(struct list_head *list)
+{
+	path_list_t *iter = NULL, *node;
+
+	list_for_each_entry_safe(iter, node, list, list) {
+		list_del(&iter->list);
+		FREE(iter);
+	}
 }
 
 void add_bin_list(struct list_head *list, uint8_t *str, size_t len)

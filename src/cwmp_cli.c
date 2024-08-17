@@ -94,10 +94,15 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res)
 		cwmp_free_all_list_param_fault(&faults_list);
 
 		icwmp_asprintf(&fault, "%d", res->obj_res.fault_code);
+
+		icwmp_restart_services(RELOAD_END_SESSION, false, false);
+
 		return fault;
 	}
 
 	set_rpc_parameter_key(in.third_input);
+
+	icwmp_restart_services(RELOAD_END_SESSION, true, false);
 
 	return NULL;
 }
@@ -126,10 +131,15 @@ char *cmd_add_exec_func(struct cmd_input in, union cmd_result *res)
 		char *fault = NULL;
 
 		icwmp_asprintf(&fault, "%d", res->obj_res.fault_code);
+
+		icwmp_restart_services(RELOAD_END_SESSION, false, false);
+
 		return fault;
 	}
 
 	set_rpc_parameter_key(in.second_input);
+
+	icwmp_restart_services(RELOAD_END_SESSION, true, false);
 
 	return NULL;
 }
@@ -171,10 +181,15 @@ char *cmd_del_exec_func(struct cmd_input in, union cmd_result *res)
 		char *fault = NULL;
 
 		icwmp_asprintf(&fault, "%d", res->obj_res.fault_code);
+
+		icwmp_restart_services(RELOAD_END_SESSION, false, false);
+
 		return fault;
 	}
 
 	set_rpc_parameter_key(in.second_input);
+
+	icwmp_restart_services(RELOAD_END_SESSION, true, false);
 
 	return NULL;
 }
