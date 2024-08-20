@@ -442,7 +442,7 @@ int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg
 	}
 
 	if (!ubus_lookup_id(ubus_ctx, obj, &id))
-		rc = ubus_invoke(ubus_ctx, id, method, msg, icwmp_callback, callback_arg, 60000);
+		rc = ubus_invoke(ubus_ctx, id, method, msg, icwmp_callback, callback_arg, 120000);
 	else
 		rc = -1;
 
