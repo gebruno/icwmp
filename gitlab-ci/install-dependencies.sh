@@ -15,3 +15,7 @@ install_bbfdmd
 #install WiFi Data Model as Plugin
 echo "Installing wifidmd as plugin"
 install_wifidmd_as_plugin
+
+#install Network Data Model as Plugin
+echo "Installing Network Data Model as plugin"
+install_netmngr_as_plugin

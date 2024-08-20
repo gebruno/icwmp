@@ -153,6 +153,17 @@ function install_wifidmd_as_plugin()
 	exec_cmd cp -f /opt/dev/wifidmd/src/libdataelements.so /usr/share/bbfdm/plugins/
 }
 
+function install_netmngr_as_plugin()
+{
+	[ -d "/opt/dev/netmngr" ] && return 0
+
+	exec_cmd git clone https://dev.iopsys.eu/network/netmngr.git /opt/dev/netmngr
+
+	exec_cmd make -C /opt/dev/netmngr/src/ clean && make -C /opt/dev/netmngr/src/
+	exec_cmd cp -f /opt/dev/netmngr/src/libnetmngr.so /usr/share/bbfdm/plugins/
+	exec_cmd cp -f /opt/dev/netmngr/src/libinterface_stack.so /usr/share/bbfdm/plugins/	
+}
+
 function check_valgrind_xml() {
 	echo "Checking memory leaks..."
 	cp /tmp/memory-report.xml memory-report.xml
