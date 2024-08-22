@@ -68,3 +68,19 @@ which may not be a correct value for e.g such parameters which can have value in
 ### Effort
 
 Medium
+
+## Proposal 4
+
+Introduce a new flag in bbfdm that allows for the refresh of all transient objects
+during a CWMP session. This feature can be enabled or disabled at compile time
+based on the customer's preference.
+
+### Cons
+
+1. Increased memory usage due to the need to store all transient objects in internal lists.
+2. No updates will occur for transient objects while the CWMP session is active.
+
+### Effort
+
+Low
+
