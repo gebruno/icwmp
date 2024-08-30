@@ -1,6 +1,6 @@
 variables:
   SOURCE_FOLDER: "."
-  COMPILATION_FIXUP: "cmake"
+  COMPILATION_FIXUP: "cmake ."
 
 include:
   - project: 'iopsys/gitlab-ci-pipeline'
