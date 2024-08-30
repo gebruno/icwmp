@@ -390,7 +390,7 @@ int load_download_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 		char tmp[128];
 		snprintf(tmp, sizeof(tmp), "%s", *(xml_attrs->file_type));
 		FREE(*(xml_attrs->file_type));
-		if (cwmp_asprintf(xml_attrs->file_type, "%s %s", tmp, node_opaque) == -1)
+		if (asprintf(xml_attrs->file_type, "%s %s", tmp, node_opaque) == -1)
 			return FAULT_CPE_INTERNAL_ERROR;
 	}
 	return FAULT_CPE_NO_FAULT;
@@ -407,7 +407,7 @@ int load_sched_download_window_mode(mxml_node_t *b, struct xml_data_struct *xml_
 	else {
 		static char *tmp = NULL;
 		tmp = *(xml_attrs->window_mode);
-		if (cwmp_asprintf(xml_attrs->window_mode, "%s %s", tmp, node_opaque ? node_opaque : "") == -1)
+		if (asprintf(xml_attrs->window_mode, "%s %s", tmp, node_opaque ? node_opaque : "") == -1)
 			return FAULT_CPE_INTERNAL_ERROR;
 	}
 	return FAULT_CPE_NO_FAULT;
@@ -678,19 +678,19 @@ int get_soap_enc_array_type(mxml_node_t *node __attribute__((unused)), struct xm
 	if (xml_attrs->soap_enc_array_type == NULL)
 		return FAULT_CPE_INTERNAL_ERROR;
 	if (xml_attrs->rpc_enum == SOAP_PARAM_STRUCT) {
-		if (icwmp_asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterValueStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
+		if (asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterValueStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
 			return FAULT_CPE_INTERNAL_ERROR;
 		return FAULT_CPE_NO_FAULT;
 	} else if (xml_attrs->rpc_enum == SOAP_GPA_STRUCT) {
-		if (icwmp_asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterAttributeStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
+		if (asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterAttributeStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
 			return FAULT_CPE_INTERNAL_ERROR;
 		return FAULT_CPE_NO_FAULT;
 	} else if (xml_attrs->rpc_enum == SOAP_RESP_GETRPC) {
-		if (icwmp_asprintf(xml_attrs->soap_enc_array_type, "xsd:string[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
+		if (asprintf(xml_attrs->soap_enc_array_type, "xsd:string[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
 			return FAULT_CPE_INTERNAL_ERROR;
 		return FAULT_CPE_NO_FAULT;
 	} else if (xml_attrs->rpc_enum == SOAP_RESP_GPN) {
-		if (icwmp_asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterInfoStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
+		if (asprintf(xml_attrs->soap_enc_array_type, "cwmp:ParameterInfoStruct[%d]", xml_attrs->counter ? *(xml_attrs->counter) : 0) == -1)
 			return FAULT_CPE_INTERNAL_ERROR;
 		return FAULT_CPE_NO_FAULT;
 	}
@@ -1115,11 +1115,11 @@ void get_xml_data_value_by_name(int type, int idx, struct xml_data_struct *xml_a
 		break;
 	case XML_INTEGER:
 		intgr = (int *)(*ptr);
-		icwmp_asprintf(data_value, "%d", intgr ? *intgr : 0);
+		asprintf(data_value, "%d", intgr ? *intgr : 0);
 		break;
 	case XML_LINTEGER:
 		lint = (long int *)(*ptr);
-		icwmp_asprintf(data_value, "%ld", lint ? *lint : 0);
+		asprintf(data_value, "%ld", lint ? *lint : 0);
 		break;
 	case XML_BOOL:
 		bol = (bool *)(*ptr);
@@ -1127,7 +1127,7 @@ void get_xml_data_value_by_name(int type, int idx, struct xml_data_struct *xml_a
 		break;
 	case XML_TIME:
 		time = (time_t *)(*ptr);
-		icwmp_asprintf(data_value, "%ld", time ? *time : 0);
+		asprintf(data_value, "%ld", time ? *time : 0);
 		break;
 	case XML_NODE:
 		*data_value = *ptr;
@@ -1704,7 +1704,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (cwmp_asprintf(&c, "%ld", time(NULL)) == -1) {
+	if (asprintf(&c, "%ld", time(NULL)) == -1) {
 		MXML_DELETE(xml);
 		return;
 	}

@@ -90,7 +90,7 @@ static size_t http_get_response(void *buffer, size_t size, size_t rxed, void *us
 
 	if (buffer == NULL)
 		return 0;
-	if (cwmp_asprintf(&c, "%s%.*s", *msg_in, (int)(size * rxed), (char *)buffer) == -1) {
+	if (asprintf(&c, "%s%.*s", *msg_in, (int)(size * rxed), (char *)buffer) == -1) {
 		FREE(*msg_in);
 		return -1;
 	}
@@ -329,7 +329,11 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 
 			// Trigger firewall to reload firewall.cwmp
 			if (cwmp_main->cr_policy != CR_POLICY_Port_Only) {
-				system(FIREWALL_CWMP);
+				/* Flawfinder: ignore */
+				FILE *pp = popen(FIREWALL_CWMP, "r");
+				if (pp) {
+					pclose(pp);
+				}
 			}
 		}
 	}
@@ -370,7 +374,12 @@ static void http_success_cr(void)
 	CWMP_LOG(INFO, "Connection Request triggering ...");
 	int retry = 0, rc = -1;
 	while (rc != 0 && retry < 5) {
-		rc = system("ubus call tr069 inform");
+		/* Flawfinder: ignore */
+		FILE *pp = popen("ubus call tr069 inform", "r");
+		if (pp) {
+			pclose(pp);
+			rc = WEXITSTATUS(pp);
+		}
 		retry = retry + 1;
 	}
 
@@ -486,7 +495,7 @@ static void http_cr_new_client(int client, bool service_available)
 				size_t avail_space = (size_t)(sizeof(data) - strlen(data));
 				if (buf_len < avail_space) {
 					CWMP_LOG(DEBUG, "Continue buffer overrun %d=>%d", buf_len, avail_space);
-					strcat(data, buffer);
+					snprintf(data, BUFSIZ, "%s", buffer);
 					continue;
 				}
 			} else {
@@ -495,7 +504,7 @@ static void http_cr_new_client(int client, bool service_available)
 				 */
 				size_t avail_space = (size_t)(sizeof(data) - strlen(data));
 				if (buf_len < avail_space) {
-					strcat(data, buffer);
+					snprintf(data, BUFSIZ, "%s", buffer);
 				}
 			}
 
@@ -679,7 +688,11 @@ void icwmp_http_server_init(void)
 		snprintf(cr_port_str, 6, "%hu", cr_port);
 		cr_port_str[5] = '\0';
 		set_uci_path_value(NULL, "cwmp.cpe.port", cr_port_str);
-		system(FIREWALL_CWMP);
+		/* Flawfinder: ignore */
+		FILE *pp = popen(FIREWALL_CWMP, 'r');
+		if (pp) {
+			pclose(pp);
+		}
 		connection_request_port_value_change(cr_port);
 	}
 

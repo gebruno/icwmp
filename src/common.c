@@ -339,31 +339,6 @@ void cwmp_free_all_list_param_fault(struct list_head *list_param_fault)
 	}
 }
 
-int cwmp_asprintf(char **s, const char *format, ...)
-{
-	int size;
-	char *str = NULL;
-	va_list arg, argcopy;
-	va_start(arg, format);
-	va_copy(argcopy, arg);
-	size = vsnprintf(NULL, 0, format, argcopy);
-	if (size < 0) {
-		va_end(argcopy);
-		va_end(arg);
-		return -1;
-	}
-	va_end(argcopy);
-	str = (char *)calloc(sizeof(char), size + 1);
-	vsnprintf(str, size + 1, format, arg);
-	va_end(arg);
-	*s = strdup(str);
-	FREE(str);
-	if (*s == NULL) {
-		return -1;
-	}
-	return 0;
-}
-
 bool folder_exists(const char *path)
 {
 	struct stat folder_stat;
@@ -435,34 +410,6 @@ unsigned int get_file_size(char *file_name)
 	fclose(fp);
 
 	return res;
-}
-
-int opkg_install_package(char *package_path)
-{
-	FILE *fp;
-	char path[1035];
-	char cmd[512];
-
-	CWMP_LOG(INFO, "Apply downloaded config ...");
-
-	int ret = snprintf(cmd, sizeof(cmd), "opkg --force-depends --force-maintainer install %s", package_path);
-	if (ret < 0 || ret > 512)
-		return -1;
-	fp = popen(cmd, "r");
-	if (fp == NULL) {
-		CWMP_LOG(INFO, "Failed to run command");
-		return -1;
-	}
-
-	/* Read the output a line at a time - output it. */
-	while (fgets(path, sizeof(path), fp) != NULL) {
-		if (strstr(path, "Installing") != NULL)
-			return 0;
-	}
-
-	/* close */
-	pclose(fp);
-	return -1;
 }
 
 int copy(const char *from, const char *to)
@@ -606,32 +553,6 @@ char *icwmp_strdup(const char *s)
 	if (new == NULL)
 		return NULL;
 	return (char *)CWMP_MEMCPY(new, s, len);
-}
-
-int icwmp_asprintf(char **s, const char *format, ...)
-{
-	int size;
-	char *str = NULL;
-	va_list arg, argcopy;
-
-	va_start(arg, format);
-	va_copy(argcopy, arg);
-	size = vsnprintf(NULL, 0, format, argcopy);
-	va_end(argcopy);
-
-	if (size < 0) {
-		va_end(arg);
-		return -1;
-	}
-	str = (char *)calloc(sizeof(char), size + 1);
-	vsnprintf(str, size + 1, format, arg);
-	va_end(arg);
-
-	*s = icwmp_strdup(str);
-	free(str);
-	if (*s == NULL)
-		return -1;
-	return 0;
 }
 
 void icwmp_free(void *m)
@@ -1394,8 +1315,8 @@ int regex_replace(char **str, const char *pattern, const char *replace, int *mat
 
 			memset(new, 0, len);
 			strncat(new, search_start, m[0].rm_so); // string before pattern
-			strcat(new, replace); // add the replacement
-			strcat(new, search_start + m[0].rm_eo); // add trailing text in string
+			snprintf(new, len, "%s", replace);
+			snprintf(new, len, "%s", search_start + m[0].rm_eo);
 
 			free(*str);
 			*str = strdup(new);

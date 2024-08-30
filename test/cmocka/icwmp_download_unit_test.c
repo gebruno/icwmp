@@ -71,7 +71,7 @@ static void cwmp_download_file_unit_test(void **state)
 	 */
 	int http_code = download_file(ICWMP_DOWNLOAD_FILE, "http://127.0.0.1/firmware_v1.0.bin", NULL, NULL, NULL);
 	assert_int_equal(http_code, 200);
-	assert_int_equal(access( ICWMP_DOWNLOAD_FILE, F_OK ), 0);
+	assert_true(file_exists( ICWMP_DOWNLOAD_FILE));
 	remove(ICWMP_DOWNLOAD_FILE);
 
 	/*
@@ -79,7 +79,7 @@ static void cwmp_download_file_unit_test(void **state)
 	 */
 	http_code = download_file(ICWMP_DOWNLOAD_FILE, "http://127.0.0.1/firmware.bin", NULL, NULL, NULL);
 	assert_int_equal(http_code, 404);
-	assert_int_equal(access( ICWMP_DOWNLOAD_FILE, F_OK ), 0);
+	assert_true(file_exists(ICWMP_DOWNLOAD_FILE));
 	remove(ICWMP_DOWNLOAD_FILE);
 }
 
@@ -105,7 +105,7 @@ static void cwmp_launch_download_unit_test(void **state)
 	transfer_complete_test = ptransfer_complete;
 
 	assert_int_equal(error, FAULT_CPE_NO_FAULT);
-	assert_int_equal(access( FIRMWARE_UPGRADE_IMAGE, F_OK ), 0);
+	assert_true(file_exists(FIRMWARE_UPGRADE_IMAGE));
 	assert_int_equal(ptransfer_complete->fault_code, FAULT_CPE_NO_FAULT);
 	assert_string_equal(ptransfer_complete->command_key, "download_key");
 	assert_non_null(ptransfer_complete->start_time);
