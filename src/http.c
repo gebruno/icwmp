@@ -377,8 +377,8 @@ static void http_success_cr(void)
 		/* Flawfinder: ignore */
 		FILE *pp = popen("ubus call tr069 inform", "r");
 		if (pp) {
-			pclose(pp);
-			rc = WEXITSTATUS(pp);
+			int status = pclose(pp);
+			rc = WEXITSTATUS(status);
 		}
 		retry = retry + 1;
 	}
@@ -689,7 +689,7 @@ void icwmp_http_server_init(void)
 		cr_port_str[5] = '\0';
 		set_uci_path_value(NULL, "cwmp.cpe.port", cr_port_str);
 		/* Flawfinder: ignore */
-		FILE *pp = popen(FIREWALL_CWMP, 'r');
+		FILE *pp = popen(FIREWALL_CWMP, "r");
 		if (pp) {
 			pclose(pp);
 		}
