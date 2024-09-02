@@ -29,7 +29,7 @@ char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, stru
 char *cwmp_validate_parameter_name(const char *param_name, bool next_level, struct list_head *param_list);
 char *cwmp_validate_multi_instance_path(const char *object, struct list_head *parameters_list);
 
-int cwmp_set_parameter_value(const char *parameter_name, const char *parameter_value, struct list_head *faults_list);
+int cwmp_set_parameter_value(const char *parameter_name, const char *parameter_value, const char *type, struct list_head *faults_list);
 int cwmp_set_multi_parameters_value(struct list_head *parameters_values_list, struct list_head *faults_list);
 
 bool cwmp_add_object(const char *object_name, struct object_result *res);

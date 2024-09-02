@@ -798,6 +798,7 @@ int load_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_str
 				xml_attrs_args.window_end = &xml_data->windowend;
 				xml_attrs_args.notification_change = &xml_data->notification_change;
 				xml_attrs_args.access_list = &xml_data->access_list;
+				xml_attrs_args.xsi_type = &xml_data->param_type;
 
 				xml_attrs_args.url = &xml_data->url;
 				xml_attrs_args.uuid = &xml_data->uuid;
@@ -886,6 +887,7 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 		const char *xml_node_name = mxmlGetElement(b);
 		mxml_type_t node_type = mxmlGetType(b);
 		mxml_node_t *firstchild = mxmlGetFirstChild(b);
+		char *xsi_type = NULL;
 
 		char *node_name = get_xml_node_name_by_switch_name((char *)xml_node_name);
 		if (!check_node_is_switch_by_node_name(node_ref, node_name))
@@ -912,6 +914,11 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 				b = mxmlWalkNext(b, node, MXML_DESCEND);
 				continue;
 			}
+
+			if (node_ref == SOAP_REQ_SPV_LIST_REF && CWMP_STRCMP((char *)node_name, "Value") == 0) {
+				xsi_type = (char *)mxmlElementGetAttr(b, "xsi:type");
+			}
+
 			idx = get_xml_tag_index((char *)node_name);
 
 			// cppcheck-suppress knownConditionTrueFalse
@@ -943,6 +950,20 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 			case XML_STRING:
 				str = (char **)(*ptr);
 				*str = strdup(opaque ? opaque : "");
+
+				// If SPV then need to forward datatype received in xml
+				if (node_ref == SOAP_REQ_SPV_LIST_REF && CWMP_STRCMP((char *)node_name, "Value") == 0) {
+					int ids = get_xml_tag_index("xsi:type");
+					void **p = (void **)((char *)xml_attrs + ids * sizeof(char *));
+					str = (char **)(*p);
+
+					if (CWMP_STRNCMP(xsi_type, "xsd:", 4) == 0) {
+						*str = strdup(xsi_type + 4);
+					} else {
+						*str = strdup("");
+					}
+				}
+
 				break;
 			case XML_INTEGER:
 				intgr = (int *)(*ptr);

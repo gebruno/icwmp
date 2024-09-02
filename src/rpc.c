@@ -1121,8 +1121,6 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		set_diagnostic_state_end_session_flag(param_value->name, param_value->value);
 	}
 
-	cwmp_free_all_xml_data_list(&xml_list_set_param_value);
-	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 
 	icwmp_restart_services(RELOAD_IMMIDIATE, true, false);
 
@@ -1151,9 +1149,12 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		cwmp_set_end_session(END_SESSION_RESTART_SERVICES);
 	}
 
+	cwmp_free_all_xml_data_list(&xml_list_set_param_value);
+	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	return 0;
 
 fault:
+	cwmp_free_all_xml_data_list(&xml_list_set_param_value);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	if (cwmp_create_fault_message(rpc, fault_code, err_msg))
 		ret = -1;

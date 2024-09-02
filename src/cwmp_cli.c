@@ -81,7 +81,7 @@ char *cmd_set_exec_func(struct cmd_input in, union cmd_result *res)
 
 	LIST_HEAD(faults_list);
 
-	int fault_idx = cwmp_set_parameter_value(in.first_input, in.second_input, &faults_list);
+	int fault_idx = cwmp_set_parameter_value(in.first_input, in.second_input, NULL, &faults_list);
 	if (fault_idx != FAULT_CPE_NO_FAULT) {
 		struct cwmp_param_fault *param_fault = NULL;
 		char *fault = NULL;

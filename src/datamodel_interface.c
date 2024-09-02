@@ -678,7 +678,7 @@ static void ubus_set_value_callback(struct ubus_request *req, int type __attribu
 	}
 }
 
-int cwmp_set_parameter_value(const char *parameter_name, const char *parameter_value, struct list_head *faults_list)
+int cwmp_set_parameter_value(const char *parameter_name, const char *parameter_value, const char *type, struct list_head *faults_list)
 {
 	char *inst_path = NULL;
 	struct blob_buf b = {0};
@@ -700,6 +700,7 @@ int cwmp_set_parameter_value(const char *parameter_name, const char *parameter_v
 
 	bb_add_string(&b, "path", inst_path);
 	bb_add_string(&b, "value", parameter_value);
+	bb_add_string(&b, "datatype", type ? type : "");
 	prepare_optional_table(&b);
 
 	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "set", b.head, ubus_set_value_callback, &set_result);
@@ -732,7 +733,7 @@ int cwmp_set_multi_parameters_value(struct list_head *parameters_values_list, st
 		if (CWMP_STRLEN(param_value->name) == 0)
 			continue;
 
-		int res = cwmp_set_parameter_value(param_value->name, param_value->value, faults_list);
+		int res = cwmp_set_parameter_value(param_value->name, param_value->value, param_value->type, faults_list);
 		if (res != FAULT_CPE_NO_FAULT)
 			fault_occured = true;
 	}
