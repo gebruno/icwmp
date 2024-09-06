@@ -174,18 +174,27 @@ static char *get_software_module_object_eq(char *param1, char *val1, char *param
 	if (err)
 		return NULL;
 
-	struct cwmp_dm_parameter *param_value;
+	struct cwmp_dm_parameter *param_value = NULL;
 	char instance[8] = {0};
 	regex_t regex1 = {};
 	regex_t regex2 = {};
 	bool softwaremodule_filter_param = false;
 	char regstr1[256];
-	snprintf(regstr1, sizeof(regstr1), "^Device.SoftwareModules.DeploymentUnit.[0-9][0-9]*.%s$",param1);
-	regcomp(&regex1, regstr1, 0);
+
+	snprintf(regstr1, sizeof(regstr1), "^Device.SoftwareModules.DeploymentUnit.[1-9][0-9]*.%s$", param1);
+	if (regcomp(&regex1, regstr1, 0) != 0) {
+		CWMP_LOG(ERROR, "Failed to compile regex1: %s", regstr1);
+		return NULL;
+	}
+
 	if (param2) {
 		char regstr2[256];
-		snprintf(regstr2, sizeof(regstr2), "^Device.SoftwareModules.DeploymentUnit.[0-9][0-9]*.%s$",param2);
-		regcomp(&regex2, regstr2, 0);
+		snprintf(regstr2, sizeof(regstr2), "^Device.SoftwareModules.DeploymentUnit.[1-9][0-9]*.%s$", param2);
+		if (regcomp(&regex2, regstr2, 0) != 0) {
+			CWMP_LOG(ERROR, "Failed to compile regex2: %s", regstr2);
+			regfree(&regex1);
+			return NULL;
+		}
 	}
 
 	list_for_each_entry (param_value, sw_parameters, list) {
@@ -200,6 +209,11 @@ static char *get_software_module_object_eq(char *param1, char *val1, char *param
 
 		snprintf(instance, (size_t)(strchr(param_value->name + strlen("Device.SoftwareModules.DeploymentUnit."), '.') - param_value->name - strlen("Device.SoftwareModules.DeploymentUnit.") + 1), "%s", (char *)(param_value->name + strlen("Device.SoftwareModules.DeploymentUnit.")));
 		break;
+	}
+
+	regfree(&regex1);
+	if (param2) {
+		regfree(&regex2);
 	}
 	return (strlen(instance) > 0) ? strdup(instance) : NULL;
 }
