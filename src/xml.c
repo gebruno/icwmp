@@ -880,7 +880,7 @@ bool check_node_is_switch_by_node_name(int node_ref, char *node_name)
 int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
 	mxml_node_t *b = node;
-	int idx, xml_type = -1, soap_idx;
+	int idx, soap_idx;
 	void **ptr = NULL;
 	int error = FAULT_CPE_NO_FAULT;
 	while (b) {
@@ -900,7 +900,7 @@ int load_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_s
 				continue;
 			}
 
-			xml_type = get_xml_type(node_ref, soap_idx);
+			int xml_type = get_xml_type(node_ref, soap_idx);
 			if (xml_type == XML_FUNC) {
 				if ((error = xml_nodes_data[node_ref].xml_tags[soap_idx].xml_func(b, xml_attrs)) != FAULT_CPE_NO_FAULT)
 					return error;
@@ -1245,7 +1245,7 @@ int build_single_xml_node_data(int node_ref, mxml_node_t *node, struct xml_data_
 
 int build_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_struct *xml_attrs)
 {
-	mxml_node_t *n = node;
+	mxml_node_t *n = NULL;
 	struct xml_list_data *xml_data;
 	list_for_each_entry (xml_data, xml_attrs->data_list, list) {
 		if (xml_nodes_data[node_ref].tag_list_name) {

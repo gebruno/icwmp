@@ -1239,7 +1239,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	mxml_node_t *b = NULL;
 	char *object_name = NULL;
 	char *parameter_key = NULL;
-	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
+	int ret = 0;
 	struct object_result res = {0};
 	char *err_msg = NULL;
 
@@ -1250,7 +1250,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	add_obj_xml_attrs.validations = gpn_validation;
 	add_obj_xml_attrs.nbre_validations = 2;
 
-	fault_code = load_xml_node_data(SOAP_REQ_ADDOBJ, cwmp_main->session->body_in, &add_obj_xml_attrs);
+	int fault_code = load_xml_node_data(SOAP_REQ_ADDOBJ, cwmp_main->session->body_in, &add_obj_xml_attrs);
 
 	if (fault_code) {
 		err_msg = "Failed to load data from AddObject request message";
@@ -1325,7 +1325,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	mxml_node_t *b;
 	char *object_name = NULL;
 	char *parameter_key = NULL;
-	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
+	int ret = 0;
 	struct object_result res = {0};
 	char *err_msg = NULL;
 
@@ -1336,7 +1336,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	del_obj_xml_attrs.validations = gpn_validation;
 	del_obj_xml_attrs.nbre_validations = 2;
 
-	fault_code = load_xml_node_data(SOAP_REQ_DELOBJ, cwmp_main->session->body_in, &del_obj_xml_attrs);
+	int fault_code = load_xml_node_data(SOAP_REQ_DELOBJ, cwmp_main->session->body_in, &del_obj_xml_attrs);
 
 	if (fault_code) {
 		err_msg = "Failed to load data from DeleteObject request message";
@@ -1507,10 +1507,7 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 {
 	mxml_node_t *b;
 	char *command_key = NULL;
-	int fault_code = FAULT_CPE_INTERNAL_ERROR;
 	char *err_msg = NULL;
-
-	b = cwmp_main->session->body_in;
 
 	struct xml_data_struct canceltrancer_obj_xml_attrs = {0};
 	canceltrancer_obj_xml_attrs.command_key = &command_key;
@@ -1518,7 +1515,7 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 	canceltrancer_obj_xml_attrs.validations = canceltransfer_validation;
 	canceltrancer_obj_xml_attrs.nbre_validations = 1;
 
-	fault_code = load_xml_node_data(SOAP_REQ_CANCELTRANSFER, cwmp_main->session->body_in, &canceltrancer_obj_xml_attrs);
+	int fault_code = load_xml_node_data(SOAP_REQ_CANCELTRANSFER, cwmp_main->session->body_in, &canceltrancer_obj_xml_attrs);
 
 	if (command_key)
 		cancel_transfer(command_key);
@@ -1590,8 +1587,6 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 	mxml_node_t *b;
 	struct event_container *event_container;
 	char *command_key = NULL;
-	int fault_code = FAULT_CPE_INTERNAL_ERROR;
-	b = cwmp_main->session->body_in;
 	char *err_msg = NULL;
 
 	struct xml_data_struct reboot_obj_xml_attrs = {0};
@@ -1600,7 +1595,7 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 	reboot_obj_xml_attrs.validations = reboot_validation;
 	reboot_obj_xml_attrs.nbre_validations = 1;
 
-	fault_code = load_xml_node_data(SOAP_REQ_REBOOT, cwmp_main->session->body_in, &reboot_obj_xml_attrs);
+	int fault_code = load_xml_node_data(SOAP_REQ_REBOOT, cwmp_main->session->body_in, &reboot_obj_xml_attrs);
 
 	if (fault_code) {
 		err_msg = "Failed to load data from reboot request";

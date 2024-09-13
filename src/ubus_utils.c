@@ -152,12 +152,11 @@ static int icwmp_command_handler(struct ubus_context *ctx, struct ubus_object *o
 		return -1;
 	struct blob_attr *tb[__COMMAND_MAX] = {0};
 	struct blob_buf blob_command;
-	int ret = -1;
 
 	CWMP_MEMSET(&blob_command, 0, sizeof(struct blob_buf));
 	blob_buf_init(&blob_command, 0);
 
-	ret = blobmsg_parse(icwmp_cmd_policy, ARRAY_SIZE(icwmp_cmd_policy), tb, blob_data(msg), blob_len(msg));
+	int ret = blobmsg_parse(icwmp_cmd_policy, ARRAY_SIZE(icwmp_cmd_policy), tb, blob_data(msg), blob_len(msg));
 	if (ret != 0) {
 		int i;
 		int cmd_num = sizeof(cmd_cb)/sizeof(struct command_cb);
@@ -327,10 +326,9 @@ static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *ob
 	struct blob_attr *tb[__INFORM_MAX] = {0};
 	bool is_get_rpc = false;
 	char *event = "";
-	int ret = -1;
-	int event_code = -1;
+	int event_code;
 
-	ret = blobmsg_parse(icwmp_inform_policy, ARRAY_SIZE(icwmp_inform_policy), tb, blob_data(msg), blob_len(msg));
+	int ret = blobmsg_parse(icwmp_inform_policy, ARRAY_SIZE(icwmp_inform_policy), tb, blob_data(msg), blob_len(msg));
 
 	if (ret == 0 && tb[INFORM_GET_RPC_METHODS] != NULL) {
 		is_get_rpc = blobmsg_get_u8(tb[INFORM_GET_RPC_METHODS]);

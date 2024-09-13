@@ -555,14 +555,14 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 
 		case DU_UPDATE:
 			if (p->url == NULL || p->uuid == NULL || *(p->url) == '\0' || *(p->uuid) == '\0') {
-				error = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
 				res->fault_msg = strdup("No such argument to identify exact DU");
 				break;
 			}
 
 			du_ref = get_deployment_unit_by_uuid(p->uuid);
 			if (CWMP_STRLEN(du_ref) == 0) {
-				error = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
+				res->fault = FAULT_CPE_UNKNOWN_DEPLOYMENT_UNIT;
 				res->fault_msg = strdup("Failed to identify the DU from the UUID");
 				break;
 			}

@@ -700,11 +700,13 @@ void icwmp_init_critical_services()
 		if (CWMP_STRLEN(serv_name) == 0)
 			continue;
 
-		struct cwmp_services *serv = malloc(sizeof(struct cwmp_services));
+		struct cwmp_services *serv = (struct cwmp_services *)malloc(sizeof(struct cwmp_services));
 		if (serv == NULL)
 			break;
 
+		CWMP_MEMSET(serv, 0, sizeof(struct cwmp_services));
 		serv->service = CWMP_STRDUP(serv_name);
+		INIT_LIST_HEAD(&serv->list);
 		list_add(&serv->list, &critical_service_list);
 	}
 	blob_buf_free(&bbuf);
