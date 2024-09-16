@@ -24,6 +24,10 @@
 
 LIST_HEAD(list_change_du_state);
 
+static int cwmp_du_install(char *url, char *uuid, char *user, char *pass, char *path, char *env_ref, char **fault_code);
+static int cwmp_du_update(char *url, char *user, char *pass, char *du_path, char **fault_code);
+static int cwmp_du_uninstall(char *du_path, char **fault_code);
+
 static char *generate_uuid(void)
 {
 	uuid_t binuuid;
@@ -463,7 +467,7 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 	struct opresult *res;
 	struct du_state_change_complete *pdu_state_change_complete;
 	char *du_ref = NULL;
-	char du_path[2048] = {0};
+	char du_path[128] = {0};
 
 	//struct session_timer_event cdu_inform_event = {.session_timer_evt = {.cb = cwmp_schedule_session_with_event}, .event = CDU_Evt};
 	struct session_timer_event *cdu_inform_event = calloc(1, sizeof(struct session_timer_event));

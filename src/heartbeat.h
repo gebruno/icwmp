@@ -15,7 +15,6 @@
 
 extern struct uloop_timeout heartbeat_session_timer;
 
-void cwmp_heartbeat_session_timer(struct uloop_timeout *timeout);
 void intiate_heartbeat_procedures();
 void reinit_heartbeat_procedures();
 

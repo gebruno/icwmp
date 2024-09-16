@@ -28,6 +28,13 @@ LIST_HEAD(list_value_change);
 LIST_HEAD(list_lw_value_change);
 LIST_HEAD(list_param_obj_notify);
 
+static void create_list_param_leaf_notify(struct list_head *, void (*fp)(FILE *, char *, char *, char *, int), FILE*);
+static void send_active_value_change(void);
+static void add_list_value_change(char *param_name, char *param_data, char *param_type);
+static void add_lw_list_value_change(char *param_name, char *param_data, char *param_type);
+static void cwmp_lwnotification(void);
+static void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused)));
+
 struct uloop_timeout check_notify_timer = { .cb = periodic_check_notifiy };
 
 char *supported_notification_types[7] = {"disabled" , "passive", "active", "passive_lw", "passive_passive_lw", "active_lw", "passive_active_lw"};

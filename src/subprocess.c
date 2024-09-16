@@ -18,6 +18,8 @@
 #define END_TASK "{\"task\":\"end\"}"
 #define EXIT_TASK "{\"task\":\"exit\"}"
 
+typedef char* (*task_function)(char *task_arg);
+
 static int pipefd1[2], pipefd2[2];
 
 bool check_task_name(char *task, char *name)

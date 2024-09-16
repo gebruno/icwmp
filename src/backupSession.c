@@ -26,6 +26,13 @@
 
 static mxml_node_t *bkp_tree = NULL;
 
+struct search_keywords {
+	char *name;
+	char *value;
+};
+
+static int bkp_session_check_file();
+
 int cwmp_init_backup_session(char **ret, enum backup_loading load)
 {
 	if (bkp_session_check_file())

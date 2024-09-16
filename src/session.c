@@ -35,14 +35,19 @@
 #include "cwmp_http.h"
 #include "uci_utils.h"
 
-
+static struct rpc *cwmp_add_session_rpc_acs_head(int type);
+static int cwmp_session_rpc_destructor(struct rpc *rpc);
+static int run_session_end_func(void);
+static void cwmp_schedule_session(struct uloop_timeout *timeout);
+static void cwmp_schedule_throttle_session(struct uloop_timeout *timeout  __attribute__((unused)));
+static void set_cwmp_session_status(int status, int retry_time);
+static int cwmp_schedule_rpc(void);
 static void cwmp_periodic_session_timer(struct uloop_timeout *timeout);
+
 struct uloop_timeout session_timer = { .cb = cwmp_schedule_session };
 struct uloop_timeout periodic_session_timer = { .cb = cwmp_periodic_session_timer };
 struct uloop_timeout retry_session_timer = { .cb = cwmp_schedule_session };
 struct uloop_timeout throttle_session_timer = { .cb = cwmp_schedule_throttle_session };
-struct uloop_timeout restart_timer = { .cb = cwmp_restart_service };
-
 
 unsigned int end_session_flag = 0;
 
@@ -790,9 +795,4 @@ int run_session_end_func(void)
 
 	end_session_flag = 0;
 	return CWMP_OK;
-}
-
-void trigger_cwmp_restart_timer(void)
-{
-	uloop_timeout_set(&restart_timer, 10);
 }

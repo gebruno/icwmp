@@ -1351,21 +1351,6 @@ void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, i
 	}
 }
 
-void cwmp_restart_service(struct uloop_timeout *timeout  __attribute__((unused)))
-{
-	struct blob_buf b = { 0 };
-
-	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
-	blob_buf_init(&b, 0);
-	bb_add_string(&b, "name", "icwmpd");
-	bb_add_string(&b, "action", "restart");
-
-	icwmp_ubus_invoke("rc", "init", b.head, NULL, NULL);
-
-	blob_buf_free(&b);
-	CWMP_LOG(DEBUG, "Scheduled icwmpd restart");
-}
-
 int regex_replace(char **str, const char *pattern, const char *replace, int *match_count) {
 	regex_t reg;
 

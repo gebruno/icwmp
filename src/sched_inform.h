@@ -11,7 +11,9 @@
 
 #ifndef CWMP_SCHED_INFORM_H
 #define CWMP_SCHED_INFORM_H
+
 #include "common.h"
+
 extern struct list_head list_schedule_inform;
 extern int count_schedule_inform_queue;
 

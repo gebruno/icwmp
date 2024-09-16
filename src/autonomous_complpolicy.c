@@ -31,6 +31,9 @@ struct autonomous_event {
 	autonomous_event_callback cb;
 };
 
+static void free_autonomous_du_state_change_complete_data(auto_du_state_change_compl *p);
+static void free_autonomous_transfer_complete_data(auto_transfer_complete *p);
+
 static bool validate_du_state_change_data(auto_du_state_change_compl *data)
 {
 

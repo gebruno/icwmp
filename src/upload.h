@@ -19,8 +19,6 @@
 extern struct list_head list_upload;
 extern int count_upload_queue;
 
-int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptransfer_complete);
-void *thread_cwmp_rpc_cpe_upload(void *v);
 int cwmp_scheduledUpload_remove_all();
 int cwmp_free_upload_request(struct upload *upload);
 void cwmp_start_upload(struct uloop_timeout *timeout);

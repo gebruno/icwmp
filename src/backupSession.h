@@ -32,13 +32,7 @@ typedef enum backup_loading
 	CR_PORT
 } backup_loading;
 
-struct search_keywords {
-	char *name;
-	char *value;
-};
-
 int cwmp_init_backup_session(char **ret, enum backup_loading load);
-int bkp_session_check_file();
 void bkp_session_save();
 int cwmp_load_saved_session(char **acsurl, enum backup_loading load);
 int save_acs_bkp_config();

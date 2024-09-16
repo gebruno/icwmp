@@ -25,7 +25,6 @@ int icwmp_http_client_init();
 void icwmp_http_client_exit(void);
 int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in);
 
-int http_cr_server_init(void);
 void icwmp_http_server_listen(void);
 void icwmp_http_server_init(void);
 #endif

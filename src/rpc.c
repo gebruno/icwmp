@@ -32,6 +32,29 @@
 #define PROCESSING_DELAY (1) // In download/upload the message enqueued before sending the response, which cause the download/upload
 			     // to start just before the time. This delay is to compensate the time lapsed during the message enqueue and response
 
+static int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_download(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_upload(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_factory_reset(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_x_factory_reset_soft(struct rpc *rpc);
+static int cancel_transfer(char *key);
+static int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc);
+static int cwmp_handle_rpc_cpe_fault(struct rpc *rpc);
+static int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, char *fault_msg);
+static int cwmp_rpc_acs_parse_response_inform(struct rpc *rpc);
+static int cwmp_rpc_acs_parse_response_get_rpc_methods(struct rpc *this);
+static int cwmp_rpc_acs_prepare_get_rpc_methods(struct rpc *rpc);
+static int cwmp_rpc_acs_prepare_transfer_complete(struct rpc *rpc);
+static int cwmp_rpc_acs_prepare_du_state_change_complete(struct rpc *rpc);
+static int cwmp_rpc_acs_prepare_autonomous_du_state_change_complete(struct rpc *rpc);
+static int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc);
+
 struct cwmp_namespaces ns;
 const struct rpc_cpe_method rpc_cpe_methods[] = {
 		[RPC_CPE_GET_RPC_METHODS] = { "GetRPCMethods", cwmp_handle_rpc_cpe_get_rpc_methods, AMD_1 },

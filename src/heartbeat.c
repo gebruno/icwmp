@@ -22,6 +22,8 @@
 #include "http.h"
 #include "cwmp_event.h"
 
+static void cwmp_heartbeat_session_timer(struct uloop_timeout *timeout);
+
 struct uloop_timeout heartbeat_session_timer = { .cb = cwmp_heartbeat_session_timer };
 
 long int cwmp_heartbeat_session_time(void)

@@ -30,6 +30,26 @@ char *g_tab_space = NULL;
 
 const char *cwmp_urls[] = { "urn:dslforum-org:cwmp-1-0", "urn:dslforum-org:cwmp-1-1", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", "urn:dslforum-org:cwmp-1-2", NULL };
 
+static void load_notification_xml_schema(mxml_node_t **tree);
+static int load_upload_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int load_backup_event_command_key(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int load_backup_event_parameter(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int load_get_rpc_method_acs_resp_string(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int load_download_filetype(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int load_sched_download_window_mode(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int load_change_du_state_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int load_cdu_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int load_cdu_complete_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int build_inform_events(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs);
+static int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *xml_attrs);
+static int build_backup_cdu_option(mxml_node_t *cdu, struct xml_data_struct *xml_attrs);
+static int get_soap_enc_array_type(mxml_node_t *node, struct xml_data_struct *xml_attrs);
+static char *get_xml_node_name_switch(char *node_name);
+static char *get_xml_node_name_by_switch_name(char *switch_node_name);
+static const char *whitespace_cb(mxml_node_t *node, int where);
+static const char *get_node_tab_space(mxml_node_t *node);
+
 struct xml_node_data xml_nodes_data[] = {
 		/*
 		 * SOAP Requests

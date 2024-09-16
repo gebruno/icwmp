@@ -673,7 +673,6 @@ bool is_ipv6_status_changed(void);
 char *get_time(time_t t_time);
 bool is_reload_parameter(const char *object_name);
 time_t convert_datetime_to_timestamp(char *value);
-int run_session_end_func(void);
 void set_interface_reset_request(char *param_name, char *value);
 bool str_to_bool(char *value);
 bool match_reg_exp(char *reg_exp, char *param_name);
@@ -694,7 +693,6 @@ char *cwmp_strncpy(char *dst, const char *src, int size, const char *origin, int
 char *cwmp_strdup(const char *s1, const char *origin, int pos);
 void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos);
 void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, int pos);
-void cwmp_restart_service(struct uloop_timeout *timeout  __attribute__((unused)));
 int regex_replace(char **str, const char *pattern, const char *replace, int *match_count);
 void stop_service(void);
 void icwmp_init_critical_services(void);

@@ -15,10 +15,7 @@
 #include "common.h"
 
 typedef void (*icwmp_ubus_cb)(struct ubus_request *req, int type, struct blob_attr *msg);
-
 void bb_add_string(struct blob_buf *bb, const char *name, const char *value);
-int icwmp_register_object(struct ubus_context *ctx);
-int icwmp_delete_object(struct ubus_context *ctx);
 int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg,
 		      icwmp_ubus_cb icwmp_callback, void *callback_arg);
 int icwmp_uloop_ubus_register(void);

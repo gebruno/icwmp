@@ -24,6 +24,8 @@ static bool g_bbf_object_available = false;
 static struct ubus_context *ubus_ctx = NULL;
 struct uloop_timeout u_timeout;
 
+static int icwmp_register_object(struct ubus_context *ctx);
+
 struct command_cb {
 	char *str;
 	callback cb;
@@ -380,11 +382,6 @@ static struct ubus_object tr069_object = {
 int icwmp_register_object(struct ubus_context *ctx)
 {
 	return ubus_add_object(ctx, &tr069_object);
-}
-
-int icwmp_delete_object(struct ubus_context *ctx)
-{
-	return ubus_remove_object(ctx, &tr069_object);
 }
 
 void bb_add_string(struct blob_buf *bb, const char *name, const char *value)

@@ -24,6 +24,8 @@
 
 #define CURL_TIMEOUT 30
 
+static int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptransfer_complete);
+
 int count_upload_queue = 0;
 
 LIST_HEAD(list_upload);
