@@ -333,8 +333,13 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	force_inform_node *iter = NULL, *node = NULL;
 
 	list_for_each_entry_safe(iter, node, &force_inform_list, list) {
-		if (!cwmp_get_parameter_value(iter->path, &cwmp_dm_param))
+		if (!cwmp_get_parameter_value(iter->path, &cwmp_dm_param)) {
+			if (strcmp(iter->path, "Device.ManagementServer.ConnectionRequestURL") == 0) {
+				CWMP_LOG(ERROR, "Failed to get parameter value for CR URL[%s]", iter->path);
+				goto error;
+			}
 			continue;
+		}
 
 		// An empty connection url cause CDR test to break
 		if (strcmp(iter->path, "Device.ManagementServer.ConnectionRequestURL") == 0 &&
