@@ -66,6 +66,8 @@ int download_file(const char *file_path, const char *url, const char *username, 
 
 		if (file_path == NULL)
 			file_path = "/tmp/download_file";
+
+		// cppcheck-suppress cert-MSC24-C
 		FILE *fp = fopen(file_path, "wb");
 		if (fp) {
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
@@ -145,7 +147,7 @@ int download_file_in_subprocess(const char *file_path, const char *url, const ch
 	if (download_task != NULL) {
 		char *ret = execute_task_in_subprocess(download_task);
 		FREE(download_task);
-		return ret ? atoi(ret) : 500;
+		return ret ? (int)strtol(ret, NULL, 10) : 500;
 	}
 
 	return 500;
@@ -440,18 +442,18 @@ int cwmp_apply_multiple_firmware_in_subprocess()
 {
 	subprocess_start(apply_multiple_firmware_task_function);
 	char *ret = execute_task_in_subprocess("{}"); //empty json object
-	return ret ? atoi(ret) : 500;
+	return ret ? (int)strtol(ret, NULL, 10) : 500;
 }
 
 int cwmp_launch_download(struct download *pdownload, char *download_file_name, enum load_type ltype, struct transfer_complete **ptransfer_complete)
 {
 	int error = FAULT_CPE_NO_FAULT;
-	char *download_startTime;
+	char download_startTime[26] = {0};
+	char download_endTime[26] = {0};
 	struct transfer_complete *p;
 	char err_msg[256] = {0};
 
-	download_startTime = get_time(time(NULL));
-
+	get_time(time(NULL), download_startTime, sizeof(download_startTime));
 	bkp_session_delete_element((ltype == TYPE_DOWNLOAD) ? "download" : "schedule_download", pdownload->id);
 	bkp_session_save();
 
@@ -534,6 +536,8 @@ int cwmp_launch_download(struct download *pdownload, char *download_file_name, e
 	}
 
 end_download:
+	get_time(time(NULL), download_endTime, sizeof(download_endTime));
+
 	p = calloc(1, sizeof(struct transfer_complete));
 	if (p == NULL || ptransfer_complete == NULL) {
 		CWMP_LOG(ERROR, "%s: Failed to allocate memory", __FUNCTION__);
@@ -543,7 +547,7 @@ end_download:
 
 	p->command_key = pdownload->command_key ? strdup(pdownload->command_key) : strdup("");
 	p->start_time = CWMP_STRDUP(download_startTime);
-	p->complete_time = CWMP_STRDUP(get_time(time(NULL)));
+	p->complete_time = CWMP_STRDUP(download_endTime);
 	p->type = ltype;
 	p->file_type = CWMP_STRDUP(pdownload->file_type);
 	if (error != FAULT_CPE_NO_FAULT) {
@@ -698,8 +702,11 @@ struct transfer_complete *set_download_error_transfer_complete(struct download *
 	struct transfer_complete *ptransfer_complete;
 	ptransfer_complete = calloc(1, sizeof(struct transfer_complete));
 	if (ptransfer_complete != NULL) {
+		char start_time[26] = {0};
+		get_time(time(NULL), start_time, sizeof(start_time));
+
 		ptransfer_complete->command_key = strdup(pdownload && pdownload->command_key ? pdownload->command_key : "");
-		ptransfer_complete->start_time = CWMP_STRDUP(get_time(time(NULL)));
+		ptransfer_complete->start_time = CWMP_STRDUP(start_time);
 		ptransfer_complete->complete_time = strdup(ptransfer_complete->start_time ? ptransfer_complete->start_time  : "");
 		ptransfer_complete->fault_code = ltype == TYPE_DOWNLOAD ? FAULT_CPE_DOWNLOAD_FAILURE : FAULT_CPE_DOWNLOAD_FAIL_WITHIN_TIME_WINDOW;
 		ptransfer_complete->type = ltype;
@@ -948,9 +955,12 @@ void cwmp_start_schedule_download(struct uloop_timeout *timeout)
 			return;
 		}
 
+		char cur_time[26] = {0};
+		get_time(now, cur_time, sizeof(cur_time));
+
 		ptransfer_complete->command_key = sched_download->command_key ? strdup(sched_download->command_key) : strdup("");
-		ptransfer_complete->start_time = CWMP_STRDUP(get_time(now));
-		ptransfer_complete->complete_time = CWMP_STRDUP(get_time(now));
+		ptransfer_complete->start_time = CWMP_STRDUP(cur_time);
+		ptransfer_complete->complete_time = CWMP_STRDUP(cur_time);
 		ptransfer_complete->type = TYPE_DOWNLOAD;
 		ptransfer_complete->fault_code = FAULT_CPE_INTERNAL_ERROR;
 		if (ptransfer_complete->id <= 0) {

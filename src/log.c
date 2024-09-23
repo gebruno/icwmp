@@ -57,7 +57,7 @@ int log_set_log_file_name(char *value)
 int log_set_file_max_size(char *value)
 {
 	if (CWMP_STRLEN(value) != 0) {
-		log_max_size = atol(value);
+		log_max_size = strtol(value, NULL, 10);
 	} else {
 		log_max_size = 102400;
 	}
@@ -123,13 +123,15 @@ void puts_log(int severity, const char *fmt, ...)
 		if (size >= log_max_size) {
 			snprintf(log_file_name_bak, sizeof(log_file_name_bak), "%s.1", log_file_name);
 			rename(log_file_name, log_file_name_bak);
+			// cppcheck-suppress cert-MSC24-C
 			pLog = fopen(log_file_name, "w");
 		} else {
+			// cppcheck-suppress cert-MSC24-C
 			pLog = fopen(log_file_name, "a+");
 		}
 	}
 	va_start(args, fmt);
-	vsnprintf(buf + i, sizeof(buf)-i-2, (const char *)fmt, args);
+	vsnprintf(buf + i, sizeof(buf)-i-2, (const char *)fmt, args); // Flawfinder: ignore
 	if (enable_log_file) {
 		CWMP_STRNCPY(buf_file, buf, sizeof(buf_file));
 		buf_file[strlen(buf)] = '\n';
@@ -162,7 +164,7 @@ void puts_log_xmlmsg(int severity, char *msg, int msgtype)
 	long int size = 0;
 	char log_file_name_bak[258];
 	char buf[1024];
-	char *description, *separator;
+	const char *description, *separator;
 
 	if (msg == NULL)
 		return;
@@ -195,8 +197,10 @@ void puts_log_xmlmsg(int severity, char *msg, int msgtype)
 		if (size >= log_max_size) {
 			snprintf(log_file_name_bak, sizeof(log_file_name_bak), "%s.1", log_file_name);
 			rename(log_file_name, log_file_name_bak);
+			// cppcheck-suppress cert-MSC24-C
 			pLog = fopen(log_file_name, "w");
 		} else {
+			// cppcheck-suppress cert-MSC24-C
 			pLog = fopen(log_file_name, "a+");
 		}
 		fputs(buf, pLog);

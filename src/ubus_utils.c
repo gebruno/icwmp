@@ -188,7 +188,7 @@ static time_t get_nonzero_min_time(time_t time1, time_t time2, time_t time3)
 	int i;
 	int size = sizeof(arr)/sizeof(time_t);
 
-	for (i = 0; i < size && arr[i] == 0; i++); // find the first non zero element
+	for (i = 0; i < size && arr[i] == 0; i++) {} // find the first non zero element
 
 	if (i == size) {
 		return min; // array has no non-zero values
@@ -223,32 +223,58 @@ static void bb_add_icwmp_status(struct blob_buf *bb)
 		CWMP_LOG(ERROR, "icwmp status blob is null");
 		return;
 	}
+
+	char start_time[26] = {0};
+	get_time(cwmp_main->start_time, start_time, sizeof(start_time));
+
 	void *tbl = blobmsg_open_table(bb, "cwmp");
 	bb_add_string(bb, "status", "up");
-	bb_add_string(bb, "start_time", get_time(cwmp_main->start_time));
+	bb_add_string(bb, "start_time", start_time);
 	bb_add_string(bb, "acs_url", cwmp_main->conf.acs_url);
 	blobmsg_close_table(bb, tbl);
 }
 
 static void bb_add_icwmp_last_session(struct blob_buf *bb)
 {
+
+	char start_time[26] = {0};
+	char end_time[26] = {0};
+
 	void *tbl = blobmsg_open_table(bb, "last_session");
 	const char *status = cwmp_main->session->session_status.last_start_time ? arr_session_status[cwmp_main->session->session_status.last_status] : "N/A";
+
+	if (cwmp_main->session->session_status.last_start_time) {
+		get_time(cwmp_main->session->session_status.last_start_time, start_time, sizeof(start_time));
+	} else {
+		snprintf(start_time, sizeof(start_time), "N/A");
+	}
+
+	if (cwmp_main->session->session_status.last_end_time) {
+		get_time(cwmp_main->session->session_status.last_end_time, end_time, sizeof(end_time));
+	} else {
+		snprintf(end_time, sizeof(end_time), "N/A");
+	}
+
 	bb_add_string(bb, "status", status);
-	char *start_time = cwmp_main->session->session_status.last_start_time ? get_time(cwmp_main->session->session_status.last_start_time) : "N/A";
 	bb_add_string(bb, "start_time", start_time);
-	char *end_time = cwmp_main->session->session_status.last_end_time ? get_time(cwmp_main->session->session_status.last_end_time) : "N/A";
 	bb_add_string(bb, "end_time", end_time);
 	blobmsg_close_table(bb, tbl);
 }
 
 static void bb_add_icwmp_next_session(struct blob_buf *bb)
 {
+	char next_time[26] = {0};
+	time_t ntime = get_next_session_time();
+
+	if (ntime) {
+		get_time(ntime, next_time, sizeof(next_time));
+	} else {
+		snprintf(next_time, sizeof(next_time), "N/A");
+	}
+	
 	void *tbl = blobmsg_open_table(bb, "next_session");
 	bb_add_string(bb, "status", arr_session_status[SESSION_WAITING]);
-	time_t ntime = get_next_session_time();
-	char *start_time = ntime ? get_time(ntime) : "N/A";
-	bb_add_string(bb, "start_time", start_time);
+	bb_add_string(bb, "start_time", next_time);
 	bb_add_string(bb, "end_time", "N/A");
 	blobmsg_close_table(bb, tbl);
 }
@@ -304,7 +330,7 @@ static int icwmp_inform_get_rpc_method(struct blob_buf *bb)
 	return EVENT_IDX_2PERIODIC;
 }
 
-static int icwmp_inform_event(struct blob_buf *bb, char *event)
+static int icwmp_inform_event(struct blob_buf *bb, const char *event)
 {
 	int event_code = cwmp_get_int_event_code(event);
 	if (event_code != -1) {
@@ -327,7 +353,7 @@ static int icwmp_inform_handler(struct ubus_context *ctx, struct ubus_object *ob
 
 	struct blob_attr *tb[__INFORM_MAX] = {0};
 	bool is_get_rpc = false;
-	char *event = "";
+	const char *event = "";
 	int event_code;
 
 	int ret = blobmsg_parse(icwmp_inform_policy, ARRAY_SIZE(icwmp_inform_policy), tb, blob_data(msg), blob_len(msg));

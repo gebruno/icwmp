@@ -182,11 +182,16 @@ static void cwmp_backup_session_unit_test(void **state)
 	/*
 	 * Insert TransferComplete bkp_session_insert_transfer_complete
 	 */
+	char start_time[26] = {0};
+	char end_time[26] = {0};
+
 	struct transfer_complete *p;
 	p = icwmp_calloc(1, sizeof(struct transfer_complete));
 	p->command_key = icwmp_strdup("transfer_complete_key");
-	p->start_time = icwmp_strdup(get_time(time(NULL)));
-	p->complete_time = icwmp_strdup(get_time(time(NULL)));
+	get_time(time(NULL), start_time, sizeof(start_time));
+	p->start_time = icwmp_strdup(start_time);
+	get_time(time(NULL), end_time, sizeof(end_time));
+	p->complete_time = icwmp_strdup(end_time);
 	p->old_software_version = icwmp_strdup("iopsys_img_old");
 	p->type = TYPE_DOWNLOAD;
 	p->fault_code = FAULT_CPE_NO_FAULT;

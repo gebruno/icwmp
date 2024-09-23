@@ -35,10 +35,10 @@ typedef struct session {
 	mxml_node_t *tree_in;
 	mxml_node_t *tree_out;
 	mxml_node_t *body_in;
-	char fault_msg[256];
 	bool hold_request;
 	int fault_code;
 	int error;
+	char fault_msg[256];
 } session;
 
 struct session_timer_event {

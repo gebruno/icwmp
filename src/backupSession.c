@@ -27,8 +27,8 @@
 static mxml_node_t *bkp_tree = NULL;
 
 struct search_keywords {
-	char *name;
-	char *value;
+	const char *name;
+	const char *value;
 };
 
 static int bkp_session_check_file();
@@ -53,6 +53,8 @@ void bkp_session_save()
 	FILE *fp;
 	if (!bkp_tree)
 		return;
+
+	// cppcheck-suppress cert-MSC24-C
 	fp = fopen(CWMP_BKP_FILE, "w");
 	mxmlSaveFile(bkp_tree, fp, MXML_NO_CALLBACK);
 	fclose(fp);
@@ -63,6 +65,7 @@ void bkp_session_create_file()
 {
 	FILE *pFile;
 
+	// cppcheck-suppress cert-MSC24-C
 	pFile = fopen(CWMP_BKP_FILE, "w");
 	if (pFile == NULL) {
 		CWMP_LOG(ERROR, "Unable to create %s file", CWMP_BKP_FILE);
@@ -84,6 +87,8 @@ int bkp_session_check_file()
 
 	if (bkp_tree == NULL) {
 		FILE *pFile;
+
+		// cppcheck-suppress cert-MSC24-C
 		pFile = fopen(CWMP_BKP_FILE, "r");
 		bkp_tree = mxmlLoadFile(NULL, pFile, MXML_OPAQUE_CALLBACK);
 		fclose(pFile);
@@ -106,7 +111,7 @@ int save_acs_bkp_config()
 	return CWMP_OK;
 }
 
-mxml_node_t *bkp_session_node_found(mxml_node_t *tree, char *name, struct search_keywords *keys, int size)
+static mxml_node_t *bkp_session_node_found(mxml_node_t *tree, const char *name, struct search_keywords *keys, int size)
 {
 	mxml_node_t *b = tree, *c, *d;
 	struct search_keywords;
@@ -136,7 +141,7 @@ mxml_node_t *bkp_session_node_found(mxml_node_t *tree, char *name, struct search
 	return b;
 }
 
-mxml_node_t *get_bkp_session_node_by_id(mxml_node_t *tree, char *name, int id)
+static mxml_node_t *get_bkp_session_node_by_id(mxml_node_t *tree, const char *name, int id)
 {
 	struct search_keywords keys[1];
 	char bkp_id[32];
@@ -148,7 +153,7 @@ mxml_node_t *get_bkp_session_node_by_id(mxml_node_t *tree, char *name, int id)
 	return bkp_session_node_found(tree, name, keys, 1);
 }
 
-mxml_node_t *get_bkp_session_node_by_key(mxml_node_t *tree, char *name, char *key_name, char *key_value)
+static mxml_node_t *get_bkp_session_node_by_key(mxml_node_t *tree, const char *name, const char *key_name, const char *key_value)
 {
 	struct search_keywords keys[1];
 
@@ -160,7 +165,7 @@ mxml_node_t *get_bkp_session_node_by_key(mxml_node_t *tree, char *name, char *ke
 /*
  * Insert Backup Session
  */
-mxml_node_t *bkp_session_insert(mxml_node_t *tree, char *name, char *value)
+mxml_node_t *bkp_session_insert(mxml_node_t *tree, const char *name, const char *value)
 {
 	mxml_node_t *b;
 	if (tree == NULL || name == NULL) {
@@ -177,7 +182,7 @@ mxml_node_t *bkp_session_insert(mxml_node_t *tree, char *name, char *value)
 	return b;
 }
 
-void bkp_session_simple_insert(char *parent, char *child, char *value)
+void bkp_session_simple_insert(const char *parent, const char *child, const char *value)
 {
 	mxml_node_t *b = bkp_tree;
 
@@ -192,7 +197,7 @@ void bkp_session_simple_insert(char *parent, char *child, char *value)
 	bkp_session_insert(b, child, value);
 }
 
-void bkp_session_simple_insert_in_parent(char *parent, char *child, char *value)
+void bkp_session_simple_insert_in_parent(const char *parent, const char *child, const char *value)
 {
 	mxml_node_t *n, *b = bkp_tree;
 
@@ -403,7 +408,7 @@ void bkp_session_insert_transfer_complete(struct transfer_complete *ptransfer_co
 /*
  * Load backup session
  */
-static char *load_child_value(mxml_node_t *tree, char *sub_name)
+static char *load_child_value(mxml_node_t *tree, const char *sub_name)
 {
 	char *value = NULL;
 	mxml_node_t *b = tree;
@@ -757,14 +762,14 @@ int cwmp_load_saved_session(char **ret, enum backup_loading load)
 /*
  * Delete Backup Session
  */
-void bkp_session_delete_element(char *element_name, int id)
+void bkp_session_delete_element(const char *element_name, int id)
 {
 	mxml_node_t *b = get_bkp_session_node_by_id(bkp_tree, element_name, id);
 	if (b)
 		mxmlDelete(b);
 }
 
-void bkp_session_delete_element_by_key(char *element_name, char *key_name, char *key_value)
+void bkp_session_delete_element_by_key(const char *element_name, const char *key_name, const char *key_value)
 {
 	mxml_node_t *b = get_bkp_session_node_by_key(bkp_tree, element_name, key_name, key_value);
 	if (b)

@@ -42,18 +42,15 @@ void cwmp_delay_reboot(struct uloop_timeout *timeout  __attribute__((unused)))
 
 void launch_reboot_methods()
 {
-	static int curr_delay_reboot = -1;
-	static time_t curr_schedule_redoot = 0;
-
-	if (cwmp_main->conf.delay_reboot != curr_delay_reboot && cwmp_main->conf.delay_reboot > 0) {
+	if (cwmp_main->conf.delay_reboot != cwmp_main->curr_delay_reboot && cwmp_main->conf.delay_reboot > 0) {
 		CWMP_LOG(INFO, "The device will reboot after %ld seconds", cwmp_main->conf.delay_reboot);
-		curr_delay_reboot = cwmp_main->conf.delay_reboot;
+		cwmp_main->curr_delay_reboot = cwmp_main->conf.delay_reboot;
 		uloop_timeout_cancel(&delay_reboot_timer);
 		uloop_timeout_set(&delay_reboot_timer, cwmp_main->conf.delay_reboot * 1000);
 	}
 
-	if (cwmp_main->conf.schedule_reboot != curr_schedule_redoot && (cwmp_main->conf.schedule_reboot - time(NULL)) > 0) {
-		curr_schedule_redoot = cwmp_main->conf.schedule_reboot;
+	if (cwmp_main->conf.schedule_reboot != cwmp_main->curr_schedule_reboot && (cwmp_main->conf.schedule_reboot - time(NULL)) > 0) {
+		cwmp_main->curr_schedule_reboot = cwmp_main->conf.schedule_reboot;
 		time_t remaining_time = cwmp_main->conf.schedule_reboot - time(NULL);
 		CWMP_LOG(INFO, "The device will reboot after %ld seconds", remaining_time);
 		uloop_timeout_cancel(&schedule_reboot_timer);

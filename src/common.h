@@ -106,31 +106,13 @@ typedef struct env {
 } env;
 
 struct connection {
-	char interface[BUF_SIZE_16];
 	long ip_resolve;
 	bool ipv6_status;
 	bool use_curl_ifname;
+	char interface[BUF_SIZE_16];
 };
 
 typedef struct config {
-	char acs_url[BUF_SIZE_2048];
-	char acs_userid[BUF_SIZE_256];
-	char acs_passwd[BUF_SIZE_256];
-	char acs_ssl_capath[BUF_SIZE_256];
-	char acs_ssl_cabundle[BUF_SIZE_256];
-	char cpe_userid[BUF_SIZE_256];
-	char cpe_passwd[BUF_SIZE_256];
-	char custom_notify_json[BUF_SIZE_256];
-	char forced_inform_json[BUF_SIZE_256];
-	char connection_request_path[BUF_SIZE_256];
-	char auto_tc_transfer_type[BUF_SIZE_16];
-	char auto_tc_result_type[BUF_SIZE_16];
-	char auto_tc_file_type[BUF_SIZE_16];
-	char auto_cdu_oprt_type[BUF_SIZE_16];
-	char auto_cdu_result_type[BUF_SIZE_16];
-	char auto_cdu_fault_code[BUF_SIZE_16];
-	char default_wan_iface[BUF_SIZE_32];
-
 	int connection_request_port;
 	int period;
 	int periodic_notify_interval;
@@ -156,10 +138,6 @@ typedef struct config {
 	int retry_min_wait_interval;
 	int retry_interval_multiplier;
 
-	bool lwn_enable;
-	char lwn_hostname[BUF_SIZE_256];
-	int lwn_port;
-
 	int amd_version;
 	int supported_amd_version;
 	unsigned int instance_mode;
@@ -169,6 +147,29 @@ typedef struct config {
 	int clock_sync_timeout;
 	bool force_ipv4;
 	bool fw_upgrade_keep_settings;
+
+	bool lwn_enable;
+	int lwn_port;
+	char lwn_hostname[BUF_SIZE_256];
+
+	char acs_url[BUF_SIZE_2048];
+	char acs_userid[BUF_SIZE_256];
+	char acs_passwd[BUF_SIZE_256];
+	char acs_ssl_capath[BUF_SIZE_256];
+	char acs_ssl_cabundle[BUF_SIZE_256];
+	char cpe_userid[BUF_SIZE_256];
+	char cpe_passwd[BUF_SIZE_256];
+	char custom_notify_json[BUF_SIZE_256];
+	char forced_inform_json[BUF_SIZE_256];
+	char connection_request_path[BUF_SIZE_256];
+	char auto_tc_transfer_type[BUF_SIZE_16];
+	char auto_tc_result_type[BUF_SIZE_16];
+	char auto_tc_file_type[BUF_SIZE_16];
+	char auto_cdu_oprt_type[BUF_SIZE_16];
+	char auto_cdu_result_type[BUF_SIZE_16];
+	char auto_cdu_fault_code[BUF_SIZE_16];
+	char default_wan_iface[BUF_SIZE_32];
+
 } config;
 
 struct deviceid {
@@ -227,6 +228,9 @@ typedef struct cwmp {
 	bool throttle_session_triggered;
 	enum firewall_cr_policy cr_policy;
 	bool acs_changed;
+	int curr_delay_reboot;
+	time_t curr_schedule_reboot;
+	char ip_acs[128];
 } cwmp;
 
 enum action {
@@ -273,9 +277,9 @@ typedef struct rpc {
 
 struct cwmp_param_fault {
 	struct list_head list;
+	int fault_code;
 	char path_name[1024];
 	char fault_msg[256];
-	int fault_code;
 };
 
 struct cwmp_dm_parameter {
@@ -484,13 +488,13 @@ typedef struct download {
 	struct uloop_timeout handler_timer;
 	time_t scheduled_time;
 	unsigned int file_size;
+	int id;
 	char *command_key;
 	char *file_type;
 	char *url;
 	char *username;
 	char *password;
 	struct timewindow timewindowstruct[2];
-	int id;
 } download;
 
 typedef struct timeinterval {
@@ -605,24 +609,24 @@ typedef struct opfault {
 } opfault;
 
 typedef struct intf_reset_node {
-	char path[1024];
 	struct list_head list;
+	char path[1024];
 } intf_reset_node;
 
 typedef struct bin_list {
-	uint8_t bin[1024];
 	size_t len;
 	struct list_head list;
+	uint8_t bin[1024];
 } bin_list_t;
 
 typedef struct force_inform_node {
-	char path[1024];
 	struct list_head list;
+	char path[1024];
 } force_inform_node;
 
 typedef struct {
-	char path[1024];
 	struct list_head list;
+	char path[1024];
 } path_list_t;
 
 extern struct cwmp *cwmp_main;
@@ -631,25 +635,24 @@ extern struct FAULT_CPE FAULT_CPE_ARRAY[];
 extern struct cwmp_namespaces ns;
 extern struct session_timer_event *global_session_event;
 
-void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *param_data, char *param_type, int notification, bool writable);
+void add_dm_parameter_to_list(struct list_head *head, const char *param_name, const char *param_data,
+			      const char *param_type, int notification, bool writable);
 void add_dm_alias_to_list(struct list_head *head, char *param_name, char *param_data, char **l_param, char **l_trans);
 void cwmp_free_all_dm_parameter_list(struct list_head *list);
 void cwmp_free_all_dm_alias_list(struct list_head *list);
 int global_env_init(int argc, char **argv, struct env *env);
 void cwmp_add_list_fault_param(char *param_name, char *fault_msg, int fault_code, struct list_head *list_set_value_fault);
 void cwmp_free_all_list_param_fault(struct list_head *list_param_fault);
-int cwmp_asprintf(char **s, const char *format, ...);
 bool folder_exists(const char *path);
 bool file_exists(const char *path);
-void cwmp_reboot(char *command_key);
+void cwmp_reboot(const char *command_key);
 void cwmp_factory_reset();
 void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name);
 int download_file(const char *file_path, const char *url, const char *username, const char *password, const char *interface);
-unsigned int get_file_size(char *file_name);
+unsigned int get_file_size(const char *file_name);
 int cwmp_check_image();
 int cwmp_apply_firmware();
 bool cwmp_apply_web_content(char *filepath);
-int opkg_install_package(char *package_path);
 int copy(const char *from, const char *to);
 int cwmp_get_fault_code(int fault_code);
 int cwmp_get_fault_code_by_string(char *fault_code);
@@ -664,13 +667,13 @@ void icwmp_restart_services(int type, bool is_commit, bool monitor);
 bool icwmp_validate_string_length(char *arg, int max_length);
 bool icwmp_validate_boolean_value(char *arg);
 bool icwmp_validate_unsignedint(char *arg);
-bool icwmp_validate_int_in_range(char *arg, int min, int max);
+bool icwmp_validate_int_in_range(const char *arg, int min, int max);
 char *string_to_hex(const unsigned char *str, size_t size);
 int copy_file(char *source_file, char *target_file);
 int icwmp_check_http_connection(void);
 bool is_ipv6_enabled(void);
 bool is_ipv6_status_changed(void);
-char *get_time(time_t t_time);
+int get_time(time_t t_time, char *local_time, size_t len);
 bool is_reload_parameter(const char *object_name);
 time_t convert_datetime_to_timestamp(char *value);
 void set_interface_reset_request(char *param_name, char *value);
@@ -679,9 +682,9 @@ bool match_reg_exp(char *reg_exp, char *param_name);
 void cwmp_invoke_intf_reset(char *path);
 void add_day_to_time(struct tm *time);
 int set_rpc_acs_to_supported(const char *rpc_name);
-void set_rpc_parameter_key(char *param_key);
+void set_rpc_parameter_key(const char *param_key);
 
-void add_bin_list(struct list_head *list, uint8_t *str, size_t len);
+void add_bin_list(struct list_head *list, const uint8_t *str, size_t len);
 void add_str_binlist(struct list_head *list, char *str);
 void free_binlist(struct list_head *list);
 int cwmp_strcmp(const char *s1, const char *s2, const char *origin, int pos);

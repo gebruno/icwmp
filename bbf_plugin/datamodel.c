@@ -49,7 +49,7 @@ struct manageable_device_node
 	struct manageable_device_args dev;
 };
 
-static struct uci_section* get_autonomous_notify_section(char *sec_name)
+static struct uci_section* get_autonomous_notify_section(const char *sec_name)
 {
 	struct uci_section *s = NULL;
 	uci_foreach_sections("cwmp", "autonomous_notify", s) {
@@ -168,7 +168,7 @@ static bool is_active_host(const char *mac, json_object *res)
 static char *dm_ioctl_get_ipv4(char *interface_name)
 {
 	struct ifreq ifr;
-	char *ip = "";
+	char *ip = NULL;
 	int fd;
 
 	if (!DM_STRLEN(interface_name))
@@ -201,7 +201,7 @@ static char *dm_ifaddrs_get_global_ipv6(char *interface_name)
 	struct ifaddrs *ifaddr = NULL,*ifa = NULL;
 	void *in_addr = NULL;
 	int family, err = 0;
-	char *ip = "";
+	char *ip = NULL;
 
 	if (!DM_STRLEN(interface_name))
 		return ip;
@@ -250,6 +250,7 @@ static int browseManageableDevice(struct dmctx *dmctx, DMNODE *parent_node, void
 {
 #define DHCP_CLIENT_OPTIONS_FILE "/var/dhcp.client.options"
 
+	// cppcheck-suppress cert-MSC24-C
 	FILE *f = fopen(DHCP_CLIENT_OPTIONS_FILE, "r");
 	if (f == NULL)
 		return 0;
@@ -343,8 +344,6 @@ static int get_management_server_url(char *refparam, struct dmctx *ctx, void *da
 		*value = dhcp_url;
 	else if (DM_STRLEN(url) != 0)
 		*value = url;
-	else
-		*value = "";
 
 	return 0;
 }
@@ -639,7 +638,7 @@ static int set_upgrades_managed(char *refparam, struct dmctx *ctx, void *data, c
 
 static int get_lwn_protocol_supported(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	*value = "UDP";
+	*value = dmstrdup("UDP");
 	return 0;
 }
 
@@ -716,7 +715,7 @@ static int set_lwn_port(char *refparam, struct dmctx *ctx, void *data, char *ins
 
 static int get_management_server_http_compression_supportted(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	*value = "GZIP,Deflate";
+	*value = dmstrdup("GZIP,Deflate");
 	return 0;
 }
 
@@ -842,21 +841,19 @@ static int set_instance_mode(char *refparam, struct dmctx *ctx, void *data, char
 
 static int get_management_server_supported_conn_req_methods(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	*value = "HTTP,XMPP,STUN";
+	*value = dmstrdup("HTTP,XMPP,STUN");
 	return 0;
 }
 
 static int get_management_server_instance_wildcard_supported(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	*value = "true";
+	*value = dmstrdup("true");
 	return 0;
 }
 
 static int get_management_server_enable_cwmp(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	dmuci_get_option_value_string("cwmp", "cpe", "enable", value);
-	if ((*value)[0] == '\0')
-		*value = "1";
+	*value = dmuci_get_option_value_fallback_def("cwmp", "cpe", "enable", "1");
 	return 0;
 }
 
@@ -890,7 +887,7 @@ static int get_nat_detected(char *refparam, struct dmctx *ctx, void *data, char 
 		en = dmuci_string_to_boolean(v);
 		*value = (en == true) ? "1" : "0";
 	} else {
-		*value = "0";
+		*value = dmstrdup("0");
 	}
 	return 0;
 }
@@ -1164,10 +1161,7 @@ static int get_manageable_device_host(char *refparam, struct dmctx *ctx, void *d
 
 static int get_transfer_compl_policy_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	dmuci_get_option_value_string("cwmp", TRANSFER_COMPL_SEC_NAME, "enable", value);
-	if (DM_STRLEN(*value) == 0)
-		*value = "0";
-
+	*value = dmuci_get_option_value_fallback_def("cwmp", TRANSFER_COMPL_SEC_NAME, "enable", "0");
 	return 0;
 }
 
@@ -1266,10 +1260,7 @@ static int set_transfer_compl_policy_file_type_filter(char *refparam, struct dmc
 
 static int get_du_state_change_compl_policy_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
-	dmuci_get_option_value_string("cwmp", DU_STATE_CHANGE_SEC_NAME, "enable", value);
-	if (DM_STRLEN(*value) == 0)
-		*value = "0";
-
+	*value = dmuci_get_option_value_fallback_def("cwmp", DU_STATE_CHANGE_SEC_NAME, "enable", "0");
 	return 0;
 }
 

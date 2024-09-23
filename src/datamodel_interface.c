@@ -20,7 +20,7 @@ struct list_params_result {
 	struct list_head *parameters_list;
 	struct list_head *alias_list;
 	int error;
-	char *error_msg;
+	const char *error_msg;
 };
 
 struct setm_values_res {
@@ -477,7 +477,7 @@ char *cwmp_get_parameter_values(const char *parameter_name, struct list_head *pa
 	return NULL;
 }
 
-char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, struct list_head *parameters_list, char **err_msg)
+char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, struct list_head *parameters_list, const char **err_msg)
 {
 	char *inst_path = NULL;
 

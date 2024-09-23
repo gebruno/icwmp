@@ -28,9 +28,11 @@ LIST_HEAD(list_value_change);
 LIST_HEAD(list_lw_value_change);
 LIST_HEAD(list_param_obj_notify);
 
+static int cr_url_retry = 3;
+
 static void create_list_param_leaf_notify(struct list_head *, void (*fp)(FILE *, char *, char *, char *, int), FILE*);
 static void send_active_value_change(void);
-static void add_list_value_change(char *param_name, char *param_data, char *param_type);
+static void add_list_value_change(const char *param_name, const char *param_data, const char *param_type);
 static void add_lw_list_value_change(char *param_name, char *param_data, char *param_type);
 static void cwmp_lwnotification(void);
 static void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused)));
@@ -56,7 +58,7 @@ char *forced_notifications_parameters[] = {
 /*
  * Common functions
  */
-static bool parameter_is_subobject_of_parameter(char *parent, char *child)
+static bool parameter_is_subobject_of_parameter(const char *parent, const char *child)
 {
 	if (child == NULL) {
 		CWMP_LOG(WARNING, "notifications %s: child is null", __FUNCTION__);
@@ -89,7 +91,7 @@ int check_parameter_forced_notification(const char *parameter)
 	return 0;
 }
 
-char *check_valid_parameter_path(char *parameter_name)
+static char *check_valid_parameter_path(const char *parameter_name)
 {
 	char *error = NULL;
 	LIST_HEAD(parameters_list);
@@ -110,7 +112,7 @@ char *check_valid_parameter_path(char *parameter_name)
  */
 
 // Add parameter_name to the suitable notifications list
-int add_uci_option_notification(char *parameter_name, int type)
+static int add_uci_option_notification(const char *parameter_name, int type)
 {
 	char notif_path[BUF_SIZE_256] = {0};
 	int ret;
@@ -125,7 +127,7 @@ int add_uci_option_notification(char *parameter_name, int type)
 	return ret;
 }
 
-bool check_parent_with_different_notification(char *parameter_name, int notification)
+static bool check_parent_with_different_notification(const char *parameter_name, int notification)
 {
 	int i;
 	bool ret = false;
@@ -153,7 +155,7 @@ bool check_parent_with_different_notification(char *parameter_name, int notifica
 	return ret;
 }
 
-bool update_notifications_list(char *parameter_name, int notification)
+static bool update_notifications_list(const char *parameter_name, int notification)
 {
 	int i;
 	bool update_ret = true;
@@ -187,7 +189,7 @@ bool update_notifications_list(char *parameter_name, int notification)
 	return update_ret;
 }
 
-char *cwmp_set_parameter_attributes(char *parameter_name, int notification)
+char *cwmp_set_parameter_attributes(const char *parameter_name, int notification)
 {
        char *error = NULL;
  
@@ -233,7 +235,7 @@ int cwmp_set_parameter_attributes_list(struct list_head *parameters_list)
 /*
  * GetPrameterAttributes
  */
-int get_parameter_family_notifications(char *parameter_name, struct list_head *childs_notifications) {
+static int get_parameter_family_notifications(const char *parameter_name, struct list_head *childs_notifications) {
 
 	int i, notif_ret = 0;
 
@@ -292,7 +294,7 @@ int get_parameter_leaf_notification_from_childs_list(char *parameter_name, struc
 	return ret_notif;
 }
 
-char *cwmp_get_parameter_attributes(char *parameter_name, struct list_head *parameters_list)
+char *cwmp_get_parameter_attributes(const char *parameter_name, struct list_head *parameters_list)
 {
 	char *error = NULL;
 
@@ -337,7 +339,7 @@ char *cwmp_get_parameter_attributes(char *parameter_name, struct list_head *para
 /*
  * Update notify file
  */
-bool parameter_is_other_notif_object_child(char *parent, char *parameter)
+static bool parameter_is_other_notif_object_child(const char *parent, const char *parameter)
 {
 	struct list_head list_iter, *list_ptr;
 	list_iter.next = list_param_obj_notify.next;
@@ -450,6 +452,8 @@ void cwmp_update_enabled_notify_file(void)
 
 	LIST_HEAD(list_notify_params);
 	remove(DM_ENABLED_NOTIFY);
+
+	// cppcheck-suppress cert-MSC24-C
 	fp = fopen(DM_ENABLED_NOTIFY, "a");
 	if (fp == NULL)
 		return;
@@ -520,7 +524,8 @@ void load_custom_notify_json(void)
 			continue;
 		}
 
-		add_dm_parameter_to_list(&notification_list_head, blobmsg_get_string(tb[0]), "", "", atoi(blobmsg_get_string(tb[1])), false);
+		add_dm_parameter_to_list(&notification_list_head, blobmsg_get_string(tb[0]), "", "",
+					 (int)strtol(blobmsg_get_string(tb[1]), NULL, 10), false);
 	}
 	blob_buf_free(&bbuf);
 	cwmp_set_parameter_attributes_list(&notification_list_head);
@@ -543,7 +548,7 @@ void set_default_forced_active_parameters_notifications()
 /*
  * Check value change
  */
-void get_parameter_value_from_parameters_list(struct list_head *params_list, char *parameter_name, char **value, char **type)
+static void get_parameter_value_from_parameters_list(struct list_head *params_list, const char *parameter_name, char **value, char **type)
 {
 	struct cwmp_dm_parameter *param_value = NULL;
 
@@ -574,6 +579,8 @@ int check_value_change(void)
 
 	char *parameter = NULL, *value = NULL;
 	int notification = 0;
+
+	// cppcheck-suppress cert-MSC24-C
 	fp = fopen(DM_ENABLED_NOTIFY, "r");
 	if (fp == NULL)
 		return notif_ret;
@@ -683,7 +690,6 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 	 * renew of old address is NACKED by the server (In this case interface releases its
 	 * current IP and waits for a new IP from server) */
 	// An empty connection url cause CDR test to break
-	static int cr_url_retry = 3;
 
 	if (cr_url_retry) {
 		struct cwmp_dm_parameter cwmp_dm_param = {0};
@@ -732,7 +738,7 @@ void trigger_periodic_notify_check()
 	uloop_timeout_set(&check_notify_timer, 10);
 }
 
-void add_list_value_change(char *param_name, char *param_data, char *param_type)
+void add_list_value_change(const char *param_name, const char *param_data, const char *param_type)
 {
 	add_dm_parameter_to_list(&list_value_change, param_name, param_data, param_type, 0, false);
 }

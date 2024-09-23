@@ -30,11 +30,11 @@ struct strNode {
 
 int export_uci_package(char *package, const char *output_path);
 int export_std_uci(const char *output_path);
-int import_uci_package(char *package_name, const char *input_path);
-int get_uci_path_value(const char *conf_dir, char *path, char *value, size_t max_value_len);
+int import_uci_package(const char *package_name, const char *input_path);
+int get_uci_path_value(const char *conf_dir, const char *path, char *value, size_t max_value_len);
 int get_uci_dm_list(const char *conf_dir, char *path, struct list_head *head, int notif_type);
-int set_uci_path_value(const char *conf_dir, char *path, char *value);
-int set_uci_list_value(const char *conf_dir, char *path, char *value);
+int set_uci_path_value(const char *conf_dir, const char *path, const char *value);
+int set_uci_list_value(const char *conf_dir, const char *path, const char *value);
 int del_uci_list_value(const char *conf_dir, char *path, char *value);
 int get_inform_parameters_uci(struct list_head *inform_head);
 int commit_uci_package(char *package, const char *conf_dir, const char *save_dir);

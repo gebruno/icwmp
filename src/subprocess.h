@@ -3,5 +3,5 @@
 #include <libubox/blobmsg_json.h>
 typedef char* (*task_function)(char *task_arg);
 int subprocess_start(task_function task_fun);
-char *execute_task_in_subprocess(char *task);
+char *execute_task_in_subprocess(const char *task);
 #endif

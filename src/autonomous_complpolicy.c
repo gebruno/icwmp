@@ -27,8 +27,8 @@ enum autonomous_notif_type {
 typedef void (*autonomous_event_callback)(struct blob_attr *msg);
 
 struct autonomous_event {
-	char name[2048];
 	autonomous_event_callback cb;
+	char name[2048];
 };
 
 static void free_autonomous_du_state_change_complete_data(auto_du_state_change_compl *p);
@@ -283,8 +283,8 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 }
 
 static struct autonomous_event event_info[] = {
-	{ "Device.SoftwareModules.DUStateChange!", send_du_state_change_notif },
-	{ "Device.LocalAgent.TransferComplete!", send_transfer_complete_notif }
+	{ send_du_state_change_notif, "Device.SoftwareModules.DUStateChange!" },
+	{ send_transfer_complete_notif, "Device.LocalAgent.TransferComplete!" }
 };
 
 static void send_autonomous_notification(char *ev_name, struct blob_attr *msg)

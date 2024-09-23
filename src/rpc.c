@@ -46,7 +46,7 @@ static int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc);
 static int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc);
 static int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc);
 static int cwmp_handle_rpc_cpe_fault(struct rpc *rpc);
-static int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, char *fault_msg);
+static int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, const char *fault_msg);
 static int cwmp_rpc_acs_parse_response_inform(struct rpc *rpc);
 static int cwmp_rpc_acs_parse_response_get_rpc_methods(struct rpc *this);
 static int cwmp_rpc_acs_prepare_get_rpc_methods(struct rpc *rpc);
@@ -314,14 +314,16 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	char *product_class = cwmp_main->deviceid.productclass;
 	char *serial_number = cwmp_main->deviceid.serialnumber;
 	int max_env = 1;
-	char *current_time = get_time(time(NULL));
+	char current_time[26] = {0};
+	get_time(time(NULL), current_time, sizeof(current_time));
+	char *str_time = current_time;
 
 	inform_xml_attrs.manufacturer = &manufacturer;
 	inform_xml_attrs.oui = &oui;
 	inform_xml_attrs.product_class = &product_class;
 	inform_xml_attrs.serial_number = &serial_number;
 	inform_xml_attrs.max_envelopes = &max_env;
-	inform_xml_attrs.current_time = &current_time;
+	inform_xml_attrs.current_time = &str_time;
 	inform_xml_attrs.retry_count = &cwmp_main->retry_count_session;
 
 	LIST_HEAD(xml_events_list);
@@ -504,7 +506,7 @@ int cwmp_rpc_acs_parse_response_inform(struct rpc *this __attribute__((unused)))
 		c = (char *) mxmlGetOpaque(b);
 		if (c && *(c + 1) == '.') {
 			c += 2;
-			cwmp_main->conf.amd_version = atoi(c) + 1;
+			cwmp_main->conf.amd_version = (int)strtol(c, NULL, 10) + 1;
 			return 0;
 		}
 		goto error;
@@ -517,7 +519,7 @@ int cwmp_rpc_acs_parse_response_inform(struct rpc *this __attribute__((unused)))
 		c = (char *) mxmlGetOpaque(b);
 		if (c && *(c + 1) == '.') {
 			c += 2;
-			cwmp_main->conf.amd_version = atoi(c) + 1;
+			cwmp_main->conf.amd_version = (int)strtol(c, NULL, 10) + 1;
 			return 0;
 		}
 		goto error;
@@ -670,7 +672,7 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct rpc *rpc)
 			faultstring = strdup(p->fault_string);
 	}
 
-	int faultcode = (p && p->fault_code && (p->fault_code < __FAULT_CPE_MAX)) ? atoi(FAULT_CPE_ARRAY[p->fault_code].CODE) : 0;
+	int faultcode = (p && p->fault_code && (p->fault_code < __FAULT_CPE_MAX)) ? (int)strtol(FAULT_CPE_ARRAY[p->fault_code].CODE, NULL, 10) : 0;
 	transfer_complete_xml_attrs.fault_code = &faultcode;
 
 	if (faultstring == NULL)
@@ -845,7 +847,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	mxml_node_t *b = NULL;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR;
 	int counter = 0;
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	if (cwmp_main->session->tree_out == NULL) {
 		err_msg = "Output xml tree does not exist";
@@ -875,7 +877,12 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	gpv_xml_attrs.rpc_enum = SOAP_PARAM_STRUCT;
 	gpv_xml_attrs.counter = &counter;
 	gpv_xml_attrs.inc_counter = false;
-	char *xsi_type = "soap_enc:Array";
+	char *xsi_type = strdup("soap_enc:Array");
+	if (!xsi_type) {
+		err_msg = "Failed to allocate memory to build GPV response";
+		goto fault;
+	}
+
 	char *soap_array_type = NULL;
 	gpv_xml_attrs.xsi_type = &xsi_type;
 	gpv_xml_attrs.soap_enc_array_type = &soap_array_type;
@@ -883,6 +890,8 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	fault_code = build_xml_node_data(SOAP_RESP_GET, b, &gpv_xml_attrs);
 
 	cwmp_free_all_xml_data_list(&gpv_xml_data_list);
+
+	FREE(xsi_type);
 
 	if (fault_code)
 		goto fault;
@@ -904,7 +913,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 	char *parameter_name = NULL;
 	bool next_level = true;
 	int counter = 0, fault_code;
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 	LIST_HEAD(parameters_list);
 
 	struct xml_data_struct gpn_xml_attrs = {0};
@@ -996,7 +1005,13 @@ build_response:
 	gpv_resp_xml_attrs.data_list = &prameters_xml_list;
 	gpv_resp_xml_attrs.counter = &counter;
 	gpv_resp_xml_attrs.inc_counter = true;
-	char *xsi_type = "soap_enc:Array";
+	char *xsi_type = strdup("soap_enc:Array");
+	if (!xsi_type) {
+		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to allocate memory to build GPN response";
+		goto fault;
+	}
+
 	char *soap_array_type = NULL;
 	gpv_resp_xml_attrs.xsi_type = &xsi_type;
 	gpv_resp_xml_attrs.soap_enc_array_type = &soap_array_type;
@@ -1005,6 +1020,8 @@ build_response:
 	fault_code = build_xml_node_data(SOAP_RESP_GPN, n, &gpv_resp_xml_attrs);
 	cwmp_free_all_dm_parameter_list(&parameters_list);
 	cwmp_free_all_xml_data_list(&prameters_xml_list);
+
+	FREE(xsi_type);
 
 	if (fault_code != CWMP_OK) {
 		err_msg = "Failed to build the xml data nodes for GPN response message";
@@ -1027,7 +1044,7 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct rpc *rpc)
 {
 	mxml_node_t *n, *b;
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	b = cwmp_main->session->body_in;
 
@@ -1056,13 +1073,21 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct rpc *rpc)
 	gpa_xml_attrs.counter = &counter;
 	gpa_xml_attrs.inc_counter = false;
 	char *soap_array_type = NULL;
-	char *xsi_type = "soap_enc:Array";
+	char *xsi_type = strdup("soap_enc:Array");
+	if (!xsi_type) {
+		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to allocate memory to build GetParameterAttributes response";
+		goto fault;
+	}
+
 	gpa_xml_attrs.xsi_type = &xsi_type;
 	gpa_xml_attrs.soap_enc_array_type = &soap_array_type;
 	mxml_node_t *resp = n;
 	fault_code = build_xml_node_data(SOAP_RESP_GET, resp, &gpa_xml_attrs);
 
 	cwmp_free_all_xml_data_list(&gpa_xml_data_list);
+
+	FREE(xsi_type);
 
 	if (fault_code)
 		goto fault;
@@ -1101,7 +1126,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	mxml_node_t *b = NULL;
 	char *parameter_key = NULL;
 	int fault_code, ret = 0;
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	LIST_HEAD(xml_list_set_param_value);
 	LIST_HEAD(list_set_param_value);
@@ -1196,7 +1221,7 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 	mxml_node_t *n;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR, ret = 0;
 	char c[256];
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "SetParameterAttributes") == -1) {
 		err_msg = "Failed to write in buffer, string operation failure";
@@ -1264,7 +1289,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	char *parameter_key = NULL;
 	int ret = 0;
 	struct object_result res = {0};
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	struct xml_data_struct add_obj_xml_attrs = {0};
 	add_obj_xml_attrs.object_name = &object_name;
@@ -1308,7 +1333,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	}
 
 	struct xml_data_struct add_resp_xml_attrs = {0};
-	int instance_int = atoi(res.instance);
+	int instance_int = (int)strtol(res.instance, NULL, 10);
 	int status = 0;
 
 	add_resp_xml_attrs.instance = &instance_int;
@@ -1350,7 +1375,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	char *parameter_key = NULL;
 	int ret = 0;
 	struct object_result res = {0};
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	struct xml_data_struct del_obj_xml_attrs = {0};
 	del_obj_xml_attrs.object_name = &object_name;
@@ -1422,7 +1447,7 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 	mxml_node_t *n;
 	int i, counter = 0;
 	int fault_code = FAULT_CPE_INTERNAL_ERROR;
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	n = build_top_body_soap_response(cwmp_main->session->tree_out, "GetRPCMethods");
 
@@ -1447,7 +1472,13 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 	getrpc_resp_xml_attrs.data_list = &rpcs_list;
 	getrpc_resp_xml_attrs.counter = &counter;
 	getrpc_resp_xml_attrs.inc_counter = false;
-	char *xsi_type = "soap_enc:Array";
+	char *xsi_type = strdup("soap_enc:Array");
+	if (!xsi_type) {
+		fault_code = FAULT_CPE_INTERNAL_ERROR;
+		err_msg = "Failed to allocate memory to build GetRPC response";
+		goto fault;
+	}
+
 	char *soap_array_type = NULL;
 	getrpc_resp_xml_attrs.xsi_type = &xsi_type;
 	getrpc_resp_xml_attrs.soap_enc_array_type = &soap_array_type;
@@ -1455,6 +1486,8 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 
 	fault_code = build_xml_node_data(SOAP_RESP_GETRPC, n, &getrpc_resp_xml_attrs);
 	cwmp_free_all_xml_data_list(&rpcs_list);
+
+	FREE(xsi_type);
 
 	if (fault_code != CWMP_OK) {
 		err_msg = "Failed to build xml data nodes for GetRPCMethods response";
@@ -1476,7 +1509,7 @@ fault:
 int cwmp_handle_rpc_cpe_factory_reset(struct rpc *rpc)
 {
 	mxml_node_t *b;
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	b = build_top_body_soap_response(cwmp_main->session->tree_out, "FactoryReset");
 
@@ -1530,7 +1563,7 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 {
 	mxml_node_t *b;
 	char *command_key = NULL;
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	struct xml_data_struct canceltrancer_obj_xml_attrs = {0};
 	canceltrancer_obj_xml_attrs.command_key = &command_key;
@@ -1610,7 +1643,7 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 	mxml_node_t *b;
 	struct event_container *event_container;
 	char *command_key = NULL;
-	char *err_msg = NULL;
+	const char *err_msg = NULL;
 
 	struct xml_data_struct reboot_obj_xml_attrs = {0};
 	reboot_obj_xml_attrs.command_key = &command_key;
@@ -1834,6 +1867,8 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 	time_t scheduled_time = 0;
 	time_t download_delay = 0;
 	char err_msg[256] = {0};
+	char *start_time = NULL;
+	char *complete_time = NULL;
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "Download") == -1) {
 		error = FAULT_CPE_INTERNAL_ERROR;
@@ -1902,8 +1937,14 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 		goto fault;
 	}
 
-	char *start_time = "0001-01-01T00:00:00+00:00";
-	char *complete_time = "0001-01-01T00:00:00+00:00";
+	start_time = strdup("0001-01-01T00:00:00+00:00");
+	complete_time = strdup("0001-01-01T00:00:00+00:00");
+	if (!start_time || !complete_time) {
+		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg , sizeof(err_msg), "Failed to allocate memory to build download response");
+		goto fault;
+	}
+
 	int status = 1;
 
 	struct xml_data_struct download_resp_xml_attrs = {0};
@@ -1947,9 +1988,13 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 		cwmp_set_end_session(END_SESSION_DOWNLOAD);
 	}
 
+	FREE(start_time);
+	FREE(complete_time);
 	return 0;
 
 fault:
+	FREE(start_time);
+	FREE(complete_time);
 	cwmp_free_download_request(download);
 	if (cwmp_create_fault_message(rpc, error, err_msg))
 		return -1;
@@ -2129,6 +2174,8 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 	time_t upload_delay = 0;
 	char c[256];
 	char err_msg[256] = {0};
+	char *start_time = NULL;
+	char *complete_time = NULL;
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "Upload") == -1) {
 		error = FAULT_CPE_INTERNAL_ERROR;
@@ -2197,8 +2244,14 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 		goto fault;
 	}
 
-	char *start_time = "0001-01-01T00:00:00+00:00";
-	char *complete_time = "0001-01-01T00:00:00+00:00";
+	start_time = strdup("0001-01-01T00:00:00+00:00");
+	complete_time = strdup("0001-01-01T00:00:00+00:00");
+	if (!start_time || !complete_time) {
+		error = FAULT_CPE_INTERNAL_ERROR;
+		snprintf(err_msg , sizeof(err_msg), "Failed to allocate memory to build upload response");
+		goto fault;
+	}
+
 	int status = 1;
 
 	struct xml_data_struct upload_resp_xml_attrs = {0};
@@ -2241,9 +2294,14 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 		}
 		cwmp_set_end_session(END_SESSION_UPLOAD);
 	}
+
+	FREE(start_time);
+	FREE(complete_time);
 	return 0;
 
 fault:
+	FREE(start_time);
+	FREE(complete_time);
 	cwmp_free_upload_request(upload);
 	if (cwmp_create_fault_message(rpc, error, err_msg))
 		return -1;
@@ -2262,9 +2320,12 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 	struct xml_data_struct fault_xml_attrs = {0};
 
 	char *faultcode = (FAULT_CPE_ARRAY[cwmp_main->session->fault_code].TYPE == FAULT_CPE_TYPE_CLIENT) ? "Client" : "Server";
-	char *faultstring = "CWMP fault";
+	char *faultstring = strdup("CWMP fault");
+	if (!faultstring) {
+		return -1;
+	}
 
-	int fault_code = atoi(cwmp_main->session->fault_code ? FAULT_CPE_ARRAY[cwmp_main->session->fault_code].CODE : "0");
+	int fault_code = (int)strtol(cwmp_main->session->fault_code ? FAULT_CPE_ARRAY[cwmp_main->session->fault_code].CODE : "0", NULL, 10);
 	char *fault_string = CWMP_STRLEN(cwmp_main->session->fault_msg) ? strdup(cwmp_main->session->fault_msg) : strdup(FAULT_CPE_ARRAY[cwmp_main->session->fault_code].DESCRIPTION);
 
 	fault_xml_attrs.fault_code = &fault_code;
@@ -2274,6 +2335,7 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 
 	int fault = build_xml_node_data(SOAP_ROOT_FAULT, body, &fault_xml_attrs);
 	FREE(fault_string);
+	FREE(faultstring);
 	if (fault)
 		return -1;
 
@@ -2299,7 +2361,7 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 	return 0;
 }
 
-int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, char *fault_msg)
+int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, const char *fault_msg)
 {
 	CWMP_LOG(INFO, "Fault detected");
 

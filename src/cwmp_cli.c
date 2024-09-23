@@ -241,7 +241,7 @@ char *cmd_set_notif_exec_func(struct cmd_input in, union cmd_result *res __attri
 	if (!icwmp_validate_int_in_range(in.second_input, 0, 6))
 		return "9003";
 
-	char *fault = cwmp_set_parameter_attributes(in.first_input, atoi(in.second_input));
+	char *fault = cwmp_set_parameter_attributes(in.first_input, (int)strtol(in.second_input, NULL, 10));
 	if (fault != NULL)
 		return fault;
 

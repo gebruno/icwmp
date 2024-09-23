@@ -22,7 +22,7 @@ typedef char* (*task_function)(char *task_arg);
 
 static int pipefd1[2], pipefd2[2];
 
-bool check_task_name(char *task, char *name)
+static bool check_task_name(char *task, const char *name)
 {
 	struct blob_buf bbuf;
 
@@ -119,7 +119,7 @@ int subprocess_start(task_function task_fun)
     return CWMP_OK;
 }
 
-char *execute_task_in_subprocess(char *task)
+char *execute_task_in_subprocess(const char *task)
 {
 	char *ret = NULL;
 	int len = 0;

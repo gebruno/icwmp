@@ -18,7 +18,7 @@
 pthread_mutex_t mutex_config_load = PTHREAD_MUTEX_INITIALIZER;
 
 // STATIC functions
-static int _uci_get_value_by_section_string(struct uci_section *s, char *option, char *value, int len)
+static int _uci_get_value_by_section_string(struct uci_section *s, const char *option, char *value, int len)
 {
 	struct uci_element *e;
 
@@ -152,7 +152,7 @@ static void config_get_acs_elements(struct uci_section *s)
 	char *op_interval = cwmp_main->conf.dhcp_discovery ? acs_dhcp_retry_min_wait_interval : acs_retry_min_wait_interval;
 	if (strlen(op_interval) != 0) {
 		if (cwmp_main->conf.amd_version >= AMD_3) {
-			int a = atoi(op_interval);
+			int a = (int)strtol(op_interval, NULL, 10);
 			cwmp_main->conf.retry_min_wait_interval = (a <= 65535 && a >= 1) ? a : DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
 		}
 	}
@@ -164,7 +164,7 @@ static void config_get_acs_elements(struct uci_section *s)
 	char *op_multi = cwmp_main->conf.dhcp_discovery ? acs_dhcp_retry_interval_multiplier : acs_retry_interval_multiplier;
 	if (strlen(op_multi) != 0) {
 		if (cwmp_main->conf.amd_version >= AMD_3) {
-			int a = atoi(op_multi);
+			int a = (int)strtol(op_multi, NULL, 10);
 			cwmp_main->conf.retry_interval_multiplier = (a <= 65535 && a >= 1000) ? a : DEFAULT_RETRY_INTERVAL_MULTIPLIER;
 		}
 	}
@@ -191,7 +191,7 @@ static void config_get_acs_elements(struct uci_section *s)
 	cwmp_main->conf.period = PERIOD_INFORM_DEFAULT;
 	char *inform_interval = get_value_from_uci_option(acs_tb[UCI_ACS_PERIODIC_INFORM_INTERVAL]);
 	if (strlen(inform_interval) != 0) {
-		int a = atoi(inform_interval);
+		int a = (int)strtol(inform_interval, NULL, 10);
 		cwmp_main->conf.period = (a >= PERIOD_INFORM_MIN) ? a : PERIOD_INFORM_DEFAULT;
 	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs periodic inform: %d", cwmp_main->conf.period);
@@ -205,7 +205,7 @@ static void config_get_acs_elements(struct uci_section *s)
 	cwmp_main->conf.heartbeat_interval = 30;
 	char *heartbeat_interval = get_value_from_uci_option(acs_tb[UCI_ACS_HEARTBEAT_INTERVAL]);
 	if (strlen(heartbeat_interval) != 0) {
-		int a = atoi(heartbeat_interval);
+		int a = (int)strtol(heartbeat_interval, NULL, 10);
 		cwmp_main->conf.heartbeat_interval = a;
 	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs heartbeat interval: %d", cwmp_main->conf.heartbeat_interval);
@@ -294,7 +294,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 	cwmp_main->conf.connection_request_port = DEFAULT_CONNECTION_REQUEST_PORT;
 	char *port = get_value_from_uci_option(cpe_tb[UCI_CPE_PORT]);
 	if (strlen(port) != 0) {
-		int a = atoi(port);
+		int a = (int)strtol(port, NULL, 10);
 		cwmp_main->conf.connection_request_port = (a != 0) ? a : DEFAULT_CONNECTION_REQUEST_PORT;
 	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request port: %d", cwmp_main->conf.connection_request_port);
@@ -316,7 +316,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 	cwmp_main->conf.periodic_notify_interval = DEFAULT_NOTIFY_PERIOD;
 	char *notify_period = get_value_from_uci_option(cpe_tb[UCI_CPE_NOTIFY_PERIOD]);
 	if (strlen(notify_period) != 0) {
-		int a = atoi(notify_period);
+		int a = (int)strtol(notify_period, NULL, 10);
 		cwmp_main->conf.periodic_notify_interval = (a != 0) ? a : DEFAULT_NOTIFY_PERIOD;
 	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe periodic notify interval: %d", cwmp_main->conf.periodic_notify_interval);
@@ -330,28 +330,28 @@ static void config_get_cpe_elements(struct uci_section *s)
 	cwmp_main->conf.delay_reboot = -1;
 	char *delay_reboot = get_value_from_uci_option(cpe_tb[UCI_CPE_DELAY_REBOOT]);
 	if (strlen(delay_reboot) != 0) {
-		int a = atoi(delay_reboot);
+		int a = (int)strtol(delay_reboot, NULL, 10);
 		cwmp_main->conf.delay_reboot = (a > 0) ? a : -1;
 	}
 
 	cwmp_main->conf.active_notif_throttle = 0;
 	char *notify_thottle = get_value_from_uci_option(cpe_tb[UCI_CPE_ACTIVE_NOTIF_THROTTLE]);
 	if (strlen(notify_thottle) != 0) {
-		int a = atoi(notify_thottle);
+		int a = (int)strtol(notify_thottle, NULL, 10);
 		cwmp_main->conf.active_notif_throttle = (a > 0) ? a : 0;
 	}
 
 	cwmp_main->conf.md_notif_limit = 0;
 	char *notify_limit = get_value_from_uci_option(cpe_tb[UCI_CPE_MANAGEABLE_DEVICES_NOTIF_LIMIT]);
 	if (strlen(notify_limit) != 0) {
-		int a = atoi(notify_limit);
+		int a = (int)strtol(notify_limit, NULL, 10);
 		cwmp_main->conf.md_notif_limit = (a > 0) ? a : 0;
 	}
 
 	cwmp_main->conf.session_timeout = DEFAULT_SESSION_TIMEOUT;
 	char *session_timeout = get_value_from_uci_option(cpe_tb[UCI_CPE_SESSION_TIMEOUT]);
 	if (strlen(session_timeout) != 0) {
-		int a = atoi(session_timeout);
+		int a = (int)strtol(session_timeout, NULL, 10);
 		cwmp_main->conf.session_timeout = (a >= 1) ? a : DEFAULT_SESSION_TIMEOUT;
 	}
 
@@ -397,7 +397,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 	cwmp_main->conf.clock_sync_timeout = DEFAULT_SYNC_TIMEOUT;
 	char *sync_time = get_value_from_uci_option(cpe_tb[UCI_CPE_CLOCK_SYNC_TIMEOUT]);
 	if (CWMP_STRLEN(sync_time) != 0) {
-		int val = atoi(sync_time);
+		int val = (int)strtol(sync_time, NULL, 10);
 		if (val >= 0 && val <= 180) {
 			cwmp_main->conf.clock_sync_timeout = val;
 		}
@@ -443,7 +443,7 @@ static void config_get_lwn_elements(struct uci_section *s)
 	cwmp_main->conf.lwn_port = DEFAULT_LWN_PORT;
 	char *port = get_value_from_uci_option(lwn_tb[UCI_LWN_PORT]);
 	if (strlen(port) != 0) {
-		int a = atoi(port);
+		int a = (int)strtol(port, NULL, 10);
 		cwmp_main->conf.lwn_port = a;
 	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - lwn port: %d", cwmp_main->conf.lwn_port);
@@ -527,6 +527,7 @@ static int _export_uci_package(struct uci_context *uci_ctx, char *package, const
 	if (output_path == NULL)
 		return -1;
 
+	// cppcheck-suppress cert-MSC24-C
 	FILE *out = fopen(output_path, "a");
 	if (!out)
 		return -1;
@@ -604,7 +605,7 @@ end:
 	return 0;
 }
 
-int import_uci_package(char *package_name, const char *input_path)
+int import_uci_package(const char *package_name, const char *input_path)
 {
 	struct uci_context *uci_ctx = NULL;
 	struct uci_package *package = NULL;
@@ -616,6 +617,7 @@ int import_uci_package(char *package_name, const char *input_path)
 		return -1;
 	}
 
+	// cppcheck-suppress cert-MSC24-C
 	input = fopen(input_path, "r");
 	if (!input)
 		return -1;
@@ -648,7 +650,7 @@ end:
 	return ret;
 }
 
-int get_uci_path_value(const char *conf_dir, char *path, char *value, size_t max_value_len)
+int get_uci_path_value(const char *conf_dir, const char *path, char *value, size_t max_value_len)
 {
 	struct uci_context *uci_ctx = NULL;
 	struct uci_ptr ptr;
@@ -759,7 +761,7 @@ exit:
 	return ret;
 }
 
-int set_uci_path_value(const char *conf_dir, char *path, char *value)
+int set_uci_path_value(const char *conf_dir, const char *path, const char *value)
 {
 	struct uci_context *uci_ctx = NULL;
 	struct uci_ptr ptr;
@@ -842,7 +844,7 @@ exit:
 	return ret;
 }
 
-int set_uci_list_value(const char *conf_dir, char *path, char *value)
+int set_uci_list_value(const char *conf_dir, const char *path, const char *value)
 {
 	struct uci_context *uci_ctx = NULL;
 	struct uci_ptr ptr;

@@ -282,9 +282,9 @@ static void get_digest_response(const char *ha1, const char *nonce, const char *
 		a = b;
 	}
 
-	add_bin_list(&buff_list, (uint8_t *)ha1, MD5_HASH_HEX_LEN);
+	add_bin_list(&buff_list, (const uint8_t *)ha1, MD5_HASH_HEX_LEN);
 	add_str_binlist(&buff_list, a);
-	add_bin_list(&buff_list, (uint8_t *)ha2, MD5_HASH_HEX_LEN);
+	add_bin_list(&buff_list, (const uint8_t *)ha2, MD5_HASH_HEX_LEN);
 	FREE(a);
 
 	calulate_md5_hash(&buff_list, digest, sizeof(digest));
@@ -334,11 +334,11 @@ static void get_nonce(uint32_t time, const char* method, const char *rand,
 
 	unsigned char digest[MD5_DIGEST_SIZE];
 
-	add_bin_list(&buff_list, (uint8_t *)ts, 4);
+	add_bin_list(&buff_list, (const uint8_t *)ts, 4);
 	add_str_binlist(&buff_list, meth);
 
 	if (rand != NULL && rand_size > 0) {
-		add_bin_list(&buff_list, (uint8_t *)rand, rand_size);
+		add_bin_list(&buff_list, (const uint8_t *)rand, rand_size);
 	}
 
 	add_str_binlist(&buff_list, uri_realm);
@@ -432,7 +432,7 @@ int validate_http_digest_auth(const char *http_meth, const char *uri, const char
 		return 0;
 
 	char *tms = param[E_NONCE].value + len - 8;
-	uint32_t tm = strtoul(tms, NULL, 16);
+	uint32_t tm = (uint32_t)strtoul(tms, NULL, 16);
 	uint32_t cur_tm = (uint32_t)time(NULL);
 
 	if (cur_tm > tm + timeout) {

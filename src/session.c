@@ -251,7 +251,7 @@ static int cwmp_get_retry_interval(void)
 
 static void set_cwmp_session_status_state(int status)
 {
-	char *state = NULL;
+	const char *state = NULL;
 
 	// Create sess_status config section
 	set_uci_path_value(VARSTATE_CONFIG, "icwmp.sess_status", "sess_status");

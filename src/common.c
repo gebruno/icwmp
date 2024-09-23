@@ -125,7 +125,7 @@ int global_env_init(int argc, char **argv, struct env *env)
 			cwmp_main->conf.amd_version = DEFAULT_AMD_VERSION;
 			get_uci_path_value(NULL, "cwmp.cpe.amd_version", value, BUF_SIZE_256);
 			if (CWMP_STRLEN(value) != 0) {
-				int a = atoi(value);
+				int a = (int)strtol(value, NULL, 10);
 				cwmp_main->conf.amd_version = (a >= 1 && a <= 6) ? a : DEFAULT_AMD_VERSION;
 			}
 
@@ -155,8 +155,8 @@ int global_env_init(int argc, char **argv, struct env *env)
 /*
  * List dm_paramter
  */
-void add_dm_parameter_to_list(struct list_head *head, char *param_name, char *param_val, char *param_type,
-			      int notification, bool writable)
+void add_dm_parameter_to_list(struct list_head *head, const char *param_name, const char *param_val,
+			      const char *param_type, int notification, bool writable)
 {
 	struct cwmp_dm_parameter *dm_parameter = NULL;
 
@@ -339,28 +339,29 @@ void cwmp_free_all_list_param_fault(struct list_head *list_param_fault)
 	}
 }
 
-int cwmp_asprintf(char **s, const char *format, ...)
+int icwmp_asprintf(char **s, const char *format, ...)
 {
 	int size;
 	char *str = NULL;
 	va_list arg, argcopy;
+
 	va_start(arg, format);
 	va_copy(argcopy, arg);
-	size = vsnprintf(NULL, 0, format, argcopy);
+	size = vsnprintf(NULL, 0, format, argcopy); // Flawfinder: ignore
+	va_end(argcopy);
+
 	if (size < 0) {
-		va_end(argcopy);
 		va_end(arg);
 		return -1;
 	}
-	va_end(argcopy);
 	str = (char *)calloc(sizeof(char), size + 1);
-	vsnprintf(str, size + 1, format, arg);
+	vsnprintf(str, size + 1, format, arg); // Flawfinder: ignore
 	va_end(arg);
-	*s = strdup(str);
+
+	*s = icwmp_strdup(str);
 	FREE(str);
-	if (*s == NULL) {
+	if (*s == NULL)
 		return -1;
-	}
 	return 0;
 }
 
@@ -377,7 +378,7 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	return written;
 }
 
-void set_rpc_parameter_key(char *param_key)
+void set_rpc_parameter_key(const char *param_key)
 {
 	set_uci_path_value(NULL, "cwmp.cpe.ParameterKey", param_key ? param_key : "");
 }
@@ -385,7 +386,7 @@ void set_rpc_parameter_key(char *param_key)
 /*
  * Reboot
  */
-void cwmp_reboot(char *command_key)
+void cwmp_reboot(const char *command_key)
 {
 	set_rpc_parameter_key(command_key);
 
@@ -420,8 +421,9 @@ void cwmp_factory_reset() //use the ubus rpc-sys factory
 	CWMP_LOG(ERROR, "# Problem in system factory reset #");
 }
 
-unsigned int get_file_size(char *file_name)
+unsigned int get_file_size(const char *file_name)
 {
+	// cppcheck-suppress cert-MSC24-C
 	FILE *fp = fopen(file_name, "r");
 
 	if (fp == NULL) {
@@ -435,34 +437,6 @@ unsigned int get_file_size(char *file_name)
 	fclose(fp);
 
 	return res;
-}
-
-int opkg_install_package(char *package_path)
-{
-	FILE *fp;
-	char path[1035];
-	char cmd[512];
-
-	CWMP_LOG(INFO, "Apply downloaded config ...");
-
-	int ret = snprintf(cmd, sizeof(cmd), "opkg --force-depends --force-maintainer install %s", package_path);
-	if (ret < 0 || ret > 512)
-		return -1;
-	fp = popen(cmd, "r");
-	if (fp == NULL) {
-		CWMP_LOG(INFO, "Failed to run command");
-		return -1;
-	}
-
-	/* Read the output a line at a time - output it. */
-	while (fgets(path, sizeof(path), fp) != NULL) {
-		if (strstr(path, "Installing") != NULL)
-			return 0;
-	}
-
-	/* close */
-	pclose(fp);
-	return -1;
 }
 
 int copy(const char *from, const char *to)
@@ -606,32 +580,6 @@ char *icwmp_strdup(const char *s)
 	if (new == NULL)
 		return NULL;
 	return (char *)CWMP_MEMCPY(new, s, len);
-}
-
-int icwmp_asprintf(char **s, const char *format, ...)
-{
-	int size;
-	char *str = NULL;
-	va_list arg, argcopy;
-
-	va_start(arg, format);
-	va_copy(argcopy, arg);
-	size = vsnprintf(NULL, 0, format, argcopy);
-	va_end(argcopy);
-
-	if (size < 0) {
-		va_end(arg);
-		return -1;
-	}
-	str = (char *)calloc(sizeof(char), size + 1);
-	vsnprintf(str, size + 1, format, arg);
-	va_end(arg);
-
-	*s = icwmp_strdup(str);
-	free(str);
-	if (*s == NULL)
-		return -1;
-	return 0;
 }
 
 void icwmp_free(void *m)
@@ -891,16 +839,17 @@ bool icwmp_validate_unsignedint(char *arg)
 	if (strcmp(arg, "0") == 0)
 		arg_int = 0;
 	else {
-		arg_int = atoi(arg);
+		arg_int = (int)strtol(arg, NULL, 10);
 		if (arg_int == 0)
 			return false;
 	}
 	return arg_int >= 0;
 }
 
-bool icwmp_validate_int_in_range(char *arg, int min, int max)
+bool icwmp_validate_int_in_range(const char *arg, int min, int max)
 {
 	int arg_int;
+	char *ptr = NULL;
 
 	if(arg == NULL)
 		return false;
@@ -908,8 +857,8 @@ bool icwmp_validate_int_in_range(char *arg, int min, int max)
 	if (strcmp(arg, "0") == 0)
 		arg_int = 0;
 	else {
-		arg_int = atoi(arg);
-		if (arg_int == 0)
+		arg_int = (int)strtol(arg, &ptr, 10);
+		if (*ptr != '\0')
 			return false;
 	}
 	return arg_int >= min && arg_int <= max;
@@ -940,11 +889,15 @@ int copy_file(char *source_file, char *target_file)
 	int ch;
 	FILE *source, *target;
 	size_t len = 0;
+
+	// cppcheck-suppress cert-MSC24-C
 	source = fopen(source_file, "rb");
 	if (source == NULL) {
 		CWMP_LOG(ERROR, "Not able to open the source file: %s\n", source_file);
 		return -1;
 	}
+
+	// cppcheck-suppress cert-MSC24-C
 	target = fopen(target_file, "wb");
 	if (target == NULL) {
 		fclose(source);
@@ -1072,24 +1025,27 @@ bool is_ipv6_status_changed(void)
 	return ipv6_status_changed;
 }
 
-char *get_time(time_t t_time)
+int get_time(time_t t_time, char *local_time, size_t len)
 {
-	static char local_time[32] = {0};
 	struct tm *t_tm;
+
+	if (local_time == NULL || len < 26)
+		return -1;
 
 	t_tm = localtime(&t_time);
 	if (t_tm == NULL)
-		return NULL;
+		return -1;
 
-	if (strftime(local_time, sizeof(local_time), "%FT%T%z", t_tm) == 0)
-		return NULL;
+	memset(local_time, 0, len);
+	if (strftime(local_time, len, "%FT%T%z", t_tm) == 0)
+		return -1;
 
-	local_time[25] = local_time[24];
 	local_time[24] = local_time[23];
+	local_time[23] = local_time[22];
 	local_time[22] = ':';
-	local_time[26] = '\0';
+	local_time[25] = '\0';
 
-	return local_time;
+	return 0;
 }
 
 time_t convert_datetime_to_timestamp(char *value)
@@ -1217,7 +1173,7 @@ void free_path_list(struct list_head *list)
 	}
 }
 
-void add_bin_list(struct list_head *list, uint8_t *str, size_t len)
+void add_bin_list(struct list_head *list, const uint8_t *str, size_t len)
 {
 	bin_list_t *node;
 
@@ -1381,8 +1337,8 @@ int regex_replace(char **str, const char *pattern, const char *replace, int *mat
 
 			memset(new, 0, len);
 			strncat(new, search_start, m[0].rm_so); // string before pattern
-			strcat(new, replace); // add the replacement
-			strcat(new, search_start + m[0].rm_eo); // add trailing text in string
+			// add the replacement & trailing text in string
+			snprintf(new + m[0].rm_so, len - m[0].rm_so, "%s%s", replace, search_start + m[0].rm_eo);
 
 			free(*str);
 			*str = strdup(new);

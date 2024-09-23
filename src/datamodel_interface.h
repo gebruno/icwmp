@@ -17,15 +17,15 @@
 
 struct object_result {
 	char *instance;
-	char fault_msg[256];
 	int fault_code;
+	char fault_msg[256];
 };
 
 int instantiate_param_name(const char *param, char **inst_path);
 bool cwmp_get_parameter_value(const char *parameter_name, struct cwmp_dm_parameter *dm_parameter);
 
 char *cwmp_get_parameter_values(const char *parameter_name, struct list_head *parameters_list);
-char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, struct list_head *parameters_list, char **err_msg);
+char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, struct list_head *parameters_list, const char **err_msg);
 char *cwmp_validate_parameter_name(const char *param_name, bool next_level, struct list_head *param_list);
 char *cwmp_validate_multi_instance_path(const char *object, struct list_head *parameters_list);
 

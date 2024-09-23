@@ -70,7 +70,7 @@ int get_preinit_config()
 	cwmp_main->conf.amd_version = DEFAULT_AMD_VERSION;
 	get_uci_path_value(NULL, UCI_CPE_AMD_VERSION, value, BUF_SIZE_256);
 	if (CWMP_STRLEN(value) != 0) {
-		int a = atoi(value);
+		int a = (int)strtol(value, NULL, 10);
 		cwmp_main->conf.amd_version = (a >= 1 && a <= 6) ? a : DEFAULT_AMD_VERSION;
 	}
 

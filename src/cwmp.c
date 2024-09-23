@@ -177,6 +177,9 @@ static int cwmp_init(void)
 
 	CWMP_MEMSET(cwmp_main, 0, sizeof(struct cwmp));
 
+	cwmp_main->curr_delay_reboot = -1;
+	cwmp_main->curr_schedule_reboot = 0;
+
 	get_preinit_config();
 
 	CWMP_LOG(INFO, "STARTING ICWMP with PID :%d", getpid());
@@ -184,12 +187,14 @@ static int cwmp_init(void)
 	icwmp_init_critical_services();
 
 	/* Only One instance should run*/
+
+	// cppcheck-suppress cert-MSC24-C
 	cwmp_main->pid_file = fopen("/var/run/icwmpd.pid", "w+");
 	fcntl(fileno(cwmp_main->pid_file), F_SETFD, fcntl(fileno(cwmp_main->pid_file), F_GETFD) | FD_CLOEXEC);
 	int rc = flock(fileno(cwmp_main->pid_file), LOCK_EX | LOCK_NB);
 	if (rc) {
 		if (EWOULDBLOCK != errno) {
-			char *piderr = "PID file creation failed: Quit the daemon!";
+			const char *piderr = "PID file creation failed: Quit the daemon!";
 			fprintf(stderr, "%s\n", piderr);
 			CWMP_LOG(ERROR, "%s", piderr);
 			exit(EXIT_FAILURE);

@@ -22,7 +22,7 @@ int cwmp_rpc_acs_destroy_data_du_state_change_complete(struct rpc *rpc);
 int cwmp_free_change_du_state_request(struct change_du_state *change_du_state);
 void change_du_state_execute(struct uloop_timeout *utimeout);
 void apply_change_du_state();
-void remove_node_from_uuid_list(char *uuid, char *operation);
+void remove_node_from_uuid_list(const char *uuid, const char *operation);
 bool exists_in_uuid_list(char *uuid, char *operation);
 void clean_du_uuid_list(void);
 #endif

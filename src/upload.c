@@ -92,6 +92,7 @@ static long upload_file(const char *file_path, const char *url, const char *user
 		return FAULT_CPE_INTERNAL_ERROR;
 	}
 
+	// cppcheck-suppress cert-MSC24-C
 	fd_upload = fopen(file_path, "rb");
 	if (fd_upload == NULL) {
 		CWMP_LOG(ERROR, "Failed to open file[%s] for upload", file_path);
@@ -208,7 +209,7 @@ int upload_file_in_subprocess(const char *file_path, const char *url, const char
 	if (upload_task != NULL) {
 		char *ret = execute_task_in_subprocess(upload_task);
 		FREE(upload_task);
-		return ret ? atoi(ret) : 500;
+		return ret ? (int)strtol(ret, NULL, 10) : 500;
 	}
 	return 500;
 }
@@ -216,14 +217,15 @@ int upload_file_in_subprocess(const char *file_path, const char *url, const char
 int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptransfer_complete)
 {
 	int error = FAULT_CPE_NO_FAULT;
-	char *upload_startTime;
+	char upload_startTime[26] = {0};
 	struct transfer_complete *p;
 	char *name = NULL;
-	upload_startTime = get_time(time(NULL));
 	char file_path[128] = {'\0'};
 	bkp_session_delete_element("upload", pupload->id);
 	bkp_session_save();
 	char err_msg[256] = {0};
+
+	get_time(time(NULL), upload_startTime, sizeof(upload_startTime));
 
 	if (!folder_exists(ICWMP_TMP_PATH)) {
 		int status = mkdir(ICWMP_TMP_PATH, S_IRWXU);
@@ -299,9 +301,12 @@ end_upload:
 		return error;
 	}
 
+	char upload_endTime[26] = {0};
+	get_time(time(NULL), upload_endTime, sizeof(upload_endTime));
+
 	p->command_key = pupload->command_key ? strdup(pupload->command_key) : strdup("");
 	p->start_time = CWMP_STRDUP(upload_startTime);
-	p->complete_time = CWMP_STRDUP(get_time(time(NULL)));
+	p->complete_time = CWMP_STRDUP(upload_endTime);
 	p->type = TYPE_UPLOAD;
 	if (error != FAULT_CPE_NO_FAULT) {
 		p->fault_code = error;

@@ -255,7 +255,7 @@ bool set_diagnostic_parameter_structure_value(char *parameter_name, char *value)
 
 }
 
-static int cwmp_diagnostics_operate(char *command, char *command_key, struct diagnostic_input diagnostics[], int number_inputs)
+static int cwmp_diagnostics_operate(const char *command, const char *command_key, struct diagnostic_input diagnostics[], int number_inputs)
 {
 	struct blob_buf b = {0};
 
