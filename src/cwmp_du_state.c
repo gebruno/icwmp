@@ -462,11 +462,11 @@ int change_du_state_fault(struct change_du_state *pchange_du_state, struct du_st
 		res->fault = error;
 		res->fault_msg = strdup("Timeout expired");
 	}
-	if ((cwmp_main->cdu_complete_id < 0) || (cwmp_main->cdu_complete_id >= MAX_INT_ID)) {
-		cwmp_main->cdu_complete_id = 0;
+	if ((cwmp_ctx.cdu_complete_id < 0) || (cwmp_ctx.cdu_complete_id >= MAX_INT_ID)) {
+		cwmp_ctx.cdu_complete_id = 0;
 	}
-	cwmp_main->cdu_complete_id++;
-	(*pdu_state_change_complete)->id = cwmp_main->cdu_complete_id;
+	cwmp_ctx.cdu_complete_id++;
+	(*pdu_state_change_complete)->id = cwmp_ctx.cdu_complete_id;
 	bkp_session_insert_du_state_change_complete(*pdu_state_change_complete);
 	bkp_session_save();
 	//cwmp_root_cause_changedustate_complete(*pdu_state_change_complete);
@@ -688,11 +688,11 @@ void change_du_state_execute(struct uloop_timeout *utimeout)
 	}
 	bkp_session_delete_element("change_du_state", pchange_du_state->id);
 	bkp_session_save();
-	if ((cwmp_main->cdu_complete_id < 0) || (cwmp_main->cdu_complete_id >= MAX_INT_ID)) {
-		cwmp_main->cdu_complete_id = 0;
+	if ((cwmp_ctx.cdu_complete_id < 0) || (cwmp_ctx.cdu_complete_id >= MAX_INT_ID)) {
+		cwmp_ctx.cdu_complete_id = 0;
 	}
-	cwmp_main->cdu_complete_id++;
-	pdu_state_change_complete->id = cwmp_main->cdu_complete_id;
+	cwmp_ctx.cdu_complete_id++;
+	pdu_state_change_complete->id = cwmp_ctx.cdu_complete_id;
 	bkp_session_insert_du_state_change_complete(pdu_state_change_complete);
 	bkp_session_save();
 	//cwmp_root_cause_changedustate_complete(pdu_state_change_complete);

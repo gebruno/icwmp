@@ -29,11 +29,11 @@
 static void set_cr_incoming_rule(const char *rule)
 {
 	if (CWMP_LSTRCASECMP(rule, "ip_only") == 0) {
-		cwmp_main->cr_policy = CR_POLICY_IP_Only;
+		cwmp_ctx.cr_policy = CR_POLICY_IP_Only;
 	} else if (CWMP_LSTRCASECMP(rule, "ip_port") == 0) {
-		cwmp_main->cr_policy = CR_POLICY_BOTH;
+		cwmp_ctx.cr_policy = CR_POLICY_BOTH;
 	} else {
-		cwmp_main->cr_policy = CR_POLICY_Port_Only; // Default case
+		cwmp_ctx.cr_policy = CR_POLICY_Port_Only; // Default case
 	}
 }
 
@@ -59,25 +59,25 @@ int get_preinit_config()
 	get_uci_path_value(NULL, UCI_CPE_ENABLE_SYSLOG, value, BUF_SIZE_256);
 	log_set_on_syslog(value);
 
-	get_uci_path_value(NULL, UCI_CPE_DEFAULT_WAN_IFACE, cwmp_main->conf.default_wan_iface, BUF_SIZE_32);
-	if (CWMP_STRLEN(cwmp_main->conf.default_wan_iface) == 0) {
-		CWMP_STRNCMP(cwmp_main->conf.default_wan_iface, "wan", sizeof(cwmp_main->conf.default_wan_iface));
+	get_uci_path_value(NULL, UCI_CPE_DEFAULT_WAN_IFACE, cwmp_ctx.conf.default_wan_iface, BUF_SIZE_32);
+	if (CWMP_STRLEN(cwmp_ctx.conf.default_wan_iface) == 0) {
+		CWMP_STRNCMP(cwmp_ctx.conf.default_wan_iface, "wan", sizeof(cwmp_ctx.conf.default_wan_iface));
 	}
 
 	get_uci_path_value(NULL, UCI_CPE_INCOMING_RULE, value, BUF_SIZE_256);
 	set_cr_incoming_rule(value);
 
-	cwmp_main->conf.amd_version = DEFAULT_AMD_VERSION;
+	cwmp_ctx.conf.amd_version = DEFAULT_AMD_VERSION;
 	get_uci_path_value(NULL, UCI_CPE_AMD_VERSION, value, BUF_SIZE_256);
 	if (CWMP_STRLEN(value) != 0) {
 		int a = (int)strtol(value, NULL, 10);
-		cwmp_main->conf.amd_version = (a >= 1 && a <= 6) ? a : DEFAULT_AMD_VERSION;
+		cwmp_ctx.conf.amd_version = (a >= 1 && a <= 6) ? a : DEFAULT_AMD_VERSION;
 	}
 
-	cwmp_main->conf.supported_amd_version = cwmp_main->conf.amd_version;
+	cwmp_ctx.conf.supported_amd_version = cwmp_ctx.conf.amd_version;
 
-	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", cwmp_main->conf.default_wan_iface);
-	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", cwmp_main->conf.amd_version);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", cwmp_ctx.conf.default_wan_iface);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", cwmp_ctx.conf.amd_version);
 
 	return CWMP_OK;
 }
@@ -100,14 +100,14 @@ void cwmp_config_load()
 	if (cwmp_stop == true)
 		return;
 
-	cwmp_main->net.ipv6_status = is_ipv6_enabled();
+	cwmp_ctx.net.ipv6_status = is_ipv6_enabled();
 	error = icwmp_check_http_connection();
 
 	while (error != CWMP_OK && cwmp_stop != true) {
 		CWMP_LOG(DEBUG, "Init: failed to check http connection");
 		sleep(UCI_OPTION_READ_INTERVAL);
 		global_conf_init();
-		cwmp_main->net.ipv6_status = is_ipv6_enabled();
+		cwmp_ctx.net.ipv6_status = is_ipv6_enabled();
 		error = icwmp_check_http_connection();
 	}
 }
@@ -133,18 +133,18 @@ static void cwmp_get_device_info(const char *param, char *value, size_t size) {
 
 int cwmp_get_deviceid()
 {
-	cwmp_get_device_info("Device.DeviceInfo.Manufacturer", cwmp_main->deviceid.manufacturer, sizeof(cwmp_main->deviceid.manufacturer));
-	cwmp_get_device_info("Device.DeviceInfo.SerialNumber", cwmp_main->deviceid.serialnumber, sizeof(cwmp_main->deviceid.serialnumber));
-	cwmp_get_device_info("Device.DeviceInfo.ProductClass", cwmp_main->deviceid.productclass, sizeof(cwmp_main->deviceid.productclass));
-	cwmp_get_device_info("Device.DeviceInfo.ManufacturerOUI", cwmp_main->deviceid.oui, sizeof(cwmp_main->deviceid.oui));
-	cwmp_get_device_info("Device.DeviceInfo.SoftwareVersion", cwmp_main->deviceid.softwareversion, sizeof(cwmp_main->deviceid.softwareversion));
+	cwmp_get_device_info("Device.DeviceInfo.Manufacturer", cwmp_ctx.deviceid.manufacturer, sizeof(cwmp_ctx.deviceid.manufacturer));
+	cwmp_get_device_info("Device.DeviceInfo.SerialNumber", cwmp_ctx.deviceid.serialnumber, sizeof(cwmp_ctx.deviceid.serialnumber));
+	cwmp_get_device_info("Device.DeviceInfo.ProductClass", cwmp_ctx.deviceid.productclass, sizeof(cwmp_ctx.deviceid.productclass));
+	cwmp_get_device_info("Device.DeviceInfo.ManufacturerOUI", cwmp_ctx.deviceid.oui, sizeof(cwmp_ctx.deviceid.oui));
+	cwmp_get_device_info("Device.DeviceInfo.SoftwareVersion", cwmp_ctx.deviceid.softwareversion, sizeof(cwmp_ctx.deviceid.softwareversion));
 
 	return CWMP_OK;
 }
 
 int cwmp_config_reload()
 {
-	CWMP_MEMSET(&cwmp_main->env, 0, sizeof(struct env));
+	CWMP_MEMSET(&cwmp_ctx.env, 0, sizeof(struct env));
 
 	global_conf_init();
 

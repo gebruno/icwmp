@@ -27,7 +27,7 @@ void http_server_listen_uloop(struct uloop_fd *ufd __attribute__((unused)), unsi
 void http_server_start_uloop(void)
 {
 	icwmp_http_server_init();
-	http_event6.fd = cwmp_main->cr_socket_desc;
+	http_event6.fd = cwmp_ctx.cr_socket_desc;
 	http_event6.cb = http_server_listen_uloop;
 	uloop_fd_add(&http_event6, ULOOP_READ | ULOOP_EDGE_TRIGGER);
 }
@@ -53,13 +53,13 @@ void http_server_stop(void)
 
 static void set_http_ip_resolve(long ip_resolve)
 {
-	cwmp_main->net.ip_resolve = ip_resolve;
+	cwmp_ctx.net.ip_resolve = ip_resolve;
 	set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip_version", (ip_resolve == CURL_IPRESOLVE_V6) ? "6" : "4");
 }
 
 int icwmp_check_http_connection(void)
 {
-	if (!cwmp_main->net.ipv6_status) {
+	if (!cwmp_ctx.net.ipv6_status) {
 		set_http_ip_resolve(CURL_IPRESOLVE_V4);
 		return CWMP_OK;
 	}
@@ -70,13 +70,13 @@ int icwmp_check_http_connection(void)
 		if(c) {
 			CURLcode ret;
 			curl_easy_setopt(c, CURLOPT_FAILONERROR, true);
-			curl_easy_setopt(c, CURLOPT_URL, cwmp_main->conf.acs_url);
+			curl_easy_setopt(c, CURLOPT_URL, cwmp_ctx.conf.acs_url);
 			curl_easy_setopt(c, CURLOPT_CONNECT_ONLY, 1L);
 			curl_easy_setopt(c, CURLOPT_IPRESOLVE, resolve);
 			curl_easy_setopt(c, CURLOPT_TIMEOUT, 2);
 
-			if (cwmp_main->net.use_curl_ifname && CWMP_STRLEN(cwmp_main->net.interface))
-				curl_easy_setopt(c, CURLOPT_INTERFACE, cwmp_main->net.interface);
+			if (cwmp_ctx.net.use_curl_ifname && CWMP_STRLEN(cwmp_ctx.net.interface))
+				curl_easy_setopt(c, CURLOPT_INTERFACE, cwmp_ctx.net.interface);
 
 			ret = curl_easy_perform(c);
 			if(ret == CURLE_OK) {

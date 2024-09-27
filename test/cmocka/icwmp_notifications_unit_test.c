@@ -28,9 +28,7 @@ LIST_HEAD(parameters_list);
 
 static int cwmp_notifications_unit_tests_init(void **state)
 {
-	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	create_cwmp_session_structure();
-	memcpy(&(cwmp_main->env), &cwmp_main, sizeof(struct env));
 	cwmp_session_init();
 	return 0;
 }
@@ -41,8 +39,7 @@ static int cwmp_notifications_unit_tests_clean(void **state)
 	clean_list_value_change();
 	cwmp_free_all_dm_parameter_list(&parameters_list);
 	cwmp_session_exit();
-	FREE(cwmp_main->session);
-	FREE(cwmp_main);
+	FREE(cwmp_ctx.session);
 	return 0;
 }
 

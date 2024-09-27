@@ -527,7 +527,7 @@ int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 {
 	if (b == NULL || xml_attrs == NULL)
 		return FAULT_CPE_INTERNAL_ERROR;
-	int amd_version = cwmp_main->conf.supported_amd_version ? cwmp_main->conf.supported_amd_version : DEFAULT_AMD_VERSION;
+	int amd_version = cwmp_ctx.conf.supported_amd_version ? cwmp_ctx.conf.supported_amd_version : DEFAULT_AMD_VERSION;
 	mxml_node_t **envelope = xml_attrs->xml_env;
 
 	*envelope = b;
@@ -555,7 +555,7 @@ int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 			return FAULT_CPE_INTERNAL_ERROR;
 
 		mxmlElementSetAttr(node, "soap_env:mustUnderstand", "0");
-		node = mxmlNewInteger(node, cwmp_main->conf.session_timeout ? cwmp_main->conf.session_timeout : 60);
+		node = mxmlNewInteger(node, cwmp_ctx.conf.session_timeout ? cwmp_ctx.conf.session_timeout : 60);
 		if (!node)
 			return FAULT_CPE_INTERNAL_ERROR;
 	}
@@ -1134,9 +1134,9 @@ void event_container_list_to_xml_data_list(struct list_head *event_container_lis
 
 	list_for_each_entry (event_container, event_container_list, list) {
 		// cppcheck-suppress uninitvar
-		if (cwmp_main->session->session_status.is_heartbeat && event_container->code != EVENT_IDX_14HEARTBEAT)
+		if (cwmp_ctx.session->session_status.is_heartbeat && event_container->code != EVENT_IDX_14HEARTBEAT)
 			continue;
-		if ((!cwmp_main->session->session_status.is_heartbeat) && (event_container->code == EVENT_IDX_14HEARTBEAT))
+		if ((!cwmp_ctx.session->session_status.is_heartbeat) && (event_container->code == EVENT_IDX_14HEARTBEAT))
 			continue;
 		struct xml_list_data *xml_data =  calloc(1, sizeof(struct xml_list_data));
 		if (xml_data == NULL)
@@ -1480,15 +1480,15 @@ int xml_send_message(struct rpc *rpc)
 	int msg_out_len = 0, f, r = 0;
 	mxml_node_t *b;
 
-	if (cwmp_main->session == NULL) {
+	if (cwmp_ctx.session == NULL) {
 		CWMP_LOG(ERROR, "cwmp session not exist");
 		return -1;
 	}
 
-	if (cwmp_main->session->tree_out) {
+	if (cwmp_ctx.session->tree_out) {
 		unsigned char *zmsg_out;
 
-		msg_out = convert_xml_node_to_string(cwmp_main->session->tree_out, whitespace_cb);
+		msg_out = convert_xml_node_to_string(cwmp_ctx.session->tree_out, whitespace_cb);
 		FREE(g_tab_space);
 		if (msg_out == NULL) {
 			CWMP_LOG(ERROR, "%s: msg_out is null", __FUNCTION__);
@@ -1496,8 +1496,8 @@ int xml_send_message(struct rpc *rpc)
 		}
 
 		CWMP_LOG_XML_MSG(DEBUG, msg_out, XML_MSG_OUT);
-		if (cwmp_main->conf.compression != COMP_NONE) {
-			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, cwmp_main->conf.compression)) {
+		if (cwmp_ctx.conf.compression != COMP_NONE) {
+			if (zlib_compress(msg_out, &zmsg_out, &msg_out_len, cwmp_ctx.conf.compression)) {
 				return -1;
 			}
 			FREE(msg_out);
@@ -1536,35 +1536,35 @@ int xml_send_message(struct rpc *rpc)
 		}
 	}
 
-	cwmp_main->session->tree_in = mxmlLoadString(NULL, msg_in, MXML_OPAQUE_CALLBACK);
-	if (!cwmp_main->session->tree_in)
+	cwmp_ctx.session->tree_in = mxmlLoadString(NULL, msg_in, MXML_OPAQUE_CALLBACK);
+	if (!cwmp_ctx.session->tree_in)
 		goto error;
-	if (xml_recreate_namespace(cwmp_main->session->tree_in) == -1) {
+	if (xml_recreate_namespace(cwmp_ctx.session->tree_in) == -1) {
 		CWMP_LOG(ERROR, "Failed to get ns parameters");
 		goto error;
 	}
 
 	/* get NoMoreRequests or HolRequest*/
-	cwmp_main->session->hold_request = false;
+	cwmp_ctx.session->hold_request = false;
 
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "NoMoreRequests") == -1)
 		goto error;
-	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	b = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
 	if (b) {
-		b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
+		b = mxmlWalkNext(b, cwmp_ctx.session->tree_in, MXML_DESCEND_FIRST);
 		const char *bname = b ? mxmlGetOpaque(b) : NULL;
 		if (b && mxmlGetType(b) == MXML_OPAQUE && bname)
-			cwmp_main->session->hold_request = (int)strtol(bname, NULL, 10);
+			cwmp_ctx.session->hold_request = (int)strtol(bname, NULL, 10);
 	} else {
 		if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "HoldRequests") == -1)
 			goto error;
 
-		b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+		b = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
 		const char *bname = b ? mxmlGetOpaque(b) : NULL;
 		if (b) {
-			b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
+			b = mxmlWalkNext(b, cwmp_ctx.session->tree_in, MXML_DESCEND_FIRST);
 			if (b && mxmlGetType(b) == MXML_OPAQUE && bname)
-				cwmp_main->session->hold_request = (int)strtol(bname, NULL, 10);
+				cwmp_ctx.session->hold_request = (int)strtol(bname, NULL, 10);
 		}
 	}
 
@@ -1581,20 +1581,20 @@ error:
 
 int xml_prepare_msg_out()
 {
-	struct config *conf = &(cwmp_main->conf);
+	struct config *conf = &(cwmp_ctx.conf);
 	mxml_node_t *n;
 
-	load_response_xml_schema(&cwmp_main->session->tree_out);
-	if (!cwmp_main->session->tree_out)
+	load_response_xml_schema(&cwmp_ctx.session->tree_out);
+	if (!cwmp_ctx.session->tree_out)
 		return -1;
 
-	n = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n) {
 		return -1;
 	}
 
 	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(conf->amd_version) - 1]);
-	if (!cwmp_main->session->tree_out)
+	if (!cwmp_ctx.session->tree_out)
 		return -1;
 
 	return 0;
@@ -1607,10 +1607,10 @@ int xml_set_cwmp_id()
 	int pid_t = getpid();
 
 	/* define cwmp id */
-	if (snprintf(c, sizeof(c), "%d.%u", pid_t, ++(cwmp_main->cwmp_id)) == -1)
+	if (snprintf(c, sizeof(c), "%d.%u", pid_t, ++(cwmp_ctx.cwmp_id)) == -1)
 		return -1;
 
-	b = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
+	b = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
 	if (!b)
 		return -1;
 
@@ -1630,16 +1630,16 @@ int xml_set_cwmp_id_rpc_cpe()
 	if (snprintf(c, sizeof(c), "%s:%s", ns.cwmp, "ID") == -1)
 		return -1;
 
-	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	b = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
 
 	if (b) {
 		/* ACS send ID parameter */
-		b = mxmlWalkNext(b, cwmp_main->session->tree_in, MXML_DESCEND_FIRST);
+		b = mxmlWalkNext(b, cwmp_ctx.session->tree_in, MXML_DESCEND_FIRST);
 		if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
 			return 0;
 		snprintf(c, sizeof(c), "%s", mxmlGetOpaque(b));
 
-		b = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
+		b = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "cwmp:ID", NULL, NULL, MXML_DESCEND);
 		if (!b)
 			return -1;
 
@@ -1731,7 +1731,7 @@ int xml_prepare_lwnotification_message(char **msg_out)
 void load_notification_xml_schema(mxml_node_t **tree)
 {
 	char declaration[1024] = {0};
-	struct config *conf = &(cwmp_main->conf);
+	struct config *conf = &(cwmp_ctx.conf);
 	char *c = NULL;
 
 	if (tree == NULL)
@@ -1811,7 +1811,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(oui, cwmp_main->deviceid.oui)) {
+	if (NULL == mxmlNewOpaque(oui, cwmp_ctx.deviceid.oui)) {
 		MXML_DELETE(xml);
 		return;
 	}
@@ -1822,7 +1822,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(pclass, cwmp_main->deviceid.productclass)) {
+	if (NULL == mxmlNewOpaque(pclass, cwmp_ctx.deviceid.productclass)) {
 		MXML_DELETE(xml);
 		return;
 	}
@@ -1833,7 +1833,7 @@ void load_notification_xml_schema(mxml_node_t **tree)
 		return;
 	}
 
-	if (NULL == mxmlNewOpaque(slno, cwmp_main->deviceid.serialnumber)) {
+	if (NULL == mxmlNewOpaque(slno, cwmp_ctx.deviceid.serialnumber)) {
 		MXML_DELETE(xml);
 		return;
 	}

@@ -472,8 +472,8 @@ void load_custom_notify_json(void)
 	struct blob_attr *custom_notify_list = NULL;
 	int rem = 0;
 
-	cwmp_main->custom_notify_active = false;
-	if (!file_exists(cwmp_main->conf.custom_notify_json))
+	cwmp_ctx.custom_notify_active = false;
+	if (!file_exists(cwmp_ctx.conf.custom_notify_json))
 		return;
 
 	// Check for custom notification success import marker
@@ -484,8 +484,8 @@ void load_custom_notify_json(void)
 	blob_buf_init(&bbuf, 0);
 
 	// Create success marker in temp area, so that it can be in sync with backup script
-	if (blobmsg_add_json_from_file(&bbuf, cwmp_main->conf.custom_notify_json) == false) {
-		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp_main->conf.custom_notify_json);
+	if (blobmsg_add_json_from_file(&bbuf, cwmp_ctx.conf.custom_notify_json) == false) {
+		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp_ctx.conf.custom_notify_json);
 		blob_buf_free(&bbuf);
 		creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 		return;
@@ -498,7 +498,7 @@ void load_custom_notify_json(void)
 
 	blobmsg_parse(p_notif, 1, tb_notif, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 	if (tb_notif[0] == NULL) {
-		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a notify parameters list", cwmp_main->conf.custom_notify_json);
+		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a notify parameters list", cwmp_ctx.conf.custom_notify_json);
 		blob_buf_free(&bbuf);
 		creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 		return;
@@ -532,7 +532,7 @@ void load_custom_notify_json(void)
 	cwmp_free_all_dm_parameter_list(&notification_list_head);
 
 	creat(RUN_NOTIFY_MARKER, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-	cwmp_main->custom_notify_active = true;
+	cwmp_ctx.custom_notify_active = true;
 }
 
 void set_default_forced_active_parameters_notifications()
@@ -618,10 +618,10 @@ int check_value_change(void)
 		}
 		if ((notification >= 1) && (dm_value != NULL) && value && (strcmp(dm_value, value) != 0)) {
 
-			if (cwmp_main->conf.md_notif_limit > 0 && CWMP_STRCMP(parameter, MANAGEABLE_DEVICES_NBRE) == 0 && notification == 2) {
-				unsigned int time_from_last_vc = time(NULL) - cwmp_main->md_value_change_last_time;
-				if ((cwmp_main->md_value_change_last_time <= 0) || (time_from_last_vc >= cwmp_main->conf.md_notif_limit)) {
-					cwmp_main->md_value_change_last_time = time(NULL);
+			if (cwmp_ctx.conf.md_notif_limit > 0 && CWMP_STRCMP(parameter, MANAGEABLE_DEVICES_NBRE) == 0 && notification == 2) {
+				unsigned int time_from_last_vc = time(NULL) - cwmp_ctx.md_value_change_last_time;
+				if ((cwmp_ctx.md_value_change_last_time <= 0) || (time_from_last_vc >= cwmp_ctx.conf.md_notif_limit)) {
+					cwmp_ctx.md_value_change_last_time = time(NULL);
 					add_list_value_change(MANAGEABLE_DEVICES_NBRE, dm_value, dm_type);
 					notif_ret |= NOTIF_ACTIVE;
 				}
@@ -650,14 +650,17 @@ int check_value_change(void)
 	return notif_ret;
 }
 
-void cwmp_prepare_value_change()
+void cwmp_prepare_value_change(void)
 {
 	struct event_container *event_container;
+
 	if (list_value_change.next == &(list_value_change))
 		return;
+
 	event_container = cwmp_add_event_container(EVENT_IDX_4VALUE_CHANGE, "");
 	if (!event_container)
 		return;
+
 	list_splice_init(&(list_value_change), &(event_container->head_dm_parameter));
 	cwmp_save_event_container(event_container);
 }
@@ -673,7 +676,7 @@ void sotfware_version_value_change(struct transfer_complete *p)
 	if (!p->old_software_version || p->old_software_version[0] == 0)
 		return;
 
-	current_software_version = cwmp_main->deviceid.softwareversion;
+	current_software_version = cwmp_ctx.deviceid.softwareversion;
 	if (p->old_software_version && current_software_version && strcmp(p->old_software_version, current_software_version) != 0)
 		cwmp_add_event_container(EVENT_IDX_4VALUE_CHANGE, "");
 }
@@ -715,22 +718,22 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 		cwmp_update_enabled_notify_file();
 	if (is_notify & NOTIF_ACTIVE) {
 		send_active_value_change();
-		int last_session_interval = time(NULL) - cwmp_main->session->session_status.last_end_time;
-		if (!cwmp_main->throttle_session_triggered && (cwmp_main->session->session_status.last_status == SESSION_SUCCESS) && (cwmp_main->conf.active_notif_throttle > 0)) {
-			cwmp_main->throttle_session_triggered = true;
-			if (last_session_interval < cwmp_main->conf.active_notif_throttle)
-				trigger_cwmp_throttle_session_timer(cwmp_main->conf.active_notif_throttle - last_session_interval);
+		int last_session_interval = time(NULL) - cwmp_ctx.session->session_status.last_end_time;
+		if (!cwmp_ctx.throttle_session_triggered && (cwmp_ctx.session->session_status.last_status == SESSION_SUCCESS) && (cwmp_ctx.conf.active_notif_throttle > 0)) {
+			cwmp_ctx.throttle_session_triggered = true;
+			if (last_session_interval < cwmp_ctx.conf.active_notif_throttle)
+				trigger_cwmp_throttle_session_timer(cwmp_ctx.conf.active_notif_throttle - last_session_interval);
 			else
 				trigger_cwmp_throttle_session_timer(0);
 		}
-		else if (cwmp_main->conf.active_notif_throttle == 0)
+		else if (cwmp_ctx.conf.active_notif_throttle == 0)
 			trigger_cwmp_session_timer();
 	}
 
 	if (is_notify & NOTIF_LW_ACTIVE)
 		cwmp_lwnotification();
 
-	uloop_timeout_set(&check_notify_timer, cwmp_main->conf.periodic_notify_interval * 1000);
+	uloop_timeout_set(&check_notify_timer, cwmp_ctx.conf.periodic_notify_interval * 1000);
 }
 
 void trigger_periodic_notify_check()
@@ -767,7 +770,7 @@ void add_lw_list_value_change(char *param_name, char *param_data, char *param_ty
 static void udplw_server_param(struct addrinfo **res)
 {
 	struct addrinfo hints = { 0 };
-	struct config *conf = &(cwmp_main->conf);
+	struct config *conf = &(cwmp_ctx.conf);
 	char port[32];
 
 	hints.ai_family = AF_UNSPEC;
@@ -831,7 +834,7 @@ void cwmp_lwnotification()
 	char signature[41];
 	struct addrinfo *servaddr;
 	struct config *conf;
-	conf = &(cwmp_main->conf);
+	conf = &(cwmp_ctx.conf);
 
 	udplw_server_param(&servaddr);
 	xml_prepare_lwnotification_message(&msg_out);

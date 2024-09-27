@@ -48,7 +48,6 @@ static void free_download(struct download *p)
 
 static int download_unit_test_init(void **state)
 {
-	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	return 0;
 }
 
@@ -59,7 +58,6 @@ static int download_unit_tests_clean(void **state)
 		free_transfer_complete(transfer_complete_test);
 	remove(ICWMP_DOWNLOAD_FILE);
 	remove(FIRMWARE_UPGRADE_IMAGE);
-	FREE(cwmp_main);
 	return 0;
 }
 

@@ -291,7 +291,7 @@ int cwmp_wifi_neighboring__diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "WiFi neighboring diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -301,7 +301,7 @@ int cwmp_packet_capture_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "packet capture diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -311,7 +311,7 @@ int cwmp_selftest_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "self test diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -321,7 +321,7 @@ int cwmp_ip_layer_capacity_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "IP layer capacity diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -331,7 +331,7 @@ int cwmp_download_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "Download diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -341,7 +341,7 @@ int cwmp_upload_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "Upload diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -351,7 +351,7 @@ int cwmp_ip_ping_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "IPPing diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -361,7 +361,7 @@ int cwmp_nslookup_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "Nslookup diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -371,7 +371,7 @@ int cwmp_traceroute_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "Trace Route diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -381,7 +381,7 @@ int cwmp_udp_echo_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "UDPEcho diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }
 
@@ -391,6 +391,6 @@ int cwmp_serverselection_diagnostics(void)
 		return -1;
 
 	CWMP_LOG(INFO, "Server Selection diagnostic is successfully executed");
-	cwmp_main->diag_session = true;
+	cwmp_ctx.diag_session = true;
 	return 0;
 }

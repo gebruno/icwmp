@@ -30,7 +30,7 @@
 char *commandKey = NULL;
 bool cwmp_stop = false;
 unsigned int flashsize = 256000000;
-struct cwmp *cwmp_main = NULL;
+struct cwmp cwmp_ctx = {0};
 struct session_timer_event *global_session_event = NULL;
 
 static LIST_HEAD(critical_service_list);
@@ -121,27 +121,25 @@ int global_env_init(int argc, char **argv, struct env *env)
 			env->periodic = CWMP_START_PERIODIC;
 			break;
 		case 'c':
-			cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
-			cwmp_main->conf.amd_version = DEFAULT_AMD_VERSION;
+			cwmp_ctx.conf.amd_version = DEFAULT_AMD_VERSION;
 			get_uci_path_value(NULL, "cwmp.cpe.amd_version", value, BUF_SIZE_256);
 			if (CWMP_STRLEN(value) != 0) {
 				int a = (int)strtol(value, NULL, 10);
-				cwmp_main->conf.amd_version = (a >= 1 && a <= 6) ? a : DEFAULT_AMD_VERSION;
+				cwmp_ctx.conf.amd_version = (a >= 1 && a <= 6) ? a : DEFAULT_AMD_VERSION;
 			}
 
 			memset(value, 0, sizeof(value));
-			cwmp_main->conf.instance_mode = DEFAULT_INSTANCE_MODE;
+			cwmp_ctx.conf.instance_mode = DEFAULT_INSTANCE_MODE;
 			get_uci_path_value(NULL, "cwmp.cpe.instance_mode", value, BUF_SIZE_256);
 			if (strlen(value) != 0) {
 				if (CWMP_STRCMP(value, "InstanceNumber") == 0) {
-					cwmp_main->conf.instance_mode = INSTANCE_MODE_NUMBER;
+					cwmp_ctx.conf.instance_mode = INSTANCE_MODE_NUMBER;
 				} else {
-					cwmp_main->conf.instance_mode = INSTANCE_MODE_ALIAS;
+					cwmp_ctx.conf.instance_mode = INSTANCE_MODE_ALIAS;
 				}
 			}
 
 			execute_cwmp_cli_command(argv[2], argv + 3);
-			FREE(cwmp_main);
 			icwmp_free_ubus();
 			exit(0);
 		case 'h':
@@ -155,6 +153,26 @@ int global_env_init(int argc, char **argv, struct env *env)
 /*
  * List dm_paramter
  */
+void add_dm_parameter_to_list_without_check(struct list_head *head, const char *param_name, const char *param_val,
+			      const char *param_type, bool writable)
+{
+	struct cwmp_dm_parameter *dm_parameter = NULL;
+
+	if (!head || !param_name)
+		return;
+
+	dm_parameter = (struct cwmp_dm_parameter *)calloc(1, sizeof(struct cwmp_dm_parameter));
+	if (!dm_parameter)
+		return;
+
+	list_add_tail(&dm_parameter->list, head);
+
+	dm_parameter->name = strdup(param_name);
+	dm_parameter->value = param_val ? strdup(param_val) : NULL;
+	dm_parameter->type = param_type ? strdup(param_type) : NULL;
+	dm_parameter->writable = writable;
+}
+
 void add_dm_parameter_to_list(struct list_head *head, const char *param_name, const char *param_val,
 			      const char *param_type, int notification, bool writable)
 {
@@ -175,7 +193,10 @@ void add_dm_parameter_to_list(struct list_head *head, const char *param_name, co
 		}
 	}
 
-	dm_parameter = calloc(1, sizeof(struct cwmp_dm_parameter));
+	dm_parameter = (struct cwmp_dm_parameter *)calloc(1, sizeof(struct cwmp_dm_parameter));
+	if (!dm_parameter)
+		return;
+
 	list_add_tail(&dm_parameter->list, head);
 
 	dm_parameter->name = strdup(param_name);
@@ -250,7 +271,12 @@ void add_dm_alias_to_list(struct list_head *head, char *param, char *val, char *
 		}
 	}
 
-	dm_alias = calloc(1, sizeof(struct cwmp_dm_alias));
+	dm_alias = (struct cwmp_dm_alias *)calloc(1, sizeof(struct cwmp_dm_alias));
+	if (!dm_alias) {
+		FREE(s_path);
+		return;
+	}
+
 	list_add_tail(&dm_alias->list, head);
 
 	dm_alias->org_name = strdup(s_path);
@@ -273,39 +299,29 @@ void add_dm_alias_to_list(struct list_head *head, char *param, char *val, char *
 	FREE(s_path);
 }
 
-static void delete_dm_parameter_from_list(struct cwmp_dm_parameter *dm_parameter)
-{
-	list_del(&dm_parameter->list);
-	FREE(dm_parameter->name);
-	FREE(dm_parameter->value);
-	FREE(dm_parameter->type);
-	FREE(dm_parameter->access_list);
-	FREE(dm_parameter);
-}
-
-static void delete_dm_alias_from_list(struct cwmp_dm_alias *dm_alias)
-{
-	list_del(&dm_alias->list);
-	FREE(dm_alias->org_name);
-	FREE(dm_alias->trs_name);
-	FREE(dm_alias);
-}
-
 void cwmp_free_all_dm_parameter_list(struct list_head *list)
 {
-	struct cwmp_dm_parameter *dm_parameter = NULL, *node;
+	struct cwmp_dm_parameter *dm_parameter = NULL, *node = NULL;
 
 	list_for_each_entry_safe(dm_parameter, node, list, list) {
-		delete_dm_parameter_from_list(dm_parameter);
+		list_del(&dm_parameter->list);
+		FREE(dm_parameter->name);
+		FREE(dm_parameter->value);
+		FREE(dm_parameter->type);
+		FREE(dm_parameter->access_list);
+		FREE(dm_parameter);
 	}
 }
 
 void cwmp_free_all_dm_alias_list(struct list_head *list)
 {
-	struct cwmp_dm_alias *dm_alias = NULL, *node;
+	struct cwmp_dm_alias *dm_alias = NULL, *node = NULL;
 
 	list_for_each_entry_safe(dm_alias, node, list, list) {
-		delete_dm_alias_from_list(dm_alias);
+		list_del(&dm_alias->list);
+		FREE(dm_alias->org_name);
+		FREE(dm_alias->trs_name);
+		FREE(dm_alias);
 	}
 }
 
@@ -316,7 +332,10 @@ void cwmp_add_list_fault_param(char *param_name, char *fault_msg, int fault_code
 {
 	struct cwmp_param_fault *param_fault = NULL;
 
-	param_fault = calloc(1, sizeof(struct cwmp_param_fault));
+	param_fault = (struct cwmp_param_fault *)calloc(1, sizeof(struct cwmp_param_fault));
+	if (!param_fault)
+		return;
+
 	list_add_tail(&param_fault->list, list_set_value_fault);
 
 	snprintf(param_fault->path_name, sizeof(param_fault->path_name), "%s", param_name ? param_name : "");
@@ -324,18 +343,13 @@ void cwmp_add_list_fault_param(char *param_name, char *fault_msg, int fault_code
 	param_fault->fault_code = fault_code;
 }
 
-static void cwmp_del_list_fault_param(struct cwmp_param_fault *param_fault)
-{
-	list_del(&param_fault->list);
-	free(param_fault);
-}
-
 void cwmp_free_all_list_param_fault(struct list_head *list_param_fault)
 {
-	struct cwmp_param_fault *param_fault = NULL, *node;
+	struct cwmp_param_fault *param_fault = NULL, *node = NULL;
 
 	list_for_each_entry_safe(param_fault, node, list_param_fault, list) {
-		cwmp_del_list_fault_param(param_fault);
+		list_del(&param_fault->list);
+		free(param_fault);
 	}
 }
 
@@ -354,7 +368,11 @@ int icwmp_asprintf(char **s, const char *format, ...)
 		va_end(arg);
 		return -1;
 	}
-	str = (char *)calloc(sizeof(char), size + 1);
+
+	str = (char *)calloc(size + 1, sizeof(char));
+	if (!str)
+		return -1;
+
 	vsnprintf(str, size + 1, format, arg); // Flawfinder: ignore
 	va_end(arg);
 
@@ -362,6 +380,7 @@ int icwmp_asprintf(char **s, const char *format, ...)
 	FREE(str);
 	if (*s == NULL)
 		return -1;
+
 	return 0;
 }
 
@@ -935,9 +954,9 @@ static void ubus_network_interface_callback(struct ubus_request *req __attribute
 	if (!CWMP_STRLEN(l3_device))
 		return;
 
-	snprintf(cwmp_main->net.interface, sizeof(cwmp_main->net.interface), "%s", l3_device);
+	snprintf(cwmp_ctx.net.interface, sizeof(cwmp_ctx.net.interface), "%s", l3_device);
 
-	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s && l3_name: %s", cwmp_main->conf.default_wan_iface, cwmp_main->net.interface);
+	CWMP_LOG(DEBUG, "CWMP IFACE - interface: %s && l3_name: %s", cwmp_ctx.conf.default_wan_iface, cwmp_ctx.net.interface);
 }
 
 static bool is_ipv6_addr_available(const char *device)
@@ -990,27 +1009,27 @@ static bool is_ipv6_addr_available(const char *device)
 
 bool is_ipv6_enabled(void)
 {
-	if (cwmp_main->conf.force_ipv4 == true)
+	if (cwmp_ctx.conf.force_ipv4 == true)
 		return false;
 
-	if (CWMP_STRLEN(cwmp_main->net.interface) == 0) {
+	if (CWMP_STRLEN(cwmp_ctx.net.interface) == 0) {
 		struct blob_buf b = {0};
 		char network_interface[64];
 
 		CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 		blob_buf_init(&b, 0);
 
-		snprintf(network_interface, sizeof(network_interface), "network.interface.%s", cwmp_main->conf.default_wan_iface);
+		snprintf(network_interface, sizeof(network_interface), "network.interface.%s", cwmp_ctx.conf.default_wan_iface);
 
 		int e = icwmp_ubus_invoke(network_interface, "status", b.head, ubus_network_interface_callback, NULL);
 
 		blob_buf_free(&b);
 
-		if (e != 0 || CWMP_STRLEN(cwmp_main->net.interface) == 0)
+		if (e != 0 || CWMP_STRLEN(cwmp_ctx.net.interface) == 0)
 			return false;
 	}
 
-	if (!is_ipv6_addr_available(cwmp_main->net.interface))
+	if (!is_ipv6_addr_available(cwmp_ctx.net.interface))
 		return false;
 
 	return true;
@@ -1019,8 +1038,8 @@ bool is_ipv6_enabled(void)
 bool is_ipv6_status_changed(void)
 {
 	bool curr_ipv6_status = is_ipv6_enabled();
-	bool ipv6_status_changed = (curr_ipv6_status != cwmp_main->net.ipv6_status);
-	cwmp_main->net.ipv6_status = curr_ipv6_status;
+	bool ipv6_status_changed = (curr_ipv6_status != cwmp_ctx.net.ipv6_status);
+	cwmp_ctx.net.ipv6_status = curr_ipv6_status;
 
 	return ipv6_status_changed;
 }

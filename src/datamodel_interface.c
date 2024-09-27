@@ -59,8 +59,8 @@ static int get_instance_mode(void)
 {
 	int mode = INSTANCE_MODE_NUMBER;
 
-	if (cwmp_main->conf.amd_version >= 5)
-		mode = cwmp_main->conf.instance_mode;
+	if (cwmp_ctx.conf.amd_version >= 5)
+		mode = cwmp_ctx.conf.instance_mode;
 
 	return mode;
 }
@@ -187,7 +187,7 @@ static void ubus_get_parameter_callback(struct ubus_request *req, int type __att
 		char *param_type = tb[2] ? blobmsg_get_string(tb[2]) : "";
 		bool writable = strcmp(param_value, "1") == 0 ? true : false;
 
-		add_dm_parameter_to_list(result->parameters_list, param_name, param_value, param_type, 0, writable);
+		add_dm_parameter_to_list_without_check(result->parameters_list, param_name, param_value, param_type, writable);
 
 		if (inst_mode == INSTANCE_MODE_ALIAS) {
 			/* in GPN alias values comes in tb[4] i.e the output field */
@@ -333,7 +333,7 @@ int instantiate_param_name(const char *param, char **inst_path)
 		return CWMP_OK;
 
 	/* Alias mode not supported */
-	if (cwmp_main->conf.amd_version < 5 && CWMP_STRSTR(param, "[") != NULL)
+	if (cwmp_ctx.conf.amd_version < 5 && CWMP_STRSTR(param, "[") != NULL)
 		return CWMP_GEN_ERR;
 
 	snprintf(orig_path, sizeof(orig_path), "%s", param);

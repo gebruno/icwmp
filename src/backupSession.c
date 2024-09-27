@@ -105,7 +105,7 @@ int bkp_session_check_file()
 int save_acs_bkp_config()
 {
 	CWMP_LOG(DEBUG, "%s:%d entry", __func__, __LINE__);
-	bkp_session_simple_insert("acs", "URL", cwmp_main->conf.acs_url);
+	bkp_session_simple_insert("acs", "URL", cwmp_ctx.conf.acs_url);
 	bkp_session_save();
 	CWMP_LOG(DEBUG, "%s:%d exit", __func__, __LINE__);
 	return CWMP_OK;

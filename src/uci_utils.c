@@ -106,114 +106,114 @@ static void config_get_acs_elements(struct uci_section *s)
 	CWMP_MEMSET(acs_tb, 0, sizeof(acs_tb));
 	uci_parse_section(s, acs_opts, __MAX_NUM_UCI_ACS_ATTRS, acs_tb);
 
-	cwmp_main->conf.http_disable_100continue = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_HTTP_DISABLE_100CONTINUE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs http disable 100continue: %d", cwmp_main->conf.http_disable_100continue);
+	cwmp_ctx.conf.http_disable_100continue = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_HTTP_DISABLE_100CONTINUE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs http disable 100continue: %d", cwmp_ctx.conf.http_disable_100continue);
 
-	cwmp_main->conf.insecure_enable = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_INSECURE_ENABLE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs insecure enable: %d", cwmp_main->conf.insecure_enable);
+	cwmp_ctx.conf.insecure_enable = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_INSECURE_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs insecure enable: %d", cwmp_ctx.conf.insecure_enable);
 
-	cwmp_main->conf.dhcp_discovery = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_DHCP_DISCOVERY]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs dhcp discovery: %d", cwmp_main->conf.dhcp_discovery);
+	cwmp_ctx.conf.dhcp_discovery = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_DHCP_DISCOVERY]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs dhcp discovery: %d", cwmp_ctx.conf.dhcp_discovery);
 
 	char *get_rpc = get_value_from_uci_option(acs_tb[UCI_ACS_GETRPC]);
-	cwmp_main->conf.acs_getrpc = CWMP_STRLEN(get_rpc) ? str_to_bool(get_rpc) : true;
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs get rpc: %d", cwmp_main->conf.acs_getrpc);
+	cwmp_ctx.conf.acs_getrpc = CWMP_STRLEN(get_rpc) ? str_to_bool(get_rpc) : true;
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs get rpc: %d", cwmp_ctx.conf.acs_getrpc);
 
 	char *url = get_value_from_uci_option(acs_tb[UCI_ACS_URL]);
 	char *dhcp_url = get_value_from_uci_option(acs_tb[UCI_ACS_DHCP_URL]);
-	char *new_url = cwmp_main->conf.dhcp_discovery ? (CWMP_STRLEN(dhcp_url) ? dhcp_url : url) : url;
+	char *new_url = cwmp_ctx.conf.dhcp_discovery ? (CWMP_STRLEN(dhcp_url) ? dhcp_url : url) : url;
 
-	if (CWMP_STRCMP(cwmp_main->conf.acs_url, new_url) != 0) {
-		if (CWMP_STRLEN(cwmp_main->conf.acs_url) != 0 && CWMP_STRLEN(new_url) != 0)
-			cwmp_main->acs_changed = true;
+	if (CWMP_STRCMP(cwmp_ctx.conf.acs_url, new_url) != 0) {
+		if (CWMP_STRLEN(cwmp_ctx.conf.acs_url) != 0 && CWMP_STRLEN(new_url) != 0)
+			cwmp_ctx.acs_changed = true;
 
-		snprintf(cwmp_main->conf.acs_url, sizeof(cwmp_main->conf.acs_url), "%s", new_url);
+		snprintf(cwmp_ctx.conf.acs_url, sizeof(cwmp_ctx.conf.acs_url), "%s", new_url);
 	}
 
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs url: %s", cwmp_main->conf.acs_url);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs url: %s", cwmp_ctx.conf.acs_url);
 
-	snprintf(cwmp_main->conf.acs_userid, sizeof(cwmp_main->conf.acs_userid), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_USERID]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs username: %s", cwmp_main->conf.acs_userid);
+	snprintf(cwmp_ctx.conf.acs_userid, sizeof(cwmp_ctx.conf.acs_userid), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_USERID]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs username: %s", cwmp_ctx.conf.acs_userid);
 
-	snprintf(cwmp_main->conf.acs_passwd, sizeof(cwmp_main->conf.acs_passwd), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_PASSWR]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs password: %s", cwmp_main->conf.acs_passwd);
+	snprintf(cwmp_ctx.conf.acs_passwd, sizeof(cwmp_ctx.conf.acs_passwd), "%s", get_value_from_uci_option(acs_tb[UCI_ACS_PASSWR]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs password: %s", cwmp_ctx.conf.acs_passwd);
 
 	char *cert = get_value_from_uci_option(acs_tb[UCI_ACS_SSL_CAPATH]);
 	if (folder_exists(cert) == true) {
-		snprintf(cwmp_main->conf.acs_ssl_capath, sizeof(cwmp_main->conf.acs_ssl_capath), "%s", cert);
+		snprintf(cwmp_ctx.conf.acs_ssl_capath, sizeof(cwmp_ctx.conf.acs_ssl_capath), "%s", cert);
 	} else if (file_exists(cert) == true) {
-		snprintf(cwmp_main->conf.acs_ssl_cabundle, sizeof(cwmp_main->conf.acs_ssl_cabundle), "%s", cert);
+		snprintf(cwmp_ctx.conf.acs_ssl_cabundle, sizeof(cwmp_ctx.conf.acs_ssl_cabundle), "%s", cert);
 	}
 	CWMP_LOG(DEBUG, "CWMP CONFIG - acs ssl capath: %s", cert);
 
-	cwmp_main->conf.retry_min_wait_interval = DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
+	cwmp_ctx.conf.retry_min_wait_interval = DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
 	char *acs_retry_min_wait_interval = get_value_from_uci_option(acs_tb[UCI_ACS_RETRY_MIN_WAIT_INTERVAL]);
 	char *acs_dhcp_retry_min_wait_interval = get_value_from_uci_option(acs_tb[UCI_ACS_DHCP_RETRY_MIN_WAIT_INTERVAL]);
-	char *op_interval = cwmp_main->conf.dhcp_discovery ? acs_dhcp_retry_min_wait_interval : acs_retry_min_wait_interval;
+	char *op_interval = cwmp_ctx.conf.dhcp_discovery ? acs_dhcp_retry_min_wait_interval : acs_retry_min_wait_interval;
 	if (strlen(op_interval) != 0) {
-		if (cwmp_main->conf.amd_version >= AMD_3) {
+		if (cwmp_ctx.conf.amd_version >= AMD_3) {
 			int a = (int)strtol(op_interval, NULL, 10);
-			cwmp_main->conf.retry_min_wait_interval = (a <= 65535 && a >= 1) ? a : DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
+			cwmp_ctx.conf.retry_min_wait_interval = (a <= 65535 && a >= 1) ? a : DEFAULT_RETRY_MINIMUM_WAIT_INTERVAL;
 		}
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs retry minimum wait interval: %d", cwmp_main->conf.retry_min_wait_interval);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs retry minimum wait interval: %d", cwmp_ctx.conf.retry_min_wait_interval);
 
-	cwmp_main->conf.retry_interval_multiplier = DEFAULT_RETRY_INTERVAL_MULTIPLIER;
+	cwmp_ctx.conf.retry_interval_multiplier = DEFAULT_RETRY_INTERVAL_MULTIPLIER;
 	char *acs_retry_interval_multiplier = get_value_from_uci_option(acs_tb[UCI_ACS_RETRY_INTERVAL_MULTIPLIER]);
 	char *acs_dhcp_retry_interval_multiplier = get_value_from_uci_option(acs_tb[UCI_ACS_DHCP_RETRY_INTERVAL_MULTIPLIER]);
-	char *op_multi = cwmp_main->conf.dhcp_discovery ? acs_dhcp_retry_interval_multiplier : acs_retry_interval_multiplier;
+	char *op_multi = cwmp_ctx.conf.dhcp_discovery ? acs_dhcp_retry_interval_multiplier : acs_retry_interval_multiplier;
 	if (strlen(op_multi) != 0) {
-		if (cwmp_main->conf.amd_version >= AMD_3) {
+		if (cwmp_ctx.conf.amd_version >= AMD_3) {
 			int a = (int)strtol(op_multi, NULL, 10);
-			cwmp_main->conf.retry_interval_multiplier = (a <= 65535 && a >= 1000) ? a : DEFAULT_RETRY_INTERVAL_MULTIPLIER;
+			cwmp_ctx.conf.retry_interval_multiplier = (a <= 65535 && a >= 1000) ? a : DEFAULT_RETRY_INTERVAL_MULTIPLIER;
 		}
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs retry interval multiplier: %d", cwmp_main->conf.retry_interval_multiplier);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs retry interval multiplier: %d", cwmp_ctx.conf.retry_interval_multiplier);
 
-	cwmp_main->conf.compression = COMP_NONE;
+	cwmp_ctx.conf.compression = COMP_NONE;
 	char *acs_comp = get_value_from_uci_option(acs_tb[UCI_ACS_COMPRESSION]);
-	if (cwmp_main->conf.amd_version >= AMD_5 && strlen(acs_comp) != 0) {
+	if (cwmp_ctx.conf.amd_version >= AMD_5 && strlen(acs_comp) != 0) {
 		if (strcasecmp(acs_comp, "gzip") == 0) {
-			cwmp_main->conf.compression = COMP_GZIP;
+			cwmp_ctx.conf.compression = COMP_GZIP;
 		} else if (strcasecmp(acs_comp, "deflate") == 0) {
-			cwmp_main->conf.compression = COMP_DEFLATE;
+			cwmp_ctx.conf.compression = COMP_DEFLATE;
 		} else {
-			cwmp_main->conf.compression = COMP_NONE;
+			cwmp_ctx.conf.compression = COMP_NONE;
 		}
 	}
 
-	cwmp_main->conf.time = 0;
+	cwmp_ctx.conf.time = 0;
 	char *time = get_value_from_uci_option(acs_tb[UCI_ACS_PERIODIC_INFORM_TIME]);
 	if (strlen(time) != 0) {
-		cwmp_main->conf.time = convert_datetime_to_timestamp(time);
+		cwmp_ctx.conf.time = convert_datetime_to_timestamp(time);
 	}
 
-	cwmp_main->conf.period = PERIOD_INFORM_DEFAULT;
+	cwmp_ctx.conf.period = PERIOD_INFORM_DEFAULT;
 	char *inform_interval = get_value_from_uci_option(acs_tb[UCI_ACS_PERIODIC_INFORM_INTERVAL]);
 	if (strlen(inform_interval) != 0) {
 		int a = (int)strtol(inform_interval, NULL, 10);
-		cwmp_main->conf.period = (a >= PERIOD_INFORM_MIN) ? a : PERIOD_INFORM_DEFAULT;
+		cwmp_ctx.conf.period = (a >= PERIOD_INFORM_MIN) ? a : PERIOD_INFORM_DEFAULT;
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs periodic inform: %d", cwmp_main->conf.period);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs periodic inform: %d", cwmp_ctx.conf.period);
 
-	cwmp_main->conf.periodic_enable = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_PERIODIC_INFORM_ENABLE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs periodic enable: %d", cwmp_main->conf.periodic_enable);
+	cwmp_ctx.conf.periodic_enable = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_PERIODIC_INFORM_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs periodic enable: %d", cwmp_ctx.conf.periodic_enable);
 
-	cwmp_main->conf.heart_beat_enable = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_HEARTBEAT_ENABLE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs heart beat enable: %d", cwmp_main->conf.heart_beat_enable);
+	cwmp_ctx.conf.heart_beat_enable = str_to_bool(get_value_from_uci_option(acs_tb[UCI_ACS_HEARTBEAT_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs heart beat enable: %d", cwmp_ctx.conf.heart_beat_enable);
 
-	cwmp_main->conf.heartbeat_interval = 30;
+	cwmp_ctx.conf.heartbeat_interval = 30;
 	char *heartbeat_interval = get_value_from_uci_option(acs_tb[UCI_ACS_HEARTBEAT_INTERVAL]);
 	if (strlen(heartbeat_interval) != 0) {
 		int a = (int)strtol(heartbeat_interval, NULL, 10);
-		cwmp_main->conf.heartbeat_interval = a;
+		cwmp_ctx.conf.heartbeat_interval = a;
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - acs heartbeat interval: %d", cwmp_main->conf.heartbeat_interval);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - acs heartbeat interval: %d", cwmp_ctx.conf.heartbeat_interval);
 
-	cwmp_main->conf.heart_time = 0;
+	cwmp_ctx.conf.heart_time = 0;
 	char *heartbeat_time = get_value_from_uci_option(acs_tb[UCI_ACS_HEARTBEAT_TIME]);
 	if (strlen(heartbeat_time) != 0) {
-		cwmp_main->conf.heart_time = convert_datetime_to_timestamp(heartbeat_time);
+		cwmp_ctx.conf.heart_time = convert_datetime_to_timestamp(heartbeat_time);
 	}
 }
 
@@ -275,143 +275,143 @@ static void config_get_cpe_elements(struct uci_section *s)
 	CWMP_MEMSET(cpe_tb, 0, sizeof(cpe_tb));
 	uci_parse_section(s, cpe_opts, __MAX_NUM_UCI_CPE_ATTRS, cpe_tb);
 
-	snprintf(cwmp_main->conf.cpe_userid, sizeof(cwmp_main->conf.cpe_userid), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_USER_ID]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe username: %s", cwmp_main->conf.cpe_userid);
+	snprintf(cwmp_ctx.conf.cpe_userid, sizeof(cwmp_ctx.conf.cpe_userid), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_USER_ID]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe username: %s", cwmp_ctx.conf.cpe_userid);
 
-	snprintf(cwmp_main->conf.cpe_passwd, sizeof(cwmp_main->conf.cpe_passwd), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_PASSWD]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe password: %s", cwmp_main->conf.cpe_passwd);
+	snprintf(cwmp_ctx.conf.cpe_passwd, sizeof(cwmp_ctx.conf.cpe_passwd), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_PASSWD]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe password: %s", cwmp_ctx.conf.cpe_passwd);
 
-	cwmp_main->conf.cr_timeout = DEFAULT_CR_TIMEOUT;
+	cwmp_ctx.conf.cr_timeout = DEFAULT_CR_TIMEOUT;
 	char *tm_out = get_value_from_uci_option(cpe_tb[UCI_CPE_CON_REQ_TIMEOUT]);
 	if (strlen(tm_out) != 0) {
 		int a = strtod(tm_out, NULL);
 		if (a > 0) {
-			cwmp_main->conf.cr_timeout = a;
+			cwmp_ctx.conf.cr_timeout = a;
 		}
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request timeout: %d", cwmp_main->conf.cr_timeout);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request timeout: %d", cwmp_ctx.conf.cr_timeout);
 
-	cwmp_main->conf.connection_request_port = DEFAULT_CONNECTION_REQUEST_PORT;
+	cwmp_ctx.conf.connection_request_port = DEFAULT_CONNECTION_REQUEST_PORT;
 	char *port = get_value_from_uci_option(cpe_tb[UCI_CPE_PORT]);
 	if (strlen(port) != 0) {
 		int a = (int)strtol(port, NULL, 10);
-		cwmp_main->conf.connection_request_port = (a != 0) ? a : DEFAULT_CONNECTION_REQUEST_PORT;
+		cwmp_ctx.conf.connection_request_port = (a != 0) ? a : DEFAULT_CONNECTION_REQUEST_PORT;
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request port: %d", cwmp_main->conf.connection_request_port);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request port: %d", cwmp_ctx.conf.connection_request_port);
 
 	char *crpath = get_value_from_uci_option(cpe_tb[UCI_CPE_CRPATH]);
 	if (CWMP_STRLEN(crpath) == 0) {
-		snprintf(cwmp_main->conf.connection_request_path, sizeof(cwmp_main->conf.connection_request_path), "/");
+		snprintf(cwmp_ctx.conf.connection_request_path, sizeof(cwmp_ctx.conf.connection_request_path), "/");
 	} else {
 		if (crpath[0] == '/') {
 			crpath = crpath + 1;
 		}
-		snprintf(cwmp_main->conf.connection_request_path, sizeof(cwmp_main->conf.connection_request_path), "/%s",  crpath);
+		snprintf(cwmp_ctx.conf.connection_request_path, sizeof(cwmp_ctx.conf.connection_request_path), "/%s",  crpath);
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request path: %s", cwmp_main->conf.connection_request_path);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe connection request path: %s", cwmp_ctx.conf.connection_request_path);
 
-	cwmp_main->conf.periodic_notify_enable = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_NOTIFY_PERIODIC_ENABLE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe periodic notify enable: %d", cwmp_main->conf.periodic_notify_enable);
+	cwmp_ctx.conf.periodic_notify_enable = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_NOTIFY_PERIODIC_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe periodic notify enable: %d", cwmp_ctx.conf.periodic_notify_enable);
 
-	cwmp_main->conf.periodic_notify_interval = DEFAULT_NOTIFY_PERIOD;
+	cwmp_ctx.conf.periodic_notify_interval = DEFAULT_NOTIFY_PERIOD;
 	char *notify_period = get_value_from_uci_option(cpe_tb[UCI_CPE_NOTIFY_PERIOD]);
 	if (strlen(notify_period) != 0) {
 		int a = (int)strtol(notify_period, NULL, 10);
-		cwmp_main->conf.periodic_notify_interval = (a != 0) ? a : DEFAULT_NOTIFY_PERIOD;
+		cwmp_ctx.conf.periodic_notify_interval = (a != 0) ? a : DEFAULT_NOTIFY_PERIOD;
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe periodic notify interval: %d", cwmp_main->conf.periodic_notify_interval);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe periodic notify interval: %d", cwmp_ctx.conf.periodic_notify_interval);
 
-	cwmp_main->conf.schedule_reboot = 0;
+	cwmp_ctx.conf.schedule_reboot = 0;
 	char *schedule_reboot = get_value_from_uci_option(cpe_tb[UCI_CPE_SCHEDULE_REBOOT]);
 	if (strlen(schedule_reboot) != 0) {
-		cwmp_main->conf.schedule_reboot = convert_datetime_to_timestamp(schedule_reboot);
+		cwmp_ctx.conf.schedule_reboot = convert_datetime_to_timestamp(schedule_reboot);
 	}
 
-	cwmp_main->conf.delay_reboot = -1;
+	cwmp_ctx.conf.delay_reboot = -1;
 	char *delay_reboot = get_value_from_uci_option(cpe_tb[UCI_CPE_DELAY_REBOOT]);
 	if (strlen(delay_reboot) != 0) {
 		int a = (int)strtol(delay_reboot, NULL, 10);
-		cwmp_main->conf.delay_reboot = (a > 0) ? a : -1;
+		cwmp_ctx.conf.delay_reboot = (a > 0) ? a : -1;
 	}
 
-	cwmp_main->conf.active_notif_throttle = 0;
+	cwmp_ctx.conf.active_notif_throttle = 0;
 	char *notify_thottle = get_value_from_uci_option(cpe_tb[UCI_CPE_ACTIVE_NOTIF_THROTTLE]);
 	if (strlen(notify_thottle) != 0) {
 		int a = (int)strtol(notify_thottle, NULL, 10);
-		cwmp_main->conf.active_notif_throttle = (a > 0) ? a : 0;
+		cwmp_ctx.conf.active_notif_throttle = (a > 0) ? a : 0;
 	}
 
-	cwmp_main->conf.md_notif_limit = 0;
+	cwmp_ctx.conf.md_notif_limit = 0;
 	char *notify_limit = get_value_from_uci_option(cpe_tb[UCI_CPE_MANAGEABLE_DEVICES_NOTIF_LIMIT]);
 	if (strlen(notify_limit) != 0) {
 		int a = (int)strtol(notify_limit, NULL, 10);
-		cwmp_main->conf.md_notif_limit = (a > 0) ? a : 0;
+		cwmp_ctx.conf.md_notif_limit = (a > 0) ? a : 0;
 	}
 
-	cwmp_main->conf.session_timeout = DEFAULT_SESSION_TIMEOUT;
+	cwmp_ctx.conf.session_timeout = DEFAULT_SESSION_TIMEOUT;
 	char *session_timeout = get_value_from_uci_option(cpe_tb[UCI_CPE_SESSION_TIMEOUT]);
 	if (strlen(session_timeout) != 0) {
 		int a = (int)strtol(session_timeout, NULL, 10);
-		cwmp_main->conf.session_timeout = (a >= 1) ? a : DEFAULT_SESSION_TIMEOUT;
+		cwmp_ctx.conf.session_timeout = (a >= 1) ? a : DEFAULT_SESSION_TIMEOUT;
 	}
 
-	cwmp_main->conf.instance_mode = DEFAULT_INSTANCE_MODE;
+	cwmp_ctx.conf.instance_mode = DEFAULT_INSTANCE_MODE;
 	char *instance_mode = get_value_from_uci_option(cpe_tb[UCI_CPE_INSTANCE_MODE]);
 	if (strlen(instance_mode) != 0) {
 		if (CWMP_STRCMP(instance_mode, "InstanceNumber") == 0) {
-			cwmp_main->conf.instance_mode = INSTANCE_MODE_NUMBER;
+			cwmp_ctx.conf.instance_mode = INSTANCE_MODE_NUMBER;
 		} else {
-			cwmp_main->conf.instance_mode = INSTANCE_MODE_ALIAS;
+			cwmp_ctx.conf.instance_mode = INSTANCE_MODE_ALIAS;
 		}
 	}
 
-	snprintf(cwmp_main->conf.custom_notify_json, sizeof(cwmp_main->conf.custom_notify_json), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_JSON_CUSTOM_NOTIFY_FILE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe custom notify json path: %s", cwmp_main->conf.custom_notify_json);
+	snprintf(cwmp_ctx.conf.custom_notify_json, sizeof(cwmp_ctx.conf.custom_notify_json), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_JSON_CUSTOM_NOTIFY_FILE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe custom notify json path: %s", cwmp_ctx.conf.custom_notify_json);
 
-	snprintf(cwmp_main->conf.forced_inform_json, sizeof(cwmp_main->conf.forced_inform_json), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_JSON_FORCED_INFORM_FILE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe forced inform json path: %s", cwmp_main->conf.forced_inform_json);
+	snprintf(cwmp_ctx.conf.forced_inform_json, sizeof(cwmp_ctx.conf.forced_inform_json), "%s", get_value_from_uci_option(cpe_tb[UCI_CPE_JSON_FORCED_INFORM_FILE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe forced inform json path: %s", cwmp_ctx.conf.forced_inform_json);
 
-	cwmp_main->conf.force_ipv4 = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_FORCE_IPV4]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe force ipv4 enable: %d", cwmp_main->conf.force_ipv4);
+	cwmp_ctx.conf.force_ipv4 = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_FORCE_IPV4]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe force ipv4 enable: %d", cwmp_ctx.conf.force_ipv4);
 
-	cwmp_main->conf.fw_upgrade_keep_settings = cpe_tb[UCI_CPE_KEEP_SETTINGS] ? str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_KEEP_SETTINGS])) : true;
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe keep settings enable: %d", cwmp_main->conf.fw_upgrade_keep_settings);
+	cwmp_ctx.conf.fw_upgrade_keep_settings = cpe_tb[UCI_CPE_KEEP_SETTINGS] ? str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_KEEP_SETTINGS])) : true;
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe keep settings enable: %d", cwmp_ctx.conf.fw_upgrade_keep_settings);
 
 	char *value = get_value_from_uci_option(cpe_tb[UCI_CPE_INTERFACE]);
-	if ((CWMP_STRLEN(cwmp_main->net.interface) == 0) && (CWMP_STRLEN(value) != 0)) {
-		snprintf(cwmp_main->net.interface, sizeof(cwmp_main->net.interface), "%s", value);
+	if ((CWMP_STRLEN(cwmp_ctx.net.interface) == 0) && (CWMP_STRLEN(value) != 0)) {
+		snprintf(cwmp_ctx.net.interface, sizeof(cwmp_ctx.net.interface), "%s", value);
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe INTERFACE resolved[%s], defined [%s]", cwmp_main->net.interface, value);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe INTERFACE resolved[%s], defined [%s]", cwmp_ctx.net.interface, value);
 
 	value = get_value_from_uci_option(cpe_tb[UCI_CPE_DEFAULT_WAN_IFACE]);
 	char *wan_intf = CWMP_STRLEN(value) ? value : "wan";
 
-	if (strcmp(cwmp_main->conf.default_wan_iface, wan_intf) != 0) {
-		snprintf(cwmp_main->conf.default_wan_iface, sizeof(cwmp_main->conf.default_wan_iface), "%s", wan_intf);
+	if (strcmp(cwmp_ctx.conf.default_wan_iface, wan_intf) != 0) {
+		snprintf(cwmp_ctx.conf.default_wan_iface, sizeof(cwmp_ctx.conf.default_wan_iface), "%s", wan_intf);
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe default_wan_interface: %s", cwmp_main->conf.default_wan_iface);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe default_wan_interface: %s", cwmp_ctx.conf.default_wan_iface);
 
-	cwmp_main->net.use_curl_ifname = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_USE_CURL_IFNAME]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe use ifname in curl: %d", cwmp_main->net.use_curl_ifname);
+	cwmp_ctx.net.use_curl_ifname = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_USE_CURL_IFNAME]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe use ifname in curl: %d", cwmp_ctx.net.use_curl_ifname);
 
-	cwmp_main->conf.clock_sync_timeout = DEFAULT_SYNC_TIMEOUT;
+	cwmp_ctx.conf.clock_sync_timeout = DEFAULT_SYNC_TIMEOUT;
 	char *sync_time = get_value_from_uci_option(cpe_tb[UCI_CPE_CLOCK_SYNC_TIMEOUT]);
 	if (CWMP_STRLEN(sync_time) != 0) {
 		int val = (int)strtol(sync_time, NULL, 10);
 		if (val >= 0 && val <= 180) {
-			cwmp_main->conf.clock_sync_timeout = val;
+			cwmp_ctx.conf.clock_sync_timeout = val;
 		}
 	}
 
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe clock_sync_timeout: %d", cwmp_main->conf.clock_sync_timeout);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe clock_sync_timeout: %d", cwmp_ctx.conf.clock_sync_timeout);
 
-	cwmp_main->conf.enable = true;
+	cwmp_ctx.conf.enable = true;
 	char *cwmp_enable = get_value_from_uci_option(cpe_tb[UCI_CPE_ENABLE]);
 	if (CWMP_STRLEN(cwmp_enable) != 0) {
-		cwmp_main->conf.enable = str_to_bool(cwmp_enable);
+		cwmp_ctx.conf.enable = str_to_bool(cwmp_enable);
 	}
 
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe enable: %d", cwmp_main->conf.enable);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe enable: %d", cwmp_ctx.conf.enable);
 }
 
 static void config_get_lwn_elements(struct uci_section *s)
@@ -434,19 +434,19 @@ static void config_get_lwn_elements(struct uci_section *s)
 	CWMP_MEMSET(lwn_tb, 0, sizeof(lwn_tb));
 	uci_parse_section(s, acs_opts, __MAX_NUM_UCI_LWN_ATTRS, lwn_tb);
 
-	cwmp_main->conf.lwn_enable = str_to_bool(get_value_from_uci_option(lwn_tb[UCI_LWN_ENABLE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - lwn enable: %d", cwmp_main->conf.lwn_enable);
+	cwmp_ctx.conf.lwn_enable = str_to_bool(get_value_from_uci_option(lwn_tb[UCI_LWN_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - lwn enable: %d", cwmp_ctx.conf.lwn_enable);
 
-	snprintf(cwmp_main->conf.lwn_hostname, sizeof(cwmp_main->conf.lwn_hostname), "%s", get_value_from_uci_option(lwn_tb[UCI_LWN_HOSTNAME]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - lwn hostname: %s", cwmp_main->conf.lwn_hostname);
+	snprintf(cwmp_ctx.conf.lwn_hostname, sizeof(cwmp_ctx.conf.lwn_hostname), "%s", get_value_from_uci_option(lwn_tb[UCI_LWN_HOSTNAME]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - lwn hostname: %s", cwmp_ctx.conf.lwn_hostname);
 
-	cwmp_main->conf.lwn_port = DEFAULT_LWN_PORT;
+	cwmp_ctx.conf.lwn_port = DEFAULT_LWN_PORT;
 	char *port = get_value_from_uci_option(lwn_tb[UCI_LWN_PORT]);
 	if (strlen(port) != 0) {
 		int a = (int)strtol(port, NULL, 10);
-		cwmp_main->conf.lwn_port = a;
+		cwmp_ctx.conf.lwn_port = a;
 	}
-	CWMP_LOG(DEBUG, "CWMP CONFIG - lwn port: %d", cwmp_main->conf.lwn_port);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - lwn port: %d", cwmp_ctx.conf.lwn_port);
 }
 
 static void config_get_tc_elements(struct uci_section *s)
@@ -471,17 +471,17 @@ static void config_get_tc_elements(struct uci_section *s)
 	CWMP_MEMSET(tc_tb, 0, sizeof(tc_tb));
 	uci_parse_section(s, acs_opts, __MAX_NUM_UCI_TC_ATTRS, tc_tb);
 
-	cwmp_main->conf.auto_tc_enable = str_to_bool(get_value_from_uci_option(tc_tb[UCI_TC_ENABLE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - tc enable: %d", cwmp_main->conf.auto_tc_enable);
+	cwmp_ctx.conf.auto_tc_enable = str_to_bool(get_value_from_uci_option(tc_tb[UCI_TC_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - tc enable: %d", cwmp_ctx.conf.auto_tc_enable);
 
-	snprintf(cwmp_main->conf.auto_tc_transfer_type, sizeof(cwmp_main->conf.auto_tc_transfer_type), "%s", get_value_from_uci_option(tc_tb[UCI_TC_TRANSFERTYPE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - tc transfer type: %s", cwmp_main->conf.auto_tc_transfer_type);
+	snprintf(cwmp_ctx.conf.auto_tc_transfer_type, sizeof(cwmp_ctx.conf.auto_tc_transfer_type), "%s", get_value_from_uci_option(tc_tb[UCI_TC_TRANSFERTYPE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - tc transfer type: %s", cwmp_ctx.conf.auto_tc_transfer_type);
 
-	snprintf(cwmp_main->conf.auto_tc_result_type, sizeof(cwmp_main->conf.auto_tc_result_type), "%s", get_value_from_uci_option(tc_tb[UCI_TC_RESULTTYPE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - tc result type: %s", cwmp_main->conf.auto_tc_result_type);
+	snprintf(cwmp_ctx.conf.auto_tc_result_type, sizeof(cwmp_ctx.conf.auto_tc_result_type), "%s", get_value_from_uci_option(tc_tb[UCI_TC_RESULTTYPE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - tc result type: %s", cwmp_ctx.conf.auto_tc_result_type);
 
-	snprintf(cwmp_main->conf.auto_tc_file_type, sizeof(cwmp_main->conf.auto_tc_file_type), "%s", get_value_from_uci_option(tc_tb[UCI_TC_FILETYPE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - tc file type: %s", cwmp_main->conf.auto_tc_file_type);
+	snprintf(cwmp_ctx.conf.auto_tc_file_type, sizeof(cwmp_ctx.conf.auto_tc_file_type), "%s", get_value_from_uci_option(tc_tb[UCI_TC_FILETYPE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - tc file type: %s", cwmp_ctx.conf.auto_tc_file_type);
 }
 
 static void config_get_cds_elements(struct uci_section *s)
@@ -506,17 +506,17 @@ static void config_get_cds_elements(struct uci_section *s)
 	CWMP_MEMSET(cds_tb, 0, sizeof(cds_tb));
 	uci_parse_section(s, cdu_opts, __MAX_NUM_UCI_CDS_ATTRS, cds_tb);
 
-	cwmp_main->conf.auto_cdu_enable = str_to_bool(get_value_from_uci_option(cds_tb[UCI_CDS_ENABLE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cds enable: %d", cwmp_main->conf.auto_cdu_enable);
+	cwmp_ctx.conf.auto_cdu_enable = str_to_bool(get_value_from_uci_option(cds_tb[UCI_CDS_ENABLE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cds enable: %d", cwmp_ctx.conf.auto_cdu_enable);
 
-	snprintf(cwmp_main->conf.auto_cdu_oprt_type, sizeof(cwmp_main->conf.auto_cdu_oprt_type), "%s", get_value_from_uci_option(cds_tb[UCI_CDS_OPTYPE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cds operation type: %s", cwmp_main->conf.auto_cdu_oprt_type);
+	snprintf(cwmp_ctx.conf.auto_cdu_oprt_type, sizeof(cwmp_ctx.conf.auto_cdu_oprt_type), "%s", get_value_from_uci_option(cds_tb[UCI_CDS_OPTYPE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cds operation type: %s", cwmp_ctx.conf.auto_cdu_oprt_type);
 
-	snprintf(cwmp_main->conf.auto_cdu_result_type, sizeof(cwmp_main->conf.auto_cdu_result_type), "%s", get_value_from_uci_option(cds_tb[UCI_CDS_RESULTYPE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cds result type: %s", cwmp_main->conf.auto_cdu_result_type);
+	snprintf(cwmp_ctx.conf.auto_cdu_result_type, sizeof(cwmp_ctx.conf.auto_cdu_result_type), "%s", get_value_from_uci_option(cds_tb[UCI_CDS_RESULTYPE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cds result type: %s", cwmp_ctx.conf.auto_cdu_result_type);
 
-	snprintf(cwmp_main->conf.auto_cdu_fault_code, sizeof(cwmp_main->conf.auto_cdu_fault_code), "%s", get_value_from_uci_option(cds_tb[UCI_CDS_FAULTCODE]));
-	CWMP_LOG(DEBUG, "CWMP CONFIG - cds fault type: %s", cwmp_main->conf.auto_cdu_fault_code);
+	snprintf(cwmp_ctx.conf.auto_cdu_fault_code, sizeof(cwmp_ctx.conf.auto_cdu_fault_code), "%s", get_value_from_uci_option(cds_tb[UCI_CDS_FAULTCODE]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cds fault type: %s", cwmp_ctx.conf.auto_cdu_fault_code);
 }
 
 static int _export_uci_package(struct uci_context *uci_ctx, char *package, const char *output_path)
@@ -924,7 +924,7 @@ exit:
 	}
 	pthread_mutex_unlock(&mutex_config_load);
 
-	if (cwmp_main->conf.enable == false) {
+	if (cwmp_ctx.conf.enable == false) {
 		CWMP_LOG(INFO, "icwmp service has been disabled.");
 		stop_service();
 	}

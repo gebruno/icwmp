@@ -138,8 +138,8 @@ int download_file_in_subprocess(const char *file_path, const char *url, const ch
 	blobmsg_add_string(&bbuf, "username", username ? username : "");
 	blobmsg_add_string(&bbuf, "password", password ? password : "");
 
-	if (cwmp_main->net.use_curl_ifname && CWMP_STRLEN(cwmp_main->net.interface))
-		blobmsg_add_string(&bbuf, "interface", cwmp_main->net.interface);
+	if (cwmp_ctx.net.use_curl_ifname && CWMP_STRLEN(cwmp_ctx.net.interface))
+		blobmsg_add_string(&bbuf, "interface", cwmp_ctx.net.interface);
 
 	char *download_task = blobmsg_format_json(bbuf.head, true);
 	blob_buf_free(&bbuf);
@@ -326,7 +326,7 @@ int cwmp_apply_firmware()
 	struct blob_buf b = { 0 };
 	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
-	blobmsg_add_u8(&b, "keep", cwmp_main->conf.fw_upgrade_keep_settings);
+	blobmsg_add_u8(&b, "keep", cwmp_ctx.conf.fw_upgrade_keep_settings);
 
 	CWMP_LOG(INFO, "Apply downloaded image ...");
 	e = icwmp_ubus_invoke("rpc-sys", "upgrade_start", b.head, NULL, NULL);
@@ -414,7 +414,7 @@ int cwmp_apply_multiple_firmware()
 	bb_add_string(&b, "path", FIRMWARE_UPGRADE_IMAGE);
 	blobmsg_add_u8(&b, "auto_activate", false);
 	blobmsg_add_u32(&b, "bank", bank_id);
-	blobmsg_add_u8(&b, "keep_settings", cwmp_main->conf.fw_upgrade_keep_settings);
+	blobmsg_add_u8(&b, "keep_settings", cwmp_ctx.conf.fw_upgrade_keep_settings);
 
 	e = icwmp_ubus_invoke("fwbank", "upgrade", b.head, NULL, NULL);
 	blob_buf_free(&b);
@@ -578,14 +578,14 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 	char err_msg[256] = {0};
 
 	if (pdownload->file_type[0] == '1') {
-		ptransfer_complete->old_software_version = cwmp_main->deviceid.softwareversion;
+		ptransfer_complete->old_software_version = cwmp_ctx.deviceid.softwareversion;
 	}
 	if (ptransfer_complete->id <= 0) {
-		if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
-			cwmp_main->tc_id = 0;
+		if ((cwmp_ctx.tc_id < 0) || (cwmp_ctx.tc_id >= MAX_INT_ID)) {
+			cwmp_ctx.tc_id = 0;
 		}
-		cwmp_main->tc_id++;
-		ptransfer_complete->id = cwmp_main->tc_id;
+		cwmp_ctx.tc_id++;
+		ptransfer_complete->id = cwmp_ctx.tc_id;
 	}
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();
@@ -683,11 +683,11 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 		ptransfer_complete->fault_code = error;
 	}
 	if (ptransfer_complete->id <= 0) {
-		if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
-			cwmp_main->tc_id = 0;
+		if ((cwmp_ctx.tc_id < 0) || (cwmp_ctx.tc_id >= MAX_INT_ID)) {
+			cwmp_ctx.tc_id = 0;
 		}
-		cwmp_main->tc_id++;
-		ptransfer_complete->id = cwmp_main->tc_id;
+		cwmp_ctx.tc_id++;
+		ptransfer_complete->id = cwmp_ctx.tc_id;
 	}
 	ptransfer_complete->fault_string = strdup(err_msg);
 
@@ -711,11 +711,11 @@ struct transfer_complete *set_download_error_transfer_complete(struct download *
 		ptransfer_complete->fault_code = ltype == TYPE_DOWNLOAD ? FAULT_CPE_DOWNLOAD_FAILURE : FAULT_CPE_DOWNLOAD_FAIL_WITHIN_TIME_WINDOW;
 		ptransfer_complete->type = ltype;
 		if (ptransfer_complete->id <= 0) {
-			if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
-				cwmp_main->tc_id = 0;
+			if ((cwmp_ctx.tc_id < 0) || (cwmp_ctx.tc_id >= MAX_INT_ID)) {
+				cwmp_ctx.tc_id = 0;
 			}
-			cwmp_main->tc_id++;
-			ptransfer_complete->id = cwmp_main->tc_id;
+			cwmp_ctx.tc_id++;
+			ptransfer_complete->id = cwmp_ctx.tc_id;
 		}
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		cwmp_root_cause_transfer_complete(ptransfer_complete);
@@ -838,11 +838,11 @@ void cwmp_start_download(struct uloop_timeout *timeout)
 	if (error != FAULT_CPE_NO_FAULT) {
 		CWMP_LOG(ERROR, "Error while downloading the file: %s", pdownload->url);
 		if (ptransfer_complete->id <= 0) {
-			if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
-				cwmp_main->tc_id = 0;
+			if ((cwmp_ctx.tc_id < 0) || (cwmp_ctx.tc_id >= MAX_INT_ID)) {
+				cwmp_ctx.tc_id = 0;
 			}
-			cwmp_main->tc_id++;
-			ptransfer_complete->id = cwmp_main->tc_id;
+			cwmp_ctx.tc_id++;
+			ptransfer_complete->id = cwmp_ctx.tc_id;
 		}
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		bkp_session_save();
@@ -853,11 +853,11 @@ void cwmp_start_download(struct uloop_timeout *timeout)
 		if (error != FAULT_CPE_NO_FAULT) {
 			CWMP_LOG(ERROR, "Error while applying the downloaded file: %s", download_file_name);
 			if (ptransfer_complete->id <= 0) {
-				if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
-					cwmp_main->tc_id = 0;
+				if ((cwmp_ctx.tc_id < 0) || (cwmp_ctx.tc_id >= MAX_INT_ID)) {
+					cwmp_ctx.tc_id = 0;
 				}
-				cwmp_main->tc_id++;
-				ptransfer_complete->id = cwmp_main->tc_id;
+				cwmp_ctx.tc_id++;
+				ptransfer_complete->id = cwmp_ctx.tc_id;
 			}
 			bkp_session_insert_transfer_complete(ptransfer_complete);
 			bkp_session_save();
@@ -964,11 +964,11 @@ void cwmp_start_schedule_download(struct uloop_timeout *timeout)
 		ptransfer_complete->type = TYPE_DOWNLOAD;
 		ptransfer_complete->fault_code = FAULT_CPE_INTERNAL_ERROR;
 		if (ptransfer_complete->id <= 0) {
-			if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
-				cwmp_main->tc_id = 0;
+			if ((cwmp_ctx.tc_id < 0) || (cwmp_ctx.tc_id >= MAX_INT_ID)) {
+				cwmp_ctx.tc_id = 0;
 			}
-			cwmp_main->tc_id++;
-			ptransfer_complete->id = cwmp_main->tc_id;
+			cwmp_ctx.tc_id++;
+			ptransfer_complete->id = cwmp_ctx.tc_id;
 		}
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		bkp_session_save();
@@ -985,11 +985,11 @@ retry:
 		return;
 	} else {
 		if (ptransfer_complete->id <= 0) {
-			if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
-				cwmp_main->tc_id = 0;
+			if ((cwmp_ctx.tc_id < 0) || (cwmp_ctx.tc_id >= MAX_INT_ID)) {
+				cwmp_ctx.tc_id = 0;
 			}
-			cwmp_main->tc_id++;
-			ptransfer_complete->id = cwmp_main->tc_id;
+			cwmp_ctx.tc_id++;
+			ptransfer_complete->id = cwmp_ctx.tc_id;
 		}
 		bkp_session_insert_transfer_complete(ptransfer_complete);
 		bkp_session_save();

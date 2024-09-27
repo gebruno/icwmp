@@ -37,18 +37,18 @@ static void free_autonomous_transfer_complete_data(auto_transfer_complete *p);
 static bool validate_du_state_change_data(auto_du_state_change_compl *data)
 {
 
-	if (data->fault_code && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
+	if (data->fault_code && CWMP_STRCMP(cwmp_ctx.conf.auto_cdu_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_ctx.conf.auto_cdu_result_type, "Both") != 0)
 		return false;
 
-	if (!data->fault_code && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_cdu_result_type, "Both") != 0)
+	if (!data->fault_code && CWMP_STRCMP(cwmp_ctx.conf.auto_cdu_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_ctx.conf.auto_cdu_result_type, "Both") != 0)
 		return false;
 
-	if (data->operation && CWMP_STRSTR(cwmp_main->conf.auto_cdu_oprt_type, data->operation) == NULL)
+	if (data->operation && CWMP_STRSTR(cwmp_ctx.conf.auto_cdu_oprt_type, data->operation) == NULL)
 		return false;
 
 	char fault_code[5] = {0};
 	snprintf(fault_code, 4, "%d", data->fault_code);
-	if (CWMP_STRSTR(cwmp_main->conf.auto_cdu_fault_code, fault_code) == NULL)
+	if (CWMP_STRSTR(cwmp_ctx.conf.auto_cdu_fault_code, fault_code) == NULL)
 		return false;
 
 	return true;
@@ -56,11 +56,11 @@ static bool validate_du_state_change_data(auto_du_state_change_compl *data)
 
 static void send_du_state_change_notif(struct blob_attr *msg)
 {
-	if (!cwmp_main->conf.auto_cdu_enable) {
+	if (!cwmp_ctx.conf.auto_cdu_enable) {
 		CWMP_LOG(INFO, "Autonomous Change DU State is disabled");
 		return;
 	}
-	if (strlen(cwmp_main->conf.auto_cdu_oprt_type) == 0) {
+	if (strlen(cwmp_ctx.conf.auto_cdu_oprt_type) == 0) {
 		CWMP_LOG(INFO, "Autonomous Change DU State OperationTypeFilter is empty");
 		return;
 	}
@@ -155,11 +155,11 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 				free_autonomous_du_state_change_complete_data(data);
 				return;
 			}
-			if ((cwmp_main->auto_cdu_id < 0) || (cwmp_main->auto_cdu_id >= MAX_INT_ID)) {
-				cwmp_main->auto_cdu_id = 0;
+			if ((cwmp_ctx.auto_cdu_id < 0) || (cwmp_ctx.auto_cdu_id >= MAX_INT_ID)) {
+				cwmp_ctx.auto_cdu_id = 0;
 			}
-			cwmp_main->auto_cdu_id++;
-			data->id = cwmp_main->auto_cdu_id;
+			cwmp_ctx.auto_cdu_id++;
+			data->id = cwmp_ctx.auto_cdu_id;
 			bkp_session_insert_autonomous_du_state_change(data);
 			bkp_session_save();
 
@@ -176,16 +176,16 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 
 bool validate_transfer_complete_data(auto_transfer_complete *data)
 {
-	if (data->is_download && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Download") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
+	if (data->is_download && CWMP_STRCMP(cwmp_ctx.conf.auto_tc_transfer_type, "Download") != 0 && CWMP_STRCMP(cwmp_ctx.conf.auto_tc_transfer_type, "Both") != 0)
 		return false;
 
-	if (!data->is_download && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Upload") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_transfer_type, "Both") != 0)
+	if (!data->is_download && CWMP_STRCMP(cwmp_ctx.conf.auto_tc_transfer_type, "Upload") != 0 && CWMP_STRCMP(cwmp_ctx.conf.auto_tc_transfer_type, "Both") != 0)
 		return false;
 
-	if (data->fault_code && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
+	if (data->fault_code && CWMP_STRCMP(cwmp_ctx.conf.auto_tc_result_type, "Failure") != 0 && CWMP_STRCMP(cwmp_ctx.conf.auto_tc_result_type, "Both") != 0)
 		return false;
 
-	if (!data->fault_code && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_main->conf.auto_tc_result_type, "Both") != 0)
+	if (!data->fault_code && CWMP_STRCMP(cwmp_ctx.conf.auto_tc_result_type, "Success") != 0 && CWMP_STRCMP(cwmp_ctx.conf.auto_tc_result_type, "Both") != 0)
 		return false;
 
 	if (CWMP_STRLEN(data->file_type) == 0)
@@ -197,7 +197,7 @@ bool validate_transfer_complete_data(auto_transfer_complete *data)
 
 static void send_transfer_complete_notif(struct blob_attr *msg)
 {
-	if (!cwmp_main->conf.auto_tc_enable) {
+	if (!cwmp_ctx.conf.auto_tc_enable) {
 		CWMP_LOG(INFO, "Autonomous TransferComplete is disabled");
 		return;
 	}
@@ -239,7 +239,7 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 		data->is_download = (tb1[1] && CWMP_STRCMP(blobmsg_get_string(tb1[1]), "Download") == 0) ? true : false;
 		data->file_size = 0;
 		data->target_file_name = strdup("");
-		snprintf(file_type, sizeof(file_type), "X %s %s", cwmp_main->deviceid.oui, data->is_download ? "Download" : "Upload");
+		snprintf(file_type, sizeof(file_type), "X %s %s", cwmp_ctx.deviceid.oui, data->is_download ? "Download" : "Upload");
 		data->file_type = strdup(file_type);
 
 		if (tb1[2]) {
@@ -264,11 +264,11 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 			free_autonomous_transfer_complete_data(data);
 			return;
 		}
-		if ((cwmp_main->auto_tc_id < 0) || (cwmp_main->auto_tc_id >= MAX_INT_ID)) {
-			cwmp_main->auto_tc_id = 0;
+		if ((cwmp_ctx.auto_tc_id < 0) || (cwmp_ctx.auto_tc_id >= MAX_INT_ID)) {
+			cwmp_ctx.auto_tc_id = 0;
 		}
-		cwmp_main->auto_tc_id++;
-		data->id = cwmp_main->auto_tc_id;
+		cwmp_ctx.auto_tc_id++;
+		data->id = cwmp_ctx.auto_tc_id;
 		bkp_session_insert_autonomous_transfer_complete(data);
 		bkp_session_save();
 

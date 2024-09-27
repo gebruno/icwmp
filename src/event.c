@@ -71,9 +71,9 @@ void cwmp_save_event_container(struct event_container *event_container)
 
 static int cwmp_root_cause_event_boot(void)
 {
-	if (cwmp_main->env.boot == CWMP_START_BOOT) {
+	if (cwmp_ctx.env.boot == CWMP_START_BOOT) {
 		struct event_container *event_container;
-		cwmp_main->env.boot = 0;
+		cwmp_ctx.env.boot = 0;
 
 		event_container = cwmp_add_event_container(EVENT_IDX_1BOOT, "");
 		if (event_container == NULL) {
@@ -90,12 +90,12 @@ int event_remove_noretry_event_container()
 {
 	struct list_head *ilist, *q;
 
-	list_for_each_safe (ilist, q, &(cwmp_main->session->events)) {
+	list_for_each_safe (ilist, q, &(cwmp_ctx.session->events)) {
 		struct event_container *event_container;
 		event_container = list_entry(ilist, struct event_container, list);
 
 		if (EVENT_CONST[event_container->code].CODE[0] == '6')
-			cwmp_main->cwmp_cr_event = 1;
+			cwmp_ctx.cwmp_cr_event = 1;
 
 		if (EVENT_CONST[event_container->code].RETRY == 0) {
 			if (event_container->command_key)
@@ -114,7 +114,7 @@ static int cwmp_root_cause_event_bootstrap(void)
 
 	cwmp_load_saved_session(&acsurl, ACS);
 
-	if (acsurl == NULL || CWMP_STRCMP(cwmp_main->conf.acs_url, acsurl) != 0) {
+	if (acsurl == NULL || CWMP_STRCMP(cwmp_ctx.conf.acs_url, acsurl) != 0) {
 		struct event_container *event_container;
 		event_container = cwmp_add_event_container(EVENT_IDX_0BOOTSTRAP, "");
 		if (event_container == NULL) {
@@ -261,16 +261,16 @@ int cwmp_root_cause_schedule_inform(struct schedule_inform *schedule_inform)
 
 static int cwmp_root_cause_get_rpc_method(void )
 {
-	if (cwmp_main->env.periodic == CWMP_START_PERIODIC) {
+	if (cwmp_ctx.env.periodic == CWMP_START_PERIODIC) {
 		struct event_container *event_container;
 
-		cwmp_main->env.periodic = 0;
+		cwmp_ctx.env.periodic = 0;
 		event_container = cwmp_add_event_container(EVENT_IDX_2PERIODIC, "");
 		if (event_container == NULL)
 			return CWMP_MEM_ERR;
 
 		cwmp_save_event_container(event_container);
-		if (cwmp_main->conf.acs_getrpc && cwmp_add_session_rpc_acs(RPC_ACS_GET_RPC_METHODS) == NULL)
+		if (cwmp_ctx.conf.acs_getrpc && cwmp_add_session_rpc_acs(RPC_ACS_GET_RPC_METHODS) == NULL)
 			return CWMP_MEM_ERR;
 	}
 
@@ -280,7 +280,7 @@ static int cwmp_root_cause_get_rpc_method(void )
 bool event_exist_in_list(int event)
 {
 	struct event_container *event_container = NULL;
-	list_for_each_entry (event_container, &cwmp_main->session->events, list) {
+	list_for_each_entry (event_container, &cwmp_ctx.session->events, list) {
 		if (event_container->code == event)
 			return true;
 	}
@@ -292,15 +292,15 @@ static int cwmp_root_cause_event_periodic(void)
 	char local_time[27] = { 0 };
 	struct tm *t_tm;
 
-	if (cwmp_main->cwmp_period == cwmp_main->conf.period && cwmp_main->cwmp_periodic_enable == cwmp_main->conf.periodic_enable && cwmp_main->cwmp_periodic_time == cwmp_main->conf.time)
+	if (cwmp_ctx.cwmp_period == cwmp_ctx.conf.period && cwmp_ctx.cwmp_periodic_enable == cwmp_ctx.conf.periodic_enable && cwmp_ctx.cwmp_periodic_time == cwmp_ctx.conf.time)
 		return CWMP_OK;
 
-	cwmp_main->cwmp_period = cwmp_main->conf.period;
-	cwmp_main->cwmp_periodic_enable = cwmp_main->conf.periodic_enable;
-	cwmp_main->cwmp_periodic_time = cwmp_main->conf.time;
-	CWMP_LOG(INFO, cwmp_main->cwmp_periodic_enable ? "Periodic event is enabled. Interval period = %ds" : "Periodic event is disabled", cwmp_main->cwmp_period);
+	cwmp_ctx.cwmp_period = cwmp_ctx.conf.period;
+	cwmp_ctx.cwmp_periodic_enable = cwmp_ctx.conf.periodic_enable;
+	cwmp_ctx.cwmp_periodic_time = cwmp_ctx.conf.time;
+	CWMP_LOG(INFO, cwmp_ctx.cwmp_periodic_enable ? "Periodic event is enabled. Interval period = %ds" : "Periodic event is disabled", cwmp_ctx.cwmp_period);
 
-	t_tm = localtime(&cwmp_main->cwmp_periodic_time);
+	t_tm = localtime(&cwmp_ctx.cwmp_periodic_time);
 	if (t_tm == NULL)
 		return CWMP_GEN_ERR;
 
@@ -312,7 +312,7 @@ static int cwmp_root_cause_event_periodic(void)
 	local_time[22] = ':';
 	local_time[26] = '\0';
 
-	CWMP_LOG(INFO, cwmp_main->cwmp_periodic_time ? "Periodic time is %s" : "Periodic time is Unknown", local_time);
+	CWMP_LOG(INFO, cwmp_ctx.cwmp_periodic_time ? "Periodic time is %s" : "Periodic time is Unknown", local_time);
 	return CWMP_OK;
 }
 

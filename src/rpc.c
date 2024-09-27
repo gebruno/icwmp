@@ -101,27 +101,27 @@ int xml_handle_message()
 	char buf[128] = {0};
 	int i;
 	mxml_node_t *b;
-	struct config *conf = &(cwmp_main->conf);
+	struct config *conf = &(cwmp_ctx.conf);
 
 	/* get method */
 	snprintf(buf, sizeof(buf), "%s:%s", ns.soap_env, "Body");
 
 	if (strlen(buf) == 0) {
-		cwmp_main->session->fault_code = FAULT_CPE_INTERNAL_ERROR;
+		cwmp_ctx.session->fault_code = FAULT_CPE_INTERNAL_ERROR;
 		goto fault;
 	}
 
-	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, buf, NULL, NULL, MXML_DESCEND);
+	b = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, buf, NULL, NULL, MXML_DESCEND);
 
 	if (!b) {
 		CWMP_LOG(INFO, "Invalid received message");
-		cwmp_main->session->fault_code = FAULT_CPE_REQUEST_DENIED;
+		cwmp_ctx.session->fault_code = FAULT_CPE_REQUEST_DENIED;
 		goto fault;
 	}
-	cwmp_main->session->body_in = b;
+	cwmp_ctx.session->body_in = b;
 
 	while (1) {
-		b = mxmlWalkNext(b, cwmp_main->session->body_in, MXML_DESCEND_FIRST);
+		b = mxmlWalkNext(b, cwmp_ctx.session->body_in, MXML_DESCEND_FIRST);
 		if (!b)
 			goto error;
 		if (mxmlGetType(b) == MXML_ELEMENT)
@@ -143,41 +143,41 @@ int xml_handle_message()
 
 		if (CWMP_STRLEN(ns.cwmp) != ns_len) {
 			CWMP_LOG(INFO, "Namespace length is not matched in string (%s) and expected (%s)", c, ns.cwmp);
-			cwmp_main->session->fault_code = FAULT_CPE_REQUEST_DENIED;
+			cwmp_ctx.session->fault_code = FAULT_CPE_REQUEST_DENIED;
 			goto fault;
 		}
 
 		if (CWMP_STRNCMP(ns.cwmp, c, ns_len)) {
 			CWMP_LOG(INFO, "Namespace in string (%s) is not the expected (%s) one", c, ns.cwmp);
-			cwmp_main->session->fault_code = FAULT_CPE_REQUEST_DENIED;
+			cwmp_ctx.session->fault_code = FAULT_CPE_REQUEST_DENIED;
 			goto fault;
 		}
 
 		c = tmp + 1;
 	} else {
 		CWMP_LOG(INFO, "Can not convert QName to local part with received string (%s)", c);
-		cwmp_main->session->fault_code = FAULT_CPE_REQUEST_DENIED;
+		cwmp_ctx.session->fault_code = FAULT_CPE_REQUEST_DENIED;
 		goto fault;
 	}
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
 		if (i != RPC_CPE_FAULT && c && CWMP_STRCMP(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
-			cwmp_main->session->rpc_cpe = build_sessin_rcp_cpe(i);
-			if (cwmp_main->session->rpc_cpe == NULL)
+			cwmp_ctx.session->rpc_cpe = build_sessin_rcp_cpe(i);
+			if (cwmp_ctx.session->rpc_cpe == NULL)
 				goto error;
 			break;
 		}
 	}
-	if (!cwmp_main->session->rpc_cpe) {
+	if (!cwmp_ctx.session->rpc_cpe) {
 		CWMP_LOG(INFO, "%s RPC is not supported", c);
-		cwmp_main->session->fault_code = FAULT_CPE_METHOD_NOT_SUPPORTED;
+		cwmp_ctx.session->fault_code = FAULT_CPE_METHOD_NOT_SUPPORTED;
 		goto fault;
 	}
 	return 0;
 fault:
-	cwmp_main->session->rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_FAULT);
-	if (cwmp_main->session->rpc_cpe == NULL)
+	cwmp_ctx.session->rpc_cpe = build_sessin_rcp_cpe(RPC_CPE_FAULT);
+	if (cwmp_ctx.session->rpc_cpe == NULL)
 		goto error;
 	return 0;
 error:
@@ -309,10 +309,10 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 
 	struct xml_data_struct inform_xml_attrs = {0};
 
-	char *manufacturer = cwmp_main->deviceid.manufacturer;
-	char *oui = cwmp_main->deviceid.oui;
-	char *product_class = cwmp_main->deviceid.productclass;
-	char *serial_number = cwmp_main->deviceid.serialnumber;
+	char *manufacturer = cwmp_ctx.deviceid.manufacturer;
+	char *oui = cwmp_ctx.deviceid.oui;
+	char *product_class = cwmp_ctx.deviceid.productclass;
+	char *serial_number = cwmp_ctx.deviceid.serialnumber;
 	int max_env = 1;
 	char current_time[26] = {0};
 	get_time(time(NULL), current_time, sizeof(current_time));
@@ -324,10 +324,10 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	inform_xml_attrs.serial_number = &serial_number;
 	inform_xml_attrs.max_envelopes = &max_env;
 	inform_xml_attrs.current_time = &str_time;
-	inform_xml_attrs.retry_count = &cwmp_main->retry_count_session;
+	inform_xml_attrs.retry_count = &cwmp_ctx.retry_count_session;
 
 	LIST_HEAD(xml_events_list);
-	event_container_list_to_xml_data_list(&(cwmp_main->session->events), &xml_events_list);
+	event_container_list_to_xml_data_list(&(cwmp_ctx.session->events), &xml_events_list);
 	inform_xml_attrs.data_list = &xml_events_list;
 
 	fault = build_xml_node_data(SOAP_INFORM_CWMP, inform, &inform_xml_attrs);
@@ -345,7 +345,7 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	struct cwmp_dm_parameter *dm_parameter;
 	int size = 0;
 
-	list_for_each (ilist, &(cwmp_main->session->events)) {
+	list_for_each (ilist, &(cwmp_ctx.session->events)) {
 		struct event_container *event_container = list_entry(ilist, struct event_container, list);
 		list_for_each (jlist, &(event_container->head_dm_parameter)) {
 			dm_parameter = list_entry(jlist, struct cwmp_dm_parameter, list);
@@ -373,7 +373,7 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	}
 
 	//only forced inform parameters are included in heartbeat inform session
-	if (cwmp_main->session->session_status.is_heartbeat)
+	if (cwmp_ctx.session->session_status.is_heartbeat)
 		goto end;
 
 	struct cwmp_dm_parameter *param_iter = NULL;
@@ -395,7 +395,7 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 			continue;
 
 		char *events_str_list = param_iter->value;
-		if (!check_inform_parameter_events_list_corresponding(events_str_list, &(cwmp_main->session->events)))
+		if (!check_inform_parameter_events_list_corresponding(events_str_list, &(cwmp_ctx.session->events)))
 			continue;
 
 		struct list_head *data_list = &parameters_list;
@@ -461,7 +461,7 @@ int cwmp_rpc_acs_prepare_message_inform(struct rpc *this __attribute__((unused))
 {
 	mxml_node_t *tree;
 
-	if (cwmp_main->session == NULL)
+	if (cwmp_ctx.session == NULL)
 		return -1;
 
 	load_inform_xml_schema(&tree);
@@ -469,7 +469,7 @@ int cwmp_rpc_acs_prepare_message_inform(struct rpc *this __attribute__((unused))
 	if (!tree)
 		goto error;
 
-	cwmp_main->session->tree_out = tree;
+	cwmp_ctx.session->tree_out = tree;
 
 	return 0;
 
@@ -485,7 +485,7 @@ int cwmp_rpc_acs_parse_response_inform(struct rpc *this __attribute__((unused)))
 	char *c;
 	const char *cwmp_urn;
 
-	tree = cwmp_main->session->tree_in;
+	tree = cwmp_ctx.session->tree_in;
 	if (!tree)
 		goto error;
 	b = mxmlFindElement(tree, tree, "MaxEnvelopes", NULL, NULL, MXML_DESCEND);
@@ -494,32 +494,32 @@ int cwmp_rpc_acs_parse_response_inform(struct rpc *this __attribute__((unused)))
 	b = mxmlWalkNext(b, tree, MXML_DESCEND_FIRST);
 	if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
 		goto error;
-	if (cwmp_main->conf.supported_amd_version == 1) {
-		cwmp_main->conf.amd_version = 1;
+	if (cwmp_ctx.conf.supported_amd_version == 1) {
+		cwmp_ctx.conf.amd_version = 1;
 		return 0;
 	}
 	b = mxmlFindElement(tree, tree, "UseCWMPVersion", NULL, NULL, MXML_DESCEND);
-	if (b && cwmp_main->conf.supported_amd_version >= 5) { //IF supported version !=5 acs response dosen't contain UseCWMPVersion
+	if (b && cwmp_ctx.conf.supported_amd_version >= 5) { //IF supported version !=5 acs response dosen't contain UseCWMPVersion
 		b = mxmlWalkNext(b, tree, MXML_DESCEND_FIRST);
 		if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
 			goto error;
 		c = (char *) mxmlGetOpaque(b);
 		if (c && *(c + 1) == '.') {
 			c += 2;
-			cwmp_main->conf.amd_version = (int)strtol(c, NULL, 10) + 1;
+			cwmp_ctx.conf.amd_version = (int)strtol(c, NULL, 10) + 1;
 			return 0;
 		}
 		goto error;
 	}
 	b = mxmlFindElement(tree, tree, "cwmp:UseCWMPVersion", NULL, NULL, MXML_DESCEND);
-	if (b && cwmp_main->conf.supported_amd_version >= 5) { //IF supported version !=5 acs response dosen't contain UseCWMPVersion
+	if (b && cwmp_ctx.conf.supported_amd_version >= 5) { //IF supported version !=5 acs response dosen't contain UseCWMPVersion
 		b = mxmlWalkNext(b, tree, MXML_DESCEND_FIRST);
 		if (!b || mxmlGetType(b) != MXML_OPAQUE || !mxmlGetOpaque(b))
 			goto error;
 		c = (char *) mxmlGetOpaque(b);
 		if (c && *(c + 1) == '.') {
 			c += 2;
-			cwmp_main->conf.amd_version = (int)strtol(c, NULL, 10) + 1;
+			cwmp_ctx.conf.amd_version = (int)strtol(c, NULL, 10) + 1;
 			return 0;
 		}
 		goto error;
@@ -532,27 +532,27 @@ int cwmp_rpc_acs_parse_response_inform(struct rpc *this __attribute__((unused)))
 		}
 	}
 	if (i == 0) {
-		cwmp_main->conf.amd_version = i + 1;
+		cwmp_ctx.conf.amd_version = i + 1;
 	} else if (i >= 1 && i <= 3) {
-		switch (cwmp_main->conf.supported_amd_version) {
+		switch (cwmp_ctx.conf.supported_amd_version) {
 		case 1:
-			cwmp_main->conf.amd_version = 1; //Already done
+			cwmp_ctx.conf.amd_version = 1; //Already done
 			break;
 		case 2:
 		case 3:
 		case 4:
 			//MIN ACS CPE
-			if (cwmp_main->conf.supported_amd_version <= i + 1)
-				cwmp_main->conf.amd_version = cwmp_main->conf.supported_amd_version;
+			if (cwmp_ctx.conf.supported_amd_version <= i + 1)
+				cwmp_ctx.conf.amd_version = cwmp_ctx.conf.supported_amd_version;
 			else
-				cwmp_main->conf.amd_version = i + 1;
+				cwmp_ctx.conf.amd_version = i + 1;
 			break;
 		case 5:
-			cwmp_main->conf.amd_version = i + 1;
+			cwmp_ctx.conf.amd_version = i + 1;
 			break;
 		}
 	} else if (i >= 4) {
-		cwmp_main->conf.amd_version = cwmp_main->conf.supported_amd_version;
+		cwmp_ctx.conf.amd_version = cwmp_ctx.conf.supported_amd_version;
 	}
 	return 0;
 
@@ -587,7 +587,7 @@ void set_not_known_acs_support()
 int cwmp_rpc_acs_parse_response_get_rpc_methods(struct rpc *this __attribute__((unused)))
 {
 	mxml_node_t *tree, *b;
-	tree = cwmp_main->session->tree_in;
+	tree = cwmp_ctx.session->tree_in;
 
 	b = mxmlFindElement(tree, tree, "cwmp:GetRPCMethodsResponse", NULL, NULL, MXML_DESCEND);
 	if (!b)
@@ -627,13 +627,13 @@ int cwmp_rpc_acs_prepare_get_rpc_methods(struct rpc *rpc __attribute__((unused))
 	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		return -1;
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_main->conf.amd_version) - 1]);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_ctx.conf.amd_version) - 1]);
 
 	n = build_top_body_soap_request(tree, "GetRPCMethods");
 	if (!n)
 		return -1;
 
-	cwmp_main->session->tree_out = tree;
+	cwmp_ctx.session->tree_out = tree;
 
 	return 0;
 }
@@ -655,7 +655,7 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct rpc *rpc)
 	n = mxmlFindElement(tree, tree, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	if (!n)
 		goto error;
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_main->conf.amd_version) - 1]);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_ctx.conf.amd_version) - 1]);
 
 	n = build_top_body_soap_request(tree, "TransferComplete");
 	if (!n)
@@ -684,7 +684,7 @@ int cwmp_rpc_acs_prepare_transfer_complete(struct rpc *rpc)
 		goto error;
 
 	FREE(faultstring);
-	cwmp_main->session->tree_out = tree;
+	cwmp_ctx.session->tree_out = tree;
 
 	return 0;
 
@@ -706,7 +706,7 @@ int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc)
 	if (!n)
 		goto error;
 
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_main->conf.amd_version) - 1]);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_ctx.conf.amd_version) - 1]);
 
 	n = build_top_body_soap_request(tree, "AutonomousTransferComplete");
 	if (!n)
@@ -732,7 +732,7 @@ int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc)
 		goto error;
 	}
 
-	cwmp_main->session->tree_out = tree;
+	cwmp_ctx.session->tree_out = tree;
 	return 0;
 
 error:
@@ -761,7 +761,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct rpc *rpc)
 	if (!n)
 		goto error;
 
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_main->conf.amd_version) - 1]);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_ctx.conf.amd_version) - 1]);
 
 	n = build_top_body_soap_request(tree, "DUStateChangeComplete");
 	if (!n)
@@ -782,7 +782,7 @@ int cwmp_rpc_acs_prepare_du_state_change_complete(struct rpc *rpc)
 	}
 
 	cwmp_free_all_xml_data_list(&opt_result_list);
-	cwmp_main->session->tree_out = tree;
+	cwmp_ctx.session->tree_out = tree;
 	return 0;
 
 error:
@@ -806,7 +806,7 @@ int cwmp_rpc_acs_prepare_autonomous_du_state_change_complete(struct rpc *rpc)
 	if (!n)
 		goto error;
 
-	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_main->conf.amd_version) - 1]);
+	mxmlElementSetAttr(n, "xmlns:cwmp", cwmp_urls[(cwmp_ctx.conf.amd_version) - 1]);
 
 	n = build_top_body_soap_request(tree, "AutonomousDUStateChangeComplete");
 	if (!n)
@@ -832,7 +832,7 @@ int cwmp_rpc_acs_prepare_autonomous_du_state_change_complete(struct rpc *rpc)
 		goto error;
 	}
 
-	cwmp_main->session->tree_out = tree;
+	cwmp_ctx.session->tree_out = tree;
 	return 0;
 
 error:
@@ -849,12 +849,12 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	int counter = 0;
 	const char *err_msg = NULL;
 
-	if (cwmp_main->session->tree_out == NULL) {
+	if (cwmp_ctx.session->tree_out == NULL) {
 		err_msg = "Output xml tree does not exist";
 		goto fault;
 	}
 
-	b = build_top_body_soap_response(cwmp_main->session->tree_out, "GetParameterValues");
+	b = build_top_body_soap_response(cwmp_ctx.session->tree_out, "GetParameterValues");
 	if (b == NULL) {
 		err_msg = "Failed to populate the SOAP message for GPV response";
 		goto fault;
@@ -868,7 +868,7 @@ int cwmp_handle_rpc_cpe_get_parameter_values(struct rpc *rpc)
 	gpv_xml_attrs.validations = gpv_validation;
 	gpv_xml_attrs.nbre_validations = 1;
 
-	fault_code = load_xml_node_data(SOAP_REQ_GPV, cwmp_main->session->body_in, &gpv_xml_attrs);
+	fault_code = load_xml_node_data(SOAP_REQ_GPV, cwmp_ctx.session->body_in, &gpv_xml_attrs);
 	if (fault_code) {
 		err_msg = "Failed to load the attributes from GPV requests message";
 		goto fault;
@@ -924,7 +924,7 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 	gpn_xml_attrs.validations = gpn_validation;
 	gpn_xml_attrs.nbre_validations = 2;
 
-	fault_code = load_xml_node_data(SOAP_REQ_GPN, cwmp_main->session->body_in, &gpn_xml_attrs);
+	fault_code = load_xml_node_data(SOAP_REQ_GPN, cwmp_ctx.session->body_in, &gpn_xml_attrs);
 	if (fault_code != CWMP_OK) {
 		err_msg = "Failed to load attributes from GPN request message";
 		goto fault;
@@ -984,12 +984,12 @@ build_response:
 
 	FREE(parameter_name);
 
-	if (cwmp_main->session->tree_out == NULL) {
+	if (cwmp_ctx.session->tree_out == NULL) {
 		err_msg = "Output xml tree does not exist";
 		goto fault;
 	}
 
-	n = build_top_body_soap_response(cwmp_main->session->tree_out, "GetParameterNames");
+	n = build_top_body_soap_response(cwmp_ctx.session->tree_out, "GetParameterNames");
 
 	if (!n) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
@@ -1046,9 +1046,9 @@ int cwmp_handle_rpc_cpe_get_parameter_attributes(struct rpc *rpc)
 	int counter = 0, fault_code = FAULT_CPE_INTERNAL_ERROR;
 	const char *err_msg = NULL;
 
-	b = cwmp_main->session->body_in;
+	b = cwmp_ctx.session->body_in;
 
-	n = build_top_body_soap_response(cwmp_main->session->tree_out, "GetParameterAttributes");
+	n = build_top_body_soap_response(cwmp_ctx.session->tree_out, "GetParameterAttributes");
 	if (!n) {
 		err_msg = "Failed to build SOAP message for GetParameterAttributes response";
 		goto fault;
@@ -1107,7 +1107,7 @@ int is_duplicated_parameter(mxml_node_t *param_node)
 {
 	mxml_node_t *b = param_node;
 	const char *node_name = param_node ? mxmlGetElement(param_node) : NULL;
-	while ((b = mxmlWalkNext(b, cwmp_main->session->body_in, MXML_DESCEND))) {
+	while ((b = mxmlWalkNext(b, cwmp_ctx.session->body_in, MXML_DESCEND))) {
 		const char *node_opaque = mxmlGetOpaque(b);
 		mxml_node_t *parent = mxmlGetParent(b);
 		mxml_type_t node_type = mxmlGetType(b);
@@ -1140,7 +1140,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 	spv_xml_attrs.validations = spv_validation;
 	spv_xml_attrs.nbre_validations = 2;
 
-	fault_code = load_xml_node_data(SOAP_REQ_SPV, cwmp_main->session->body_in, &spv_xml_attrs);
+	fault_code = load_xml_node_data(SOAP_REQ_SPV, cwmp_ctx.session->body_in, &spv_xml_attrs);
 	if (fault_code) {
 		err_msg = "Failed to load attributes from SPV request message";
 		goto fault;
@@ -1177,7 +1177,7 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		status = 1;
 	}
 
-	b = build_top_body_soap_response(cwmp_main->session->tree_out, "SetParameterValues");
+	b = build_top_body_soap_response(cwmp_ctx.session->tree_out, "SetParameterValues");
 
 	if (!b) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
@@ -1228,7 +1228,7 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 		goto fault;
 	}
 
-	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
 
 	if (!n) {
 		err_msg = "SetParameterAttributes element does not exist in xml input tree";
@@ -1263,7 +1263,7 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 	}
 	cwmp_free_all_xml_data_list(&prameters_xml_list);
 
-	mxml_node_t *resp = build_top_body_soap_response(cwmp_main->session->tree_out, "SetParameterAttributes");
+	mxml_node_t *resp = build_top_body_soap_response(cwmp_ctx.session->tree_out, "SetParameterAttributes");
 	if (!resp) {
 		err_msg = "Failed to populate SOAP response for SetParameterAttributes request";
 		goto fault;
@@ -1298,7 +1298,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 	add_obj_xml_attrs.validations = gpn_validation;
 	add_obj_xml_attrs.nbre_validations = 2;
 
-	int fault_code = load_xml_node_data(SOAP_REQ_ADDOBJ, cwmp_main->session->body_in, &add_obj_xml_attrs);
+	int fault_code = load_xml_node_data(SOAP_REQ_ADDOBJ, cwmp_ctx.session->body_in, &add_obj_xml_attrs);
 
 	if (fault_code) {
 		err_msg = "Failed to load data from AddObject request message";
@@ -1325,7 +1325,7 @@ int cwmp_handle_rpc_cpe_add_object(struct rpc *rpc)
 		goto fault;
 	}
 
-	b = build_top_body_soap_response(cwmp_main->session->tree_out, "AddObject");
+	b = build_top_body_soap_response(cwmp_ctx.session->tree_out, "AddObject");
 
 	if (!b) {
 		err_msg = "Failed to build SOAP message for AddObject response";
@@ -1384,7 +1384,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 	del_obj_xml_attrs.validations = gpn_validation;
 	del_obj_xml_attrs.nbre_validations = 2;
 
-	int fault_code = load_xml_node_data(SOAP_REQ_DELOBJ, cwmp_main->session->body_in, &del_obj_xml_attrs);
+	int fault_code = load_xml_node_data(SOAP_REQ_DELOBJ, cwmp_ctx.session->body_in, &del_obj_xml_attrs);
 
 	if (fault_code) {
 		err_msg = "Failed to load data from DeleteObject request message";
@@ -1404,7 +1404,7 @@ int cwmp_handle_rpc_cpe_delete_object(struct rpc *rpc)
 		goto fault;
 	}
 	set_rpc_parameter_key(parameter_key);
-	b = build_top_body_soap_response(cwmp_main->session->tree_out, "DeleteObject");
+	b = build_top_body_soap_response(cwmp_ctx.session->tree_out, "DeleteObject");
 
 	if (!b) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
@@ -1449,7 +1449,7 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 	int fault_code = FAULT_CPE_INTERNAL_ERROR;
 	const char *err_msg = NULL;
 
-	n = build_top_body_soap_response(cwmp_main->session->tree_out, "GetRPCMethods");
+	n = build_top_body_soap_response(cwmp_ctx.session->tree_out, "GetRPCMethods");
 
 	if (!n) {
 		err_msg = "Failed to prepare SOAP response message for GetRPCMethods";
@@ -1511,7 +1511,7 @@ int cwmp_handle_rpc_cpe_factory_reset(struct rpc *rpc)
 	mxml_node_t *b;
 	const char *err_msg = NULL;
 
-	b = build_top_body_soap_response(cwmp_main->session->tree_out, "FactoryReset");
+	b = build_top_body_soap_response(cwmp_ctx.session->tree_out, "FactoryReset");
 
 	if (!b) {
 		err_msg = "Failed to build SOAP message for FactoryReset response";
@@ -1538,7 +1538,7 @@ int cwmp_handle_rpc_cpe_x_factory_reset_soft(struct rpc *rpc)
 {
 	mxml_node_t *b;
 
-	b = build_top_body_soap_response(cwmp_main->session->tree_out, "X_FactoryResetSoft");
+	b = build_top_body_soap_response(cwmp_ctx.session->tree_out, "X_FactoryResetSoft");
 
 	if (!b)
 		goto fault;
@@ -1571,7 +1571,7 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 	canceltrancer_obj_xml_attrs.validations = canceltransfer_validation;
 	canceltrancer_obj_xml_attrs.nbre_validations = 1;
 
-	int fault_code = load_xml_node_data(SOAP_REQ_CANCELTRANSFER, cwmp_main->session->body_in, &canceltrancer_obj_xml_attrs);
+	int fault_code = load_xml_node_data(SOAP_REQ_CANCELTRANSFER, cwmp_ctx.session->body_in, &canceltrancer_obj_xml_attrs);
 
 	if (command_key)
 		cancel_transfer(command_key);
@@ -1581,7 +1581,7 @@ int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc)
 		goto fault;
 	}
 
-	b = build_top_body_soap_response(cwmp_main->session->tree_out, "CancelTransfer");
+	b = build_top_body_soap_response(cwmp_ctx.session->tree_out, "CancelTransfer");
 
 	if (!b) {
 		fault_code = FAULT_CPE_INTERNAL_ERROR;
@@ -1651,7 +1651,7 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 	reboot_obj_xml_attrs.validations = reboot_validation;
 	reboot_obj_xml_attrs.nbre_validations = 1;
 
-	int fault_code = load_xml_node_data(SOAP_REQ_REBOOT, cwmp_main->session->body_in, &reboot_obj_xml_attrs);
+	int fault_code = load_xml_node_data(SOAP_REQ_REBOOT, cwmp_ctx.session->body_in, &reboot_obj_xml_attrs);
 
 	if (fault_code) {
 		err_msg = "Failed to load data from reboot request";
@@ -1668,7 +1668,7 @@ int cwmp_handle_rpc_cpe_reboot(struct rpc *rpc)
 
 	cwmp_save_event_container(event_container);
 
-	b = build_top_body_soap_response(cwmp_main->session->tree_out, "Reboot");
+	b = build_top_body_soap_response(cwmp_ctx.session->tree_out, "Reboot");
 
 	if (!b) {
 		err_msg = "Failed to build the SOAP message for reboot response";
@@ -1712,7 +1712,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 	schedinform_obj_xml_attrs.validations = schedinform_validation;
 	schedinform_obj_xml_attrs.nbre_validations = 2;
 
-	fault = load_xml_node_data(SOAP_REQ_SCHEDINF, cwmp_main->session->body_in, &schedinform_obj_xml_attrs);
+	fault = load_xml_node_data(SOAP_REQ_SCHEDINF, cwmp_ctx.session->body_in, &schedinform_obj_xml_attrs);
 
 	if (fault) {
 		snprintf(err_msg, sizeof(err_msg), "Failed to load data from ScheduleInform request message");
@@ -1734,7 +1734,7 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 		}
 	}
 
-	n = build_top_body_soap_response(cwmp_main->session->tree_out, "ScheduleInform");
+	n = build_top_body_soap_response(cwmp_ctx.session->tree_out, "ScheduleInform");
 
 	if (!n) {
 		snprintf(err_msg, sizeof(err_msg), "Failed to build SOAP message for ScheduleInform response");
@@ -1751,11 +1751,11 @@ int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc)
 	schedule_inform->handler_timer.cb = cwmp_start_schedule_inform;
 	schedule_inform->commandKey = CWMP_STRDUP(command_key);
 	schedule_inform->scheduled_time = scheduled_time;
-	if ((cwmp_main->sched_inform_id < 0) || (cwmp_main->sched_inform_id >= MAX_INT_ID)) {
-		cwmp_main->sched_inform_id = 0;
+	if ((cwmp_ctx.sched_inform_id < 0) || (cwmp_ctx.sched_inform_id >= MAX_INT_ID)) {
+		cwmp_ctx.sched_inform_id = 0;
 	}
-	cwmp_main->sched_inform_id++;
-	schedule_inform->id = cwmp_main->sched_inform_id;
+	cwmp_ctx.sched_inform_id++;
+	schedule_inform->id = cwmp_ctx.sched_inform_id;
 	list_add(&(schedule_inform->list), ilist->prev);
 	bkp_session_insert_schedule_inform(schedule_inform->id, schedule_inform->scheduled_time, schedule_inform->commandKey);
 	bkp_session_save();
@@ -1789,7 +1789,7 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 		goto fault;
 	}
 
-	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
 	if (!n) {
 		error = FAULT_CPE_INTERNAL_ERROR;
 		snprintf(err_msg, sizeof(err_msg), "ChangeDUState element does not exist in input xml tree");
@@ -1823,7 +1823,7 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 
 	xml_data_list_to_cdu_operations_list(&xml_list_operations, &change_du_state->list_operation);
 
-	t = build_top_body_soap_response(cwmp_main->session->tree_out, "ChangeDUState");
+	t = build_top_body_soap_response(cwmp_ctx.session->tree_out, "ChangeDUState");
 
 	if (!t) {
 		error = FAULT_CPE_INTERNAL_ERROR;
@@ -1834,11 +1834,11 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 
 	change_du_state->handler_timer.cb = change_du_state_execute;
 	list_add_tail(&(change_du_state->list), &(list_change_du_state));
-	if ((cwmp_main->cdu_id < 0) || (cwmp_main->cdu_id >= MAX_INT_ID)) {
-		cwmp_main->cdu_id = 0;
+	if ((cwmp_ctx.cdu_id < 0) || (cwmp_ctx.cdu_id >= MAX_INT_ID)) {
+		cwmp_ctx.cdu_id = 0;
 	}
-	cwmp_main->cdu_id++;
-	change_du_state->id = cwmp_main->cdu_id;
+	cwmp_ctx.cdu_id++;
+	change_du_state->id = cwmp_ctx.cdu_id;
 	bkp_session_insert_change_du_state(change_du_state);
 	bkp_session_save();
 	cwmp_set_end_session(END_SESSION_CDU);
@@ -1876,7 +1876,7 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 		goto fault;
 	}
 
-	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
 
 	if (!n) {
 		error = FAULT_CPE_INTERNAL_ERROR;
@@ -1930,7 +1930,7 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 	if (error != FAULT_CPE_NO_FAULT)
 		goto fault;
 
-	mxml_node_t *t = build_top_body_soap_response(cwmp_main->session->tree_out, "Download");
+	mxml_node_t *t = build_top_body_soap_response(cwmp_ctx.session->tree_out, "Download");
 	if (!t) {
 		error = FAULT_CPE_INTERNAL_ERROR;
 		snprintf(err_msg, sizeof(err_msg), "Failed to populate download response SOAP message");
@@ -1973,11 +1973,11 @@ int cwmp_handle_rpc_cpe_download(struct rpc *rpc)
 			download->scheduled_time = scheduled_time;
 		}
 		download->handler_timer.cb = cwmp_start_download;
-		if ((cwmp_main->download_id < 0) || (cwmp_main->download_id >= MAX_INT_ID)) {
-			cwmp_main->download_id = 0;
+		if ((cwmp_ctx.download_id < 0) || (cwmp_ctx.download_id >= MAX_INT_ID)) {
+			cwmp_ctx.download_id = 0;
 		}
-		cwmp_main->download_id++;
-		download->id = cwmp_main->download_id;
+		cwmp_ctx.download_id++;
+		download->id = cwmp_ctx.download_id;
 		bkp_session_insert_download(download);
 		bkp_session_save();
 		if (download_delay != 0) {
@@ -2020,7 +2020,7 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 		goto fault;
 	}
 
-	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
 
 	if (!n) {
 		error = FAULT_CPE_INTERNAL_ERROR;
@@ -2114,7 +2114,7 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 	if (error != FAULT_CPE_NO_FAULT)
 		goto fault;
 
-	t = build_top_body_soap_response(cwmp_main->session->tree_out, "ScheduleDownload");
+	t = build_top_body_soap_response(cwmp_ctx.session->tree_out, "ScheduleDownload");
 
 	if (!t) {
 		error = FAULT_CPE_INTERNAL_ERROR;
@@ -2131,11 +2131,11 @@ int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc)
 		schedule_download->timewindowstruct[i].windowend = time(NULL) + schedule_download_delay[i * 2 + 1];
 	}
 	schedule_download->handler_timer.cb = cwmp_start_schedule_download;
-	if ((cwmp_main->sched_download_id < 0) || (cwmp_main->sched_download_id >= MAX_INT_ID)) {
-		cwmp_main->sched_download_id = 0;
+	if ((cwmp_ctx.sched_download_id < 0) || (cwmp_ctx.sched_download_id >= MAX_INT_ID)) {
+		cwmp_ctx.sched_download_id = 0;
 	}
-	cwmp_main->sched_download_id++;
-	schedule_download->id = cwmp_main->sched_download_id;
+	cwmp_ctx.sched_download_id++;
+	schedule_download->id = cwmp_ctx.sched_download_id;
 	bkp_session_insert_schedule_download(schedule_download);
 	bkp_session_save();
 	if (schedule_download_delay[0] != 0) {
@@ -2183,7 +2183,7 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 		goto fault;
 	}
 
-	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	n = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
 
 	if (!n) {
 		error = FAULT_CPE_INTERNAL_ERROR;
@@ -2237,7 +2237,7 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 	if (error != FAULT_CPE_NO_FAULT)
 		goto fault;
 
-	mxml_node_t *t = build_top_body_soap_response(cwmp_main->session->tree_out, "Upload");
+	mxml_node_t *t = build_top_body_soap_response(cwmp_ctx.session->tree_out, "Upload");
 	if (t == NULL) {
 		snprintf(err_msg, sizeof(err_msg), "Failed to build SOAP message for upload response");
 		error = FAULT_CPE_INTERNAL_ERROR;
@@ -2279,11 +2279,11 @@ int cwmp_handle_rpc_cpe_upload(struct rpc *rpc)
 			count_upload_queue++;
 			upload->scheduled_time = scheduled_time;
 		}
-		if ((cwmp_main->upload_id < 0) || (cwmp_main->upload_id >= MAX_INT_ID)) {
-			cwmp_main->upload_id = 0;
+		if ((cwmp_ctx.upload_id < 0) || (cwmp_ctx.upload_id >= MAX_INT_ID)) {
+			cwmp_ctx.upload_id = 0;
 		}
-		cwmp_main->upload_id++;
-		upload->id = cwmp_main->upload_id;
+		cwmp_ctx.upload_id++;
+		upload->id = cwmp_ctx.upload_id;
 		bkp_session_insert_upload(upload);
 		bkp_session_save();
 		upload->handler_timer.cb = cwmp_start_upload;
@@ -2316,17 +2316,17 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 {
 	mxml_node_t *body;
 
-	body = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Body", NULL, NULL, MXML_DESCEND);
+	body = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Body", NULL, NULL, MXML_DESCEND);
 	struct xml_data_struct fault_xml_attrs = {0};
 
-	char *faultcode = (FAULT_CPE_ARRAY[cwmp_main->session->fault_code].TYPE == FAULT_CPE_TYPE_CLIENT) ? "Client" : "Server";
+	char *faultcode = (FAULT_CPE_ARRAY[cwmp_ctx.session->fault_code].TYPE == FAULT_CPE_TYPE_CLIENT) ? "Client" : "Server";
 	char *faultstring = strdup("CWMP fault");
 	if (!faultstring) {
 		return -1;
 	}
 
-	int fault_code = (int)strtol(cwmp_main->session->fault_code ? FAULT_CPE_ARRAY[cwmp_main->session->fault_code].CODE : "0", NULL, 10);
-	char *fault_string = CWMP_STRLEN(cwmp_main->session->fault_msg) ? strdup(cwmp_main->session->fault_msg) : strdup(FAULT_CPE_ARRAY[cwmp_main->session->fault_code].DESCRIPTION);
+	int fault_code = (int)strtol(cwmp_ctx.session->fault_code ? FAULT_CPE_ARRAY[cwmp_ctx.session->fault_code].CODE : "0", NULL, 10);
+	char *fault_string = CWMP_STRLEN(cwmp_ctx.session->fault_msg) ? strdup(cwmp_ctx.session->fault_msg) : strdup(FAULT_CPE_ARRAY[cwmp_ctx.session->fault_code].DESCRIPTION);
 
 	fault_xml_attrs.fault_code = &fault_code;
 	fault_xml_attrs.fault_string = &fault_string;
@@ -2347,7 +2347,7 @@ int cwmp_handle_rpc_cpe_fault(struct rpc *rpc)
 
 		spv_fault_xml_attrs.data_list = &spv_fault_xml_data_list;
 
-		body = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "cwmp:Fault", NULL, NULL, MXML_DESCEND);
+		body = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "cwmp:Fault", NULL, NULL, MXML_DESCEND);
 		if (body == NULL)
 			return -1;
 
@@ -2365,12 +2365,12 @@ int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, const char *f
 {
 	CWMP_LOG(INFO, "Fault detected");
 
-	cwmp_main->session->fault_code = fault_code;
-	snprintf(cwmp_main->session->fault_msg, sizeof(cwmp_main->session->fault_msg), "%s", fault_msg ? fault_msg : "");
+	cwmp_ctx.session->fault_code = fault_code;
+	snprintf(cwmp_ctx.session->fault_msg, sizeof(cwmp_ctx.session->fault_msg), "%s", fault_msg ? fault_msg : "");
 
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
-	if (xml_prepare_msg_out(cwmp_main->session))
+	if (xml_prepare_msg_out(cwmp_ctx.session))
 		return -1;
 
 	CWMP_LOG(INFO, "Preparing the Fault message");
@@ -2417,14 +2417,14 @@ void load_forced_inform_json(void)
 	struct blob_attr *forced_inform_list = NULL;
 	int rem = 0;
 
-	if (!file_exists(cwmp_main->conf.forced_inform_json))
+	if (!file_exists(cwmp_ctx.conf.forced_inform_json))
 		return;
 
 	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
 	blob_buf_init(&bbuf, 0);
 
-	if (blobmsg_add_json_from_file(&bbuf, cwmp_main->conf.forced_inform_json) == false) {
-		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp_main->conf.forced_inform_json);
+	if (blobmsg_add_json_from_file(&bbuf, cwmp_ctx.conf.forced_inform_json) == false) {
+		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", cwmp_ctx.conf.forced_inform_json);
 		blob_buf_free(&bbuf);
 		return;
 	}
@@ -2434,7 +2434,7 @@ void load_forced_inform_json(void)
 
 	blobmsg_parse(p, 1, tb, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
 	if (tb[0] == NULL) {
-		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a forced inform parameters list", cwmp_main->conf.forced_inform_json);
+		CWMP_LOG(WARNING, "The JSON file %s doesn't contain a forced inform parameters list", cwmp_ctx.conf.forced_inform_json);
 		blob_buf_free(&bbuf);
 		return;
 	}

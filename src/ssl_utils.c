@@ -54,7 +54,7 @@ void message_compute_signature(char *msg_out, char *signature, size_t len)
 	int result_len = 20;
 	unsigned char result[EVP_MAX_MD_SIZE] = {0};
 
-	HMAC(EVP_sha1(), cwmp_main->conf.acs_passwd, CWMP_STRLEN(cwmp_main->conf.acs_passwd), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result, NULL);
+	HMAC(EVP_sha1(), cwmp_ctx.conf.acs_passwd, CWMP_STRLEN(cwmp_ctx.conf.acs_passwd), (unsigned char *)msg_out, CWMP_STRLEN(msg_out), result, NULL);
 
 	for (int i = 0; i < result_len; i++) {
 		if (len - CWMP_STRLEN(signature) < 3) // each time 2 hex chars + '\0' at end so needed space is 3 bytes

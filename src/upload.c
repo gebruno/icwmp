@@ -200,8 +200,8 @@ int upload_file_in_subprocess(const char *file_path, const char *url, const char
 	blobmsg_add_string(&bbuf, "username", username);
 	blobmsg_add_string(&bbuf, "password", password);
 
-	if (cwmp_main->net.use_curl_ifname && CWMP_STRLEN(cwmp_main->net.interface))
-		blobmsg_add_string(&bbuf, "interface", cwmp_main->net.interface);
+	if (cwmp_ctx.net.use_curl_ifname && CWMP_STRLEN(cwmp_ctx.net.interface))
+		blobmsg_add_string(&bbuf, "interface", cwmp_ctx.net.interface);
 
 	char *upload_task = blobmsg_format_json(bbuf.head, true);
 	blob_buf_free(&bbuf);
@@ -368,11 +368,11 @@ void cwmp_start_upload(struct uloop_timeout *timeout)
 		CWMP_LOG(ERROR, "Error while uploading the file: %s", pupload->url);
 	}
 	if (ptransfer_complete->id <= 0) {
-		if ((cwmp_main->tc_id < 0) || (cwmp_main->tc_id >= MAX_INT_ID)) {
-			cwmp_main->tc_id = 0;
+		if ((cwmp_ctx.tc_id < 0) || (cwmp_ctx.tc_id >= MAX_INT_ID)) {
+			cwmp_ctx.tc_id = 0;
 		}
-		cwmp_main->tc_id++;
-		ptransfer_complete->id = cwmp_main->tc_id;
+		cwmp_ctx.tc_id++;
+		ptransfer_complete->id = cwmp_ctx.tc_id;
 	}
 	bkp_session_insert_transfer_complete(ptransfer_complete);
 	bkp_session_save();

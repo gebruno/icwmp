@@ -21,11 +21,8 @@
 #include "config.h"
 #include "event.h"
 
-static struct cwmp cwmp_main_test = { 0 };
-
 static int bkp_session_unit_tests_init(void **state)
 {
-	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	create_cwmp_session_structure();
 	return 0;
 }
@@ -34,7 +31,6 @@ static int bkp_session_unit_tests_clean(void **state)
 {
 	icwmp_cleanmem();
 	clean_cwmp_session_structure();
-	FREE(cwmp_main);
 	return 0;
 }
 

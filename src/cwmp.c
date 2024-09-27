@@ -137,7 +137,7 @@ static void wait_for_time_sync(void)
 {
 	struct cwmp_dm_parameter cwmp_dm_param = {0};
 
-	int loop_count = (cwmp_main->conf.clock_sync_timeout / 2);
+	int loop_count = (cwmp_ctx.conf.clock_sync_timeout / 2);
 
 	if (loop_count == 0)
 		return;
@@ -173,12 +173,8 @@ static int cwmp_init(void)
 {
 	openlog("cwmp", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 
-	cwmp_main = (struct cwmp *)calloc(1, sizeof(struct cwmp));
-
-	CWMP_MEMSET(cwmp_main, 0, sizeof(struct cwmp));
-
-	cwmp_main->curr_delay_reboot = -1;
-	cwmp_main->curr_schedule_reboot = 0;
+	cwmp_ctx.curr_delay_reboot = -1;
+	cwmp_ctx.curr_schedule_reboot = 0;
 
 	get_preinit_config();
 
@@ -189,9 +185,9 @@ static int cwmp_init(void)
 	/* Only One instance should run*/
 
 	// cppcheck-suppress cert-MSC24-C
-	cwmp_main->pid_file = fopen("/var/run/icwmpd.pid", "w+");
-	fcntl(fileno(cwmp_main->pid_file), F_SETFD, fcntl(fileno(cwmp_main->pid_file), F_GETFD) | FD_CLOEXEC);
-	int rc = flock(fileno(cwmp_main->pid_file), LOCK_EX | LOCK_NB);
+	cwmp_ctx.pid_file = fopen("/var/run/icwmpd.pid", "w+");
+	fcntl(fileno(cwmp_ctx.pid_file), F_SETFD, fcntl(fileno(cwmp_ctx.pid_file), F_GETFD) | FD_CLOEXEC);
+	int rc = flock(fileno(cwmp_ctx.pid_file), LOCK_EX | LOCK_NB);
 	if (rc) {
 		if (EWOULDBLOCK != errno) {
 			const char *piderr = "PID file creation failed: Quit the daemon!";
@@ -202,8 +198,8 @@ static int cwmp_init(void)
 			exit(EXIT_SUCCESS);
 	}
 
-	if (cwmp_main->pid_file)
-		fclose(cwmp_main->pid_file);
+	if (cwmp_ctx.pid_file)
+		fclose(cwmp_ctx.pid_file);
 
 	CWMP_LOG(DEBUG, "Loading icwmpd configuration");
 	cwmp_config_load();
@@ -211,12 +207,12 @@ static int cwmp_init(void)
 
 	wait_for_time_sync();
 
-	cwmp_main->prev_periodic_enable = cwmp_main->conf.periodic_enable;
-	cwmp_main->prev_periodic_interval = cwmp_main->conf.period;
-	cwmp_main->prev_periodic_time = cwmp_main->conf.time;
-	cwmp_main->prev_heartbeat_enable = cwmp_main->conf.heart_beat_enable;
-	cwmp_main->prev_heartbeat_interval = cwmp_main->conf.heartbeat_interval;
-	cwmp_main->prev_heartbeat_time = cwmp_main->conf.heart_time;
+	cwmp_ctx.prev_periodic_enable = cwmp_ctx.conf.periodic_enable;
+	cwmp_ctx.prev_periodic_interval = cwmp_ctx.conf.period;
+	cwmp_ctx.prev_periodic_time = cwmp_ctx.conf.time;
+	cwmp_ctx.prev_heartbeat_enable = cwmp_ctx.conf.heart_beat_enable;
+	cwmp_ctx.prev_heartbeat_interval = cwmp_ctx.conf.heartbeat_interval;
+	cwmp_ctx.prev_heartbeat_time = cwmp_ctx.conf.heart_time;
 
 	if (cwmp_stop == true)
 		return CWMP_GEN_ERR;
@@ -243,7 +239,7 @@ static int cwmp_init(void)
 	CWMP_MEMSET(&du_uuid_list, 0, sizeof(struct list_head));
 	INIT_LIST_HEAD(&du_uuid_list);
 
-	cwmp_main->start_time = time(NULL);
+	cwmp_ctx.start_time = time(NULL);
 
 	return CWMP_OK;
 }
@@ -259,7 +255,6 @@ static void cwmp_free()
 	rpc_exit();
 	clean_cwmp_session_structure();
 	icwmp_free_critical_services();
-	FREE(cwmp_main);
 	CWMP_LOG(INFO, "EXIT ICWMP");
 	closelog();
 }
@@ -268,7 +263,7 @@ void cwmp_exit()
 {
 	cwmp_stop = true;
 
-	if (cwmp_main->session->session_status.last_status == SESSION_RUNNING)
+	if (cwmp_ctx.session->session_status.last_status == SESSION_RUNNING)
 		http_set_timeout();
 
 	uloop_timeout_cancel(&retry_session_timer);
@@ -279,10 +274,10 @@ void cwmp_exit()
 	clean_interface_update();
 	clean_du_uuid_list();
 	clean_force_inform_list();
-	FREE(cwmp_main->ev);
-	FREE(cwmp_main->intf_ev);
+	FREE(cwmp_ctx.ev);
+	FREE(cwmp_ctx.intf_ev);
 	uloop_end();
-	shutdown(cwmp_main->cr_socket_desc, SHUT_RDWR);
+	shutdown(cwmp_ctx.cr_socket_desc, SHUT_RDWR);
 	FREE(global_session_event);
 
 	/* Free all memory allocation */
@@ -291,8 +286,9 @@ void cwmp_exit()
 
 int main(int argc, char **argv)
 {
-	int error;
-	struct env env;
+	int error = 0;
+
+	CWMP_MEMSET(&cwmp_ctx, 0, sizeof(struct cwmp));
 
 	error = icwmp_connect_ubus();
 	if (error)
@@ -304,8 +300,7 @@ int main(int argc, char **argv)
 		return error;
 	}
 
-	CWMP_MEMSET(&env, 0, sizeof(struct env));
-	if ((error = global_env_init(argc, argv, &env))) {
+	if ((error = global_env_init(argc, argv, &(cwmp_ctx.env)))) {
 		icwmp_free_ubus();
 		return error;
 	}
@@ -319,8 +314,6 @@ int main(int argc, char **argv)
 		icwmp_free_ubus();
 		return error;
 	}
-
-	CWMP_MEMCPY(&(cwmp_main->env), &env, sizeof(struct env));
 
 	if ((error = cwmp_init_backup_session(NULL, ALL))) {
 		icwmp_free_ubus();

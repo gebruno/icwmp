@@ -50,9 +50,9 @@ static void clean_name_space()
 
 static void unit_test_remove_all_session_events()
 {
-	while (cwmp_main->session->events.next != &(cwmp_main->session->events)) {
+	while (cwmp_ctx.session->events.next != &(cwmp_ctx.session->events)) {
 		struct event_container *event_container;
-		event_container = list_entry(cwmp_main->session->events.next, struct event_container, list);
+		event_container = list_entry(cwmp_ctx.session->events.next, struct event_container, list);
 		free(event_container->command_key);
 		cwmp_free_all_dm_parameter_list(&(event_container->head_dm_parameter));
 		list_del(&(event_container->list));
@@ -75,9 +75,7 @@ static int soap_unit_tests_init(void **state)
 	load_default_forced_inform();
 	load_forced_inform_json();
 
-	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	create_cwmp_session_structure();
-	memcpy(&(cwmp_main->env), &cwmp_main, sizeof(struct env));
 	cwmp_session_init();
 	log_set_severity_idx("DEBUG");
 	return 0;
@@ -88,8 +86,7 @@ static int soap_unit_tests_clean(void **state)
 	clean_name_space();
 	cwmp_session_exit();
 	clean_force_inform_list();
-	FREE(cwmp_main->session);
-	FREE(cwmp_main);
+	FREE(cwmp_ctx.session);
 	return 0;
 }
 
@@ -122,10 +119,10 @@ static void soap_inform_message_test(void **state)
 	mxml_node_t *env = NULL, *n = NULL, *device_id = NULL, *cwmp_inform = NULL;
 	struct rpc *rpc_acs;
 
-	rpc_acs = list_entry(&(cwmp_main->session->head_rpc_acs), struct rpc, list);
+	rpc_acs = list_entry(&(cwmp_ctx.session->head_rpc_acs), struct rpc, list);
 	cwmp_rpc_acs_prepare_message_inform(rpc_acs);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -155,8 +152,8 @@ static void soap_inform_message_test(void **state)
 	n = mxmlFindElement(cwmp_inform, cwmp_inform, "ParameterList", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	unit_test_end_test_destruction();
 }
@@ -167,8 +164,8 @@ static void prepare_session_for_rpc_method_call()
 	char c[128];
 
 	snprintf(c, sizeof(c), "%s:%s", ns.soap_env, "Body");
-	b = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, c, NULL, NULL, MXML_DESCEND);
-	cwmp_main->session->body_in = b;
+	b = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, c, NULL, NULL, MXML_DESCEND);
+	cwmp_ctx.session->body_in = b;
 	xml_prepare_msg_out();
 }
 
@@ -177,9 +174,9 @@ static void prepare_gpv_soap_request(char *parameters[], int len)
 	mxml_node_t *params = NULL, *n = NULL;
 	int i;
 
-	cwmp_main->session->tree_in = mxmlLoadString(NULL, CWMP_GETPARAMETERVALUES_REQ, MXML_OPAQUE_CALLBACK);
-	xml_recreate_namespace(cwmp_main->session->tree_in);
-	params = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, "ParameterNames", NULL, NULL, MXML_DESCEND);
+	cwmp_ctx.session->tree_in = mxmlLoadString(NULL, CWMP_GETPARAMETERVALUES_REQ, MXML_OPAQUE_CALLBACK);
+	xml_recreate_namespace(cwmp_ctx.session->tree_in);
+	params = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, "ParameterNames", NULL, NULL, MXML_DESCEND);
 	for (i = 0; i < len; i++) {
 		n = mxmlNewElement(params, "string");
 		n = mxmlNewOpaque(n, parameters[i]);
@@ -203,7 +200,7 @@ static void soap_get_param_value_message_test(void **state)
 	int ret = cwmp_handle_rpc_cpe_get_parameter_values(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -224,8 +221,8 @@ static void soap_get_param_value_message_test(void **state)
 	value = mxmlFindElement(n, n, "Value", NULL, NULL, MXML_DESCEND);
 	assert_non_null(value);
 
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	* Wrong parameter path
@@ -240,7 +237,7 @@ static void soap_get_param_value_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_get_parameter_values(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -264,9 +261,9 @@ static void soap_get_param_value_message_test(void **state)
 	detail_string = mxmlFindElement(detail, detail, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(detail_string);
 
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
-	cwmp_main->session->head_rpc_acs.next = NULL;
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
+	cwmp_ctx.session->head_rpc_acs.next = NULL;
 
 	unit_test_end_test_destruction();
 	clean_name_space();
@@ -276,9 +273,9 @@ static void prepare_addobj_soap_request(char *object, char *parameter_key)
 {
 	mxml_node_t *add_node = NULL, *n = NULL;
 
-	cwmp_main->session->tree_in = mxmlLoadString(NULL, CWMP_ADDOBJECT_REQ, MXML_OPAQUE_CALLBACK);
-	xml_recreate_namespace(cwmp_main->session->tree_in);
-	add_node = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, "cwmp:AddObject", NULL, NULL, MXML_DESCEND);
+	cwmp_ctx.session->tree_in = mxmlLoadString(NULL, CWMP_ADDOBJECT_REQ, MXML_OPAQUE_CALLBACK);
+	xml_recreate_namespace(cwmp_ctx.session->tree_in);
+	add_node = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, "cwmp:AddObject", NULL, NULL, MXML_DESCEND);
 	n = mxmlFindElement(add_node, add_node, "ObjectName", NULL, NULL, MXML_DESCEND);
 	n = mxmlNewOpaque(n, object);
 	n = mxmlFindElement(add_node, add_node, "ParameterKey", NULL, NULL, MXML_DESCEND);
@@ -300,7 +297,7 @@ static void soap_add_object_message_test(void **state)
 	assert_int_equal(ret, 0);
 	icwmp_restart_services(RELOAD_IMMIDIATE, true, false);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -316,8 +313,8 @@ static void soap_add_object_message_test(void **state)
 	n = mxmlFindElement(add_resp, add_resp, "Status", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "0");
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Wrong object path
@@ -330,7 +327,7 @@ static void soap_add_object_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_add_object(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -349,8 +346,8 @@ static void soap_add_object_message_test(void **state)
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Not writable & Valid object path
@@ -362,7 +359,7 @@ static void soap_add_object_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_add_object(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -381,8 +378,8 @@ static void soap_add_object_message_test(void **state)
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Invalid parameterkey
@@ -394,7 +391,7 @@ static void soap_add_object_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_add_object(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -413,10 +410,10 @@ static void soap_add_object_message_test(void **state)
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9003");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
-	cwmp_main->session->head_rpc_acs.next = NULL;
+	cwmp_ctx.session->head_rpc_acs.next = NULL;
 	unit_test_end_test_destruction();
 	clean_name_space();
 }
@@ -425,9 +422,9 @@ static void prepare_delobj_soap_request(char *object, char *parameter_key)
 {
 	mxml_node_t *del_node = NULL, *n = NULL;
 
-	cwmp_main->session->tree_in = mxmlLoadString(NULL, CWMP_DELOBJECT_REQ, MXML_OPAQUE_CALLBACK);
-	xml_recreate_namespace(cwmp_main->session->tree_in);
-	del_node = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, "cwmp:DeleteObject", NULL, NULL, MXML_DESCEND);
+	cwmp_ctx.session->tree_in = mxmlLoadString(NULL, CWMP_DELOBJECT_REQ, MXML_OPAQUE_CALLBACK);
+	xml_recreate_namespace(cwmp_ctx.session->tree_in);
+	del_node = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, "cwmp:DeleteObject", NULL, NULL, MXML_DESCEND);
 	n = mxmlFindElement(del_node, del_node, "ObjectName", NULL, NULL, MXML_DESCEND);
 	n = mxmlNewOpaque(n, object);
 	n = mxmlFindElement(del_node, del_node, "ParameterKey", NULL, NULL, MXML_DESCEND);
@@ -452,7 +449,7 @@ static void soap_delete_object_message_test(void **state)
 	assert_int_equal(ret, 0);
 	icwmp_restart_services(RELOAD_IMMIDIATE, true, false);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -465,8 +462,8 @@ static void soap_delete_object_message_test(void **state)
 	n = mxmlFindElement(add_resp, add_resp, "Status", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "1");
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Wrong object path
@@ -479,7 +476,7 @@ static void soap_delete_object_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_delete_object(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -498,8 +495,8 @@ static void soap_delete_object_message_test(void **state)
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Not writable & Valid object path
@@ -511,7 +508,7 @@ static void soap_delete_object_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_delete_object(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -530,8 +527,8 @@ static void soap_delete_object_message_test(void **state)
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9005");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Invalid parameterkey
@@ -543,7 +540,7 @@ static void soap_delete_object_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_delete_object(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -562,10 +559,10 @@ static void soap_delete_object_message_test(void **state)
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(n)), "9003");
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
-	cwmp_main->session->head_rpc_acs.next = NULL;
+	cwmp_ctx.session->head_rpc_acs.next = NULL;
 	unit_test_end_test_destruction();
 	clean_name_space();
 }
@@ -574,9 +571,9 @@ static void prepare_gpa_soap_request(char *parameter)
 {
 	mxml_node_t *n = NULL;
 
-	cwmp_main->session->tree_in = mxmlLoadString(NULL, CWMP_GETATTRIBUTES_REQ, MXML_OPAQUE_CALLBACK);
-	xml_recreate_namespace(cwmp_main->session->tree_in);
-	n = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, "cwmp:GetParameterAttributes", NULL, NULL, MXML_DESCEND);
+	cwmp_ctx.session->tree_in = mxmlLoadString(NULL, CWMP_GETATTRIBUTES_REQ, MXML_OPAQUE_CALLBACK);
+	xml_recreate_namespace(cwmp_ctx.session->tree_in);
+	n = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, "cwmp:GetParameterAttributes", NULL, NULL, MXML_DESCEND);
 	n = mxmlFindElement(n, n, "ParameterNames", NULL, NULL, MXML_DESCEND);
 	n = mxmlNewElement(n, "string");
 	n = mxmlNewOpaque(n, parameter);
@@ -597,7 +594,7 @@ static void soap_get_parameter_attributes_message_test(void **state)
 	int ret = cwmp_handle_rpc_cpe_get_parameter_attributes(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -619,8 +616,8 @@ static void soap_get_parameter_attributes_message_test(void **state)
 	n = mxmlFindElement(param_attr, param_attr, "AccessList", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Not Valid path
@@ -635,7 +632,7 @@ static void soap_get_parameter_attributes_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_get_parameter_values(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -658,10 +655,10 @@ static void soap_get_parameter_attributes_message_test(void **state)
 	assert_string_equal(mxmlGetOpaque(mxmlGetFirstChild(detail_code)), "9005");
 	detail_string = mxmlFindElement(detail, detail, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(detail_string);
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
-	cwmp_main->session->head_rpc_acs.next = NULL;
+	cwmp_ctx.session->head_rpc_acs.next = NULL;
 	unit_test_end_test_destruction();
 	clean_name_space();
 }
@@ -670,9 +667,9 @@ static void prepare_spa_soap_request(char *parameter, char *notification, char *
 {
 	mxml_node_t *n = NULL, *set_attr = NULL;
 
-	cwmp_main->session->tree_in = mxmlLoadString(NULL, CWMP_SETATTRIBUTES_REQ, MXML_OPAQUE_CALLBACK);
-	xml_recreate_namespace(cwmp_main->session->tree_in);
-	set_attr = mxmlFindElement(cwmp_main->session->tree_in, cwmp_main->session->tree_in, "SetParameterAttributesStruct", NULL, NULL, MXML_DESCEND);
+	cwmp_ctx.session->tree_in = mxmlLoadString(NULL, CWMP_SETATTRIBUTES_REQ, MXML_OPAQUE_CALLBACK);
+	xml_recreate_namespace(cwmp_ctx.session->tree_in);
+	set_attr = mxmlFindElement(cwmp_ctx.session->tree_in, cwmp_ctx.session->tree_in, "SetParameterAttributesStruct", NULL, NULL, MXML_DESCEND);
 	n = mxmlFindElement(set_attr, set_attr, "Name", NULL, NULL, MXML_DESCEND);
 	n = mxmlNewOpaque(n, parameter);
 	n = mxmlFindElement(set_attr, set_attr, "Notification", NULL, NULL, MXML_DESCEND);
@@ -696,7 +693,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	int ret = cwmp_handle_rpc_cpe_set_parameter_attributes(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -707,8 +704,8 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	n = mxmlFindElement(n, n, "cwmp:SetParameterAttributesResponse", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 	assert_null(mxmlGetFirstChild(n));
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Not Valid path
@@ -720,7 +717,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_set_parameter_attributes(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -740,8 +737,8 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Not Valid Notification value
@@ -752,7 +749,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_set_parameter_attributes(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -772,8 +769,8 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Invalid Notification String
@@ -785,7 +782,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_set_parameter_attributes(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -805,8 +802,8 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
 	/*
 	 * Invalid NotificationChange
@@ -818,7 +815,7 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	ret = cwmp_handle_rpc_cpe_set_parameter_attributes(rpc_cpe);
 	assert_int_equal(ret, 0);
 
-	env = mxmlFindElement(cwmp_main->session->tree_out, cwmp_main->session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
+	env = mxmlFindElement(cwmp_ctx.session->tree_out, cwmp_ctx.session->tree_out, "soap_env:Envelope", NULL, NULL, MXML_DESCEND);
 	assert_non_null(env);
 	n = mxmlFindElement(env, env, "soap_env:Header", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
@@ -838,10 +835,10 @@ static void soap_set_parameter_attributes_message_test(void **state)
 	n = mxmlFindElement(cwmp_fault, cwmp_fault, "FaultString", NULL, NULL, MXML_DESCEND);
 	assert_non_null(n);
 
-	MXML_DELETE(cwmp_main->session->tree_in);
-	MXML_DELETE(cwmp_main->session->tree_out);
+	MXML_DELETE(cwmp_ctx.session->tree_in);
+	MXML_DELETE(cwmp_ctx.session->tree_out);
 
-	cwmp_main->session->head_rpc_acs.next = NULL;
+	cwmp_ctx.session->head_rpc_acs.next = NULL;
 	unit_test_end_test_destruction();
 	clean_name_space();
 }

@@ -43,10 +43,10 @@ void http_set_timeout(void)
 
 int icwmp_http_client_init()
 {
-	if (CWMP_STRLEN(cwmp_main->conf.acs_url) == 0)
+	if (CWMP_STRLEN(cwmp_ctx.conf.acs_url) == 0)
 		return -1;
 
-	CWMP_LOG(INFO, "ACS url: %s", cwmp_main->conf.acs_url);
+	CWMP_LOG(INFO, "ACS url: %s", cwmp_ctx.conf.acs_url);
 
 	curl_global_init(CURL_GLOBAL_SSL);
 	curl_glob_init = true;
@@ -103,17 +103,17 @@ static size_t http_get_response(void *buffer, size_t size, size_t rxed, void *us
 
 static void http_set_security_options()
 {
-	curl_easy_setopt(curl, CURLOPT_USERNAME, cwmp_main->conf.acs_userid);
-	curl_easy_setopt(curl, CURLOPT_PASSWORD, cwmp_main->conf.acs_passwd);
+	curl_easy_setopt(curl, CURLOPT_USERNAME, cwmp_ctx.conf.acs_userid);
+	curl_easy_setopt(curl, CURLOPT_PASSWORD, cwmp_ctx.conf.acs_passwd);
 	curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC | CURLAUTH_DIGEST);
 
-	if (CWMP_STRLEN(cwmp_main->conf.acs_ssl_capath) !=0 ) {
-		curl_easy_setopt(curl, CURLOPT_CAPATH, cwmp_main->conf.acs_ssl_capath);
-	} else if (CWMP_STRLEN(cwmp_main->conf.acs_ssl_cabundle) != 0) {
-		curl_easy_setopt(curl, CURLOPT_CAINFO, cwmp_main->conf.acs_ssl_cabundle);
+	if (CWMP_STRLEN(cwmp_ctx.conf.acs_ssl_capath) !=0 ) {
+		curl_easy_setopt(curl, CURLOPT_CAPATH, cwmp_ctx.conf.acs_ssl_capath);
+	} else if (CWMP_STRLEN(cwmp_ctx.conf.acs_ssl_cabundle) != 0) {
+		curl_easy_setopt(curl, CURLOPT_CAINFO, cwmp_ctx.conf.acs_ssl_cabundle);
 	}
 
-	if (cwmp_main->conf.insecure_enable) {
+	if (cwmp_ctx.conf.insecure_enable) {
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
 	}
@@ -121,7 +121,7 @@ static void http_set_security_options()
 
 static void http_set_connection_options()
 {
-	curl_easy_setopt(curl, CURLOPT_URL, cwmp_main->conf.acs_url);
+	curl_easy_setopt(curl, CURLOPT_URL, cwmp_ctx.conf.acs_url);
 
 	curl_easy_setopt(curl, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
 	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, HTTP_TIMEOUT);
@@ -130,11 +130,11 @@ static void http_set_connection_options()
 	curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
 	curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL);
 	curl_easy_setopt(curl, CURLOPT_NOBODY, 0);
-	curl_easy_setopt(curl, CURLOPT_IPRESOLVE, cwmp_main->net.ip_resolve);
+	curl_easy_setopt(curl, CURLOPT_IPRESOLVE, cwmp_ctx.net.ip_resolve);
 
 
-	if (cwmp_main->net.use_curl_ifname && CWMP_STRLEN(cwmp_main->net.interface))
-		curl_easy_setopt(curl, CURLOPT_INTERFACE, cwmp_main->net.interface);
+	if (cwmp_ctx.net.use_curl_ifname && CWMP_STRLEN(cwmp_ctx.net.interface))
+		curl_easy_setopt(curl, CURLOPT_INTERFACE, cwmp_ctx.net.interface);
 }
 
 static bool valid_cookie_path(const char *cookie)
@@ -232,7 +232,7 @@ static void http_filter_valid_cookie()
 
 static void http_set_header_list_options()
 {
-	switch (cwmp_main->conf.compression) {
+	switch (cwmp_ctx.conf.compression) {
 	case COMP_NONE:
 		break;
 	case COMP_GZIP:
@@ -277,7 +277,7 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 	if (!header_list)
 		return -1;
 
-	if (cwmp_main->conf.http_disable_100continue) {
+	if (cwmp_ctx.conf.http_disable_100continue) {
 		header_list = curl_slist_append(header_list, "Expect:");
 		if (!header_list)
 			return -1;
@@ -311,8 +311,8 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 
 	curl_easy_getinfo(curl, CURLINFO_PRIMARY_IP, &ip);
 	if (CWMP_STRLEN(ip)) {
-		if (cwmp_main->ip_acs[0] == '\0' || strcmp(cwmp_main->ip_acs, ip) != 0) {
-			CWMP_STRNCPY(cwmp_main->ip_acs, ip, sizeof(cwmp_main->ip_acs));
+		if (cwmp_ctx.ip_acs[0] == '\0' || strcmp(cwmp_ctx.ip_acs, ip) != 0) {
+			CWMP_STRNCPY(cwmp_ctx.ip_acs, ip, sizeof(cwmp_ctx.ip_acs));
 			tmp = inet_pton(AF_INET, ip, buf);
 			if (tmp == 1) {
 				tmp = 0;
@@ -321,13 +321,13 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 			}
 
 			if (tmp) {
-				set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip6", cwmp_main->ip_acs);
+				set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip6", cwmp_ctx.ip_acs);
 			} else {
-				set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip", cwmp_main->ip_acs);
+				set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip", cwmp_ctx.ip_acs);
 			}
 
 			// Trigger firewall to reload firewall.cwmp
-			if (cwmp_main->cr_policy != CR_POLICY_Port_Only) {
+			if (cwmp_ctx.cr_policy != CR_POLICY_Port_Only) {
 				// Flawfinder: ignore
 				FILE *pp = popen(FIREWALL_CWMP, "r");
 				if (pp) {
@@ -343,7 +343,7 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 	}
 
 	if (http_code == 415) {
-		cwmp_main->conf.compression = COMP_NONE;
+		cwmp_ctx.conf.compression = COMP_NONE;
 		goto error;
 	}
 	if (http_code != 200 && http_code != 204)
@@ -404,10 +404,10 @@ static void http_cr_new_client(int client, bool service_available)
 	int status = 0;
 
 	pthread_mutex_lock(&mutex_config_load);
-	char *username = (strlen(cwmp_main->conf.cpe_userid) != 0) ? strdup(cwmp_main->conf.cpe_userid) : NULL;
-	char *password = (strlen(cwmp_main->conf.cpe_passwd) != 0) ? strdup(cwmp_main->conf.cpe_passwd) : NULL;
-	char *cr_path = (strlen(cwmp_main->conf.connection_request_path) != 0) ? strdup(cwmp_main->conf.connection_request_path) : NULL;
-	int cr_timeout = cwmp_main->conf.cr_timeout;
+	char *username = (strlen(cwmp_ctx.conf.cpe_userid) != 0) ? strdup(cwmp_ctx.conf.cpe_userid) : NULL;
+	char *password = (strlen(cwmp_ctx.conf.cpe_passwd) != 0) ? strdup(cwmp_ctx.conf.cpe_passwd) : NULL;
+	char *cr_path = (strlen(cwmp_ctx.conf.connection_request_path) != 0) ? strdup(cwmp_ctx.conf.connection_request_path) : NULL;
+	int cr_timeout = cwmp_ctx.conf.cr_timeout;
 	pthread_mutex_unlock(&mutex_config_load);
 
 	if (!username || !password) {
@@ -568,7 +568,7 @@ static void http_cr_new_client(int client, bool service_available)
 	}
 
 	CWMP_LOG(DEBUG, "Received host: (%s)", request_host);
-	int auth_check = validate_http_digest_auth("GET", cr_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, cwmp_main->conf.session_timeout, request_host);
+	int auth_check = validate_http_digest_auth("GET", cr_path, auth_digest_buffer + strlen("Authorization: Digest "), REALM, username, password, cwmp_ctx.conf.session_timeout, request_host);
 
 	if (auth_check == -1) { /* invalid nonce */
 		CWMP_LOG(INFO, "Auth check failed for incoming CR");
@@ -637,26 +637,26 @@ void icwmp_http_server_init(void)
 {
 	struct sockaddr_in6 server = { 0 };
 	unsigned short cr_port;
-	unsigned short prev_cr_port = (unsigned short)(cwmp_main->conf.connection_request_port);
+	unsigned short prev_cr_port = (unsigned short)(cwmp_ctx.conf.connection_request_port);
 
 	for (;;) {
-		cr_port = (unsigned short)(cwmp_main->conf.connection_request_port);
+		cr_port = (unsigned short)(cwmp_ctx.conf.connection_request_port);
 		unsigned short i = (DEFAULT_CONNECTION_REQUEST_PORT == cr_port) ? 1 : 0;
 		//Create socket
 		if (cwmp_stop)
 			return;
 
-		cwmp_main->cr_socket_desc = socket(AF_INET6, SOCK_STREAM, 0);
-		if (cwmp_main->cr_socket_desc == -1) {
+		cwmp_ctx.cr_socket_desc = socket(AF_INET6, SOCK_STREAM, 0);
+		if (cwmp_ctx.cr_socket_desc == -1) {
 			CWMP_LOG(ERROR, "Could not open server socket for Connection Requests, Error no is : %d, Error description is : %s", errno, strerror(errno));
 			sleep(1);
 			continue;
 		}
 
-		fcntl(cwmp_main->cr_socket_desc, F_SETFD, fcntl(cwmp_main->cr_socket_desc, F_GETFD) | FD_CLOEXEC);
+		fcntl(cwmp_ctx.cr_socket_desc, F_SETFD, fcntl(cwmp_ctx.cr_socket_desc, F_GETFD) | FD_CLOEXEC);
 
 		int reusaddr = 1;
-		if (setsockopt(cwmp_main->cr_socket_desc, SOL_SOCKET, SO_REUSEADDR, &reusaddr, sizeof(int)) < 0) {
+		if (setsockopt(cwmp_ctx.cr_socket_desc, SOL_SOCKET, SO_REUSEADDR, &reusaddr, sizeof(int)) < 0) {
 			CWMP_LOG(WARNING, "setsockopt(SO_REUSEADDR) failed");
 		}
 
@@ -670,7 +670,7 @@ void icwmp_http_server_init(void)
 
 			server.sin6_port = htons(cr_port);
 			//Bind
-			if (bind(cwmp_main->cr_socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
+			if (bind(cwmp_ctx.cr_socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
 				//print the error message
 				CWMP_LOG(ERROR, "Could not bind server socket on the port %d, Error no is : %d, Error description is : %s", cr_port, errno, strerror(errno));
 				cr_port = DEFAULT_CONNECTION_REQUEST_PORT + i;
@@ -707,7 +707,7 @@ void icwmp_http_server_listen(void)
 	struct sockaddr_in6 client;
 
 	//Listen
-	listen(cwmp_main->cr_socket_desc, 5);
+	listen(cwmp_ctx.cr_socket_desc, 5);
 
 	//Accept and incoming connection
 	c = sizeof(struct sockaddr_in);
@@ -715,12 +715,12 @@ void icwmp_http_server_listen(void)
 		if (cwmp_stop)
 			return;
 
-		int client_sock = accept(cwmp_main->cr_socket_desc, (struct sockaddr *)&client, (socklen_t *)&c);
+		int client_sock = accept(cwmp_ctx.cr_socket_desc, (struct sockaddr *)&client, (socklen_t *)&c);
 		if (client_sock < 0) {
 			CWMP_LOG(ERROR, "Could not accept connections for Connection Request!");
-			shutdown(cwmp_main->cr_socket_desc, SHUT_RDWR);
+			shutdown(cwmp_ctx.cr_socket_desc, SHUT_RDWR);
 			icwmp_http_server_init();
-			listen(cwmp_main->cr_socket_desc, 5);
+			listen(cwmp_ctx.cr_socket_desc, 5);
 			cr_request = 0;
 			restrict_start_time = 0;
 			continue;

@@ -31,7 +31,6 @@ static LIST_HEAD(xml_param_list);
 
 static int dm_iface_unit_tests_init(void **state)
 {
-	cwmp_main = (struct cwmp*)calloc(1, sizeof(struct cwmp));
 	create_cwmp_session_structure();
 	cwmp_session_init();
 	get_global_config();
@@ -45,7 +44,6 @@ static int dm_iface_unit_tests_clean(void **state)
 	cwmp_free_all_xml_data_list(&xml_param_list);
 	cwmp_session_exit();
 	clean_cwmp_session_structure();
-	FREE(cwmp_main);
 	return 0;
 }
 

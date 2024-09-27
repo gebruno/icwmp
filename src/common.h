@@ -629,12 +629,14 @@ typedef struct {
 	char path[1024];
 } path_list_t;
 
-extern struct cwmp *cwmp_main;
+extern struct cwmp cwmp_ctx;
 extern unsigned int flashsize;
 extern struct FAULT_CPE FAULT_CPE_ARRAY[];
 extern struct cwmp_namespaces ns;
 extern struct session_timer_event *global_session_event;
 
+void add_dm_parameter_to_list_without_check(struct list_head *head, const char *param_name, const char *param_val,
+			      const char *param_type, bool writable);
 void add_dm_parameter_to_list(struct list_head *head, const char *param_name, const char *param_data,
 			      const char *param_type, int notification, bool writable);
 void add_dm_alias_to_list(struct list_head *head, char *param_name, char *param_data, char **l_param, char **l_trans);

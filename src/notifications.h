@@ -50,6 +50,6 @@ char *calculate_lwnotification_cnonce();
 void clean_list_param_notify();
 void init_list_param_notify();
 void reinit_list_param_notify();
-void cwmp_prepare_value_change();
+void cwmp_prepare_value_change(void);
 void trigger_periodic_notify_check();
 #endif /* SRC_INC_NOTIFICATIONS_H_ */
