@@ -952,7 +952,8 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 			goto build_response;
 		}
 
-		if (index_count == 0) { // Not an multi-instance object path
+		len = CWMP_STRLEN(inst_path);
+		if (index_count == 0 || len == 0) { // Not an multi-instance object path
 			FREE(inst_path);
 			goto build_response;
 		}
@@ -965,7 +966,8 @@ int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc)
 
 		struct cwmp_dm_parameter *pv = NULL;
 		list_for_each_entry (pv, &params_list, list) {
-			if (CWMP_STRCMP(pv->name, inst_path) == 0) {
+			if (CWMP_STRCMP(pv->name, inst_path) == 0 ||
+			    (CWMP_STRNCMP(pv->name, inst_path, len) == 0 && CWMP_STRCMP(pv->name + len, "{i}.") == 0)) {
 				err = NULL;
 				break;
 			}
