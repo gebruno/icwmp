@@ -74,7 +74,8 @@
 #define BUF_SIZE_2048 (2048 + 1)
 
 #define ICWMP_TMP_PATH "/tmp/icwmp"
-#define FIREWALL_CWMP "/etc/firewall.cwmp"
+#define VENDOR_LOG_SCRIPT "/etc/icwmpd/vendor_log.sh"
+#define FIREWALL_CWMP "/etc/icwmpd/firewall.cwmp"
 #define CWMP_CRITICAL_SERVICES "/etc/icwmpd/critical_services.json"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
 #define DM_IP_INTERFACE_PATH "Device\\.IP\\.Interface\\."

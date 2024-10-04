@@ -21,6 +21,7 @@
 #include "subprocess.h"
 #include "session.h"
 #include "uci_utils.h"
+#include "ubus_utils.h"
 
 #define CURL_TIMEOUT 30
 
@@ -48,22 +49,31 @@ static int lookup_vcf_name(int instance, char **value)
 	return 0;
 }
 
-static int lookup_vlf_name(int instance, char **value)
+static int generate_log_archive(int instance, char *url)
 {
-	char vlf_name_parameter[256];
-	LIST_HEAD(vlf_parameters);
-	snprintf(vlf_name_parameter, sizeof(vlf_name_parameter), "Device.DeviceInfo.VendorLogFile.%d.Name", instance);
-	if (cwmp_get_parameter_values(vlf_name_parameter, &vlf_parameters) != NULL) {
-		CWMP_LOG(ERROR, "Not able to get the value of the parameter %s", vlf_name_parameter);
-		return -1;
-	}
-	struct cwmp_dm_parameter *param_value = NULL;
-	list_for_each_entry (param_value, &vlf_parameters, list) {
-		*value = param_value->value ? strdup(param_value->value) : NULL;
-		break;
-	}
-	cwmp_free_all_dm_parameter_list(&vlf_parameters);
-	return 0;
+	char vlf_upload_operate[256];
+	struct blob_buf b = {0};
+
+	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
+	blob_buf_init(&b, 0);
+
+	snprintf(vlf_upload_operate, sizeof(vlf_upload_operate), "Device.DeviceInfo.VendorLogFile.%d.Upload()", instance);
+
+	bb_add_string(&b, "command", vlf_upload_operate);
+	bb_add_string(&b, "command_key", "vendor_log_upload");
+
+	void *tbl = blobmsg_open_table(&b, "input");
+	bb_add_string(&b, "URL", url);
+	bb_add_string(&b, "Username", "");
+	bb_add_string(&b, "Password", "");
+
+	blobmsg_close_table(&b, tbl);
+
+	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "operate", b.head, NULL, NULL);
+
+	blob_buf_free(&b);
+
+	return e;
 }
 
 /*
@@ -239,17 +249,29 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 		snprintf(file_path, sizeof(file_path), "%s/all_configs", ICWMP_TMP_PATH);
 		export_std_uci(file_path);
 	} else if (pupload->file_type[0] == '2') {
-		lookup_vlf_name(1, &name);
-		if (name && strlen(name) > 0) {
-			snprintf(file_path, sizeof(file_path), "%s/messages", ICWMP_TMP_PATH);
-			if (copy(name, file_path) != 0) {
+		if (file_exists(VENDOR_LOG_SCRIPT)) {
+			char cmd[256] = {0};
+
+			snprintf(cmd, sizeof(cmd), "sh %s", VENDOR_LOG_SCRIPT);
+			memset(file_path, 0, sizeof(file_path));
+
+			FILE *pp = popen(cmd, "r"); // flawfinder: ignore
+			if (pp != NULL) {
+				fgets(file_path, sizeof(file_path), pp);
+				pclose(pp);
+			}
+
+			int path_len = strlen(file_path);
+			if (path_len == 0) {
 				error = FAULT_CPE_UPLOAD_FAILURE;
-				snprintf(err_msg, sizeof(err_msg), "Failed to copy the file content from %s to %s", file_path, name);
-				FREE(name);
+				snprintf(err_msg, sizeof(err_msg), "No log file to upload");
+			} else {
+				if (file_path[path_len - 1] == '\n')
+					file_path[path_len - 1] = '\0';
 			}
 		} else {
 			error = FAULT_CPE_UPLOAD_FAILURE;
-			snprintf(err_msg, sizeof(err_msg), "No filename found");
+			snprintf(err_msg, sizeof(err_msg), "Error in generating log file");
 		}
 	} else if (pupload->file_type[0] == '3') {
 		lookup_vcf_name(pupload->f_instance, &name);
@@ -263,18 +285,19 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 			goto end_upload;
 		}
 	} else { //file_type is 4
-		lookup_vlf_name(pupload->f_instance, &name);
-		if (name && strlen(name) > 0) {
-			snprintf(file_path, sizeof(file_path), "%s/.cwmp_upload", ICWMP_TMP_PATH);
-			if (copy(name, file_path) != 0) {
-				error = FAULT_CPE_UPLOAD_FAILURE;
-				snprintf(err_msg, sizeof(err_msg), "Failed to copy the file content from %s to %s", file_path, name);
-				FREE(name);
-			}
-			FREE(name);
-		} else {
+		char arch_path[135] = {0};
+
+		snprintf(file_path, sizeof(file_path), "%s/.cwmp_upload.tar", ICWMP_TMP_PATH);
+		snprintf(arch_path, sizeof(arch_path), "file://%s", file_path);
+
+		if (0 != generate_log_archive(pupload->f_instance, arch_path)) {
 			error = FAULT_CPE_UPLOAD_FAILURE;
-			snprintf(err_msg, sizeof(err_msg), "No filename found");
+			snprintf(err_msg, sizeof(err_msg), "Internal error to archive the log files");
+		}
+
+		if (!file_exists(file_path)) {
+			error = FAULT_CPE_UPLOAD_FAILURE;
+			snprintf(err_msg, sizeof(err_msg), "Failed to archive the logs");
 		}
 	}
 
@@ -286,7 +309,7 @@ int cwmp_launch_upload(struct upload *pupload, struct transfer_complete **ptrans
 	}
 
 	int ret = upload_file_in_subprocess(file_path, pupload->url, pupload->username, pupload->password);
-	if (ret == 200 || ret == 204)
+	if (ret == 200 || ret == 201 || ret == 204)
 		error = FAULT_CPE_NO_FAULT;
 	else {
 		error = FAULT_CPE_UPLOAD_FAILURE;

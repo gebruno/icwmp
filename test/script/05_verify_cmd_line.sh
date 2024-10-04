@@ -8,14 +8,14 @@ TEST_NAME="ICWMP COMMAND LINE"
 log "Running: $TEST_NAME"
 
 log "GET METHOD: Correct Path"
-res=$(./icwmpd -c get Device.DeviceInfo.VendorLogFile.1.Alias 2>&1)
+res=$(./icwmpd -c get Device.DeviceInfo.VendorConfigFile.1.Alias 2>&1)
 if [[ $res != *"cpe-1"* ]]; then
 	log "Error: Get Method with correct path doesn't work correctly"
 	exit 1
 fi
 
 log "GET METHOD: Wrong Path"
-res=$(./icwmpd -c get Device.DeviceInfo.VendorLogFile.1.Alia 2>&1)
+res=$(./icwmpd -c get Device.DeviceInfo.VendorConfigFile.1.Alia 2>&1)
 if [[ $res != *"9005"* ]]; then
 	log "Error: Get Method with wrong path doesn't work correctly"
 	exit 1
@@ -43,21 +43,21 @@ if [[ $res != *"9007"* ]]; then
 fi
 
 log "GET NAME METHOD: Correct Path && level"
-res=$(./icwmpd -c get_names Device.DeviceInfo.VendorLogFile.1.Alias 0 2>&1)
+res=$(./icwmpd -c get_names Device.DeviceInfo.VendorConfigFile.1.Alias 0 2>&1)
 if [[ $res != *"=> writable"* ]]; then
 	log "Error: Get Name Method with correct path && level doesn't work correctly"
 	exit 1
 fi
 
 log "GET NAME METHOD: Correct Path && Wrong level"
-res=$(./icwmpd -c get_names Device.DeviceInfo.VendorLogFile.1.Alias 1 2>&1)
+res=$(./icwmpd -c get_names Device.DeviceInfo.VendorConfigFile.1.Alias 1 2>&1)
 if [[ $res != *"9003"* ]]; then
 	log "Error: Get Name Method with correct path && wrong level doesn't work correctly"
 	exit 1
 fi
 
 log "GET NAME METHOD: Wrong Path && Correct level"
-res=$(./icwmpd -c get_names Device.DeviceInfo.VendorLogFile.1.Ali 0 2>&1)
+res=$(./icwmpd -c get_names Device.DeviceInfo.VendorConfigFile.1.Ali 0 2>&1)
 if [[ $res != *"9005"* ]]; then
 	log "Error: Get Name Method with wrong path && correct level doesn't work correctly"
 	exit 1
@@ -71,21 +71,21 @@ if [[ $res != *"=> active"* ]]; then
 fi
 
 log "GET NOTIFICATION METHOD: Wrong Path"
-res=$(./icwmpd -c get_notif Device.DeviceInfo.VendorLogFile.1.Ali 2>&1)
+res=$(./icwmpd -c get_notif Device.DeviceInfo.VendorConfigFile.1.Ali 2>&1)
 if [[ $res != *"9005"* ]]; then
 	log "Error: Get Notification Method with wrong path doesn't work correctly"
 	exit 1
 fi
 
 log "SET NOTIFICATION METHOD: Correct Path"
-res=$(./icwmpd -c set_notif Device.DeviceInfo.VendorLogFile.1.Alias 2 2>&1)
+res=$(./icwmpd -c set_notif Device.DeviceInfo.VendorConfigFile.1.Alias 2 2>&1)
 if [[ $res != *"=> 2"* ]]; then
 	log "Error: Set Notification Method with correct path doesn't work correctly"
 	exit 1
 fi
 
 log "SET NOTIFICATION METHOD: Wrong Path"
-res=$(./icwmpd -c set_notif Device.DeviceInfo.VendorLogFile.1.Ali 1 2>&1)
+res=$(./icwmpd -c set_notif Device.DeviceInfo.VendorConfigFile.1.Ali 1 2>&1)
 if [[ $res != *"9005"* ]]; then
 	log "Error: Set Notification Method with wrong path doesn't work correctly"
 	exit 1
@@ -108,14 +108,14 @@ fi
 del_path=$(echo "${res}" | cut -d' ' -f 2)
 
 log "ADD METHOD: Wrong Path"
-res=$(./icwmpd -c add Device.DeviceInfo.VendorLogFil 2>&1)
+res=$(./icwmpd -c add Device.DeviceInfo.VendorConfigFil 2>&1)
 if [[ $res != *"9005"* ]]; then
 	log "Error: Add Method with wrong path doesn't work correctly"
 	exit 1
 fi
 
 log "DELETE METHOD: Wrong Path"
-res=$(./icwmpd -c del Device.DeviceInfo.VendorLogFil 2>&1)
+res=$(./icwmpd -c del Device.DeviceInfo.VendorConfigFil 2>&1)
 if [[ $res != *"9005"* ]]; then
 	log "Error: Delete Method with wrong path doesn't work correctly"
 	exit 1
