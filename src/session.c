@@ -724,14 +724,6 @@ int run_session_end_func(void)
 		cwmp_selftest_diagnostics();
 	}
 
-	if (cwmp_ctx.diag_session) {
-		struct session_timer_event *periodic_inform_event = calloc(1, sizeof(struct session_timer_event));
-		periodic_inform_event->session_timer_evt.cb = cwmp_schedule_session_with_event;
-		periodic_inform_event->event = EVENT_IDX_8DIAGNOSTICS_COMPLETE;
-		trigger_cwmp_session_timer_with_event(&periodic_inform_event->session_timer_evt);
-		cwmp_ctx.diag_session = false;
-	}
-
 	if (end_session_flag & END_SESSION_DOWNLOAD) {
 		CWMP_LOG(INFO, "Apply Downaload Calls");
 		apply_downloads();

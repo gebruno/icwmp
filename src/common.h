@@ -197,7 +197,6 @@ typedef struct cwmp {
 	bool prev_periodic_enable;
 	bool prev_heartbeat_enable;
 	bool heart_session;
-	bool diag_session;
 	bool throttle_session;
 	int prev_periodic_interval;
 	int prev_heartbeat_interval;

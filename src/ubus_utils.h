@@ -15,9 +15,12 @@
 #include "common.h"
 
 typedef void (*icwmp_ubus_cb)(struct ubus_request *req, int type, struct blob_attr *msg);
+typedef void (*icwmp_ubus_async_cb)(struct ubus_request *req, int ret);
 void bb_add_string(struct blob_buf *bb, const char *name, const char *value);
 int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg,
 		      icwmp_ubus_cb icwmp_callback, void *callback_arg);
+int icwmp_ubus_invoke_async(const char *obj, const char *method, struct blob_attr *msg,
+		      icwmp_ubus_cb data_callback, icwmp_ubus_async_cb complete_callback);
 int icwmp_uloop_ubus_register(void);
 void icwmp_uloop_ubus_exit(void);
 int initiate_autonomous_complpolicy(void);

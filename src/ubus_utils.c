@@ -470,6 +470,51 @@ int icwmp_ubus_invoke(const char *obj, const char *method, struct blob_attr *msg
 	return rc;
 }
 
+int icwmp_ubus_invoke_async(const char *obj, const char *method, struct blob_attr *msg,
+			    icwmp_ubus_cb data_callback, icwmp_ubus_async_cb complete_callback)
+{
+	uint32_t id;
+	int fault = UBUS_STATUS_OK;
+	struct ubus_request *req;
+
+	if (ubus_ctx == NULL) {
+		CWMP_LOG(ERROR, "Failed to connect with ubus err: %d", errno);
+		return -1;
+	}
+
+	fault = ubus_lookup_id(ubus_ctx, obj, &id);
+	if (fault) {
+		CWMP_LOG(ERROR, "failed to lookup object: %s", obj);
+		return -1;
+	}
+
+	req = (struct ubus_request *)malloc(sizeof(struct ubus_request));
+	if (req == NULL) {
+		CWMP_LOG(ERROR, "failed to allocate memory for ubus request");
+		return -1;
+	}
+
+	memset(req, 0, sizeof(struct ubus_request));
+
+	fault = ubus_invoke_async(ubus_ctx, id, method, msg, req);
+	if (fault) {
+		CWMP_LOG(ERROR, "ubus async call failed");
+		FREE(req);
+		return -1;
+	}
+
+	if (data_callback) {
+		req->data_cb = data_callback;
+	}
+
+	if (complete_callback) {
+		req->complete_cb = complete_callback;
+	}
+
+	ubus_complete_request_async(ubus_ctx, req);
+	return 0;
+}
+
 int initiate_autonomous_complpolicy(void)
 {
 	cwmp_ctx.ev = (struct ubus_event_handler *)malloc(sizeof(struct ubus_event_handler));
