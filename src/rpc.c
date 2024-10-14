@@ -32,6 +32,8 @@
 #define PROCESSING_DELAY (1) // In download/upload the message enqueued before sending the response, which cause the download/upload
 			     // to start just before the time. This delay is to compensate the time lapsed during the message enqueue and response
 
+#define CONNECTION_REQUEST_URL "Device.ManagementServer.ConnectionRequestURL"
+
 static int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc);
 static int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc);
 static int cwmp_handle_rpc_cpe_get_parameter_names(struct rpc *rpc);
@@ -349,6 +351,13 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 		struct event_container *event_container = list_entry(ilist, struct event_container, list);
 		list_for_each (jlist, &(event_container->head_dm_parameter)) {
 			dm_parameter = list_entry(jlist, struct cwmp_dm_parameter, list);
+
+			// connection request url has dynamic value from the network interface, which could have been changed.
+			// it will be added in the force inform list in the next step
+			if (strcmp(dm_parameter->name, CONNECTION_REQUEST_URL) == 0) {
+				continue;
+			}
+
 			if (xml_prepare_parameters_inform(dm_parameter, param_list, &size))
 				goto error;
 		}
@@ -358,12 +367,16 @@ static void load_inform_xml_schema(mxml_node_t **tree)
 	force_inform_node *iter = NULL, *node = NULL;
 
 	list_for_each_entry_safe(iter, node, &force_inform_list, list) {
-		if (!cwmp_get_parameter_value(iter->path, &cwmp_dm_param))
+		if (!cwmp_get_parameter_value(iter->path, &cwmp_dm_param)) {
+			if (strcmp(iter->path, CONNECTION_REQUEST_URL) == 0) {
+				CWMP_LOG(ERROR, "Failed to get parameter value for CR URL[%s]", iter->path);
+				goto error;
+			}
 			continue;
+		}
 
 		// An empty connection url cause CDR test to break
-		if (strcmp(iter->path, "Device.ManagementServer.ConnectionRequestURL") == 0 &&
-				CWMP_STRLEN(cwmp_dm_param.value) == 0) {
+		if (strcmp(iter->path, CONNECTION_REQUEST_URL) == 0 && CWMP_STRLEN(cwmp_dm_param.value) == 0) {
 			CWMP_LOG(ERROR, "# Empty CR URL[%s] value", iter->path);
 			goto error;
 		}
