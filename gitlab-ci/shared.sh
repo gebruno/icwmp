@@ -159,7 +159,7 @@ function install_netmngr_as_plugin()
 
 	exec_cmd git clone https://dev.iopsys.eu/network/netmngr.git /opt/dev/netmngr
 
-	exec_cmd make -C /opt/dev/netmngr/src/ clean && make -C /opt/dev/netmngr/src/
+	exec_cmd make -C /opt/dev/netmngr/src/ clean && make -C /opt/dev/netmngr/src/ CFLAGS+="-DBBF_VENDOR_PREFIX=\\\"X_IOPSYS_EU_\\\""
 	exec_cmd cp -f /opt/dev/netmngr/src/libnetmngr.so /usr/share/bbfdm/plugins/
 	exec_cmd cp -f /opt/dev/netmngr/src/libinterface_stack.so /usr/share/bbfdm/plugins/	
 }
