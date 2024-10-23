@@ -304,6 +304,9 @@ void rpc_exit()
 			struct rpc *rpc = list_entry(cwmp_main->session->head_rpc_acs.next, struct rpc, list);
 			if (!rpc)
 				break;
+
+			CWMP_LOG(INFO, "%s: Removed rpc %d", __func__, rpc->type);
+
 			if (rpc_acs_methods[rpc->type].extra_clean != NULL)
 				rpc_acs_methods[rpc->type].extra_clean(rpc);
 			cwmp_session_rpc_destructor(rpc);
@@ -400,6 +403,7 @@ void start_cwmp_session(void)
 	}
 
 	if (cwmp_main->session->error == CWMP_RETRY_SESSION && (!list_empty(&(cwmp_main->session->events)) || (list_empty(&(cwmp_main->session->events)) && cwmp_main->cwmp_cr_event == 0))) { //CWMP Retry session
+		CWMP_LOG(ERROR, "%s: Session will be retried soon", __func__);
 		schedule_session_retry();
 	} else {
 		save_acs_bkp_config();
