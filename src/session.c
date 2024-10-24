@@ -411,6 +411,16 @@ void start_cwmp_session(void)
 
 		cwmp_ctx.retry_count_session = 0;
 		set_cwmp_session_status(SESSION_SUCCESS, 0);
+
+#ifdef PERSIST_BACKUP_SESSION_EVENTS
+		// session ended successfully so store next session events in persistent
+		// storage to avoid loss of events over power cycle
+		if (file_exists(CWMP_BKP_FILE)) {
+			CWMP_LOG(DEBUG, "Copied events backup file to persistent storage");
+			copy(CWMP_BKP_FILE, CWMP_BKP_FILE_PERSISTENT);
+		}
+#endif
+
 		if (cwmp_ctx.throttle_session_triggered == true) {
 			cwmp_ctx.throttle_session_triggered = false;
 			if (!cwmp_ctx.throttle_session) {

@@ -233,6 +233,19 @@ All backup session indexes are successive in the enumeration and starts with `BK
 
 For each kind of backup session data, there are insert functions that call `build_xml_node_data` and load functions that calls `load_xml_node_data`.
 
+### NOTE:
+This backup session feature has been limited to soft reboot and system upgrade, thus in case of power cycle or hard reboot, icwmp can not store the
+data in `/etc/icwmpd/icwmpd_backkup_session.xml`. Due to this limitation there is a chance that icwmp may send wrong event or not send an expected
+event in the first inform message after power up. For e.g: icwmp after power cycle may send `0 BOOTSTRAP` event even though it connects the same ACS.
+
+So, to avoid this problem a compile time flag `PERSIST_BACKUP_SESSION_EVENTS` has been added, by enabling this flag icwmp will store the backup session
+information in flash (persistent storage) drive at every successful session end and after boot up icwmp loads the session information from flash drive
+if there exist any.
+
+#### Precaution:
+This feature will increase the flash write operation, so user need to reconsider about enabling this flag. If flash has less write limit then it is
+better to disable this feature because after exceeding the write limit, flash could be corrupted.
+
 ## UCI and config mangement
 
 - [UCI](./docs/api/uci/cwmp.md)

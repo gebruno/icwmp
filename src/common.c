@@ -469,7 +469,7 @@ int copy(const char *from, const char *to)
 	if (fd_from < 0)
 		return -1;
 
-	fd_to = open(to, O_WRONLY | O_CREAT | O_EXCL, 0666);
+	fd_to = open(to, O_WRONLY | O_CREAT | O_EXCL | O_SYNC, 0666);
 	if (fd_to < 0)
 		goto out_error;
 

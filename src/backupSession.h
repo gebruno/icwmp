@@ -23,6 +23,11 @@
 
 #define CWMP_BACKUP_SESSION "<cwmp></cwmp>"
 #define CWMP_BKP_FILE "/var/run/icwmpd/icwmpd_backup_session.xml"
+
+#ifdef PERSIST_BACKUP_SESSION_EVENTS
+#define CWMP_BKP_FILE_PERSISTENT "/etc/icwmpd/icwmpd_backup_session.xml"
+#endif
+
 typedef enum backup_loading
 {
 	ALL,
