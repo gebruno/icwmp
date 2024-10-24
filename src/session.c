@@ -98,13 +98,6 @@ int cwmp_session_rpc_destructor(struct rpc *rpc)
 	return CWMP_OK;
 }
 
-int cwmp_session_exit()
-{
-	rpc_exit();
-	icwmp_cleanmem();
-	return CWMP_OK;
-}
-
 static int cwmp_rpc_cpe_handle_message(struct rpc *rpc_cpe)
 {
 	if (xml_prepare_msg_out())
@@ -305,11 +298,30 @@ void rpc_exit()
 			if (!rpc)
 				break;
 
-			CWMP_LOG(INFO, "%s: Removed rpc %d", __func__, rpc->type);
-
 			if (rpc_acs_methods[rpc->type].extra_clean != NULL)
 				rpc_acs_methods[rpc->type].extra_clean(rpc);
 			cwmp_session_rpc_destructor(rpc);
+		}
+	}
+	FREE(cwmp_main->session->rpc_cpe);
+}
+
+void remove_inform_getrpc()
+{
+	if (cwmp_main == NULL || cwmp_main->session == NULL)
+		return;
+
+	if (!list_empty(&(cwmp_main->session->head_rpc_acs))) {
+		while (cwmp_main->session->head_rpc_acs.next != &(cwmp_main->session->head_rpc_acs)) {
+			struct rpc *rpc = list_entry(cwmp_main->session->head_rpc_acs.next, struct rpc, list);
+			if (!rpc)
+				break;
+
+			if (rpc->type == RPC_ACS_GET_RPC_METHODS || rpc->type == RPC_ACS_INFORM) {
+				if (rpc_acs_methods[rpc->type].extra_clean != NULL)
+					rpc_acs_methods[rpc->type].extra_clean(rpc);
+				cwmp_session_rpc_destructor(rpc);
+			}
 		}
 	}
 	FREE(cwmp_main->session->rpc_cpe);
@@ -350,8 +362,12 @@ void start_cwmp_session(void)
 	if (is_ipv6_status_changed()) {
 		if (icwmp_check_http_connection() != CWMP_OK || cwmp_stop) {
 			CWMP_LOG(INFO, "Failed to check http connection");
-			if (!cwmp_stop)
+			if (!cwmp_stop) {
+				/* clear inform and getrpc method from rpc list.
+				 * These will be added in next session init */
+				remove_inform_getrpc();
 				schedule_session_retry();
+			}
 			return;
 		}
 	}
@@ -397,13 +413,15 @@ void start_cwmp_session(void)
 	if (cwmp_stop) {
 		cwmp_remove_all_session_events();
 		run_session_end_func();
-		cwmp_session_exit();
+		rpc_exit();
+		icwmp_cleanmem();
 
 		return;
 	}
 
 	if (cwmp_main->session->error == CWMP_RETRY_SESSION && (!list_empty(&(cwmp_main->session->events)) || (list_empty(&(cwmp_main->session->events)) && cwmp_main->cwmp_cr_event == 0))) { //CWMP Retry session
-		CWMP_LOG(ERROR, "%s: Session will be retried soon", __func__);
+		// clear inform and getrpc method from rpc list. These will be added in next session init
+		remove_inform_getrpc();
 		schedule_session_retry();
 	} else {
 		save_acs_bkp_config();
@@ -413,6 +431,8 @@ void start_cwmp_session(void)
 			remove_single_event(EVENT_IDX_14HEARTBEAT);
 		}
 
+		// clear all rpc from lists if exist any
+		rpc_exit();
 		cwmp_main->retry_count_session = 0;
 		set_cwmp_session_status(SESSION_SUCCESS, 0);
 		if (cwmp_main->throttle_session_triggered == true) {
@@ -425,7 +445,7 @@ void start_cwmp_session(void)
 		}
 	}
 	run_session_end_func();
-	cwmp_session_exit();
+	icwmp_cleanmem();
 
 	if (cwmp_main->acs_changed) {
 		CWMP_LOG(INFO, "%s: Schedule session with new ACS since URL changed", __func__);

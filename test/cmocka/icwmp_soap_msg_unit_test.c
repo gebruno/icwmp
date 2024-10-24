@@ -87,7 +87,8 @@ static int soap_unit_tests_clean(void **state)
 {
 	icwmp_free_list_services();
 	clean_name_space();
-	cwmp_session_exit();
+	rpc_exit();
+	icwmp_cleanmem();
 	clean_force_inform_list();
 	FREE(cwmp_main->session);
 	FREE(cwmp_main);

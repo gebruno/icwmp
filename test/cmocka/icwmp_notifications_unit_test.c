@@ -40,7 +40,8 @@ static int cwmp_notifications_unit_tests_clean(void **state)
 	clean_list_param_notify();
 	clean_list_value_change();
 	cwmp_free_all_dm_parameter_list(&parameters_list);
-	cwmp_session_exit();
+	rpc_exit();
+	icwmp_cleanmem();
 	FREE(cwmp_main->session);
 	FREE(cwmp_main);
 	return 0;

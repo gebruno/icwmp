@@ -151,8 +151,6 @@ int cwmp_root_cause_transfer_complete(struct transfer_complete *p)
 		return CWMP_MEM_ERR;
 	}
 
-	CWMP_LOG(INFO, "%s: Added TransferComplete rpc for %d", __func__, p->type);
-
 	switch (p->type) {
 	case TYPE_DOWNLOAD:
 		event_container = cwmp_add_event_container(EVENT_IDX_M_Download, p->command_key ? p->command_key : "");
