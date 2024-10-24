@@ -103,8 +103,8 @@ void start_cwmp_session();
 int create_cwmp_session_structure();
 int clean_cwmp_session_structure();
 int cwmp_session_init();
-int cwmp_session_exit();
 int cwmp_apply_acs_changes(void);
 void rpc_exit();
+void remove_inform_getrpc();
 void trigger_cwmp_restart_timer(void);
 #endif /* SRC_INC_SESSION_H_ */

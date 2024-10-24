@@ -56,7 +56,8 @@ static int cwmp_cli_unit_tests_init(void **state)
 
 static int cwmp_cli_unit_tests_clean(void **state)
 {
-	cwmp_session_exit();
+	rpc_exit();
+	icwmp_cleanmem();
 	FREE(cwmp_ctx.session);
 	FREE(add_instance);
 	return 0;

@@ -42,7 +42,8 @@ static int dm_iface_unit_tests_clean(void **state)
 	cwmp_free_all_list_param_fault(&faults_array);
 	cwmp_free_all_dm_parameter_list(&list_set_param_value);
 	cwmp_free_all_xml_data_list(&xml_param_list);
-	cwmp_session_exit();
+	rpc_exit();
+	icwmp_cleanmem();
 	clean_cwmp_session_structure();
 	return 0;
 }
