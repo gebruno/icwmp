@@ -312,8 +312,10 @@ void remove_inform_getrpc()
 		return;
 
 	if (!list_empty(&(cwmp_main->session->head_rpc_acs))) {
-		while (cwmp_main->session->head_rpc_acs.next != &(cwmp_main->session->head_rpc_acs)) {
-			struct rpc *rpc = list_entry(cwmp_main->session->head_rpc_acs.next, struct rpc, list);
+		struct list_head *ilist, *q;
+
+		list_for_each_safe (ilist, q, &(cwmp_main->session->head_rpc_acs)) {
+			struct rpc *rpc = list_entry(ilist, struct rpc, list);
 			if (!rpc)
 				break;
 
