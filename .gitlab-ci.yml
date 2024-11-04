@@ -1,4 +1,5 @@
 variables:
+  CFLAGS: "-DBBF_VENDOR_PREFIX=\\\"X_IOPSYS_EU_\\\""
   DEBUG: 'TRUE'
   SOURCE_FOLDER: "."
   COMPILATION_FIXUP: "cmake ."
