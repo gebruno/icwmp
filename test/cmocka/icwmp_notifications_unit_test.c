@@ -209,10 +209,10 @@ static void cwmp_set_parameter_attributes_parameter_sub_parameter_1_unit_test(vo
 	assert_null(err);
 	assert_int_equal(get_parameter_notification_from_notifications_uci_list("Device.DeviceInfo.UpTime"), 0);
 
-	err = cwmp_set_parameter_attributes("Device.DeviceInfo.Processor.1.", 2);
+	err = cwmp_set_parameter_attributes("Device.DeviceInfo.VendorConfigFile.1.", 2);
 	assert_null(err);
-	assert_int_equal(get_parameter_notification_from_notifications_uci_list("Device.DeviceInfo.Processor.1."), 2);
-	assert_int_equal(get_parameter_notification_from_notifications_uci_list("Device.DeviceInfo.Processor.1.Alias"), 0);
+	assert_int_equal(get_parameter_notification_from_notifications_uci_list("Device.DeviceInfo.VendorConfigFile.1."), 2);
+	assert_int_equal(get_parameter_notification_from_notifications_uci_list("Device.DeviceInfo.VendorConfigFile.1.Alias"), 0);
 
 	err = cwmp_set_parameter_attributes("Device.DeviceInfo.Upime", 2);
 	assert_non_null(err);
@@ -234,13 +234,13 @@ static void cwmp_get_parameter_attributes_parameter_sub_parameter_1_unit_test(vo
 	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.UpTime"), 1);
 	cwmp_free_all_dm_parameter_list(&parameters_list);
 
-	err = cwmp_get_parameter_attributes("Device.DeviceInfo.Processor.", &parameters_list);
+	err = cwmp_get_parameter_attributes("Device.DeviceInfo.VendorConfigFile.", &parameters_list);
 	assert_null(err);
 	assert_int_equal((int)list_empty(&parameters_list), 0);
-	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.Processor.1.Alias"), 2);
-	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.Processor.1.Architecture"), 2);
-	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.Processor.2.Alias"), 1);
-	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.Processor.2.Architecture"), 1);
+	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.VendorConfigFile.1.Alias"), 2);
+	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.VendorConfigFile.1.Name"), 2);
+	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.VendorConfigFile.2.Alias"), 1);
+	assert_int_equal(get_parameter_notification_from_list_head(&parameters_list, "Device.DeviceInfo.VendorConfigFile.2.Name"), 1);
 	cwmp_free_all_dm_parameter_list(&parameters_list);
 
 	err = cwmp_get_parameter_attributes("Device.DeviceInfo.ProvisioningCode", &parameters_list);
