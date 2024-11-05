@@ -1207,7 +1207,9 @@ int cwmp_handle_rpc_cpe_set_parameter_values(struct rpc *rpc)
 		goto fault;
 	}
 
-	cwmp_set_end_session(END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RELOAD);
+	/* update values in notify file if any notify enable parameter exist in spv list */
+	cwmp_update_notify_values(&list_set_param_value);
+
 	if (status == 1) {
 		cwmp_set_end_session(END_SESSION_RESTART_SERVICES);
 	}
@@ -1284,7 +1286,8 @@ int cwmp_handle_rpc_cpe_set_parameter_attributes(struct rpc *rpc)
 		goto fault;
 	}
 
-	cwmp_set_end_session(END_SESSION_SET_NOTIFICATION_UPDATE | END_SESSION_RESTART_SERVICES | END_SESSION_INIT_NOTIFY);
+	reinit_list_param_notify();
+	cwmp_update_enabled_notify_file();
 	return 0;
 
 fault:

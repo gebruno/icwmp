@@ -75,7 +75,6 @@ static int reload_cmd(struct blob_buf *b)
 {
 	CWMP_LOG(INFO, "triggered ubus reload");
 	if (cwmp_ctx.session->session_status.last_status == SESSION_RUNNING) {
-		cwmp_set_end_session(END_SESSION_RELOAD);
 		blobmsg_add_u32(b, "status", 0);
 		blobmsg_add_string(b, "info", "Session running, reload at the end of the session");
 	} else {

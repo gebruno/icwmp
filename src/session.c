@@ -694,16 +694,6 @@ int run_session_end_func(void)
 	reinit_cwmp_periodic_session_feature();
 	reinit_heartbeat_procedures();
 
-	if (end_session_flag & END_SESSION_INIT_NOTIFY) {
-		CWMP_LOG(INFO, "SetParameterAttributes end session: reinit list notify");
-		reinit_list_param_notify();
-	}
-
-	if (end_session_flag & END_SESSION_SET_NOTIFICATION_UPDATE) {
-		CWMP_LOG(INFO, "SetParameterAttributes/Values end session: update enabled notify file");
-		cwmp_update_enabled_notify_file();
-	}
-
 	if (end_session_flag & END_SESSION_NSLOOKUP_DIAGNOSTIC) {
 		CWMP_LOG(INFO, "Executing nslookupdiagnostic: end session request");
 		cwmp_nslookup_diagnostics();

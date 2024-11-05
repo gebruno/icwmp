@@ -11,6 +11,7 @@
 
 #include <netdb.h>
 #include <fcntl.h>
+#include <json-c/json.h>
 
 #include "notifications.h"
 #include "uci_utils.h"
@@ -30,6 +31,7 @@ LIST_HEAD(list_param_obj_notify);
 
 static int cr_url_retry = 3;
 
+static void update_notify_file_line(FILE *notify_file, char *param_name, char *param_type, char *param_value, int notification);
 static void create_list_param_leaf_notify(struct list_head *, void (*fp)(FILE *, char *, char *, char *, int), FILE*);
 static void send_active_value_change(void);
 static void add_list_value_change(const char *param_name, const char *param_data, const char *param_type);
@@ -402,6 +404,113 @@ void create_list_param_leaf_notify(struct list_head *list_param_leaf_notify, voi
 	}
 }
 
+static void load_notify_values(struct list_head *notify_list)
+{
+	if (notify_list == NULL)
+		return;
+
+	// cppcheck-suppress cert-MSC24-C
+	FILE *fp = fopen(DM_ENABLED_NOTIFY, "r");
+	if (fp == NULL)
+		return;
+
+	char line[2048] = {0};
+
+	while (fgets(line, sizeof(line), fp)) {
+		const char *p_name = NULL, *p_val = NULL, *p_type = NULL;
+		int p_notif = 0;
+
+		json_object *jobj = json_tokener_parse(line);
+		if (jobj == NULL)
+			continue;
+
+		json_object *p_obj = json_object_object_get(jobj, "parameter");
+		json_object *v_obj = json_object_object_get(jobj, "value");
+		json_object *n_obj = json_object_object_get(jobj, "notification");
+		json_object *t_obj = json_object_object_get(jobj, "type");
+
+		if (p_obj == NULL || v_obj == NULL || n_obj == NULL || t_obj == NULL) {
+			json_object_put(jobj);
+			jobj = NULL;
+			continue;
+		}
+
+		p_name = json_object_get_string(p_obj);
+		p_val = json_object_get_string(v_obj);
+		p_notif = json_object_get_int(n_obj);
+		p_type = json_object_get_string(t_obj);
+
+		add_dm_parameter_to_list(notify_list, p_name, p_val, p_type, p_notif, 0);
+
+		json_object_put(jobj);
+		jobj = NULL;
+	}
+
+	fclose(fp);
+}
+
+static void apply_notify_values(struct list_head *notify_list)
+{
+	if (notify_list == NULL)
+		return;
+
+	if (list_empty(notify_list))
+		return;
+
+	// cppcheck-suppress cert-MSC24-C
+	FILE *fp = fopen(DM_ENABLED_NOTIFY, "w");
+	if (fp == NULL)
+		return;
+
+	struct cwmp_dm_parameter *notif_value = NULL;
+	list_for_each_entry(notif_value, notify_list, list) {
+		update_notify_file_line(fp, notif_value->name, notif_value->type, notif_value->value, notif_value->notification);
+	}
+
+	fclose(fp);
+}
+
+void cwmp_update_notify_values(struct list_head *parameter_values_list)
+{
+	struct cwmp_dm_parameter *param_value = NULL, *notif_value = NULL;
+	bool value_changed = false;
+
+	LIST_HEAD(notify_list);
+
+	load_notify_values(&notify_list);
+
+	if (list_empty(&notify_list))
+		return;
+
+	list_for_each_entry(param_value, parameter_values_list, list) {
+		if (CWMP_STRLEN(param_value->name) == 0)
+			continue;
+
+		char *inst_path = NULL;
+		if (CWMP_OK != instantiate_param_name(param_value->name, &inst_path))
+			continue;
+
+		list_for_each_entry(notif_value, &notify_list, list) {
+			if (CWMP_STRCMP(inst_path, notif_value->name) == 0) {
+				if (CWMP_STRCMP(param_value->value, notif_value->value) != 0) {
+					FREE(notif_value->value);
+					notif_value->value = strdup(param_value->value);
+					value_changed = true;
+				}
+
+				break;
+			}
+		}
+		FREE(inst_path);
+	}
+
+	if (value_changed == true) {
+		apply_notify_values(&notify_list);
+	}
+
+	cwmp_free_all_dm_parameter_list(&notify_list);
+}
+
 void init_list_param_notify()
 {
 	int i;
@@ -564,6 +673,7 @@ static void get_parameter_value_from_parameters_list(struct list_head *params_li
 			continue;
 		if (strcmp(parameter_name, param_value->name) != 0)
 			continue;
+
 		*value = strdup(param_value->value ? param_value->value : "");
 		*type = strdup(param_value->type ? param_value->type : "");
 	}

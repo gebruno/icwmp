@@ -52,4 +52,5 @@ void init_list_param_notify();
 void reinit_list_param_notify();
 void cwmp_prepare_value_change(void);
 void trigger_periodic_notify_check();
+void cwmp_update_notify_values(struct list_head *parameter_values_list);
 #endif /* SRC_INC_NOTIFICATIONS_H_ */
