@@ -410,7 +410,7 @@ void cwmp_reboot(const char *command_key)
 	set_rpc_parameter_key(command_key);
 
 	// Set last_reboot_cause to 'RemoteReboot' because the upcoming reboot will be initiated by CWMP Reboot RPC
-	set_uci_path_value(NULL, "deviceinfo.globals.last_reboot_cause", "RemoteReboot");
+	set_uci_path_value(NULL, "sysmngr.reboots.last_reboot_cause", "RemoteReboot");
 
 	struct blob_buf b = { 0 };
 	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
@@ -424,7 +424,7 @@ void cwmp_reboot(const char *command_key)
 	sleep(300);
 
 	// Set last_reboot_cause to empty because there is a problem in the system reboot
-	set_uci_path_value(NULL, "deviceinfo.globals.last_reboot_cause", "");
+	set_uci_path_value(NULL, "sysmngr.reboots.last_reboot_cause", "");
 
 	CWMP_LOG(ERROR, "# Problem in system restart #");
 }
