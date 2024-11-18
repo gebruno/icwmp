@@ -76,7 +76,6 @@
 #define ICWMP_TMP_PATH "/tmp/icwmp"
 #define VENDOR_LOG_SCRIPT "/etc/icwmpd/vendor_log.sh"
 #define FIREWALL_CWMP "/etc/icwmpd/firewall.cwmp"
-#define CWMP_CRITICAL_SERVICES "/etc/icwmpd/critical_services.json"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
 #define DM_IP_INTERFACE_PATH "Device\\.IP\\.Interface\\."
 #define DEFAULT_CR_TIMEOUT 5 /* In Seconds */
@@ -700,7 +699,6 @@ void *cwmp_memset(void *src, int val, size_t size, const char *origin, int pos);
 void *cwmp_memcpy(void *dst, const void *src, size_t size, const char *origin, int pos);
 int regex_replace(char **str, const char *pattern, const char *replace, int *match_count);
 void stop_service(void);
-void icwmp_init_critical_services(void);
 void icwmp_free_critical_services(void);
 bool end_session_reload_service(const char *service);
 bool end_session_reload_pending(void);

@@ -35,7 +35,7 @@ struct session_timer_event *global_session_event = NULL;
 
 static LIST_HEAD(critical_service_list);
 static LIST_HEAD(cwmp_memory_list);
-static bool reload_pending = false;
+static bool g_reload_pending = false;
 
 struct cwmp_mem {
 	struct list_head list;
@@ -633,59 +633,6 @@ void icwmp_cleanmem()
 /*
  * Services Management
  */
-void icwmp_init_critical_services()
-{
-	struct blob_buf bbuf = {0};
-	struct blob_attr *cur = NULL;
-	struct blob_attr *service_list = NULL;
-	int rem = 0;
-
-	if (!file_exists(CWMP_CRITICAL_SERVICES))
-		return;
-
-	CWMP_MEMSET(&bbuf, 0, sizeof(struct blob_buf));
-	blob_buf_init(&bbuf, 0);
-
-	if (blobmsg_add_json_from_file(&bbuf, CWMP_CRITICAL_SERVICES) == false) {
-		CWMP_LOG(WARNING, "The file %s is not a valid JSON file", CWMP_CRITICAL_SERVICES);
-		blob_buf_free(&bbuf);
-		return;
-	}
-
-	struct blob_attr *tb_service[1] = {0};
-	const struct blobmsg_policy p_service[1] = {
-		{ "services_list", BLOBMSG_TYPE_ARRAY }
-	};
-
-	blobmsg_parse(p_service, 1, tb_service, blobmsg_data(bbuf.head), blobmsg_len(bbuf.head));
-	if (tb_service[0] == NULL) {
-		CWMP_LOG(WARNING, "The JSON file %s doesn't contain any service", CWMP_CRITICAL_SERVICES);
-		blob_buf_free(&bbuf);
-		return;
-	}
-
-	service_list = tb_service[0];
-
-	blobmsg_for_each_attr(cur, service_list, rem) {
-		if (blobmsg_type(cur) != BLOBMSG_TYPE_STRING)
-			continue;
-
-		char *serv_name = blobmsg_get_string(cur);
-		if (CWMP_STRLEN(serv_name) == 0)
-			continue;
-
-		struct cwmp_services *serv = (struct cwmp_services *)malloc(sizeof(struct cwmp_services));
-		if (serv == NULL)
-			break;
-
-		CWMP_MEMSET(serv, 0, sizeof(struct cwmp_services));
-		serv->service = CWMP_STRDUP(serv_name);
-		INIT_LIST_HEAD(&serv->list);
-		list_add(&serv->list, &critical_service_list);
-	}
-	blob_buf_free(&bbuf);
-}
-
 void icwmp_free_critical_services()
 {
 	struct cwmp_services *serv = NULL, *node = NULL;
@@ -717,7 +664,7 @@ bool icwmp_critical_service(const char *service)
 
 bool end_session_reload_pending()
 {
-	return reload_pending;
+	return g_reload_pending;
 }
 
 static void apply_cwmp_changes(bool is_commit)
@@ -731,7 +678,6 @@ static void apply_cwmp_changes(bool is_commit)
 	blobmsg_add_string(&b, NULL, "cwmp");
 	blobmsg_close_array(&b, array);
 
-	blobmsg_add_u8(&b, "monitor", false);
 	blobmsg_add_u8(&b, "reload", false);
 	blobmsg_add_string(&b, "proto", "cwmp");
 
@@ -757,7 +703,7 @@ static void __apply_services(struct bbf_config *args, struct list_head *service_
 		// If RELOAD_IMMIDIATE then only reload the non-critical services
 		// otherwise reload all services in the list
 		if ((args->type == RELOAD_IMMIDIATE) && (icwmp_critical_service(config_name) == true)) {
-			reload_pending = true;
+			g_reload_pending = true;
 			continue;
 		}
 
@@ -774,22 +720,22 @@ static void __apply_services(struct bbf_config *args, struct list_head *service_
 	blobmsg_close_array(&bb, array);
 
 	blobmsg_add_string(&bb, "proto", "cwmp");
-	blobmsg_add_u8(&bb, "monitor", args->monitor);
 
 	icwmp_ubus_invoke("bbf.config", args->is_commit ? "commit" : "revert", bb.head, NULL, NULL);
 
 	blob_buf_free(&bb);
 
 	if (args->type == RELOAD_END_SESSION) {
-		reload_pending = false;
+		g_reload_pending = false;
 	}
 }
 
 static void _updated_services_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 {
-	struct blob_attr *cur, *tb[1] = {0};
-	const struct blobmsg_policy p[1] = {
-			{ "configs", BLOBMSG_TYPE_ARRAY }
+	struct blob_attr *cur, *tb[2] = {0};
+	const struct blobmsg_policy p[2] = {
+			{ "configs", BLOBMSG_TYPE_ARRAY },
+			{ "critical_services", BLOBMSG_TYPE_ARRAY }
 	};
 	int rem = 0;
 
@@ -798,7 +744,7 @@ static void _updated_services_cb(struct ubus_request *req, int type, struct blob
 
 	struct list_head *service_list = (struct list_head *)req->priv;
 
-	blobmsg_parse(p, 1, tb, blobmsg_data(msg), blobmsg_len(msg));
+	blobmsg_parse(p, 2, tb, blobmsg_data(msg), blobmsg_len(msg));
 
 	if (!tb[0])
 		return;
@@ -811,6 +757,28 @@ static void _updated_services_cb(struct ubus_request *req, int type, struct blob
 		char *config_name = blobmsg_get_string(cur);
 		if (CWMP_STRLEN(config_name)) {
 			add_path_list(service_list, config_name);
+		}
+	}
+
+	if (list_empty(&critical_service_list) && tb[1]) {
+		blobmsg_for_each_attr(cur, tb[1], rem) {
+			if (blobmsg_type(cur) != BLOBMSG_TYPE_STRING)
+				continue;
+
+			char *serv_name = blobmsg_get_string(cur);
+			if (CWMP_STRLEN(serv_name) == 0)
+				continue;
+
+			struct cwmp_services *serv = (struct cwmp_services *)malloc(sizeof(struct cwmp_services));
+			if (serv == NULL) {
+				CWMP_LOG(ERROR, "Failed to alloc memory for service list");
+				break;
+			}
+
+			CWMP_MEMSET(serv, 0, sizeof(struct cwmp_services));
+			serv->service = CWMP_STRDUP(serv_name);
+			INIT_LIST_HEAD(&serv->list);
+			list_add(&serv->list, &critical_service_list);
 		}
 	}
 }

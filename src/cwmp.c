@@ -180,10 +180,7 @@ static int cwmp_init(void)
 
 	CWMP_LOG(INFO, "STARTING ICWMP with PID :%d", getpid());
 
-	icwmp_init_critical_services();
-
 	/* Only One instance should run*/
-
 	// cppcheck-suppress cert-MSC24-C
 	cwmp_ctx.pid_file = fopen("/var/run/icwmpd.pid", "w+");
 	fcntl(fileno(cwmp_ctx.pid_file), F_SETFD, fcntl(fileno(cwmp_ctx.pid_file), F_GETFD) | FD_CLOEXEC);
