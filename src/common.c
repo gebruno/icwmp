@@ -1359,7 +1359,8 @@ void stop_service(void)
 	blob_buf_init(&bb, 0);
 
 	blobmsg_add_string(&bb, "name", "icwmpd");
+	blobmsg_add_u8(&bb, "spawn", false);
 
-	icwmp_ubus_invoke("service", "delete", bb.head, NULL, NULL);
+	icwmp_ubus_invoke("service", "state", bb.head, NULL, NULL);
 	blob_buf_free(&bb);
 }
