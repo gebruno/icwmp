@@ -756,6 +756,11 @@ int check_value_change(void)
 		blob_buf_free(&bbuf);
 	}
 	fclose(fp);
+
+	if (notif_ret > 0) {
+		apply_notify_values(&list_notify_params);
+	}
+
 	cwmp_free_all_dm_parameter_list(&list_notify_params);
 	return notif_ret;
 }
@@ -824,8 +829,6 @@ void periodic_check_notifiy(struct uloop_timeout *timeout  __attribute__((unused
 	cr_url_retry = 3;
 
 	is_notify = check_value_change();
-	if (is_notify > 0)
-		cwmp_update_enabled_notify_file();
 	if (is_notify & NOTIF_ACTIVE) {
 		send_active_value_change();
 		int last_session_interval = time(NULL) - cwmp_ctx.session->session_status.last_end_time;

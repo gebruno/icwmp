@@ -377,15 +377,21 @@ void start_cwmp_session(void)
 	 * Value changes
 	 */
 	if (!cwmp_ctx.session->session_status.is_heartbeat) {
-		int is_notify = 0;
 		if (file_exists(DM_ENABLED_NOTIFY)) {
+			int is_notify = 0;
+
 			if (!event_exist_in_list(EVENT_IDX_4VALUE_CHANGE))
 				is_notify = check_value_change();
+
+			if (is_notify > 0)
+				cwmp_ctx.custom_notify_active = false;
 		}
-		if (is_notify > 0 || !file_exists(DM_ENABLED_NOTIFY) || cwmp_ctx.custom_notify_active) {
+
+		if (!file_exists(DM_ENABLED_NOTIFY) || cwmp_ctx.custom_notify_active) {
 			cwmp_ctx.custom_notify_active = false;
 			cwmp_update_enabled_notify_file();
 		}
+
 		cwmp_prepare_value_change();
 		clean_list_value_change();
 	}
