@@ -139,25 +139,28 @@ static void wait_for_time_sync(void)
 
 	int loop_count = (cwmp_ctx.conf.clock_sync_timeout / 2);
 
-	if (loop_count == 0)
+	if (loop_count == 0) {
+		CWMP_LOG(INFO, "Wait for time sync is disabled, cwmp.cpe.clock_sync_timeout=%d", cwmp_ctx.conf.clock_sync_timeout);
 		return;
+	}
 
 	while (loop_count) {
-		sleep(2);
+		memset(&cwmp_dm_param, 0, sizeof(struct cwmp_dm_parameter));
 
 		if (!cwmp_get_parameter_value("Device.Time.Status", &cwmp_dm_param)) {
-			CWMP_LOG(ERROR, "Failed to get TimeSync status");
+			CWMP_LOG(ERROR, "Failed to get Device.Time.Status ...");
 			return;
 		}
 
 		if (CWMP_STRCMP(cwmp_dm_param.value, "Disabled") == 0) {
-			CWMP_LOG(INFO, "TimeSync is disabled no need to wait more");
+			CWMP_LOG(INFO, "Time.Status is Disabled, no need to wait");
 			return;
 		}
 
 		if (CWMP_STRCMP(cwmp_dm_param.value, "Synchronized") != 0) {
-			CWMP_LOG(DEBUG, "Clock is unsynchronized, wait before sending inform");
 			loop_count--;
+			CWMP_LOG(INFO, "Clock status [%s], checking again %d", cwmp_dm_param.value, loop_count);
+			sleep(2);
 			continue;
 		}
 
@@ -165,7 +168,7 @@ static void wait_for_time_sync(void)
 		return;
 	}
 
-	CWMP_LOG(ERROR, "Timeout occurred before clock sync or cwmp stopped");
+	CWMP_LOG(ERROR, "Clock not Synchronized in %d sec, last status %s", cwmp_ctx.conf.clock_sync_timeout, cwmp_dm_param.value);
 	return;
 }
 
