@@ -20,6 +20,7 @@ struct list_params_result {
 	struct list_head *parameters_list;
 	struct list_head *alias_list;
 	int error;
+	char *err_param;
 	const char *error_msg;
 };
 
@@ -177,6 +178,10 @@ static void ubus_get_parameter_callback(struct ubus_request *req, int type __att
 
 		if (tb[3]) {
 			result->error = blobmsg_get_u32(tb[3]);
+			if (tb[0]) {
+				result->err_param = strdup(blobmsg_get_string(tb[0]));
+			}
+
 			return;
 		}
 
@@ -362,7 +367,8 @@ int instantiate_param_name(const char *param, char **inst_path)
 		struct blob_buf b = {0};
 		struct list_params_result get_result = {
 			.parameters_list = &params_list,
-			.error = FAULT_CPE_NO_FAULT
+			.error = FAULT_CPE_NO_FAULT,
+			.err_param = NULL
 		};
 
 		CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
@@ -381,6 +387,7 @@ int instantiate_param_name(const char *param, char **inst_path)
 
 		if (get_result.error) {
 			cwmp_free_all_dm_parameter_list(&params_list);
+			FREE(get_result.err_param);
 			break;
 		}
 
@@ -431,7 +438,8 @@ char *cwmp_get_parameter_values(const char *parameter_name, struct list_head *pa
 	struct list_params_result get_result = {
 			.parameters_list = parameters_list,
 			.alias_list = &alias_list,
-			.error = FAULT_CPE_NO_FAULT
+			.error = FAULT_CPE_NO_FAULT,
+			.err_param = NULL
 	};
 	unsigned int len = CWMP_STRLEN(parameter_name);
 
@@ -464,6 +472,12 @@ char *cwmp_get_parameter_values(const char *parameter_name, struct list_head *pa
 
 		CWMP_LOG(WARNING, "Get parameter values (%s) failed: fault_code: %d", param, get_result.error);
 
+		if (get_result.err_param && cwmp_ctx.session != NULL) {
+			snprintf(cwmp_ctx.session->fault_msg, sizeof(cwmp_ctx.session->fault_msg),
+				 "GetParameterValues failed for %s", get_result.err_param);
+		}
+
+		FREE(get_result.err_param);
 		FREE(inst_path);
 		cwmp_free_all_dm_parameter_list(&alias_list);
 		snprintf(buf, sizeof(buf), "%d", get_result.error);
@@ -487,7 +501,8 @@ char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, stru
 			.parameters_list = parameters_list,
 			.alias_list = &alias_list,
 			.error = FAULT_CPE_NO_FAULT,
-			.error_msg = 0
+			.error_msg = NULL,
+			.err_param = NULL
 	};
 	unsigned int len = CWMP_STRLEN(parameter_name);
 
@@ -524,11 +539,11 @@ char *cwmp_get_parameter_names(const char *parameter_name, bool next_level, stru
 
 		CWMP_LOG(WARNING, "Get parameter Names (%s) failed: fault_code: %d", object, get_result.error);
 
+		FREE(get_result.err_param);
 		FREE(inst_path);
 		cwmp_free_all_dm_alias_list(&alias_list);
 
 		snprintf(buf, sizeof(buf), "%d", get_result.error);
-		if (err_msg) *err_msg = get_result.error_msg;
 		return icwmp_strdup(buf);
 	}
 
@@ -546,7 +561,8 @@ char *cwmp_validate_multi_instance_path(const char *object, struct list_head *pa
 		.parameters_list = parameters_list,
 		.alias_list = NULL,
 		.error = FAULT_CPE_NO_FAULT,
-		.error_msg = 0
+		.error_msg = NULL,
+		.err_param = NULL
 	};
 
 	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
@@ -571,6 +587,7 @@ char *cwmp_validate_multi_instance_path(const char *object, struct list_head *pa
 		char buf[8] = {0};
 		snprintf(buf, sizeof(buf), "%d", get_result.error);
 		CWMP_LOG(WARNING, "Get parameter Names (%s) failed: fault_code: %d", object, get_result.error);
+		FREE(get_result.err_param);
 		return icwmp_strdup(buf);
 	}
 
@@ -583,7 +600,8 @@ char *cwmp_validate_parameter_name(const char *param_name, bool next_level, stru
 	struct list_params_result get_result = {
 			.parameters_list = param_list,
 			.alias_list = NULL,
-			.error = FAULT_CPE_NO_FAULT
+			.error = FAULT_CPE_NO_FAULT,
+			.err_param = NULL
 	};
 	unsigned int len = CWMP_STRLEN(param_name);
 
@@ -615,6 +633,7 @@ char *cwmp_validate_parameter_name(const char *param_name, bool next_level, stru
 	if (get_result.error) {
 		char err[8] = {0};
 
+		FREE(get_result.err_param);
 		snprintf(err, sizeof(err), "%d", get_result.error);
 		return icwmp_strdup(err);
 	}
@@ -792,7 +811,7 @@ bool cwmp_add_object(const char *object_name, struct object_result *res)
 	len = CWMP_STRLEN(object_name);
 	if (!len) {
 		res->fault_code = FAULT_9005;
-		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name");
+		snprintf(res->fault_msg, sizeof(res->fault_msg), "Object name should not be empty");
 		return false;
 	}
 
@@ -810,7 +829,7 @@ bool cwmp_add_object(const char *object_name, struct object_result *res)
 		char *tmp = strrchr(ob_path, '[');
 		if (!tmp) {
 			res->fault_code = FAULT_9005;
-			snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name");
+			snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name %s", object_name);
 			return false;
 		}
 
@@ -821,13 +840,13 @@ bool cwmp_add_object(const char *object_name, struct object_result *res)
 
 	if (CWMP_OK != instantiate_param_name(ob_path, &inst_path)) {
 		res->fault_code = FAULT_9005;
-		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name");
+		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name %s", object_name);
 		return false;
 	}
 
 	if (CWMP_STRLEN(inst_path) == 0) {
 		res->fault_code = FAULT_9005;
-		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name");
+		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name %s", object_name);
 		return false;
 	}
 
@@ -883,19 +902,19 @@ bool cwmp_delete_object(const char *object_name, struct object_result *res)
 	len = CWMP_STRLEN(object_name);
 	if (!len) {
 		res->fault_code = FAULT_9005;
-		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name");
+		snprintf(res->fault_msg, sizeof(res->fault_msg), "Object name should not be empty");
 		return false;
 	}
 
 	if (CWMP_OK != instantiate_param_name(object_name, &inst_path)) {
 		res->fault_code = FAULT_9005;
-		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name");
+		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name %s", object_name);
 		return false;
 	}
 
 	if (CWMP_STRLEN(inst_path) == 0) {
 		res->fault_code = FAULT_9005;
-		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name");
+		snprintf(res->fault_msg, sizeof(res->fault_msg), "Invalid Object Name %s", object_name);
 		return false;
 	}
 

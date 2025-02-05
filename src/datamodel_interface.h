@@ -14,6 +14,7 @@
 #define SRC_DATAMODELIFACE_H_
 
 #include "common.h"
+#include "session.h"
 
 struct object_result {
 	char *instance;

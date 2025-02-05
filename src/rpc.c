@@ -2384,7 +2384,8 @@ int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, const char *f
 	CWMP_LOG(INFO, "Fault detected");
 
 	cwmp_ctx.session->fault_code = fault_code;
-	snprintf(cwmp_ctx.session->fault_msg, sizeof(cwmp_ctx.session->fault_msg), "%s", fault_msg ? fault_msg : "");
+	if (CWMP_STRLEN(cwmp_ctx.session->fault_msg) == 0)
+		snprintf(cwmp_ctx.session->fault_msg, sizeof(cwmp_ctx.session->fault_msg), "%s", fault_msg ? fault_msg : "");
 
 	MXML_DELETE(cwmp_ctx.session->tree_out);
 
