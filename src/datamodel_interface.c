@@ -767,10 +767,11 @@ static void ubus_objects_callback(struct ubus_request *req, int type __attribute
 {
 	struct blob_attr *cur = NULL;
 	int rem = 0;
-	const struct blobmsg_policy p[3] = {
+	const struct blobmsg_policy p[4] = {
 			{ "data", BLOBMSG_TYPE_STRING },
 			{ "fault", BLOBMSG_TYPE_INT32 },
 			{ "fault_msg", BLOBMSG_TYPE_STRING },
+			{ "path", BLOBMSG_TYPE_STRING }
 	};
 
 	if (msg == NULL || req == NULL)
@@ -785,13 +786,15 @@ static void ubus_objects_callback(struct ubus_request *req, int type __attribute
 	}
 
 	blobmsg_for_each_attr(cur, objects, rem) {
-		struct blob_attr *tb[3] = {0};
+		struct blob_attr *tb[4] = {0};
 
-		blobmsg_parse(p, 3, tb, blobmsg_data(cur), blobmsg_len(cur));
+		blobmsg_parse(p, 4, tb, blobmsg_data(cur), blobmsg_len(cur));
 
 		if (tb[1]) {
 			result->fault_code = blobmsg_get_u32(tb[1]);
-			snprintf(result->fault_msg, sizeof(result->fault_msg), "%s", tb[2] ? blobmsg_get_string(tb[2]) : "");
+			snprintf(result->fault_msg, sizeof(result->fault_msg), "%s: %s",
+				tb[2] ? blobmsg_get_string(tb[2]) : "Request failed for",
+				tb[3] ? blobmsg_get_string(tb[3]) : "");
 			return;
 		}
 

@@ -2398,6 +2398,8 @@ int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, const char *f
 
 	rpc_cpe->type = RPC_CPE_FAULT;
 
+	memset(cwmp_ctx.session->fault_msg, 0, sizeof(cwmp_ctx.session->fault_msg));
+
 	return 0;
 }
 
