@@ -272,7 +272,7 @@ static int cwmp_diagnostics_operate(const char *command, const char *command_key
 	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 	blob_buf_init(&b, 0);
 
-	bb_add_string(&b, "command", command);
+	bb_add_string(&b, "path", command);
 	bb_add_string(&b, "command_key", command_key);
 
 	if (number_inputs > 0) {
