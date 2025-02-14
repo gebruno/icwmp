@@ -147,6 +147,7 @@ typedef struct config {
 	int clock_sync_timeout;
 	bool force_ipv4;
 	bool fw_upgrade_keep_settings;
+	bool cpe_disable_datatype_check;
 
 	bool lwn_enable;
 	int lwn_port;

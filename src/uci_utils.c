@@ -242,6 +242,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_CLOCK_SYNC_TIMEOUT,
 		UCI_CPE_ENABLE,
 		UCI_CPE_USE_CURL_IFNAME,
+		UCI_CPE_DISABLE_DATATYPE_CHECK,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -267,7 +268,8 @@ static void config_get_cpe_elements(struct uci_section *s)
 		[UCI_CPE_INTERFACE] = { .name = "interface", .type = UCI_TYPE_STRING },
 		[UCI_CPE_CLOCK_SYNC_TIMEOUT] = { .name = "clock_sync_timeout", .type = UCI_TYPE_STRING },
 		[UCI_CPE_ENABLE] = { .name = "enable", .type = UCI_TYPE_STRING },
-		[UCI_CPE_USE_CURL_IFNAME] = { .name = "use_curl_ifname", .type = UCI_TYPE_STRING }
+		[UCI_CPE_USE_CURL_IFNAME] = { .name = "use_curl_ifname", .type = UCI_TYPE_STRING },
+		[UCI_CPE_DISABLE_DATATYPE_CHECK] = { .name = "disable_datatype_check", .type = UCI_TYPE_STRING }
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS];
@@ -412,6 +414,9 @@ static void config_get_cpe_elements(struct uci_section *s)
 	}
 
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe enable: %d", cwmp_ctx.conf.enable);
+
+	cwmp_ctx.conf.cpe_disable_datatype_check = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_DISABLE_DATATYPE_CHECK]));
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe datatype validation: %d", cwmp_ctx.conf.cpe_disable_datatype_check);
 }
 
 static void config_get_lwn_elements(struct uci_section *s)

@@ -719,7 +719,9 @@ int cwmp_set_parameter_value(const char *parameter_name, const char *parameter_v
 
 	bb_add_string(&b, "path", inst_path);
 	bb_add_string(&b, "value", parameter_value);
-	bb_add_string(&b, "datatype", type ? type : "");
+	if (cwmp_ctx.conf.cpe_disable_datatype_check == false) {
+		bb_add_string(&b, "datatype", type ? type : "");
+	}
 	prepare_optional_table(&b);
 
 	int e = icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "set", b.head, ubus_set_value_callback, &set_result);
