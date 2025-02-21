@@ -13,13 +13,15 @@ echo "Compiling icmwp"
 build_icwmp
 
 echo "Starting dependent services"
+supervisorctl reread
 supervisorctl update
 sleep 2
 supervisorctl restart all
-sleep 2
+sleep 5
 supervisorctl stop icwmpd
 sleep 5
 supervisorctl status all
+
 ubus wait_for bbfdm
 
 echo "Clean cmocka"

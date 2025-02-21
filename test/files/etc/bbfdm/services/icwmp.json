@@ -1,0 +1,25 @@
+{
+  "daemon": {
+    "enable": "1",
+    "service_name": "icwmp",
+    "unified_daemon": false,
+    "services": [
+      {
+        "parent_dm": "Device.",
+        "object": "ManagementServer"
+      },
+      {
+        "parent_dm": "Device.",
+        "object": "CWMPManagementServer",
+        "proto": "usp"
+      },
+      {
+        "parent_dm": "Device.",
+        "object": "XMPP"
+      }
+    ],
+    "config": {
+      "loglevel": "3"
+    }
+  }
+}

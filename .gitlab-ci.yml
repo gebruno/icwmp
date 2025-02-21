@@ -10,8 +10,9 @@ include:
     ref: '1.2'
 
 stages:
-    - static_code_analysis
-    - pipeline_test
+  - static_code_analysis
+  - pipeline_test
+    
 
 run_unit_test:
    stage: pipeline_test

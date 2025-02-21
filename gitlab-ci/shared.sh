@@ -126,6 +126,7 @@ function build_icwmp()
 	exec_cmd make install
 	[ -f "/usr/sbin/icwmpd" ] && rm /usr/sbin/icwmpd
 	exec_cmd ln -s ${BINP}/src/icwmpd /usr/sbin/icwmpd
+	exec_cmd ln -s ${BINP}/bbf_plugin/libcwmpdm.so /usr/share/bbfdm/micro_services/icwmp.so
 	cd ..
 }
 

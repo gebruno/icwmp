@@ -6,6 +6,7 @@ pwd
 [ -d "/opt/dev/bbfdm" ] && cd /opt/dev/bbfdm && ./gitlab-ci/setup.sh && cd -
 
 cp -rf ./test/files/* /
+
 echo "set ACS url in cwmp uci"
 url="http://acs:7547"
 uci set cwmp.acs.url=$url
