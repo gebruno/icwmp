@@ -8,8 +8,8 @@ pwd
 trap cleanup EXIT
 trap cleanup SIGINT
 
-echo "Add X_IOPSYS_EU_Dropbear Object that is needed for functional test"
-DROPBEAR_OBJECT='{"parent_dm": "Device.", "object": "X_IOPSYS_EU_Dropbear"}'
+echo "Add X_IOWRT_EU_Dropbear Object that is needed for functional test"
+DROPBEAR_OBJECT='{"parent_dm": "Device.", "object": "X_IOWRT_EU_Dropbear"}'
 jq --argjson newObj "$DROPBEAR_OBJECT" '.daemon.services += [$newObj]' "/etc/bbfdm/services/core.json" > /tmp/updated_core.json
 mv /tmp/updated_core.json /etc/bbfdm/services/core.json
 

@@ -1,7 +1,7 @@
 {
   "custom_notification": 
     {
-      "parameter": "Device.X_IOPSYS_EU_Dropbear.",
+      "parameter": "Device.X_IOWRT_EU_Dropbear.",
       "notify_type": "2"
     },
     {

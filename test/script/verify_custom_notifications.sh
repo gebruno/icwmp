@@ -27,9 +27,9 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.X_IOPSYS_EU_Dropbear."`
-if [[ $notif1 != *"Device.X_IOPSYS_EU_Dropbear."* ]]; then
-	echo "FAIL: active notifications list doesn't contain Device.X_IOPSYS_EU_Dropbear. parameter"
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.X_IOWRT_EU_Dropbear."`
+if [[ $notif1 != *"Device.X_IOWRT_EU_Dropbear."* ]]; then
+	echo "FAIL: active notifications list doesn't contain Device.X_IOWRT_EU_Dropbear. parameter"
 	exit 1
 fi
 notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SSID"`
@@ -60,9 +60,9 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.X_IOPSYS_EU_Dropbear."`
-if [[ $notif1 == *"Device.X_IOPSYS_EU_Dropbear."* ]]; then
-	echo "FAIL: the json file is invalid, the active notifcation list shouldn't contain Device.X_IOPSYS_EU_Dropbear. parameter"
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.X_IOWRT_EU_Dropbear."`
+if [[ $notif1 == *"Device.X_IOWRT_EU_Dropbear."* ]]; then
+	echo "FAIL: the json file is invalid, the active notifcation list shouldn't contain Device.X_IOWRT_EU_Dropbear. parameter"
 	exit 1
 fi
 notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SSID"`
@@ -98,9 +98,9 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.X_IOPSYS_EU_Dropbear."`
-if [[ $notif1 != *"Device.X_IOPSYS_EU_Dropbear."* ]]; then
-	echo "FAIL: active notifications list doesn't contain Device.X_IOPSYS_EU_Dropbear. parameter"
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.X_IOWRT_EU_Dropbear."`
+if [[ $notif1 != *"Device.X_IOWRT_EU_Dropbear."* ]]; then
+	echo "FAIL: active notifications list doesn't contain Device.X_IOWRT_EU_Dropbear. parameter"
 	exit 1
 fi
 notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.DeviceInfo.ProvisioningCode"`
@@ -136,9 +136,9 @@ supervisorctl stop icwmpd
 
 check_valgrind_xml
 
-notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.X_IOPSYS_EU_Dropbear."`
-if [[ $notif1 != *"Device.X_IOPSYS_EU_Dropbear."* ]]; then
-	echo "FAIL: active notifications list doesn't contain Device.X_IOPSYS_EU_Dropbear. parameter"
+notif1=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].active | grep "Device.X_IOWRT_EU_Dropbear."`
+if [[ $notif1 != *"Device.X_IOWRT_EU_Dropbear."* ]]; then
+	echo "FAIL: active notifications list doesn't contain Device.X_IOWRT_EU_Dropbear. parameter"
 	exit 1
 fi
 notif2=`uci -c /etc/icwmpd get cwmp_notifications.@notifications[0].passive | grep "Device.WiFi.SSID.1.SD"`
