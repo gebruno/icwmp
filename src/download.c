@@ -425,24 +425,11 @@ int cwmp_apply_multiple_firmware()
 	}
 	//wait until the apply completes
 	wait_firmware_to_be_applied(bank_id);
+
+	//set /var/state 'switch_bank' option
+	set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.switch_bank", "1");
+
 	return CWMP_OK;
-}
-
-char *apply_multiple_firmware_task_function(char *task __attribute__((unused)))
-{
-	int ret = cwmp_apply_multiple_firmware();
-
-	char *ret_str = (char *)malloc(2 * sizeof(char));
-	snprintf(ret_str, 2, "%d", ret);
-	ret_str[1] = 0;
-	return ret_str;
-}
-
-int cwmp_apply_multiple_firmware_in_subprocess()
-{
-	subprocess_start(apply_multiple_firmware_task_function);
-	char *ret = execute_task_in_subprocess("{}"); //empty json object
-	return ret ? (int)strtol(ret, NULL, 10) : 500;
 }
 
 int cwmp_launch_download(struct download *pdownload, char *download_file_name, enum load_type ltype, struct transfer_complete **ptransfer_complete)
@@ -653,7 +640,6 @@ int apply_downloaded_file(struct download *pdownload, char *download_file_name, 
 
 	} else if (CWMP_STRCMP(pdownload->file_type, STORED_FIRMWARE_IMAGE_FILE_TYPE) == 0) {
 		int err = cwmp_apply_multiple_firmware();
-		//int err = cwmp_apply_multiple_firmware_in_subprocess();
 		if (err == CWMP_OK)
 			error = FAULT_CPE_NO_FAULT;
 		else {
