@@ -949,40 +949,6 @@
                       <div class="td_row_even">If set to **1**, icwmp will skip datatype validation on SPV operations.</div>
                     </td>
                   </tr>
-                  <tr>
-                    <td class="td_row_odd">
-                      <div class="td_row_odd">ssl_cert_path</div>
-                    </td>
-                    <td class="td_row_odd">
-                      <div class="td_row_odd">string</div>
-                    </td>
-                    <td class="td_row_odd">
-                      <div class="td_row_odd">no</div>
-                    </td>
-                    <td class="td_row_odd">
-                      <div class="td_row_odd"></div>
-                    </td>
-                    <td class="td_row_odd">
-                      <div class="td_row_odd">Full path of SSL certificate in pem format, icwmp will send this certificate to ACS server for authentication.</div>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td class="td_row_even">
-                      <div class="td_row_even">ssl_key_path</div>
-                    </td>
-                    <td class="td_row_even">
-                      <div class="td_row_even">string</div>
-                    </td>
-                    <td class="td_row_even">
-                      <div class="td_row_even">no</div>
-                    </td>
-                    <td class="td_row_even">
-                      <div class="td_row_even"></div>
-                    </td>
-                    <td class="td_row_even">
-                      <div class="td_row_even">Full path of the pem file that has stored the key</div>
-                    </td>
-                  </tr>
                 </tbody>
               </table>
             </td>

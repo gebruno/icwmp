@@ -22,8 +22,6 @@
 #define UCI_CPE_DEFAULT_WAN_IFACE "cwmp.cpe.default_wan_interface"
 #define UCI_CPE_INCOMING_RULE "cwmp.cpe.incoming_rule"
 #define UCI_CPE_AMD_VERSION "cwmp.cpe.amd_version"
-#define UCI_CPE_SSL_CERT_PATH "cwmp.cpe.ssl_cert_path"
-#define UCI_CPE_SSL_KEY_PATH "cwmp.cpe.ssl_key_path"
 
 int cwmp_get_deviceid();
 int cwmp_config_reload();
