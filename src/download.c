@@ -332,6 +332,9 @@ int cwmp_apply_firmware()
 	e = icwmp_ubus_invoke("rpc-sys", "upgrade_start", b.head, NULL, NULL);
 	if (e != 0) {
 		CWMP_LOG(INFO, "rpc-sys upgrade_start ubus method failed: Ubus err code: %d", e);
+	} else {
+		//set /var/state 'switch_bank' option
+		set_uci_path_value(VARSTATE_CONFIG, "icwmp.cpe.switch_bank", "1");
 	}
 
 	blob_buf_free(&b);
