@@ -140,6 +140,21 @@ bool cwmp_get_parameter_value(const char *parameter_name, struct cwmp_dm_paramet
 	return true;
 }
 
+static size_t blob_attr_length(struct blob_attr *array)
+{
+	struct blob_attr *cur = NULL;
+	size_t count = 0, rem = 0;
+
+	if (!array)
+		return 0;
+
+	blobmsg_for_each_attr(cur, array, rem) {
+		count++;
+	}
+
+	return count;
+}
+
 /*
  * Get parameter Values/Names
  */
@@ -171,18 +186,24 @@ static void ubus_get_parameter_callback(struct ubus_request *req, int type __att
 	char *last_transform = NULL;
 
 	int inst_mode = get_instance_mode();
+	size_t blob_len = blob_attr_length(parameters);
+
 	blobmsg_for_each_attr(cur, parameters, rem) {
 		struct blob_attr *tb[5] = {0};
 
 		blobmsg_parse(p, 5, tb, blobmsg_data(cur), blobmsg_len(cur));
 
 		if (tb[3]) {
-			result->error = blobmsg_get_u32(tb[3]);
-			if (tb[0]) {
-				result->err_param = strdup(blobmsg_get_string(tb[0]));
-			}
+			if (blob_len == 1) {
+				result->error = blobmsg_get_u32(tb[3]);
+				if (tb[0]) {
+					result->err_param = strdup(blobmsg_get_string(tb[0]));
+				}
 
-			return;
+				return;				
+			} else {
+				continue;
+			}
 		}
 
 		if (!tb[0]) continue;
