@@ -1106,7 +1106,7 @@ void cwmp_invoke_intf_reset(char *path)
 	CWMP_MEMSET(&b, 0, sizeof(struct blob_buf));
 
 	blob_buf_init(&b, 0);
-	bb_add_string(&b, "command", command);
+	bb_add_string(&b, "path", command);
 	bb_add_string(&b, "command_key", "cwmp_reset_intf");
 
 	icwmp_ubus_invoke(BBFDM_OBJECT_NAME, "operate", b.head, NULL, NULL);

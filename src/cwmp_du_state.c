@@ -82,7 +82,7 @@ static void prepare_blob_msg(struct blob_buf *b, const char *url, const char *uu
 	switch (op) {
 	case DU_INSTALL:
 		snprintf(command, sizeof(command), "%sInstallDU()", path);
-		bb_add_string(b, "command", command);
+		bb_add_string(b, "path", command);
 		bb_add_string(b, "command_key", "cwmp_install_du");
 		tbl = blobmsg_open_table(b, "input");
 		bb_add_string(b, "UUID", uuid ? uuid : "");
@@ -94,7 +94,7 @@ static void prepare_blob_msg(struct blob_buf *b, const char *url, const char *uu
 		break;
 	case DU_UPDATE:
 		snprintf(command, sizeof(command), "%sUpdate()", path);
-		bb_add_string(b, "command", command);
+		bb_add_string(b, "path", command);
 		bb_add_string(b, "command_key", "cwmp_update_du");
 		tbl = blobmsg_open_table(b, "input");
 		bb_add_string(b, "URL", url ? url : "");
@@ -104,7 +104,7 @@ static void prepare_blob_msg(struct blob_buf *b, const char *url, const char *uu
 		break;
 	case DU_UNINSTALL:
 		snprintf(command, sizeof(command), "%sUninstall()", path);
-		bb_add_string(b, "command", command);
+		bb_add_string(b, "path", command);
 		bb_add_string(b, "command_key", "cwmp_uninstall_du");
 		break;
 	default:

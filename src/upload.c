@@ -59,7 +59,7 @@ static int generate_log_archive(int instance, char *url)
 
 	snprintf(vlf_upload_operate, sizeof(vlf_upload_operate), "Device.DeviceInfo.VendorLogFile.%d.Upload()", instance);
 
-	bb_add_string(&b, "command", vlf_upload_operate);
+	bb_add_string(&b, "path", vlf_upload_operate);
 	bb_add_string(&b, "command_key", "vendor_log_upload");
 
 	void *tbl = blobmsg_open_table(&b, "input");
