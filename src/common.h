@@ -170,7 +170,8 @@ typedef struct config {
 	char auto_cdu_result_type[BUF_SIZE_16];
 	char auto_cdu_fault_code[BUF_SIZE_16];
 	char default_wan_iface[BUF_SIZE_32];
-
+	char cpe_client_cert[BUF_SIZE_256];
+	char cpe_client_key[BUF_SIZE_256];
 } config;
 
 struct deviceid {

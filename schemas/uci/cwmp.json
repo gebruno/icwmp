@@ -132,6 +132,20 @@
           "description": "if set to **1**, the cwmp client will be enabled. "
         },
         {
+          "name": "client_cert_path",
+          "type": "string",
+          "required": "no",
+          "default": "",
+          "description": "Full path client perm certificate, icwmp will send this certificate to ACS server for authentication."
+        },
+        {
+          "name": "client_key_path",
+          "type": "string",
+          "required": "no",
+          "default": "",
+          "description": "Full path of client key pem file"
+        },
+        {
           "name": "manufacturer",
           "type": "string",
           "required": "no",

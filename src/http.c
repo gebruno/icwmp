@@ -117,6 +117,12 @@ static void http_set_security_options()
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
 	}
+
+	if (CWMP_STRLEN(cwmp_ctx.conf.cpe_client_cert) != 0 && file_exists(cwmp_ctx.conf.cpe_client_cert) &&
+	    CWMP_STRLEN(cwmp_ctx.conf.cpe_client_key) != 0 && file_exists(cwmp_ctx.conf.cpe_client_key)) {
+		curl_easy_setopt(curl, CURLOPT_SSLCERT, cwmp_ctx.conf.cpe_client_cert);
+		curl_easy_setopt(curl, CURLOPT_SSLKEY, cwmp_ctx.conf.cpe_client_key);
+	}
 }
 
 static void http_set_connection_options()

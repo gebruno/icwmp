@@ -76,8 +76,13 @@ int get_preinit_config()
 
 	cwmp_ctx.conf.supported_amd_version = cwmp_ctx.conf.amd_version;
 
+	get_uci_path_value(NULL, UCI_CPE_CERT_PATH, cwmp_ctx.conf.cpe_client_cert, BUF_SIZE_256);
+	get_uci_path_value(NULL, UCI_CPE_KEY_PATH, cwmp_ctx.conf.cpe_client_key, BUF_SIZE_256);
+
 	CWMP_LOG(DEBUG, "CWMP CONFIG - default wan interface: %s", cwmp_ctx.conf.default_wan_iface);
 	CWMP_LOG(DEBUG, "CWMP CONFIG - amendement version: %d", cwmp_ctx.conf.amd_version);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe cert path: %s", cwmp_ctx.conf.cpe_client_cert);
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe key path: %s", cwmp_ctx.conf.cpe_client_key);
 
 	return CWMP_OK;
 }

@@ -373,6 +373,40 @@
                   </tr>
                   <tr>
                     <td class="td_row_odd">
+                      <div class="td_row_odd">client_cert_path</div>
+                    </td>
+                    <td class="td_row_odd">
+                      <div class="td_row_odd">string</div>
+                    </td>
+                    <td class="td_row_odd">
+                      <div class="td_row_odd">no</div>
+                    </td>
+                    <td class="td_row_odd">
+                      <div class="td_row_odd"></div>
+                    </td>
+                    <td class="td_row_odd">
+                      <div class="td_row_odd">Full path client perm certificate, icwmp will send this certificate to ACS server for authentication.</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="td_row_even">
+                      <div class="td_row_even">client_key_path</div>
+                    </td>
+                    <td class="td_row_even">
+                      <div class="td_row_even">string</div>
+                    </td>
+                    <td class="td_row_even">
+                      <div class="td_row_even">no</div>
+                    </td>
+                    <td class="td_row_even">
+                      <div class="td_row_even"></div>
+                    </td>
+                    <td class="td_row_even">
+                      <div class="td_row_even">Full path of client key pem file</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="td_row_odd">
                       <div class="td_row_odd">manufacturer</div>
                     </td>
                     <td class="td_row_odd">
