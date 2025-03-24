@@ -13,14 +13,13 @@ echo "Compiling icmwp"
 build_icwmp
 
 echo "Starting dependent services"
+cp ./gitlab-ci/icwmp-dm.conf /etc/supervisor/conf.d/
 supervisorctl reread
 supervisorctl update
 sleep 2
 supervisorctl restart all
 sleep 5
-supervisorctl stop icwmpd
-sleep 5
-supervisorctl status all
+supervisorctl status
 
 ubus wait_for bbfdm
 

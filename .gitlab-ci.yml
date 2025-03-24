@@ -12,7 +12,6 @@ include:
 stages:
   - static_code_analysis
   - pipeline_test
-    
 
 run_unit_test:
    stage: pipeline_test

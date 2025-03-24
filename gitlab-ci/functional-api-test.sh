@@ -13,6 +13,8 @@ DROPBEAR_OBJECT='{"parent_dm": "Device.", "object": "X_IOWRT_EU_Dropbear"}'
 jq --argjson newObj "$DROPBEAR_OBJECT" '.daemon.services += [$newObj]' "/etc/bbfdm/services/core.json" > /tmp/updated_core.json
 mv /tmp/updated_core.json /etc/bbfdm/services/core.json
 
+supervisorctl restart bbfdmd
+
 echo "Compiling icmwp"
 build_icwmp
 
@@ -23,12 +25,12 @@ mkdir -p /var/log
 mkdir -p /var/state/icwmpd 
 
 echo "Starting Services..."
+cp ./gitlab-ci/icwmp-dm.conf /etc/supervisor/conf.d/
 cp ./gitlab-ci/icwmp.conf /etc/supervisor/conf.d/
 supervisorctl reread
 supervisorctl update
-supervisorctl restart bbfdmd
 sleep 20
-supervisorctl status all
+supervisorctl status
 
 echo "Checking cwmp status"
 check_cwmp_status

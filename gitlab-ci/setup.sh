@@ -3,7 +3,7 @@
 echo "preparation script"
 pwd
 
-[ -d "/opt/dev/bbfdm" ] && cd /opt/dev/bbfdm && ./gitlab-ci/setup.sh && cd -
+[ -d "/opt/dev/bbfdm" ] && cd /opt/dev/bbfdm && ./gitlab-ci/setup.sh && cp -f ./gitlab-ci/bbfdm_services.conf /etc/supervisor/conf.d/ && cd -
 
 cp -rf ./test/files/* /
 
