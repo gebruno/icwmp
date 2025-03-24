@@ -215,10 +215,8 @@ void bkp_session_simple_insert_in_parent(const char *parent, const char *child, 
 
 mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id)
 {
-	char event_idx[32];
 	mxml_node_t *b;
 
-	snprintf(event_idx, sizeof(event_idx), "%d", index);
 	b = get_bkp_session_node_by_id(bkp_tree, "cwmp_event", id);
 	if (!b) {
 		struct xml_data_struct bkp_xml_event = {0};
@@ -228,8 +226,9 @@ mxml_node_t *bkp_session_insert_event(int index, char *command_key, int id)
 		int fault = build_xml_node_data(BKP_EVT_BUILD, bkp_tree, &bkp_xml_event);
 		if (fault != CWMP_OK)
 			return NULL;
+
+		b = get_bkp_session_node_by_id(bkp_tree, "cwmp_event", id);
 	}
-	b = get_bkp_session_node_by_id(bkp_tree, "cwmp_event", id);
 	return b;
 }
 
