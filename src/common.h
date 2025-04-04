@@ -75,7 +75,7 @@
 
 #define ICWMP_TMP_PATH "/tmp/icwmp"
 #define VENDOR_LOG_SCRIPT "/etc/icwmpd/vendor_log.sh"
-#define FIREWALL_CWMP "/etc/icwmpd/firewall.cwmp"
+#define FIREWALL_CWMP "/etc/icwmpd/firewall.cwmp cwmp"
 #define DM_PPP_INTERFACE_PATH "Device\\.PPP\\.Interface\\."
 #define DM_IP_INTERFACE_PATH "Device\\.IP\\.Interface\\."
 #define DEFAULT_CR_TIMEOUT 5 /* In Seconds */
@@ -135,6 +135,7 @@ typedef struct config {
 	bool acs_getrpc;
 	bool auto_tc_enable;
 	bool auto_cdu_enable;
+	bool cr_ip_port_change;
 	int retry_min_wait_interval;
 	int retry_interval_multiplier;
 
@@ -172,6 +173,7 @@ typedef struct config {
 	char default_wan_iface[BUF_SIZE_32];
 	char cpe_client_cert[BUF_SIZE_256];
 	char cpe_client_key[BUF_SIZE_256];
+	char valid_cr_ip[BUF_SIZE_2048];
 } config;
 
 struct deviceid {
@@ -180,12 +182,6 @@ struct deviceid {
 	char serialnumber[BUF_SIZE_64];
 	char productclass[BUF_SIZE_64];
 	char softwareversion[BUF_SIZE_64];
-};
-
-enum firewall_cr_policy {
-	CR_POLICY_Port_Only = 0,
-	CR_POLICY_IP_Only,
-	CR_POLICY_BOTH,
 };
 
 typedef struct cwmp {
@@ -227,7 +223,6 @@ typedef struct cwmp {
 	struct ubus_event_handler *ev;
 	struct ubus_event_handler *intf_ev;
 	bool throttle_session_triggered;
-	enum firewall_cr_policy cr_policy;
 	bool acs_changed;
 	int curr_delay_reboot;
 	time_t curr_schedule_reboot;
@@ -650,7 +645,6 @@ bool folder_exists(const char *path);
 bool file_exists(const char *path);
 void cwmp_reboot(const char *command_key);
 void cwmp_factory_reset();
-void get_firewall_zone_name_by_wan_iface(char *if_wan, char **zone_name);
 int download_file(const char *file_path, const char *url, const char *username, const char *password, const char *interface);
 unsigned int get_file_size(const char *file_name);
 int cwmp_check_image();
@@ -706,4 +700,5 @@ bool end_session_reload_service(const char *service);
 bool end_session_reload_pending(void);
 void add_path_list(struct list_head *list, char *str);
 void free_path_list(struct list_head *list);
+void apply_allowed_cr_ip_port(void);
 #endif

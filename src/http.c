@@ -331,15 +331,6 @@ int icwmp_http_send_message(char *msg_out, int msg_out_len, char **msg_in)
 			} else {
 				set_uci_path_value(VARSTATE_CONFIG, "icwmp.acs.ip", cwmp_ctx.ip_acs);
 			}
-
-			// Trigger firewall to reload firewall.cwmp
-			if (cwmp_ctx.cr_policy != CR_POLICY_Port_Only) {
-				// Flawfinder: ignore
-				FILE *pp = popen(FIREWALL_CWMP, "r");
-				if (pp) {
-					pclose(pp);
-				}
-			}
 		}
 	}
 
@@ -693,13 +684,8 @@ void icwmp_http_server_init(void)
 		snprintf(cr_port_str, 6, "%hu", cr_port);
 		cr_port_str[5] = '\0';
 		set_uci_path_value(NULL, "cwmp.cpe.port", cr_port_str);
-		// Flawfinder: ignore
-		FILE *pp = popen(FIREWALL_CWMP, "r");
-		if (pp) {
-			pclose(pp);
-		}
-
 		connection_request_port_value_change(cr_port);
+		cwmp_ctx.conf.cr_ip_port_change = true;
 	}
 
 	CWMP_LOG(INFO, "Connection Request server initiated with the port: %d", cr_port);

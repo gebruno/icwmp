@@ -109,6 +109,7 @@ function build_icwmp()
 {
 	COV_CFLAGS='-g -O0 -fprofile-arcs -ftest-coverage'
 	COV_LDFLAGS='--coverage'
+	VENDOR_PREFIX='X_IOWRT_EU_'
 
 	BINP="${PWD}"
 	# clean icwmp
@@ -117,7 +118,7 @@ function build_icwmp()
 	# compile icwmp
 	mkdir -p build
 	cd build
-	cmake ../ -DCMAKE_C_FLAGS="$COV_CFLAGS " -DCMAKE_EXE_LINKER_FLAGS="$COV_LDFLAGS" -DCMAKE_INSTALL_PREFIX=/
+	cmake ../ -DCMAKE_C_FLAGS="$COV_CFLAGS -DICWMP_ENABLE_VENDOR_EXTN" -DCMAKE_EXE_LINKER_FLAGS="$COV_LDFLAGS" -DCMAKE_INSTALL_PREFIX=/ -DBBF_VENDOR_PREFIX="$VENDOR_PREFIX"
 	exec_cmd make
 
 	echo "installing icwmpd binary and libcwmpdm.so library"

@@ -30,6 +30,8 @@ config cpe 'cpe'
 	option default_wan_interface 'wan'
 	option userid 'iopsys'
 	option exec_download '0'
+	list allowed_cr_ip '10.5.3.14/32'
+	list allowed_cr_ip '20.2.1.0/24'
 	
 config lwn 'lwn'
 	option enable '1'

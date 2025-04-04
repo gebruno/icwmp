@@ -939,6 +939,40 @@ static int set_manageable_device_notification_limit(char *refparam, struct dmctx
 	return 0;
 }
 
+#ifdef ICWMP_ENABLE_VENDOR_EXTN
+static int get_allowed_cr_ip(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
+{
+	struct uci_list *uci_opt_list = NULL;
+
+	dmuci_get_option_value_list("cwmp", "cpe", "allowed_cr_ip", &uci_opt_list);
+	*value = dmuci_list_to_string(uci_opt_list, ",");
+	return 0;
+}
+
+static int set_allowed_cr_ip(char *refparam, struct dmctx *ctx, void *data, char *instance, char *value, int action)
+{
+	size_t length, i;
+	int ret = 0;
+	char **arr;
+
+	switch (action) {
+		case VALUECHECK:
+			if (bbfdm_validate_string(ctx, value, -1, -1, NULL, NULL))
+				ret = FAULT_9007;
+			break;
+		case VALUESET:
+			dmuci_delete("cwmp", "cpe", "allowed_cr_ip", NULL);
+			arr = strsplit(value, ",", &length);
+
+			for (i = 0; i < length; i++) {
+				dmuci_add_list_value("cwmp", "cpe", "allowed_cr_ip", arr[i]);
+			}
+			break;
+	}
+	return ret;
+}
+#endif
+
 static int get_heart_beat_policy_enable(char *refparam, struct dmctx *ctx, void *data, char *instance, char **value)
 {
 	*value = dmuci_get_option_value_fallback_def("cwmp", "acs", "heartbeat_enable", "0");
@@ -1419,6 +1453,9 @@ DMLEAF tManagementServerParams[] = {
 {"ManageableDeviceNumberOfEntries", &DMREAD, DMT_UNINT, get_manageable_device_number_of_entries, NULL, BBFDM_CWMP},
 {"DefaultActiveNotificationThrottle", &DMWRITE, DMT_UNINT, get_default_active_notification_throttle, set_default_active_notification_throttle, BBFDM_CWMP},
 {"ManageableDeviceNotificationLimit", &DMWRITE, DMT_UNINT, get_manageable_device_notification_limit, set_manageable_device_notification_limit, BBFDM_CWMP},
+#ifdef ICWMP_ENABLE_VENDOR_EXTN
+{BBF_VENDOR_PREFIX"AllowedConnectionRequestIP", &DMWRITE, DMT_STRING, get_allowed_cr_ip, set_allowed_cr_ip, BBFDM_CWMP},
+#endif
 {0}
 };
 

@@ -52,6 +52,45 @@ static char *get_value_from_uci_option(struct uci_option *tb)
 	return "";
 }
 
+static int get_value_from_uci_list(struct uci_option *tb, char *value, size_t size)
+{
+	if (value == NULL)
+		return -1;
+
+	memset(value, 0, size);
+
+	if (tb == NULL)
+		return -1;
+
+	if (tb->type == UCI_TYPE_LIST) {
+		struct uci_element *e;
+		bool sep = false;
+		char *tmp = value;
+		size_t left = 0;
+
+		uci_foreach_element(&tb->v.list, e) {
+			if (sep) {
+				left = size - strlen(value);
+				if (left < 2)
+					break;
+
+				int rc = snprintf(tmp, left, "%s", ",");
+				tmp = tmp + rc;
+			}
+
+			left = size - strlen(value);
+			if (left <= strlen(e->name))
+				break;
+
+			int rc = snprintf(tmp, left, "%s", e->name);
+			tmp = tmp + rc;
+			sep = true;
+		}
+	}
+
+	return 0;
+}
+
 static void config_get_acs_elements(struct uci_section *s)
 {
 	enum {
@@ -243,6 +282,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 		UCI_CPE_ENABLE,
 		UCI_CPE_USE_CURL_IFNAME,
 		UCI_CPE_DISABLE_DATATYPE_CHECK,
+		UCI_CPE_ALLOWED_CR_IP,
 		__MAX_NUM_UCI_CPE_ATTRS,
 	};
 
@@ -269,7 +309,8 @@ static void config_get_cpe_elements(struct uci_section *s)
 		[UCI_CPE_CLOCK_SYNC_TIMEOUT] = { .name = "clock_sync_timeout", .type = UCI_TYPE_STRING },
 		[UCI_CPE_ENABLE] = { .name = "enable", .type = UCI_TYPE_STRING },
 		[UCI_CPE_USE_CURL_IFNAME] = { .name = "use_curl_ifname", .type = UCI_TYPE_STRING },
-		[UCI_CPE_DISABLE_DATATYPE_CHECK] = { .name = "disable_datatype_check", .type = UCI_TYPE_STRING }
+		[UCI_CPE_DISABLE_DATATYPE_CHECK] = { .name = "disable_datatype_check", .type = UCI_TYPE_STRING },
+		[UCI_CPE_ALLOWED_CR_IP] = { .name = "allowed_cr_ip", .type = UCI_TYPE_LIST },
 	};
 
 	struct uci_option *cpe_tb[__MAX_NUM_UCI_CPE_ATTRS];
@@ -417,6 +458,16 @@ static void config_get_cpe_elements(struct uci_section *s)
 
 	cwmp_ctx.conf.cpe_disable_datatype_check = str_to_bool(get_value_from_uci_option(cpe_tb[UCI_CPE_DISABLE_DATATYPE_CHECK]));
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe datatype validation: %d", cwmp_ctx.conf.cpe_disable_datatype_check);
+
+	char allowed_cr_ip[BUF_SIZE_2048] = {0};
+	get_value_from_uci_list(cpe_tb[UCI_CPE_ALLOWED_CR_IP], allowed_cr_ip, sizeof(allowed_cr_ip));
+
+	if (CWMP_STRCMP(cwmp_ctx.conf.valid_cr_ip, allowed_cr_ip) != 0) {
+		snprintf(cwmp_ctx.conf.valid_cr_ip, sizeof(cwmp_ctx.conf.valid_cr_ip), "%s", allowed_cr_ip);
+		cwmp_ctx.conf.cr_ip_port_change = true;
+	}
+
+	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe allowed_cr_ip: %s", cwmp_ctx.conf.valid_cr_ip);
 }
 
 static void config_get_lwn_elements(struct uci_section *s)

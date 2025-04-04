@@ -1364,3 +1364,12 @@ void stop_service(void)
 	icwmp_ubus_invoke("service", "state", bb.head, NULL, NULL);
 	blob_buf_free(&bb);
 }
+
+void apply_allowed_cr_ip_port(void)
+{
+	// Flawfinder: ignore
+	FILE *pp = popen(FIREWALL_CWMP, "r");
+	if (pp) {
+		pclose(pp);
+	}
+}

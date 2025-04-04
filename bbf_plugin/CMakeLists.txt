@@ -4,6 +4,7 @@ PROJECT(libcwmpdm.so)
 
 ADD_DEFINITIONS(-Wall -Werror -Wformat -g)
 ADD_DEFINITIONS(-D_GNU_SOURCE)
+ADD_DEFINITIONS(-DBBF_VENDOR_PREFIX="${BBF_VENDOR_PREFIX}")
 
 # Compile and install libcwmpdm.so
 ADD_LIBRARY(cwmpdm SHARED datamodel.c)

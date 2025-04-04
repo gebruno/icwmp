@@ -917,10 +917,10 @@
                   </tr>
                   <tr>
                     <td class="td_row_odd">
-                      <div class="td_row_odd">incoming_rule</div>
+                      <div class="td_row_odd">allowed_cr_ip</div>
                     </td>
                     <td class="td_row_odd">
-                      <div class="td_row_odd">string</div>
+                      <div class="td_row_odd">list</div>
                     </td>
                     <td class="td_row_odd">
                       <div class="td_row_odd">no</div>
@@ -929,7 +929,7 @@
                       <div class="td_row_odd"></div>
                     </td>
                     <td class="td_row_odd">
-                      <div class="td_row_odd">This configure firewall rules. Allowed values &lt;IP_Only/Port_Only/IP_Port&gt;. IP_Only means only acs ip as source ip used for firewall input rule, Port_Only means only destination port will be used and IP_Port or empty value meaning both ip and port will be used for firewall input rule.</div>
+                      <div class="td_row_odd">List of subnets or ips from where incoming connection requests are allowed e.g 10.2.1.0/24 or 10.2.1.5/32. So connection requests are allowed with src IP in range of &lt10.2.1.1 - 10.2.1.254&gt or from 10.2.1.5 and with dest-port same as &ltport&gt; Empty value means only destination port will be used and connection requests on the valid port will be accepted irrespective of any src IP.</div>
                     </td>
                   </tr>
                   <tr>

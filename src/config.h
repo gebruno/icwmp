@@ -20,7 +20,6 @@
 #define UCI_LOG_SEVERITY_PATH "cwmp.cpe.log_severity"
 #define UCI_CPE_ENABLE_SYSLOG "cwmp.cpe.log_to_syslog"
 #define UCI_CPE_DEFAULT_WAN_IFACE "cwmp.cpe.default_wan_interface"
-#define UCI_CPE_INCOMING_RULE "cwmp.cpe.incoming_rule"
 #define UCI_CPE_AMD_VERSION "cwmp.cpe.amd_version"
 #define UCI_CPE_CERT_PATH "cwmp.cpe.client_cert_path"
 #define UCI_CPE_KEY_PATH "cwmp.cpe.client_key_path"

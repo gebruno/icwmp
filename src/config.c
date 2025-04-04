@@ -26,17 +26,6 @@
 #include "heartbeat.h"
 #include "cwmp_http.h"
 
-static void set_cr_incoming_rule(const char *rule)
-{
-	if (CWMP_LSTRCASECMP(rule, "ip_only") == 0) {
-		cwmp_ctx.cr_policy = CR_POLICY_IP_Only;
-	} else if (CWMP_LSTRCASECMP(rule, "ip_port") == 0) {
-		cwmp_ctx.cr_policy = CR_POLICY_BOTH;
-	} else {
-		cwmp_ctx.cr_policy = CR_POLICY_Port_Only; // Default case
-	}
-}
-
 int get_preinit_config()
 {
 	char value[BUF_SIZE_256] = {0};
@@ -63,9 +52,6 @@ int get_preinit_config()
 	if (CWMP_STRLEN(cwmp_ctx.conf.default_wan_iface) == 0) {
 		CWMP_STRNCMP(cwmp_ctx.conf.default_wan_iface, "wan", sizeof(cwmp_ctx.conf.default_wan_iface));
 	}
-
-	get_uci_path_value(NULL, UCI_CPE_INCOMING_RULE, value, BUF_SIZE_256);
-	set_cr_incoming_rule(value);
 
 	cwmp_ctx.conf.amd_version = DEFAULT_AMD_VERSION;
 	get_uci_path_value(NULL, UCI_CPE_AMD_VERSION, value, BUF_SIZE_256);

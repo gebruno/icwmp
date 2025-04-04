@@ -276,7 +276,14 @@
           "type": "uinteger",
           "required": "no",
           "default": "7547",
-          "description": "The port used for connection request."
+          "description": "The port allowed for incoming connection request."
+        },
+        {
+          "name": "allowed_cr_ip",
+          "type": "list",
+          "required": "no",
+          "default": null,
+          "description": "List of subnets or ips from where incoming connection requests are allowed e.g 10.2.1.0/24 or 10.2.1.5/32. So connection requests are allowed with SRC IP in range of '10.2.1.1 - 10.2.1.254' or from 10.2.1.5 and with dest port same as <B>port</B>. Empty value means only destination port will be used and connection requests on the valid port will be accepted irrespective of any src IP."
         },
         {
           "name": "path",
@@ -284,6 +291,13 @@
           "required": "no",
           "default": "/",
           "description": "CPE Connection request URI path"
+        },
+        {
+          "name": "instance_mode",
+          "type": "string",
+          "required": "no",
+          "default": "InstanceNumber",
+          "description": "Configure the instance mode to use. Supported instance modes are : <B>InstanceNumber</B> and <B>InstanceAlias</B>."
         },
         {
           "name": "provisioning_code",
@@ -298,13 +312,6 @@
           "required": "no",
           "default": "5",
           "description": "Configure the amendment version to use."
-        },
-        {
-          "name": "instance_mode",
-          "type": "string",
-          "required": "no",
-          "default": "InstanceNumber",
-          "description": "Configure the instance mode to use. Supported instance modes are : <B>InstanceNumber</B> and <B>InstanceNumber</B>."
         },
         {
           "name": "session_timeout",
@@ -354,13 +361,6 @@
           "required": "no",
           "default": "",
           "description": "Define absolute path of the JSON containing parameters on which notification get enabled as per the definition. See readme for examples."
-        },
-        {
-          "name": "incoming_rule",
-          "type": "string",
-          "required": "no",
-          "default": "",
-          "description": "This configure firewall rules. Allowed values <IP_Only/Port_Only/IP_Port>. IP_Only means only acs ip as source ip used for firewall input rule, Port_Only means only destination port will be used and IP_Port or empty value meaning both ip and port will be used for firewall input rule."
         },
         {
           "name": "force_ipv4",
