@@ -685,7 +685,7 @@ void icwmp_http_server_init(void)
 		cr_port_str[5] = '\0';
 		set_uci_path_value(NULL, "cwmp.cpe.port", cr_port_str);
 		connection_request_port_value_change(cr_port);
-		cwmp_ctx.conf.cr_ip_port_change = true;
+		cwmp_ctx.cr_ip_port_change = true;
 	}
 
 	CWMP_LOG(INFO, "Connection Request server initiated with the port: %d", cr_port);

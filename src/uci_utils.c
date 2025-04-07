@@ -464,7 +464,7 @@ static void config_get_cpe_elements(struct uci_section *s)
 
 	if (CWMP_STRCMP(cwmp_ctx.conf.valid_cr_ip, allowed_cr_ip) != 0) {
 		snprintf(cwmp_ctx.conf.valid_cr_ip, sizeof(cwmp_ctx.conf.valid_cr_ip), "%s", allowed_cr_ip);
-		cwmp_ctx.conf.cr_ip_port_change = true;
+		cwmp_ctx.cr_ip_port_change = true;
 	}
 
 	CWMP_LOG(DEBUG, "CWMP CONFIG - cpe allowed_cr_ip: %s", cwmp_ctx.conf.valid_cr_ip);

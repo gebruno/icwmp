@@ -88,6 +88,12 @@ static int reload_cmd(struct blob_buf *b)
 			blobmsg_add_u32(b, "status", 0);
 			blobmsg_add_string(b, "info", "icwmpd config reloaded");
 
+			if (cwmp_ctx.cr_ip_port_change == true) {
+				CWMP_LOG(INFO, "Allowed CR IPs are changed");
+				apply_allowed_cr_ip_port();
+				cwmp_ctx.cr_ip_port_change = false;
+			}
+
 			if (cwmp_ctx.acs_changed) {
 				CWMP_LOG(INFO, "%s: Schedule session with new ACS since URL changed", __func__);
 				uloop_timeout_cancel(&session_timer);

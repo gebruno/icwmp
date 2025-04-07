@@ -353,7 +353,7 @@ int main(int argc, char **argv)
 	http_server_start();
 
 	apply_allowed_cr_ip_port();
-	cwmp_ctx.conf.cr_ip_port_change = false;
+	cwmp_ctx.cr_ip_port_change = false;
 
 	uloop_run();
 	uloop_done();

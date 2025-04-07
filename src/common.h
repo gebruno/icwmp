@@ -135,7 +135,6 @@ typedef struct config {
 	bool acs_getrpc;
 	bool auto_tc_enable;
 	bool auto_cdu_enable;
-	bool cr_ip_port_change;
 	int retry_min_wait_interval;
 	int retry_interval_multiplier;
 
@@ -224,6 +223,7 @@ typedef struct cwmp {
 	struct ubus_event_handler *intf_ev;
 	bool throttle_session_triggered;
 	bool acs_changed;
+	bool cr_ip_port_change;
 	int curr_delay_reboot;
 	time_t curr_schedule_reboot;
 	char ip_acs[128];

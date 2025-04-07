@@ -697,10 +697,10 @@ int run_session_end_func(void)
 		CWMP_LOG(ERROR, "config reload failed at session end");
 	}
 
-	if (cwmp_ctx.conf.cr_ip_port_change == true) {
+	if (cwmp_ctx.cr_ip_port_change == true) {
 		CWMP_LOG(INFO, "Allowed CR IPs are changed");
 		apply_allowed_cr_ip_port();
-		cwmp_ctx.conf.cr_ip_port_change = false;
+		cwmp_ctx.cr_ip_port_change = false;
 	}
 
 	reinit_cwmp_periodic_session_feature();
