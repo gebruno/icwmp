@@ -169,7 +169,7 @@ int xml_handle_message()
 	}
 	CWMP_LOG(INFO, "SOAP RPC message: %s", c);
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
-		if (i != RPC_CPE_FAULT && c && CWMP_STRCMP(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
+		if (i != RPC_CPE_FAULT && CWMP_STRLEN(c) && CWMP_STRCMP(c, rpc_cpe_methods[i].name) == 0 && rpc_cpe_methods[i].amd <= conf->supported_amd_version) {
 			CWMP_LOG(INFO, "%s RPC is supported", c);
 			cwmp_ctx.session->rpc_cpe = build_sessin_rcp_cpe(i);
 			if (cwmp_ctx.session->rpc_cpe == NULL)
@@ -1489,7 +1489,7 @@ int cwmp_handle_rpc_cpe_get_rpc_methods(struct rpc *rpc)
 	LIST_HEAD(rpcs_list);
 
 	for (i = 1; i < __RPC_CPE_MAX; i++) {
-		if (i != RPC_CPE_FAULT) {
+		if (i != RPC_CPE_FAULT && CWMP_STRLEN(rpc_cpe_methods[i].name)) {
 			struct xml_list_data *xml_data = calloc(1, sizeof(struct xml_list_data));
 			xml_data->rpc_name = CWMP_STRDUP(rpc_cpe_methods[i].name);
 			list_add(&(xml_data->list), &rpcs_list);
