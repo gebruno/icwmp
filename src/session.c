@@ -531,9 +531,11 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 	if (session_event->event == TransferClt_Evt) {
 		struct transfer_complete *ptransfer_complete = (struct transfer_complete *)session_event->extra_data;
 		cwmp_root_cause_transfer_complete(ptransfer_complete);
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 	} else if (session_event->event == CDU_Evt) {
 		struct du_state_change_complete *pdu_state_change_complete = (struct du_state_change_complete *)session_event->extra_data;
 		cwmp_root_cause_changedustate_complete(pdu_state_change_complete);
+#endif
 	} else if (session_event->event == Schedule_Inform_Evt) {
 		struct schedule_inform *schedule_inform = (struct schedule_inform *)session_event->extra_data;
 		cwmp_root_cause_schedule_inform(schedule_inform);
@@ -546,9 +548,11 @@ void cwmp_schedule_session_with_event(struct uloop_timeout *timeout)
 	} else if (session_event->event == EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE) {
 		auto_transfer_complete *auto_trnsfr_complete = (auto_transfer_complete *)session_event->extra_data;
 		cwmp_root_cause_autonomous_transfer_complete(auto_trnsfr_complete);
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 	} else if (session_event->event == EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE) {
 		auto_du_state_change_compl *data = (auto_du_state_change_compl *)session_event->extra_data;
 		cwmp_root_cause_autonomous_cdu_complete(data);
+#endif
 	} else if (session_event->event >= 0) {
 		struct event_container *event_container = NULL;
 		event_container = cwmp_add_event_container(session_event->event, "");
@@ -781,10 +785,12 @@ int run_session_end_func(void)
 		apply_schedule_inform();
 	}
 
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 	if (end_session_flag & END_SESSION_CDU) {
 		CWMP_LOG(INFO, "Apply CDU Calls");
 		apply_change_du_state();
 	}
+#endif
 
 	if (cwmp_ctx.heart_session) {
 		uloop_timeout_cancel(&heartbeat_session_timer);

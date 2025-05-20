@@ -75,8 +75,10 @@ int cwmp_get_int_event_code(const char *code);
 bool event_exist_in_list(int event);
 int cwmp_root_cause_events(void);
 int cwmp_root_cause_transfer_complete(struct transfer_complete *p);
-int cwmp_root_cause_changedustate_complete(struct du_state_change_complete *p);
 int cwmp_root_cause_schedule_inform(struct schedule_inform *schedule_inform);
-int cwmp_root_cause_autonomous_cdu_complete(auto_du_state_change_compl *p);
 int cwmp_root_cause_autonomous_transfer_complete(auto_transfer_complete *p);
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
+int cwmp_root_cause_changedustate_complete(struct du_state_change_complete *p);
+int cwmp_root_cause_autonomous_cdu_complete(auto_du_state_change_compl *p);
+#endif // ICWMP_ENABLE_SMM_SUPPORT
 #endif /* SRC_INC_EVENT_H_ */

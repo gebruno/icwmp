@@ -46,16 +46,18 @@ static int cancel_transfer(char *key);
 static int cwmp_handle_rpc_cpe_cancel_transfer(struct rpc *rpc);
 static int cwmp_handle_rpc_cpe_schedule_inform(struct rpc *rpc);
 static int cwmp_handle_rpc_cpe_schedule_download(struct rpc *rpc);
-static int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc);
 static int cwmp_handle_rpc_cpe_fault(struct rpc *rpc);
 static int cwmp_create_fault_message(struct rpc *rpc_cpe, int fault_code, const char *fault_msg);
 static int cwmp_rpc_acs_parse_response_inform(struct rpc *rpc);
 static int cwmp_rpc_acs_parse_response_get_rpc_methods(struct rpc *this);
 static int cwmp_rpc_acs_prepare_get_rpc_methods(struct rpc *rpc);
 static int cwmp_rpc_acs_prepare_transfer_complete(struct rpc *rpc);
+static int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc);
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
+static int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc);
 static int cwmp_rpc_acs_prepare_du_state_change_complete(struct rpc *rpc);
 static int cwmp_rpc_acs_prepare_autonomous_du_state_change_complete(struct rpc *rpc);
-static int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc);
+#endif
 
 struct cwmp_namespaces ns;
 const struct rpc_cpe_method rpc_cpe_methods[] = {
@@ -74,7 +76,9 @@ const struct rpc_cpe_method rpc_cpe_methods[] = {
 		[RPC_CPE_CANCEL_TRANSFER] = { "CancelTransfer", cwmp_handle_rpc_cpe_cancel_transfer, AMD_3 },
 		[RPC_CPE_SCHEDULE_INFORM] = { "ScheduleInform", cwmp_handle_rpc_cpe_schedule_inform, AMD_1 },
 		[RPC_CPE_SCHEDULE_DOWNLOAD] = { "ScheduleDownload", cwmp_handle_rpc_cpe_schedule_download, AMD_3 },
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 		[RPC_CPE_CHANGE_DU_STATE] = { "ChangeDUState", cwmp_handle_rpc_cpe_change_du_state, AMD_3 },
+#endif
 		[RPC_CPE_X_FACTORY_RESET_SOFT] = { "X_FactoryResetSoft", cwmp_handle_rpc_cpe_x_factory_reset_soft, AMD_1 },
 		[RPC_CPE_FAULT] = { "Fault", cwmp_handle_rpc_cpe_fault, AMD_1 }
 };
@@ -84,8 +88,10 @@ struct rpc_acs_method rpc_acs_methods[] = {
 		[RPC_ACS_GET_RPC_METHODS] = { "GetRPCMethods", cwmp_rpc_acs_prepare_get_rpc_methods, cwmp_rpc_acs_parse_response_get_rpc_methods, NULL, NOT_KNOWN },
 		[RPC_ACS_TRANSFER_COMPLETE] = { "TransferComplete", cwmp_rpc_acs_prepare_transfer_complete, NULL, cwmp_rpc_acs_destroy_data_transfer_complete, NOT_KNOWN },
 		[RPC_ACS_AUTONOMOUS_TRANSFER_COMPLETE] = { "AutonomousTransferComplete", cwmp_rpc_acs_prepare_autonomous_transfer_complete, NULL, cwmp_rpc_acs_destroy_data_autonomous_transfer_complete, NOT_KNOWN },
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 		[RPC_ACS_DU_STATE_CHANGE_COMPLETE] = { "DUStateChangeComplete", cwmp_rpc_acs_prepare_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_du_state_change_complete, NOT_KNOWN },
 		[RPC_ACS_AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "AutonomousDUStateChangeComplete", cwmp_rpc_acs_prepare_autonomous_du_state_change_complete, NULL, cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete, NOT_KNOWN }
+#endif
 };
 
 static char *forced_inform_parameters[] = {
@@ -751,6 +757,9 @@ int cwmp_rpc_acs_prepare_autonomous_transfer_complete(struct rpc *rpc)
 error:
 	return -1;
 }
+
+
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 /*
  * [RPC ACS]: DUStateChangeComplete
  */
@@ -851,6 +860,8 @@ int cwmp_rpc_acs_prepare_autonomous_du_state_change_complete(struct rpc *rpc)
 error:
 	return -1;
 }
+
+#endif
 
 /*
  * [RPC CPE]: GetParameterValues
@@ -1793,6 +1804,7 @@ fault:
 /*
  * [RPC CPE]: ChangeDuState
  */
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 {
 	mxml_node_t *n, *t;
@@ -1871,6 +1883,7 @@ fault:
 error:
 	return -1;
 }
+#endif
 
 /*
  * [RPC CPE]: Download

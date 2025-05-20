@@ -591,6 +591,7 @@ static void load_upload(mxml_node_t *tree)
 	cwmp_set_end_session(END_SESSION_UPLOAD);
 }
 
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 static void load_change_du_state(mxml_node_t *tree)
 {
 	if (tree == NULL) {
@@ -630,27 +631,6 @@ void load_du_state_change_complete(mxml_node_t *tree)
 	cwmp_root_cause_changedustate_complete(du_state_change_complete_request);
 }
 
-static void load_transfer_complete(mxml_node_t *tree)
-{
-	struct transfer_complete *ptransfer_complete;
-
-	ptransfer_complete = calloc(1, sizeof(struct transfer_complete));
-
-	struct xml_data_struct bkp_xml_transfer_complete = {0};
-	bkp_xml_transfer_complete.command_key = &ptransfer_complete->command_key;
-	bkp_xml_transfer_complete.start_time = &ptransfer_complete->start_time;
-	bkp_xml_transfer_complete.complete_time = &ptransfer_complete->complete_time;
-	bkp_xml_transfer_complete.old_software_version = &ptransfer_complete->old_software_version;
-	bkp_xml_transfer_complete.fault_code = &ptransfer_complete->fault_code;
-	bkp_xml_transfer_complete.fault_string = &ptransfer_complete->fault_string;
-	bkp_xml_transfer_complete.type = &ptransfer_complete->type;
-
-	load_xml_node_data(BKP_TRANSFER_COMPLETE, tree, &bkp_xml_transfer_complete);
-
-	cwmp_root_cause_transfer_complete(ptransfer_complete);
-	sotfware_version_value_change(ptransfer_complete);
-}
-
 static void load_autonomous_du_state_change_complete(mxml_node_t *tree)
 {
 	auto_du_state_change_compl *p;
@@ -671,6 +651,28 @@ static void load_autonomous_du_state_change_complete(mxml_node_t *tree)
 	load_xml_node_data(BKP_AUTO_CDU, tree, &bkp_xml_auto_change_complete);
 
 	cwmp_root_cause_autonomous_cdu_complete(p);
+}
+#endif
+
+static void load_transfer_complete(mxml_node_t *tree)
+{
+	struct transfer_complete *ptransfer_complete;
+
+	ptransfer_complete = calloc(1, sizeof(struct transfer_complete));
+
+	struct xml_data_struct bkp_xml_transfer_complete = {0};
+	bkp_xml_transfer_complete.command_key = &ptransfer_complete->command_key;
+	bkp_xml_transfer_complete.start_time = &ptransfer_complete->start_time;
+	bkp_xml_transfer_complete.complete_time = &ptransfer_complete->complete_time;
+	bkp_xml_transfer_complete.old_software_version = &ptransfer_complete->old_software_version;
+	bkp_xml_transfer_complete.fault_code = &ptransfer_complete->fault_code;
+	bkp_xml_transfer_complete.fault_string = &ptransfer_complete->fault_string;
+	bkp_xml_transfer_complete.type = &ptransfer_complete->type;
+
+	load_xml_node_data(BKP_TRANSFER_COMPLETE, tree, &bkp_xml_transfer_complete);
+
+	cwmp_root_cause_transfer_complete(ptransfer_complete);
+	sotfware_version_value_change(ptransfer_complete);
 }
 
 static void load_autonomous_transfer_complete(mxml_node_t *tree)
@@ -739,14 +741,16 @@ int cwmp_load_saved_session(char **ret, enum backup_loading load)
 				load_transfer_complete(b);
 			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "schedule_inform") == 0) {
 				load_schedule_inform(b);
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "change_du_state") == 0) {
 				load_change_du_state(b);
 			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "du_state_change_complete") == 0) {
 				load_du_state_change_complete(b);
-			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "schedule_download") == 0) {
-				load_schedule_download(b);
 			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "autonomous_du_state_change_complete") == 0) {
 				load_autonomous_du_state_change_complete(b);
+#endif
+			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "schedule_download") == 0) {
+				load_schedule_download(b);
 			} else if (ntype == MXML_ELEMENT && CWMP_STRCMP(elem_name, "autonomous_transfer_complete") == 0) {
 				load_autonomous_transfer_complete(b);
 			}

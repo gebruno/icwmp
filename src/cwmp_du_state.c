@@ -9,6 +9,7 @@
  *
  */
 
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 #include <libubox/blobmsg_json.h>
 #include <stdlib.h>
 #include <regex.h>
@@ -804,3 +805,4 @@ void clean_du_uuid_list(void)
 		free(tmp);
 	}
 }
+#endif

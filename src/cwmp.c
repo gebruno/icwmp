@@ -272,7 +272,9 @@ void cwmp_exit()
 	uloop_timeout_cancel(&heartbeat_session_timer);
 	clean_autonomous_complpolicy();
 	clean_interface_update();
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 	clean_du_uuid_list();
+#endif
 	clean_force_inform_list();
 	FREE(cwmp_ctx.ev);
 	FREE(cwmp_ctx.intf_ev);

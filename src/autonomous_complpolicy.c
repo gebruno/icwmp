@@ -31,8 +31,10 @@ struct autonomous_event {
 	char name[2048];
 };
 
-static void free_autonomous_du_state_change_complete_data(auto_du_state_change_compl *p);
 static void free_autonomous_transfer_complete_data(auto_transfer_complete *p);
+
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
+static void free_autonomous_du_state_change_complete_data(auto_du_state_change_compl *p);
 
 static bool validate_du_state_change_data(auto_du_state_change_compl *data)
 {
@@ -173,6 +175,7 @@ static void send_du_state_change_notif(struct blob_attr *msg)
 		}
 	}
 }
+#endif
 
 bool validate_transfer_complete_data(auto_transfer_complete *data)
 {
@@ -283,7 +286,9 @@ static void send_transfer_complete_notif(struct blob_attr *msg)
 }
 
 static struct autonomous_event event_info[] = {
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 	{ send_du_state_change_notif, "Device.SoftwareModules.DUStateChange!" },
+#endif
 	{ send_transfer_complete_notif, "Device.LocalAgent.TransferComplete!" }
 };
 
@@ -323,6 +328,7 @@ void autonomous_notification_handler(struct ubus_context *ctx __attribute__((unu
 	}
 }
 
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 void free_autonomous_du_state_change_complete_data(auto_du_state_change_compl *p)
 {
 	if (p == NULL)
@@ -336,6 +342,7 @@ void free_autonomous_du_state_change_complete_data(auto_du_state_change_compl *p
 	FREE(p->operation);
 	FREE(p);
 }
+#endif
 
 void free_autonomous_transfer_complete_data(auto_transfer_complete *p)
 {
@@ -350,6 +357,8 @@ void free_autonomous_transfer_complete_data(auto_transfer_complete *p)
 	FREE(p->target_file_name);
 	FREE(p);
 }
+
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 int cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete(struct rpc *rpc)
 {
 	if (rpc == NULL)
@@ -363,6 +372,7 @@ int cwmp_rpc_acs_destroy_data_autonomous_du_state_change_complete(struct rpc *rp
 
 	return 0;
 }
+#endif
 
 int cwmp_rpc_acs_destroy_data_autonomous_transfer_complete(struct rpc *rpc)
 {

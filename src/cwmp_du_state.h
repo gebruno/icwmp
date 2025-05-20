@@ -12,6 +12,7 @@
 #ifndef CWMP_DU_STATE_H
 #define CWMP_DU_STATE_H
 
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 #include "common.h"
 
 #define CDU_TIMEOUT 86400 //24 hours
@@ -25,4 +26,6 @@ void apply_change_du_state();
 void remove_node_from_uuid_list(const char *uuid, const char *operation);
 bool exists_in_uuid_list(char *uuid, char *operation);
 void clean_du_uuid_list(void);
+#endif // ICWMP_ENABLE_SMM_SUPPORT
+
 #endif

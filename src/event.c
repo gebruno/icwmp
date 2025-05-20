@@ -35,8 +35,10 @@ const struct EVENT_CONST_STRUCT EVENT_CONST[] = {
 		[EVENT_IDX_8DIAGNOSTICS_COMPLETE] = { "8 DIAGNOSTICS COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL },
 		[EVENT_IDX_9REQUEST_DOWNLOAD] = { "9 REQUEST DOWNLOAD", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 		[EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE] = { "10 AUTONOMOUS TRANSFER COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 		[EVENT_IDX_11DU_STATE_CHANGE_COMPLETE] = { "11 DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 		[EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE] = { "12 AUTONOMOUS DU STATE CHANGE COMPLETE", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+#endif
 		[EVENT_IDX_13WAKEUP] = { "13 WAKEUP", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 		[EVENT_IDX_14HEARTBEAT] = { "14 HEARTBEAT", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 		[EVENT_IDX_M_Reboot] = { "M Reboot", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
@@ -44,7 +46,9 @@ const struct EVENT_CONST_STRUCT EVENT_CONST[] = {
 		[EVENT_IDX_M_Download] = { "M Download", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 		[EVENT_IDX_M_Schedule_Download] = { "M ScheduleDownload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
 		[EVENT_IDX_M_Upload] = { "M Upload", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT },
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 		[EVENT_IDX_M_ChangeDUState] = { "M ChangeDUState", EVENT_RETRY_AFTER_TRANSMIT_FAIL | EVENT_RETRY_AFTER_REBOOT }
+#endif
 };
 
 void cwmp_save_event_container(struct event_container *event_container)
@@ -178,6 +182,7 @@ int cwmp_root_cause_transfer_complete(struct transfer_complete *p)
 	return CWMP_OK;
 }
 
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 int cwmp_root_cause_autonomous_cdu_complete(auto_du_state_change_compl *p)
 {
 	struct event_container *event_container;
@@ -196,6 +201,7 @@ int cwmp_root_cause_autonomous_cdu_complete(auto_du_state_change_compl *p)
 	rpc_acs->extra_data = (void *)p;
 	return CWMP_OK;
 }
+#endif
 
 int cwmp_root_cause_autonomous_transfer_complete(auto_transfer_complete *p)
 {
@@ -216,6 +222,7 @@ int cwmp_root_cause_autonomous_transfer_complete(auto_transfer_complete *p)
 	return CWMP_OK;
 }
 
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 int cwmp_root_cause_changedustate_complete(struct du_state_change_complete *p)
 {
 	struct event_container *event_container;
@@ -241,6 +248,7 @@ int cwmp_root_cause_changedustate_complete(struct du_state_change_complete *p)
 	rpc_acs->extra_data = (void *)p;
 	return CWMP_OK;
 }
+#endif
 
 int cwmp_root_cause_schedule_inform(struct schedule_inform *schedule_inform)
 {
@@ -411,12 +419,13 @@ int cwmp_get_int_event_code(const char *code)
 
 	else if (CWMP_STRNCMP(code, "10", 2) == 0)
 		return EVENT_IDX_10AUTONOMOUS_TRANSFER_COMPLETE;
-
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 	else if (CWMP_STRNCMP(code, "11", 2) == 0)
 		return EVENT_IDX_11DU_STATE_CHANGE_COMPLETE;
 
 	else if (CWMP_STRNCMP(code, "12", 2) == 0)
 		return EVENT_IDX_12AUTONOMOUS_DU_STATE_CHANGE_COMPLETE;
+#endif
 
 	else if (CWMP_STRNCMP(code, "13", 2) == 0)
 		return EVENT_IDX_13WAKEUP;
@@ -439,8 +448,10 @@ int cwmp_get_int_event_code(const char *code)
 	else if (CWMP_STRCMP(code, "M Upload") == 0)
 		return EVENT_IDX_M_Upload;
 
+#ifdef ICWMP_ENABLE_SMM_SUPPORT
 	else if (CWMP_STRCMP(code, "M ChangeDUState") == 0)
 		return EVENT_IDX_M_ChangeDUState;
+#endif
 
 	else
 		return EVENT_IDX_6CONNECTION_REQUEST;
