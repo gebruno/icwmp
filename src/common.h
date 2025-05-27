@@ -501,10 +501,10 @@ typedef struct timeinterval {
 
 typedef struct change_du_state {
 	struct list_head list;
+	struct list_head list_operation;
 	struct uloop_timeout handler_timer;
 	time_t timeout;
 	char *command_key;
-	struct list_head list_operation;
 	int id;
 } change_du_state;
 
