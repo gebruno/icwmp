@@ -626,7 +626,7 @@ void load_du_state_change_complete(mxml_node_t *tree)
 	bkp_xml_cdu_complete.time = (int *)&du_state_change_complete_request->timeout;
 	bkp_xml_cdu_complete.id = &du_state_change_complete_request->id;
 	bkp_xml_cdu_complete.cdu_complete = du_state_change_complete_request;
-	load_xml_node_data(BKP_CDU_COMPLETE, tree, &bkp_xml_cdu_complete);
+	load_xml_node_data(BKP_CDU_COMPLETE_LOAD, tree, &bkp_xml_cdu_complete);
 
 	cwmp_root_cause_changedustate_complete(du_state_change_complete_request);
 }

@@ -44,6 +44,7 @@ static int build_inform_events(mxml_node_t *b, struct xml_data_struct *xml_attrs
 static int build_inform_env_header(mxml_node_t *b, struct xml_data_struct *xml_attrs);
 static int build_parameter_structure(mxml_node_t *param_list, struct xml_data_struct *xml_attrs);
 static int build_backup_cdu_option(mxml_node_t *cdu, struct xml_data_struct *xml_attrs);
+static int build_cdu_complete_backup_operation(mxml_node_t *cdu, struct xml_data_struct *xml_attrs);
 static int get_soap_enc_array_type(mxml_node_t *node, struct xml_data_struct *xml_attrs);
 static char *get_xml_node_name_switch(char *node_name);
 static char *get_xml_node_name_by_switch_name(const char *switch_node_name);
@@ -148,11 +149,14 @@ struct xml_node_data xml_nodes_data[] = {
 		[BKP_CDU_OPS_REF] = {XML_LIST, BKP_CDU_OPTION, NULL, {}},
 		[BKP_CDU_OPTION] = {XML_SINGLE, 0, NULL, {{NULL, XML_FUNC, 0, build_backup_cdu_option}}},
 		[BKP_CDU] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}, {"update", XML_FUNC, 0, load_cdu_backup_operation}, {"install", XML_FUNC, 0, load_cdu_backup_operation}, {"uninstall", XML_FUNC, 0, load_cdu_backup_operation}}},
-		[BKP_CDU_UPDATE] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"URL", XML_STRING, 0, NULL}, {"Username", XML_STRING, 0, NULL}, {"Password", XML_INTEGER, 0, NULL}}},
-		[BKP_CDU_INSTALL] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"ExecutionEnvRef", XML_STRING, XML_SWITCH, NULL}, {"URL", XML_STRING, XML_SWITCH, NULL}, {"Username", XML_STRING, XML_SWITCH, NULL}, {"Password", XML_INTEGER, XML_SWITCH, NULL}}},
+		[BKP_CDU_UPDATE] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"URL", XML_STRING, 0, NULL}, {"Username", XML_STRING, 0, NULL}, {"Password", XML_STRING, 0, NULL}}},
+		[BKP_CDU_INSTALL] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"ExecutionEnvRef", XML_STRING, XML_SWITCH, NULL}, {"URL", XML_STRING, XML_SWITCH, NULL}, {"Username", XML_STRING, XML_SWITCH, NULL}, {"Password", XML_STRING, XML_SWITCH, NULL}}},
 		[BKP_CDU_UNINSTALL] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"ExecutionEnvRef", XML_STRING, XML_SWITCH, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}}},
 		[BKP_CDU_COMPLETE_BUILD] = {XML_SINGLE, 0, NULL, {{"du_state_change_complete", XML_REC, BKP_CDU_COMPLETE, NULL}}},
-		[BKP_CDU_COMPLETE] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}, {"opresult", XML_FUNC, 0, load_cdu_complete_backup_operation}}},
+		[BKP_CDU_COMPLETE] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}, {NULL, XML_REC, BKP_CDU_OPRES_REF, NULL}}},
+		[BKP_CDU_OPRES_REF] = {XML_LIST, BKP_CDU_OPRES_OPTION, NULL, {}},
+		[BKP_CDU_OPRES_OPTION] = {XML_SINGLE, 0, NULL, {{NULL, XML_FUNC, 0, build_cdu_complete_backup_operation}}},
+		[BKP_CDU_COMPLETE_LOAD] = {XML_SINGLE, 0, NULL, {{"id", XML_INTEGER, 0, NULL}, {"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"time", XML_INTEGER, 0, NULL}, {"opresult", XML_FUNC, 0, load_cdu_complete_backup_operation}}},
 		[BKP_CDU_COMPLETE_OPRES] = {XML_SINGLE, 0, NULL, {{"UUID", XML_STRING, XML_SWITCH, NULL}, {"execution_unit_ref", XML_STRING, 0, NULL}, {"Version", XML_STRING, XML_SWITCH, NULL}, {"CurrentState", XML_STRING, XML_SWITCH, NULL}, {"Resolved", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"FaultString", XML_STRING, XML_SWITCH, NULL}}},
 		[BKP_TRANSFER_COMPLETE_BUILD] = {XML_SINGLE, 0, NULL, {{"transfer_complete", XML_REC, BKP_TRANSFER_COMPLETE, NULL}}},
 		[BKP_TRANSFER_COMPLETE] = {XML_SINGLE, 0, NULL, {{"CommandKey", XML_STRING, XML_SWITCH, NULL}, {"StartTime", XML_STRING, XML_SWITCH, NULL}, {"CompleteTime", XML_STRING, XML_SWITCH, NULL}, {"old_software_version", XML_STRING, 0, NULL}, {"FaultCode", XML_INTEGER, XML_SWITCH, NULL}, {"FaultString", XML_STRING, XML_SWITCH, NULL}, {"type", XML_LINTEGER, 0, NULL}}},
@@ -480,6 +484,9 @@ int load_cdu_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 		return FAULT_CPE_INTERNAL_ERROR;
 
 	struct operations *operat =  (operations *)calloc(1, sizeof(operations));
+	if (operat == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
+
 	list_add_tail(&(operat->list), &(xml_attrs->cdu->list_operation));
 	const char *element = mxmlGetElement(b);
 
@@ -503,12 +510,18 @@ int load_cdu_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 	return fault;
 }
 
+
 int load_cdu_complete_backup_operation(mxml_node_t *b, struct xml_data_struct *xml_attrs)
 {
 	if (b == NULL)
 		return FAULT_CPE_INTERNAL_ERROR;
+
 	struct opresult *elem = (opresult *)calloc(1, sizeof(opresult));
+	if (elem == NULL)
+		return FAULT_CPE_INTERNAL_ERROR;
+
 	list_add_tail(&(elem->list), &(xml_attrs->cdu_complete->list_opresult));
+
 	struct xml_data_struct opresult_bkp = {0};
 	opresult_bkp.uuid = &elem->uuid;
 	opresult_bkp.version = &elem->version;
@@ -519,6 +532,7 @@ int load_cdu_complete_backup_operation(mxml_node_t *b, struct xml_data_struct *x
 	opresult_bkp.complete_time = &elem->complete_time;
 	opresult_bkp.fault_code = &elem->fault;
 	opresult_bkp.exec_unit_ref = &elem->execution_unit_ref;
+
 	int fault = load_xml_node_data(BKP_CDU_COMPLETE_OPRES, b, &opresult_bkp);
 	return fault;
 }
@@ -697,6 +711,14 @@ int build_backup_cdu_option(mxml_node_t *cdu, struct xml_data_struct *xml_attrs)
 	}
 	return FAULT_CPE_INTERNAL_ERROR;
 }
+
+int build_cdu_complete_backup_operation(mxml_node_t *cdu, struct xml_data_struct *xml_attrs)
+{
+	mxml_node_t *cdu_opt = NULL;
+	cdu_opt = mxmlNewElement(cdu, "opresult");
+	return build_xml_node_data(BKP_CDU_COMPLETE_OPRES, cdu_opt, xml_attrs);
+}
+
 int get_soap_enc_array_type(mxml_node_t *node __attribute__((unused)), struct xml_data_struct *xml_attrs)
 {
 	if (xml_attrs->soap_enc_array_type == NULL)
@@ -1084,6 +1106,8 @@ void xml_data_list_to_cdu_operations_list(struct list_head *xml_data_list, struc
 	list_for_each_entry (xml_data, xml_data_list, list) {
 		struct operations *operation;
 		operation = calloc(1, sizeof(struct operations));
+
+		INIT_LIST_HEAD(&operation->list);
 		list_add_tail(&operation->list, cdu_operations_list);
 		operation->url = strdup(xml_data->url ? xml_data->url : "");
 		operation->uuid = strdup(xml_data->uuid ? xml_data->uuid : "");
@@ -1109,6 +1133,7 @@ void cdu_operations_result_list_to_xml_data_list(struct list_head *du_op_res_lis
 		xml_data->complete_time = strdup(du_op_res_data->complete_time ? du_op_res_data->complete_time : "");
 		xml_data->fault_code = du_op_res_data->fault ? (int)strtol(FAULT_CPE_ARRAY[du_op_res_data->fault].CODE, NULL, 10) : 0;
 		xml_data->fault_string = du_op_res_data->fault_msg ? strdup(du_op_res_data->fault_msg) : strdup("");
+		xml_data->resolved = du_op_res_data->resolved;
 	}
 }
 
@@ -1117,9 +1142,10 @@ void cdu_operations_list_to_xml_data_list(struct list_head *du_op_list, struct l
 	struct operations *du_opt_data = NULL;
 	list_for_each_entry (du_opt_data, du_op_list, list) {
 		struct xml_list_data *xml_data =  calloc(1, sizeof(struct xml_list_data));
+		INIT_LIST_HEAD(&xml_data->list);
 		list_add_tail(&xml_data->list, xml_data_list);
 		xml_data->uuid = strdup(du_opt_data->uuid ? du_opt_data->uuid : "");
-		xml_data->du_ref = strdup(du_opt_data->url ? du_opt_data->url : "");
+		xml_data->url = strdup(du_opt_data->url ? du_opt_data->url : "");
 		xml_data->username = strdup(du_opt_data->username ? du_opt_data->username : "");
 		xml_data->password = strdup(du_opt_data->password ? du_opt_data->password : "");
 		xml_data->execution_env_ref = strdup(du_opt_data->executionenvref ? du_opt_data->executionenvref : "");
@@ -1293,12 +1319,18 @@ int build_xml_list_node_data(int node_ref, mxml_node_t *node, struct xml_data_st
 			xml_ref_data.access_list = &xml_data->access_list;
 			xml_ref_data.fault_string = &xml_data->fault_string;
 			xml_ref_data.fault_code = &xml_data->fault_code;
+			xml_ref_data.resolved = &xml_data->resolved;
 			xml_ref_data.current_state = &xml_data->current_state;
+			xml_ref_data.url = &xml_data->url;
 			xml_ref_data.du_ref = &xml_data->du_ref;
 			xml_ref_data.uuid = &xml_data->uuid;
 			xml_ref_data.version = &xml_data->version;
 			xml_ref_data.start_time = &xml_data->start_time;
 			xml_ref_data.complete_time = &xml_data->complete_time;
+			xml_ref_data.cdu_type = &xml_data->cdu_type;
+			xml_ref_data.username = &xml_data->username;
+			xml_ref_data.password = &xml_data->password;
+			xml_ref_data.exec_env_ref = &xml_data->execution_env_ref;
 			xml_ref_data.rpc_enum = xml_attrs->rpc_enum;
 			xml_ref_data.counter = xml_attrs->counter;
 

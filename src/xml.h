@@ -105,6 +105,9 @@ enum xml_nodes_references {
 	BKP_CDU_UNINSTALL,
 	BKP_CDU_COMPLETE_BUILD,
 	BKP_CDU_COMPLETE,
+	BKP_CDU_OPRES_REF,
+	BKP_CDU_OPRES_OPTION,
+	BKP_CDU_COMPLETE_LOAD,
 	BKP_CDU_COMPLETE_OPRES,
 	BKP_TRANSFER_COMPLETE_BUILD,
 	BKP_TRANSFER_COMPLETE,
@@ -280,6 +283,7 @@ struct xml_list_data {
 	int event_code;
 	bool notification_change;
 	bool writable;
+	bool resolved;
 };
 
 struct xml_tag {

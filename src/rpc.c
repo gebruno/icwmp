@@ -1834,6 +1834,7 @@ int cwmp_handle_rpc_cpe_change_du_state(struct rpc *rpc)
 	}
 
 	INIT_LIST_HEAD(&(change_du_state->list_operation));
+	INIT_LIST_HEAD(&(change_du_state->list));
 	change_du_state->timeout = time(NULL);
 
 	LIST_HEAD(xml_list_operations);
