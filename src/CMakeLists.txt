@@ -11,7 +11,7 @@ FILE(GLOB ICWMP_SOURCES *.c)
 
 # Compile and install icwmpd
 ADD_EXECUTABLE(icwmpd ${ICWMP_SOURCES})
-TARGET_LINK_LIBRARIES(icwmpd pthread z m json-c uci ubox ubus blobmsg_json curl mxml uuid)
+TARGET_LINK_LIBRARIES(icwmpd pthread z m json-c uci ubox ubus blobmsg_json curl mxml uuid mbedcrypto)
 INSTALL(FILES icwmpd PERMISSIONS OWNER_EXECUTE DESTINATION usr/sbin)
 INSTALL(DIRECTORY DESTINATION etc/icwmpd)
 INSTALL(DIRECTORY DESTINATION var/run/icwmpd)
